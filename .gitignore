@@ -1,0 +1,97 @@
+# Dependencies
+node_modules/
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Build outputs
+dist/
+dist-verify/
+build/
+*.egg-info/
+.next/
+
+# TypeScript incremental build info (generated, never tracked)
+*.tsbuildinfo
+**/*.tsbuildinfo
+
+# Cache directories
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+.cache/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Bundle signing keys — the private key must never be committed (public.key IS pinned)
+private.key
+*.private.key
+
+# Generated dev assets (regenerate with apps/web/scripts/setup-dev-assets.sh).
+# Large/derived — kept out of the repo to stay lean.
+backend/keys/
+backend/origin/
+
+# PRODUCTION bundle signing keys + signed origin for almamesh.com — NEVER
+# committed. The private key is the single ed25519 key installed clients pin;
+# losing it breaks bundle updates for them. Custody + backup rules:
+# docs/deploy/almamesh-com.md
+backend/keys-prod/
+backend/origin-prod/
+frontend/apps/web/public/pyodide/
+frontend/apps/web/public/bundle/
+frontend/apps/web/public/public.key
+
+# CI checks private sibling deps out here (edge-proc, shared-libs-python)
+.deps/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test artifacts
+coverage/
+.coverage
+htmlcov/
+.nyc_output/
+
+# Playwright
+playwright-report/
+test-results/
+
+# wrangler scratch dir (wrangler pages dev — see docs/deploy/almamesh-com.md)
+.wrangler/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Serena
+.serena/
+
+# Local symlinks to private sibling repos (not part of the public tree)
+.claude/oss/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Claude Code session scratch
+docs/superpowers/
+
+# Skyfield ephemeris (downloaded at runtime, ~17MB)
+*.bsp

@@ -1,0 +1,84 @@
+[project]
+name = "almamesh"
+version = "0.1.0"
+description = "Local-first Vedic astrology engine — offline, no account, no API key"
+license = "MIT"
+requires-python = ">=3.13"
+dependencies = [
+    # Data
+    "pydantic>=2.10.0",
+    "pydantic-settings>=2.6.0",
+    # Astronomy (Skyfield over public-domain JPL ephemerides; no AGPL swisseph)
+    "skyfield>=1.49",
+    # Utils
+    "httpx>=0.28.0",
+    "python-dateutil>=2.9.0",
+    "pytz>=2024.2",
+    "python-dotenv>=1.0.0",
+    # YAML loading for the predictive rule packs (src/almamesh/rules/*.yaml).
+    "pyyaml>=6.0.2",
+    "types-pyyaml>=6.0.12.20250915",
+    # Local-first substrate: signed content-addressed bundle delivery + the
+    # Task/Runtime/Router core. Only [bundles] — no FAISS/vector extras needed.
+    "edge-proc[bundles]>=0.1.0",
+    # Bundle-publisher CLI (almamesh-bundle).
+    "typer>=0.15",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3.0",
+    "pytest-asyncio>=0.24.0",
+    "pytest-cov>=4.1.0",
+    "ruff>=0.8.0",
+    "mypy>=1.13.0",
+]
+
+[project.scripts]
+almamesh-chart = "almamesh.edge.cli:main"
+almamesh-bundle = "almamesh.edge.publish_cli:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+# In-repo vendored sources for the unpublished edge-proc substrate and its
+# shared-libs-python dependency — a single clone builds with no private
+# siblings. Provenance + re-vendor policy: backend/vendor/*/VENDORED.md.
+# TODO(publish): replace with PyPI versions once edge-proc is released.
+[tool.uv.sources]
+edge-proc = { path = "vendor/edge-proc", editable = true }
+shared-libs-python = { path = "vendor/shared-libs-python", editable = true }
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
+pythonpath = ["src"]
+markers = [
+    "integration: marks tests as integration tests (require external services)",
+]
+filterwarnings = [
+    # Ignore numpy deprecation warning from pydantic (external library issue)
+    "ignore:In future, it will be an error for 'np.bool' scalars:DeprecationWarning",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+# Vendored upstream packages keep their upstream style/config — never
+# reformat or lint them with this project's rules (see vendor/*/VENDORED.md).
+exclude = ["vendor"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+ignore_missing_imports = true
+
+[dependency-groups]
+dev = [
+    "astropy>=7.2.0",
+]

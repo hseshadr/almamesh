@@ -1,0 +1,247 @@
+// Engine facts -> a compact, deterministic, human-readable summary.
+//
+// This is the single source the chat prompt injects in place of a raw chart JSON
+// dump: smaller on the wire (cheaper, faster) and easier for a model to ground
+// on. Every value is the engine's OWN number read straight from the already-
+// `SanitizedChart` (identifier-free by construction) — NO new astrology math, NO
+// derived positions. The model narrates from these lines; it never recomputes.
+
+import type { PlanetPosition } from "@almamesh/browser/types";
+import { buildPredictiveFactsBlock } from "./predictive-facts";
+import type {
+  SanitizedChart,
+  SanitizedCurrentPeriod,
+  SanitizedDashas,
+  SanitizedDatedPeriod,
+} from "./sanitize";
+
+/** One planet's line: "Mars — Capricorn (10th house), exalted, retrograde". */
+function planetLine(planet: PlanetPosition): string {
+  const parts = [`${planet.sign} (${planet.house}th house)`];
+  if (planet.dignity && planet.dignity !== "neutral") {
+    parts.push(planet.dignity);
+  }
+  if (planet.is_retrograde) {
+    parts.push("retrograde");
+  }
+  if (planet.is_combust) {
+    parts.push("combust");
+  }
+  return `- ${planet.name}: ${parts.join(", ")}`;
+}
+
+/** The planet block: one line per graha, in the chart's own key order. */
+function planetBlock(chart: SanitizedChart): string {
+  const lines = Object.values(chart.planets).map(planetLine);
+  return ["Planets:", ...lines].join("\n");
+}
+
+/** One planet's lordship entry, e.g. "saturn rules 10,11 (yogakaraka)", or "". */
+function lordshipEntry(planet: PlanetPosition): string {
+  // `houses_ruled` / `is_yogakaraka` are required engine fields; an empty
+  // lordship list (Rahu/Ketu) contributes no entry.
+  if (planet.houses_ruled.length === 0) {
+    return "";
+  }
+  const karaka = planet.is_yogakaraka ? " (yogakaraka)" : "";
+  return `${planet.name} rules ${planet.houses_ruled.join(",")}${karaka}`;
+}
+
+/** The compact engine-computed lordship line, or "" when the engine emits none. */
+function lordshipLine(chart: SanitizedChart): string {
+  const entries = Object.values(chart.planets)
+    .map(lordshipEntry)
+    .filter((entry) => entry !== "");
+  if (entries.length === 0) {
+    return "";
+  }
+  return `House lordships (engine-computed): ${entries.join("; ")}`;
+}
+
+/** A single dasha lord line, or "" when that level is not running. */
+function dashaLine(label: string, period: SanitizedCurrentPeriod | null): string {
+  if (!period) {
+    return "";
+  }
+  return `- ${label}: ${period.lord} (${period.months_remaining} months remaining)`;
+}
+
+/** The current Vimshottari dasha block (maha/antar/pratyantar), if present. */
+function dashaBlock(chart: SanitizedChart): string {
+  if (!chart.dashas) {
+    return "";
+  }
+  const lines = [
+    dashaLine("Mahadasha", chart.dashas.current_maha),
+    dashaLine("Antardasha", chart.dashas.current_antar),
+    dashaLine("Pratyantardasha", chart.dashas.current_pratyantar),
+  ].filter((line) => line !== "");
+  if (chart.dashas.convention) {
+    // No silent convention: state which dasha-year length built these periods.
+    lines.push(`- Dasha-year convention: ${chart.dashas.convention} (engine-declared)`);
+  }
+  return lines.length > 0 ? ["Current dasha period:", ...lines].join("\n") : "";
+}
+
+// --- engine-dated period blocks (the dasha tree). Every lord and window below
+// is read VERBATIM from the sanitizer's month-precision tree — no date math, no
+// derived periods. All of these render "" for charts without the tree, keeping
+// legacy facts output byte-identical. ---
+
+/** "lord YYYY-MM -> YYYY-MM" for one engine-dated sequence row. */
+function datedSpan(period: SanitizedDatedPeriod): string {
+  return `${period.lord} ${period.start_month} -> ${period.end_month}`;
+}
+
+/** A dated current-level line, or "" when that level carries no month window. */
+function datedCurrentLine(label: string, period: SanitizedCurrentPeriod | null): string {
+  if (!period?.start_month || !period.end_month) {
+    return "";
+  }
+  return `- ${label}: ${period.lord} ${period.start_month} -> ${period.end_month}`;
+}
+
+/** The engine-dated current stack (maha/antar/pratyantar month windows). */
+function datedCurrentBlock(chart: SanitizedChart): string {
+  if (!chart.dashas) {
+    return "";
+  }
+  const lines = [
+    datedCurrentLine("Mahadasha", chart.dashas.current_maha),
+    datedCurrentLine("Antardasha", chart.dashas.current_antar),
+    datedCurrentLine("Pratyantardasha", chart.dashas.current_pratyantar),
+  ].filter((line) => line !== "");
+  return lines.length > 0 ? ["Current period (engine-dated):", ...lines].join("\n") : "";
+}
+
+/** Rows strictly AFTER the row matching `lord` (lords are unique per sequence). */
+function rowsAfter<T extends { readonly lord: string }>(
+  rows: readonly T[],
+  lord: string | undefined,
+): readonly T[] {
+  if (lord === undefined) {
+    return [];
+  }
+  const idx = rows.findIndex((row) => row.lord === lord);
+  return idx === -1 ? [] : rows.slice(idx + 1);
+}
+
+/** The remaining antardashas of the current maha, or "" without tree/anchor. */
+function remainingAntarsLine(dashas: SanitizedDashas): string {
+  const mahaLord = dashas.current_maha?.lord;
+  const mahaRow = dashas.maha_dasha_sequence.find((row) => row.lord === mahaLord);
+  const remaining = rowsAfter(mahaRow?.antar_sequence ?? [], dashas.current_antar?.lord);
+  if (mahaLord === undefined || remaining.length === 0) {
+    return "";
+  }
+  const spans = remaining.map(datedSpan).join("; ");
+  return `- Remaining antardashas of the ${mahaLord} mahadasha: ${spans}`;
+}
+
+/** The remaining pratyantardashas of the current antar, or "" without them. */
+function remainingPratyantarsLine(dashas: SanitizedDashas): string {
+  const antarLord = dashas.current_antar?.lord;
+  const remaining = rowsAfter(
+    dashas.pratyantar_sequence ?? [],
+    dashas.current_pratyantar?.lord,
+  );
+  if (antarLord === undefined || remaining.length === 0) {
+    return "";
+  }
+  const spans = remaining.map(datedSpan).join("; ");
+  return `- Remaining pratyantardashas of the ${antarLord} antardasha: ${spans}`;
+}
+
+/** The next mahadasha's dated window, or "" when last/undated. */
+function nextMahaLine(dashas: SanitizedDashas): string {
+  const next = rowsAfter(dashas.maha_dasha_sequence, dashas.current_maha?.lord)[0];
+  if (!next?.start_month || !next.end_month) {
+    return "";
+  }
+  return `- Next mahadasha: ${next.lord} ${next.start_month} -> ${next.end_month}`;
+}
+
+/**
+ * The engine-dated upcoming periods: the remaining antardashas of the current
+ * maha, the remaining pratyantardashas of the current antar, and the next maha.
+ */
+function upcomingPeriodsBlock(chart: SanitizedChart): string {
+  if (!chart.dashas) {
+    return "";
+  }
+  const lines = [
+    remainingAntarsLine(chart.dashas),
+    remainingPratyantarsLine(chart.dashas),
+    nextMahaLine(chart.dashas),
+  ].filter((line) => line !== "");
+  return lines.length > 0 ? ["Upcoming periods (engine-dated):", ...lines].join("\n") : "";
+}
+
+/** The D9 Navamsa block (engine-computed divisional signs), if present. */
+function navamsaBlock(chart: SanitizedChart): string {
+  if (!chart.navamsa) {
+    return "";
+  }
+  const lagna = `- Lagna: ${chart.navamsa.lagna_sign} (lord ${chart.navamsa.lagna_sign_lord})`;
+  const planetLines = Object.values(chart.navamsa.planets).map(
+    (p) => `- ${p.name}: ${p.sign} (lord ${p.sign_lord})`,
+  );
+  return ["D9 Navamsa (engine-computed divisional chart):", lagna, ...planetLines].join("\n");
+}
+
+/**
+ * One yoga line, engine words only:
+ * "- Gaja Kesari Yoga (…) [moderate] (planets: jupiter, moon) — basis: Jupiter
+ *  in the 1st from the Moon". The grade is the engine's qualitative grade —
+ * NO numeric yoga strength exists in the contract; the basis is the first
+ * formation rule's own description (guarded for older stored payloads).
+ */
+function yogaLine(yoga: SanitizedChart["yogas"][number]): string {
+  const title = yoga.display_name || yoga.name;
+  const planets = yoga.planets_involved.join(", ");
+  const firstRule = yoga.formation_rules[0];
+  const basis = firstRule ? ` — basis: ${firstRule.description}` : "";
+  return `- ${title} [${yoga.grade}] (planets: ${planets})${basis}`;
+}
+
+/** The detected-yogas block, if any yogas were found. */
+function yogaBlock(chart: SanitizedChart): string {
+  if (chart.yogas.length === 0) {
+    return "";
+  }
+  return ["Detected yogas:", ...chart.yogas.map(yogaLine)].join("\n");
+}
+
+/** The ascendant (lagna) line. */
+function lagnaLine(chart: SanitizedChart): string {
+  return `Ascendant (Lagna): ${chart.lagna.sign}, lord ${chart.lagna.sign_lord}`;
+}
+
+/**
+ * Build a compact, deterministic facts summary from a SANITIZED chart.
+ *
+ * Reuses the engine's own emitted fields verbatim. The `SanitizedChart` type at
+ * the boundary keeps this on the privacy-safe side: only identifier-free,
+ * date-relativized astrology can reach the returned string.
+ */
+export function buildChartFactsBlock(chart: SanitizedChart): string {
+  return [
+    lagnaLine(chart),
+    planetBlock(chart),
+    // Engine-computed per-planet house lordships ("" until the engine emits
+    // houses_ruled — graceful absence keeps the block byte-identical to today).
+    lordshipLine(chart),
+    dashaBlock(chart),
+    // Engine-dated current stack + upcoming periods ("" without the dasha
+    // tree — legacy charts keep byte-identical output).
+    datedCurrentBlock(chart),
+    upcomingPeriodsBlock(chart),
+    navamsaBlock(chart),
+    yogaBlock(chart),
+    // The delimited engine predictive block ("" when no contexts are present,
+    // keeping the output byte-identical to the natal-only facts).
+    buildPredictiveFactsBlock(chart.predictive),
+  ]
+    .filter((block) => block !== "")
+    .join("\n\n");
+}

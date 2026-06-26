@@ -1,0 +1,16 @@
+{
+  "generic": "Sorry, we're experiencing technical difficulties. Error code: {{code}}",
+  "chat": "Sorry, I couldn't process your request. Please try again. (Error: {{code}})",
+  "engine_warming": "The astrology engine is still warming up — please try again in a moment.",
+  "needs_regeneration": "This chart needs to be regenerated before you can ask questions about it on-device.",
+  "missing_birth_data": "Missing birth data",
+  "missing_timezone": "Missing timezone for birth location",
+  "codes": {
+    "CHART_GEN_001": "Chart generation failed",
+    "CHART_UPDATE_001": "Birth details update failed",
+    "RECT_001": "Rectification data save failed",
+    "QA_001": "Question answering failed",
+    "UNKNOWN_001": "An unexpected error occurred",
+    "ENGINE_WARMING": "Chart engine still warming up"
+  }
+}

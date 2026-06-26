@@ -1,0 +1,63 @@
+{
+  "_meta": { "review": "machine-translated, pending native review" },
+  "title": "Pergunte sobre seu mapa",
+  "placeholder": "Pergunte o que quiser sobre seu mapa ou sua vida…",
+  "send": "Enviar",
+  "header": {
+    "layman_title": "Pergunte sobre seu mapa",
+    "layman_subtitle": "Converse com seu assistente de astrologia personalizado",
+    "technical_title": "Referência de consulta",
+    "technical_subtitle": "Análise e referência astrológica técnica"
+  },
+  "empty": {
+    "title": "Pergunte sobre o mapa de {{name}}",
+    "hint": "Faça qualquer pergunta sobre carreira, relacionamentos, saúde, momentos certos ou seu caminho de vida."
+  },
+  "input": {
+    "placeholder": "Faça uma pergunta sobre seu mapa..."
+  },
+  "status": {
+    "analyzing": "Analisando..."
+  },
+  "tooltip": "Pergunte sobre seu mapa",
+  "controls": {
+    "open": "Abrir chat",
+    "close": "Fechar chat",
+    "minimize": "Minimizar chat",
+    "maximize": "Maximizar chat",
+    "restore": "Restaurar chat"
+  },
+  "search": {
+    "placeholder": "Buscar conversas anteriores…",
+    "aria_label": "Buscar conversas anteriores",
+    "searching": "Buscando em suas conversas…",
+    "no_results": "Nenhuma mensagem anterior corresponde.",
+    "thread_fallback": "Conversa",
+    "match": "{{percent}}% de correspondência"
+  },
+  "suggested": {
+    "label": "Perguntas sugeridas:",
+    "questions": {
+      "career": "Quais são meus pontos fortes na carreira?",
+      "relationship": "Como está minha perspectiva nos relacionamentos?",
+      "year": "No que devo me concentrar este ano?",
+      "health": "Fale sobre minhas tendências de saúde",
+      "spiritual": "Quais são meus dons espirituais?",
+      "timing": "Quando é um bom momento para decisões importantes?",
+      "finance": "Quais são minhas perspectivas financeiras?",
+      "lifepath": "Como posso melhorar meu caminho de vida?"
+    }
+  },
+  "bubble": {
+    "show_simplified": "Ver versão simplificada",
+    "show_technical": "Ver detalhes técnicos",
+    "timing_guidance": "Orientação de tempo",
+    "suggested_remedies": "Remédios sugeridos"
+  },
+  "reference": {
+    "query": "Consulta",
+    "analysis": "Análise",
+    "timing_analysis": "Análise de tempo",
+    "recommended_remedies": "Remédios recomendados"
+  }
+}

@@ -1,0 +1,180 @@
+{
+  "_meta": { "review": "machine-translated, pending native review" },
+  "labels": {
+    "ascendant": "Ascendente",
+    "moon_sign": "Signo lunar",
+    "current_dasha": "Dasha actual",
+    "ascendant_lagna": "Ascendente (Lagna)",
+    "lagna_ascendant": "Lagna (Ascendente)",
+    "rising_sign_lagna": "Signo ascendente (Lagna)",
+    "sign_rising": "{{sign}} ascendente",
+    "degrees_in_sign": "{{degrees}} en {{sign}}",
+    "nakshatra": "Nakshatra",
+    "sign": "Signo",
+    "sign_lord": "Regente del signo",
+    "nakshatra_lord": "Regente del nakshatra",
+    "lagna_lord": "Regente del Lagna",
+    "pada_short": "P{{pada}}",
+    "pada": "Pada {{pada}}",
+    "name": "Nombre",
+    "date_of_birth": "Fecha de nacimiento",
+    "time_of_birth": "Hora de nacimiento",
+    "place_of_birth": "Lugar de nacimiento",
+    "location": "Ubicación",
+    "coordinates": "Coordenadas",
+    "utc_datetime": "Fecha y hora UTC",
+    "julian_day": "Día juliano",
+    "ayanamsa": "Ayanamsa",
+    "sidereal_time": "Tiempo sidéreo",
+    "house_system": "Sistema de casas",
+    "not_available": "N/D"
+  },
+  "banner": {
+    "lagna_unavailable": "Datos del Lagna no disponibles",
+    "chart_processing": "La carta aún puede estar procesándose"
+  },
+  "cusp": {
+    "label": "Sensibilidad a la hora de nacimiento",
+    "proximity": "{{sign}} asciende a solo ~{{degrees}}° de la cúspide de {{neighbour}}.",
+    "flip": "Unos minutos de diferencia en tu hora de nacimiento registrada lo convertirían en {{neighbour}}, y todas las casas de esta carta cambiarían.",
+    "refine_link": "Ajusta tu hora de nacimiento"
+  },
+  "birth_details": {
+    "heading": "Datos de nacimiento",
+    "technical_heading": "Datos técnicos",
+    "chart_for": "Carta natal de {{name}}"
+  },
+  "sections": {
+    "astrological_data": "Datos astrológicos",
+    "part1": "Parte 1: Datos astrológicos",
+    "part2": "Parte 2: Interpretaciones astrológicas",
+    "birth_details_numbered": "1.1 Datos de nacimiento",
+    "technical_numbered": "1.1 Datos técnicos (de cálculo)",
+    "lagna_numbered": "1.2 Lagna (Ascendente)",
+    "dasha_full_numbered": "1.5 Dasha Vimshottari - Secuencia completa",
+    "dasha_current_numbered": "1.5 Períodos de dasha actuales",
+    "yogas_numbered": "1.6 Yogas principales"
+  },
+  "tables": {
+    "planet": "Planeta",
+    "sign": "Signo",
+    "degree": "Grado",
+    "house": "Casa",
+    "nakshatra_pada": "Nakshatra · Pada",
+    "dignity": "Dignidad",
+    "retro": "Retro",
+    "lords": "Regencias",
+    "combust": "Combusto",
+    "mahadasha_lord": "Regente del Mahadasha",
+    "start": "Inicio",
+    "end": "Fin",
+    "duration": "Duración",
+    "level": "Nivel",
+    "lord": "Regente",
+    "period": "Período"
+  },
+  "planetary": {
+    "title": "Posiciones planetarias",
+    "subtitle": "Rāśi / D1",
+    "unavailable": "Datos planetarios no disponibles.",
+    "retrograde_aria": "retrógrado",
+    "yogakaraka_aria": "yogakaraka",
+    "combust_aria": "combusto",
+    "strength_pointer": "La fuerza cuantificada (Ṣaḍbala · Aṣṭakavarga) vive en el panel Predictivo.",
+    "strength_pointer_link": "Abrir Fuerza"
+  },
+  "chart": {
+    "north_aria": "Carta natal del norte de la India",
+    "south_aria": "Carta Rāśi del sur de la India"
+  },
+  "varga": {
+    "d9_title": "D9 · Navamsa",
+    "d9_subtitle": "Carta divisional (1/9) — matrimonio, dharma y fortaleza interior"
+  },
+  "dasha": {
+    "title": "Dasha Vimshottari",
+    "unavailable": "Datos del dasha no disponibles",
+    "as_of": "al {{date}}",
+    "current": "(actual)",
+    "maha": "Maha",
+    "antar": "Antar",
+    "pratyantar": "Pratyantar",
+    "full_sequence_unavailable": "Secuencia completa no disponible",
+    "current_unavailable": "Datos del período actual no disponibles",
+    "duration_years": "{{years}} años"
+  },
+  "yoga": {
+    "comprehensive_analysis": "Análisis completo de yogas",
+    "calculated_yogas": "Yogas calculados",
+    "none_detected": "No se detectaron yogas en esta carta.",
+    "no_layman": "No hay interpretación sencilla disponible.",
+    "no_technical": "No hay interpretación técnica disponible.",
+    "grade": {
+      "strong": "Fuerte",
+      "moderate": "Moderado",
+      "weak": "Débil"
+    },
+    "grade_aria": "Grado del yoga: {{grade}}",
+    "category": {
+      "mahapurusha": "Mahāpuruṣa",
+      "raja": "Rāja",
+      "dhana": "Dhana",
+      "chandra": "Chandra",
+      "surya": "Sūrya",
+      "auspicious": "Auspicioso",
+      "dosha": "Doṣa",
+      "special": "Especial"
+    },
+    "planets_label": "Planetas",
+    "houses_label": "Casas",
+    "formation_trace": "Trazado de formación",
+    "show_trace": "Mostrar",
+    "hide_trace": "Ocultar",
+    "rules_heading": "Reglas de formación",
+    "factors_heading": "Factores de fuerza observados"
+  },
+  "interpretation": {
+    "strengths": "Fortalezas",
+    "challenges": "Desafíos",
+    "life_themes": "Grandes temas de vida",
+    "health": "Salud y bienestar",
+    "relationships": "Relaciones y vínculos",
+    "career": "Carrera y vida profesional",
+    "education": "Aprendizaje y educación",
+    "finances": "Finanzas y gestión del dinero",
+    "remedies": "Remedios y autocuidado",
+    "spiritual": "Crecimiento espiritual y desarrollo interior",
+    "no_interpretation": "No hay interpretación disponible.",
+    "no_technical_interpretation": "No hay interpretación técnica disponible.",
+    "generating": "Aún no hay interpretación — generando… abre el panel para iniciar o seguir el progreso.",
+    "connect_prompt": "Conecta un modelo de IA para generar tu interpretación. Tu carta se calcula en el dispositivo; un modelo de IA la convierte en una lectura personalizada.",
+    "connect_ai_link": "Conectar un modelo de IA"
+  },
+  "mode": {
+    "for_you": "Para ti",
+    "for_astrologer": "Para el astrólogo"
+  },
+  "report": {
+    "title_for": "Informe védico completo de {{name}}",
+    "generated_on": "Generado el {{date}}",
+    "loading": "Cargando datos de la carta",
+    "please_wait": "Por favor, espera...",
+    "no_data_title": "No hay datos de carta disponibles",
+    "load_error": "No se pudieron cargar los datos de la carta. Inténtalo de nuevo.",
+    "no_chart_error": "No se encontró ninguna carta. Genera una carta primero.",
+    "generate_prompt": "Genera tu carta natal para ver el informe completo.",
+    "back_to_dashboard": "Volver al panel",
+    "print_chart": "Imprimir carta",
+    "footer_note": "*Informe calculado con el Ayanamsa Lahiri ({{ayanamsa}}°) y el sistema de casas {{houseSystem}}.*"
+  },
+  "print": {
+    "tagline": "Inteligencia de astrología védica",
+    "for_astrologer": "Para el astrólogo",
+    "technical_analysis": "Análisis técnico",
+    "report_title": "Informe completo de astrología védica",
+    "prepared_for": "Preparado para",
+    "report_generated": "Informe generado",
+    "disclaimer": "Este informe se calcula con el Ayanamsa Lahiri y metodologías védicas tradicionales.",
+    "footer_note": "Calculado con el Ayanamsa Lahiri ({{ayanamsa}}°) y el sistema de casas {{houseSystem}}"
+  }
+}

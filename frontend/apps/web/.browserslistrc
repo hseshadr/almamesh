@@ -1,0 +1,25 @@
+# Browserslist — production browser targets for the AlmaMesh PWA.
+#
+# AlmaMesh runs the Vedic chart engine entirely on-device: Pyodide (WebAssembly)
+# in a Web Worker, an installable service-worker PWA, and ES-module Workers. Those
+# are hard runtime requirements, so we target only modern evergreen browsers that
+# support WASM + service workers + native ES modules. Anything that can't run the
+# engine is out of scope — there is no server-rendered fallback to degrade to.
+#
+# Consumed automatically by autoprefixer (via postcss.config.mjs) and any other
+# browserslist-aware tooling. Keeping an explicit list here (rather than relying on
+# the implicit `defaults`) makes the support floor reviewable and intentional.
+
+# Evergreen browsers, recent and still-maintained.
+last 2 versions
+not dead
+> 0.3%
+
+# Hard runtime floor: the on-device engine needs these. Browsers lacking any of
+# them cannot run AlmaMesh at all, so we never ship legacy fallbacks for them.
+supports es6-module
+supports wasm
+supports serviceworkers
+
+# Never target IE — it has none of the above.
+not IE 11

@@ -1,0 +1,3025 @@
+{
+  "cases": [
+    {
+      "birth_iso": "1988-08-08T06:44:00+05:30",
+      "expected": {
+        "ashtakavarga": {
+          "bhinna": {
+            "jupiter": {
+              "bindus": {
+                "Aquarius": 6,
+                "Aries": 7,
+                "Cancer": 5,
+                "Capricorn": 3,
+                "Gemini": 3,
+                "Leo": 4,
+                "Libra": 5,
+                "Pisces": 5,
+                "Sagittarius": 5,
+                "Scorpio": 5,
+                "Taurus": 5,
+                "Virgo": 3
+              },
+              "planet": "jupiter",
+              "total": 56
+            },
+            "mars": {
+              "bindus": {
+                "Aquarius": 1,
+                "Aries": 5,
+                "Cancer": 1,
+                "Capricorn": 3,
+                "Gemini": 3,
+                "Leo": 3,
+                "Libra": 4,
+                "Pisces": 3,
+                "Sagittarius": 4,
+                "Scorpio": 4,
+                "Taurus": 4,
+                "Virgo": 4
+              },
+              "planet": "mars",
+              "total": 39
+            },
+            "mercury": {
+              "bindus": {
+                "Aquarius": 1,
+                "Aries": 5,
+                "Cancer": 4,
+                "Capricorn": 5,
+                "Gemini": 6,
+                "Leo": 3,
+                "Libra": 4,
+                "Pisces": 7,
+                "Sagittarius": 5,
+                "Scorpio": 5,
+                "Taurus": 3,
+                "Virgo": 6
+              },
+              "planet": "mercury",
+              "total": 54
+            },
+            "moon": {
+              "bindus": {
+                "Aquarius": 5,
+                "Aries": 6,
+                "Cancer": 2,
+                "Capricorn": 4,
+                "Gemini": 3,
+                "Leo": 4,
+                "Libra": 4,
+                "Pisces": 3,
+                "Sagittarius": 5,
+                "Scorpio": 4,
+                "Taurus": 6,
+                "Virgo": 3
+              },
+              "planet": "moon",
+              "total": 49
+            },
+            "saturn": {
+              "bindus": {
+                "Aquarius": 4,
+                "Aries": 6,
+                "Cancer": 2,
+                "Capricorn": 3,
+                "Gemini": 2,
+                "Leo": 4,
+                "Libra": 4,
+                "Pisces": 2,
+                "Sagittarius": 2,
+                "Scorpio": 3,
+                "Taurus": 6,
+                "Virgo": 1
+              },
+              "planet": "saturn",
+              "total": 39
+            },
+            "sun": {
+              "bindus": {
+                "Aquarius": 1,
+                "Aries": 4,
+                "Cancer": 3,
+                "Capricorn": 5,
+                "Gemini": 4,
+                "Leo": 3,
+                "Libra": 5,
+                "Pisces": 6,
+                "Sagittarius": 4,
+                "Scorpio": 5,
+                "Taurus": 4,
+                "Virgo": 4
+              },
+              "planet": "sun",
+              "total": 48
+            },
+            "venus": {
+              "bindus": {
+                "Aquarius": 6,
+                "Aries": 4,
+                "Cancer": 4,
+                "Capricorn": 4,
+                "Gemini": 4,
+                "Leo": 5,
+                "Libra": 4,
+                "Pisces": 5,
+                "Sagittarius": 3,
+                "Scorpio": 3,
+                "Taurus": 4,
+                "Virgo": 6
+              },
+              "planet": "venus",
+              "total": 52
+            }
+          },
+          "sarva": {
+            "bindus": {
+              "Aquarius": 24,
+              "Aries": 37,
+              "Cancer": 21,
+              "Capricorn": 27,
+              "Gemini": 25,
+              "Leo": 26,
+              "Libra": 30,
+              "Pisces": 31,
+              "Sagittarius": 28,
+              "Scorpio": 29,
+              "Taurus": 32,
+              "Virgo": 27
+            },
+            "total": 337
+          }
+        },
+        "shadbala": {
+          "planets": {
+            "jupiter": {
+              "cheshta": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Cheshtabala (motional state from true speed).",
+                "note": null,
+                "virupas": 15.0
+              },
+              "dig": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Digbala (linear taper, 60 Virupas at strong cusp).",
+                "note": null,
+                "virupas": 32.968073
+              },
+              "drik": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Drikbala (benefic - malefic drishti / 4).",
+                "note": null,
+                "virupas": -18.512594
+              },
+              "kala": {
+                "abda": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Abdabala (year-lord, 15 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "ayana": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Ayanabala (declination-driven, 60 Virupas range).",
+                  "note": null,
+                  "virupas": 56.464873
+                },
+                "hora": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Horabala (hora-lord from sunrise, 60 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "masa": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Masabala (month-lord, 30 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "nathonnatha": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Nathonnatha (diurnal/nocturnal, 60 at peak).",
+                  "note": null,
+                  "virupas": 2.977882
+                },
+                "paksha": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Pakshabala (lunar phase; Moon doubled).",
+                  "note": null,
+                  "virupas": 10.8123
+                },
+                "total_virupas": 130.255055,
+                "tribhaga": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Tribhagabala (thirds of day/night; Jupiter always).",
+                  "note": null,
+                  "virupas": 60.0
+                },
+                "vara": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Varabala (weekday-lord, 45 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "yuddha": {
+                  "approximated": true,
+                  "citation": "BPHS Kalabala \u2014 Yuddhabala (planetary-war adjustment).",
+                  "note": "War-outcome strength transfer not modelled; 0 Virupas pending a rigorous war model.",
+                  "virupas": 0.0
+                }
+              },
+              "meets_minimum": false,
+              "naisargika": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Naisargikabala (k/7 of 60 Virupas).",
+                "note": null,
+                "virupas": 34.285714
+              },
+              "planet": "jupiter",
+              "required_rupas": 6.5,
+              "sthana": {
+                "drekkana": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Drekkanabala (gender decanate, 15 Virupas).",
+                  "note": null,
+                  "virupas": 15.0
+                },
+                "kendradi": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Kendradibala (kendra 60 / panaphara 30 / apoklima 15).",
+                  "note": null,
+                  "virupas": 60.0
+                },
+                "ojayugma": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Ojayugmabala (odd/even rasi + navamsa, 15 each).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "saptavargaja": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Saptavargajabala (dignity over 7 vargas).",
+                  "note": null,
+                  "virupas": 78.75
+                },
+                "total_virupas": 195.065728,
+                "uccha": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Uchchabala (60*(180-|d|)/180).",
+                  "note": null,
+                  "virupas": 41.315728
+                }
+              },
+              "total_rupas": 6.484366,
+              "total_virupas": 389.061977
+            },
+            "mars": {
+              "cheshta": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Cheshtabala (motional state from true speed).",
+                "note": null,
+                "virupas": 45.0
+              },
+              "dig": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Digbala (linear taper, 60 Virupas at strong cusp).",
+                "note": null,
+                "virupas": 45.134342
+              },
+              "drik": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Drikbala (benefic - malefic drishti / 4).",
+                "note": null,
+                "virupas": 7.410616
+              },
+              "kala": {
+                "abda": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Abdabala (year-lord, 15 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "ayana": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Ayanabala (declination-driven, 60 Virupas range).",
+                  "note": null,
+                  "virupas": 34.635752
+                },
+                "hora": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Horabala (hora-lord from sunrise, 60 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "masa": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Masabala (month-lord, 30 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "nathonnatha": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Nathonnatha (diurnal/nocturnal, 60 at peak).",
+                  "note": null,
+                  "virupas": 57.022118
+                },
+                "paksha": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Pakshabala (lunar phase; Moon doubled).",
+                  "note": null,
+                  "virupas": 49.1877
+                },
+                "total_virupas": 140.84557,
+                "tribhaga": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Tribhagabala (thirds of day/night; Jupiter always).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "vara": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Varabala (weekday-lord, 45 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "yuddha": {
+                  "approximated": true,
+                  "citation": "BPHS Kalabala \u2014 Yuddhabala (planetary-war adjustment).",
+                  "note": "War-outcome strength transfer not modelled; 0 Virupas pending a rigorous war model.",
+                  "virupas": 0.0
+                }
+              },
+              "meets_minimum": true,
+              "naisargika": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Naisargikabala (k/7 of 60 Virupas).",
+                "note": null,
+                "virupas": 17.142857
+              },
+              "planet": "mars",
+              "required_rupas": 5.0,
+              "sthana": {
+                "drekkana": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Drekkanabala (gender decanate, 15 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "kendradi": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Kendradibala (kendra 60 / panaphara 30 / apoklima 15).",
+                  "note": null,
+                  "virupas": 30.0
+                },
+                "ojayugma": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Ojayugmabala (odd/even rasi + navamsa, 15 each).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "saptavargaja": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Saptavargajabala (dignity over 7 vargas).",
+                  "note": null,
+                  "virupas": 108.75
+                },
+                "total_virupas": 182.93467,
+                "uccha": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Uchchabala (60*(180-|d|)/180).",
+                  "note": null,
+                  "virupas": 44.18467
+                }
+              },
+              "total_rupas": 7.307801,
+              "total_virupas": 438.468055
+            },
+            "mercury": {
+              "cheshta": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Cheshtabala (motional state from true speed).",
+                "note": null,
+                "virupas": 30.0
+              },
+              "dig": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Digbala (linear taper, 60 Virupas at strong cusp).",
+                "note": null,
+                "virupas": 59.08173
+              },
+              "drik": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Drikbala (benefic - malefic drishti / 4).",
+                "note": null,
+                "virupas": -0.957744
+              },
+              "kala": {
+                "abda": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Abdabala (year-lord, 15 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "ayana": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Ayanabala (declination-driven, 60 Virupas range).",
+                  "note": null,
+                  "virupas": 48.550229
+                },
+                "hora": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Horabala (hora-lord from sunrise, 60 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "masa": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Masabala (month-lord, 30 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "nathonnatha": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Nathonnatha (diurnal/nocturnal, 60 at peak).",
+                  "note": null,
+                  "virupas": 60.0
+                },
+                "paksha": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Pakshabala (lunar phase; Moon doubled).",
+                  "note": null,
+                  "virupas": 10.8123
+                },
+                "total_virupas": 179.362529,
+                "tribhaga": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Tribhagabala (thirds of day/night; Jupiter always).",
+                  "note": null,
+                  "virupas": 60.0
+                },
+                "vara": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Varabala (weekday-lord, 45 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "yuddha": {
+                  "approximated": true,
+                  "citation": "BPHS Kalabala \u2014 Yuddhabala (planetary-war adjustment).",
+                  "note": "War-outcome strength transfer not modelled; 0 Virupas pending a rigorous war model.",
+                  "virupas": 0.0
+                }
+              },
+              "meets_minimum": false,
+              "naisargika": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Naisargikabala (k/7 of 60 Virupas).",
+                "note": null,
+                "virupas": 25.714286
+              },
+              "planet": "mercury",
+              "required_rupas": 7.0,
+              "sthana": {
+                "drekkana": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Drekkanabala (gender decanate, 15 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "kendradi": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Kendradibala (kendra 60 / panaphara 30 / apoklima 15).",
+                  "note": null,
+                  "virupas": 15.0
+                },
+                "ojayugma": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Ojayugmabala (odd/even rasi + navamsa, 15 each).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "saptavargaja": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Saptavargajabala (dignity over 7 vargas).",
+                  "note": null,
+                  "virupas": 60.0
+                },
+                "total_virupas": 119.096052,
+                "uccha": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Uchchabala (60*(180-|d|)/180).",
+                  "note": null,
+                  "virupas": 44.096052
+                }
+              },
+              "total_rupas": 6.871614,
+              "total_virupas": 412.296853
+            },
+            "moon": {
+              "cheshta": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Cheshtabala (motional state from true speed).",
+                "note": null,
+                "virupas": 21.6246
+              },
+              "dig": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Digbala (linear taper, 60 Virupas at strong cusp).",
+                "note": null,
+                "virupas": 10.578614
+              },
+              "drik": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Drikbala (benefic - malefic drishti / 4).",
+                "note": null,
+                "virupas": -25.75248
+              },
+              "kala": {
+                "abda": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Abdabala (year-lord, 15 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "ayana": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Ayanabala (declination-driven, 60 Virupas range).",
+                  "note": null,
+                  "virupas": 0.115981
+                },
+                "hora": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Horabala (hora-lord from sunrise, 60 Virupas).",
+                  "note": null,
+                  "virupas": 60.0
+                },
+                "masa": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Masabala (month-lord, 30 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "nathonnatha": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Nathonnatha (diurnal/nocturnal, 60 at peak).",
+                  "note": null,
+                  "virupas": 57.022118
+                },
+                "paksha": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Pakshabala (lunar phase; Moon doubled).",
+                  "note": null,
+                  "virupas": 21.6246
+                },
+                "total_virupas": 183.762699,
+                "tribhaga": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Tribhagabala (thirds of day/night; Jupiter always).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "vara": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Varabala (weekday-lord, 45 Virupas).",
+                  "note": null,
+                  "virupas": 45.0
+                },
+                "yuddha": {
+                  "approximated": true,
+                  "citation": "BPHS Kalabala \u2014 Yuddhabala (planetary-war adjustment).",
+                  "note": "War-outcome strength transfer not modelled; 0 Virupas pending a rigorous war model.",
+                  "virupas": 0.0
+                }
+              },
+              "meets_minimum": true,
+              "naisargika": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Naisargikabala (k/7 of 60 Virupas).",
+                "note": null,
+                "virupas": 51.428571
+              },
+              "planet": "moon",
+              "required_rupas": 6.0,
+              "sthana": {
+                "drekkana": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Drekkanabala (gender decanate, 15 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "kendradi": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Kendradibala (kendra 60 / panaphara 30 / apoklima 15).",
+                  "note": null,
+                  "virupas": 30.0
+                },
+                "ojayugma": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Ojayugmabala (odd/even rasi + navamsa, 15 each).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "saptavargaja": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Saptavargajabala (dignity over 7 vargas).",
+                  "note": null,
+                  "virupas": 90.0
+                },
+                "total_virupas": 170.407064,
+                "uccha": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Uchchabala (60*(180-|d|)/180).",
+                  "note": null,
+                  "virupas": 50.407064
+                }
+              },
+              "total_rupas": 6.867484,
+              "total_virupas": 412.049068
+            },
+            "saturn": {
+              "cheshta": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Cheshtabala (motional state from true speed).",
+                "note": null,
+                "virupas": 60.0
+              },
+              "dig": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Digbala (linear taper, 60 Virupas at strong cusp).",
+                "note": null,
+                "virupas": 40.861567
+              },
+              "drik": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Drikbala (benefic - malefic drishti / 4).",
+                "note": null,
+                "virupas": 20.810378
+              },
+              "kala": {
+                "abda": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Abdabala (year-lord, 15 Virupas).",
+                  "note": null,
+                  "virupas": 15.0
+                },
+                "ayana": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Ayanabala (declination-driven, 60 Virupas range).",
+                  "note": null,
+                  "virupas": 59.917656
+                },
+                "hora": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Horabala (hora-lord from sunrise, 60 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "masa": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Masabala (month-lord, 30 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "nathonnatha": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Nathonnatha (diurnal/nocturnal, 60 at peak).",
+                  "note": null,
+                  "virupas": 57.022118
+                },
+                "paksha": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Pakshabala (lunar phase; Moon doubled).",
+                  "note": null,
+                  "virupas": 49.1877
+                },
+                "total_virupas": 181.127475,
+                "tribhaga": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Tribhagabala (thirds of day/night; Jupiter always).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "vara": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Varabala (weekday-lord, 45 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "yuddha": {
+                  "approximated": true,
+                  "citation": "BPHS Kalabala \u2014 Yuddhabala (planetary-war adjustment).",
+                  "note": "War-outcome strength transfer not modelled; 0 Virupas pending a rigorous war model.",
+                  "virupas": 0.0
+                }
+              },
+              "meets_minimum": true,
+              "naisargika": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Naisargikabala (k/7 of 60 Virupas).",
+                "note": null,
+                "virupas": 8.571429
+              },
+              "planet": "saturn",
+              "required_rupas": 5.0,
+              "sthana": {
+                "drekkana": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Drekkanabala (gender decanate, 15 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "kendradi": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Kendradibala (kendra 60 / panaphara 30 / apoklima 15).",
+                  "note": null,
+                  "virupas": 30.0
+                },
+                "ojayugma": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Ojayugmabala (odd/even rasi + navamsa, 15 each).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "saptavargaja": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Saptavargajabala (dignity over 7 vargas).",
+                  "note": null,
+                  "virupas": 63.75
+                },
+                "total_virupas": 139.540778,
+                "uccha": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Uchchabala (60*(180-|d|)/180).",
+                  "note": null,
+                  "virupas": 45.790778
+                }
+              },
+              "total_rupas": 7.515194,
+              "total_virupas": 450.911626
+            },
+            "sun": {
+              "cheshta": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Cheshtabala (motional state from true speed).",
+                "note": null,
+                "virupas": 50.627244
+              },
+              "dig": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Digbala (linear taper, 60 Virupas at strong cusp).",
+                "note": null,
+                "virupas": 32.675137
+              },
+              "drik": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Drikbala (benefic - malefic drishti / 4).",
+                "note": null,
+                "virupas": 1.018732
+              },
+              "kala": {
+                "abda": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Abdabala (year-lord, 15 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "ayana": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Ayanabala (declination-driven, 60 Virupas range).",
+                  "note": null,
+                  "virupas": 50.627244
+                },
+                "hora": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Horabala (hora-lord from sunrise, 60 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "masa": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Masabala (month-lord, 30 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "nathonnatha": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Nathonnatha (diurnal/nocturnal, 60 at peak).",
+                  "note": null,
+                  "virupas": 2.977882
+                },
+                "paksha": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Pakshabala (lunar phase; Moon doubled).",
+                  "note": null,
+                  "virupas": 49.1877
+                },
+                "total_virupas": 102.792827,
+                "tribhaga": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Tribhagabala (thirds of day/night; Jupiter always).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "vara": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Varabala (weekday-lord, 45 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "yuddha": {
+                  "approximated": true,
+                  "citation": "BPHS Kalabala \u2014 Yuddhabala (planetary-war adjustment).",
+                  "note": "War-outcome strength transfer not modelled; 0 Virupas pending a rigorous war model.",
+                  "virupas": 0.0
+                }
+              },
+              "meets_minimum": false,
+              "naisargika": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Naisargikabala (k/7 of 60 Virupas).",
+                "note": null,
+                "virupas": 60.0
+              },
+              "planet": "sun",
+              "required_rupas": 6.5,
+              "sthana": {
+                "drekkana": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Drekkanabala (gender decanate, 15 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "kendradi": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Kendradibala (kendra 60 / panaphara 30 / apoklima 15).",
+                  "note": null,
+                  "virupas": 15.0
+                },
+                "ojayugma": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Ojayugmabala (odd/even rasi + navamsa, 15 each).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "saptavargaja": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Saptavargajabala (dignity over 7 vargas).",
+                  "note": null,
+                  "virupas": 90.0
+                },
+                "total_virupas": 130.994149,
+                "uccha": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Uchchabala (60*(180-|d|)/180).",
+                  "note": null,
+                  "virupas": 25.994149
+                }
+              },
+              "total_rupas": 6.301801,
+              "total_virupas": 378.108089
+            },
+            "venus": {
+              "cheshta": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Cheshtabala (motional state from true speed).",
+                "note": null,
+                "virupas": 30.0
+              },
+              "dig": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Digbala (linear taper, 60 Virupas at strong cusp).",
+                "note": null,
+                "virupas": 12.379729
+              },
+              "drik": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Drikbala (benefic - malefic drishti / 4).",
+                "note": null,
+                "virupas": -21.873413
+              },
+              "kala": {
+                "abda": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Abdabala (year-lord, 15 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "ayana": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Ayanabala (declination-driven, 60 Virupas range).",
+                  "note": null,
+                  "virupas": 59.979242
+                },
+                "hora": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Horabala (hora-lord from sunrise, 60 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "masa": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Masabala (month-lord, 30 Virupas).",
+                  "note": null,
+                  "virupas": 30.0
+                },
+                "nathonnatha": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Nathonnatha (diurnal/nocturnal, 60 at peak).",
+                  "note": null,
+                  "virupas": 2.977882
+                },
+                "paksha": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Pakshabala (lunar phase; Moon doubled).",
+                  "note": null,
+                  "virupas": 10.8123
+                },
+                "total_virupas": 103.769424,
+                "tribhaga": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Tribhagabala (thirds of day/night; Jupiter always).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "vara": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Varabala (weekday-lord, 45 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "yuddha": {
+                  "approximated": true,
+                  "citation": "BPHS Kalabala \u2014 Yuddhabala (planetary-war adjustment).",
+                  "note": "War-outcome strength transfer not modelled; 0 Virupas pending a rigorous war model.",
+                  "virupas": 0.0
+                }
+              },
+              "meets_minimum": false,
+              "naisargika": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Naisargikabala (k/7 of 60 Virupas).",
+                "note": null,
+                "virupas": 42.857143
+              },
+              "planet": "venus",
+              "required_rupas": 5.5,
+              "sthana": {
+                "drekkana": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Drekkanabala (gender decanate, 15 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "kendradi": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Kendradibala (kendra 60 / panaphara 30 / apoklima 15).",
+                  "note": null,
+                  "virupas": 30.0
+                },
+                "ojayugma": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Ojayugmabala (odd/even rasi + navamsa, 15 each).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "saptavargaja": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Saptavargajabala (dignity over 7 vargas).",
+                  "note": null,
+                  "virupas": 63.75
+                },
+                "total_virupas": 130.35595,
+                "uccha": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Uchchabala (60*(180-|d|)/180).",
+                  "note": null,
+                  "virupas": 36.60595
+                }
+              },
+              "total_rupas": 4.958147,
+              "total_virupas": 297.488832
+            }
+          }
+        },
+        "sunrise_utc_iso": "1988-08-08T00:36:24.354119+00:00"
+      },
+      "lat": 12.9716,
+      "lon": 77.5946,
+      "name": "reference_native_1988"
+    },
+    {
+      "birth_iso": "1985-07-15T09:30:00+09:00",
+      "expected": {
+        "ashtakavarga": {
+          "bhinna": {
+            "jupiter": {
+              "bindus": {
+                "Aquarius": 5,
+                "Aries": 5,
+                "Cancer": 4,
+                "Capricorn": 6,
+                "Gemini": 5,
+                "Leo": 4,
+                "Libra": 3,
+                "Pisces": 7,
+                "Sagittarius": 5,
+                "Scorpio": 4,
+                "Taurus": 2,
+                "Virgo": 6
+              },
+              "planet": "jupiter",
+              "total": 56
+            },
+            "mars": {
+              "bindus": {
+                "Aquarius": 0,
+                "Aries": 4,
+                "Cancer": 3,
+                "Capricorn": 3,
+                "Gemini": 4,
+                "Leo": 3,
+                "Libra": 6,
+                "Pisces": 4,
+                "Sagittarius": 4,
+                "Scorpio": 3,
+                "Taurus": 3,
+                "Virgo": 2
+              },
+              "planet": "mars",
+              "total": 39
+            },
+            "mercury": {
+              "bindus": {
+                "Aquarius": 3,
+                "Aries": 4,
+                "Cancer": 4,
+                "Capricorn": 4,
+                "Gemini": 7,
+                "Leo": 5,
+                "Libra": 3,
+                "Pisces": 5,
+                "Sagittarius": 5,
+                "Scorpio": 5,
+                "Taurus": 5,
+                "Virgo": 4
+              },
+              "planet": "mercury",
+              "total": 54
+            },
+            "moon": {
+              "bindus": {
+                "Aquarius": 6,
+                "Aries": 4,
+                "Cancer": 5,
+                "Capricorn": 5,
+                "Gemini": 1,
+                "Leo": 5,
+                "Libra": 5,
+                "Pisces": 5,
+                "Sagittarius": 2,
+                "Scorpio": 6,
+                "Taurus": 3,
+                "Virgo": 2
+              },
+              "planet": "moon",
+              "total": 49
+            },
+            "saturn": {
+              "bindus": {
+                "Aquarius": 2,
+                "Aries": 4,
+                "Cancer": 2,
+                "Capricorn": 2,
+                "Gemini": 4,
+                "Leo": 3,
+                "Libra": 4,
+                "Pisces": 6,
+                "Sagittarius": 4,
+                "Scorpio": 3,
+                "Taurus": 4,
+                "Virgo": 1
+              },
+              "planet": "saturn",
+              "total": 39
+            },
+            "sun": {
+              "bindus": {
+                "Aquarius": 3,
+                "Aries": 5,
+                "Cancer": 5,
+                "Capricorn": 4,
+                "Gemini": 6,
+                "Leo": 1,
+                "Libra": 4,
+                "Pisces": 4,
+                "Sagittarius": 3,
+                "Scorpio": 5,
+                "Taurus": 4,
+                "Virgo": 4
+              },
+              "planet": "sun",
+              "total": 48
+            },
+            "venus": {
+              "bindus": {
+                "Aquarius": 3,
+                "Aries": 4,
+                "Cancer": 3,
+                "Capricorn": 4,
+                "Gemini": 4,
+                "Leo": 6,
+                "Libra": 3,
+                "Pisces": 4,
+                "Sagittarius": 5,
+                "Scorpio": 4,
+                "Taurus": 7,
+                "Virgo": 5
+              },
+              "planet": "venus",
+              "total": 52
+            }
+          },
+          "sarva": {
+            "bindus": {
+              "Aquarius": 22,
+              "Aries": 30,
+              "Cancer": 26,
+              "Capricorn": 28,
+              "Gemini": 31,
+              "Leo": 27,
+              "Libra": 28,
+              "Pisces": 35,
+              "Sagittarius": 28,
+              "Scorpio": 30,
+              "Taurus": 28,
+              "Virgo": 24
+            },
+            "total": 337
+          }
+        },
+        "shadbala": {
+          "planets": {
+            "jupiter": {
+              "cheshta": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Cheshtabala (motional state from true speed).",
+                "note": null,
+                "virupas": 60.0
+              },
+              "dig": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Digbala (linear taper, 60 Virupas at strong cusp).",
+                "note": null,
+                "virupas": 12.367162
+              },
+              "drik": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Drikbala (benefic - malefic drishti / 4).",
+                "note": null,
+                "virupas": -10.842447
+              },
+              "kala": {
+                "abda": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Abdabala (year-lord, 15 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "ayana": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Ayanabala (declination-driven, 60 Virupas range).",
+                  "note": null,
+                  "virupas": 8.938732
+                },
+                "hora": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Horabala (hora-lord from sunrise, 60 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "masa": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Masabala (month-lord, 30 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "nathonnatha": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Nathonnatha (diurnal/nocturnal, 60 at peak).",
+                  "note": null,
+                  "virupas": 20.447178
+                },
+                "paksha": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Pakshabala (lunar phase; Moon doubled).",
+                  "note": null,
+                  "virupas": 5.477259
+                },
+                "total_virupas": 94.863169,
+                "tribhaga": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Tribhagabala (thirds of day/night; Jupiter always).",
+                  "note": null,
+                  "virupas": 60.0
+                },
+                "vara": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Varabala (weekday-lord, 45 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "yuddha": {
+                  "approximated": true,
+                  "citation": "BPHS Kalabala \u2014 Yuddhabala (planetary-war adjustment).",
+                  "note": "War-outcome strength transfer not modelled; 0 Virupas pending a rigorous war model.",
+                  "virupas": 0.0
+                }
+              },
+              "meets_minimum": false,
+              "naisargika": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Naisargikabala (k/7 of 60 Virupas).",
+                "note": null,
+                "virupas": 34.285714
+              },
+              "planet": "jupiter",
+              "required_rupas": 6.5,
+              "sthana": {
+                "drekkana": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Drekkanabala (gender decanate, 15 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "kendradi": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Kendradibala (kendra 60 / panaphara 30 / apoklima 15).",
+                  "note": null,
+                  "virupas": 15.0
+                },
+                "ojayugma": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Ojayugmabala (odd/even rasi + navamsa, 15 each).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "saptavargaja": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Saptavargajabala (dignity over 7 vargas).",
+                  "note": null,
+                  "virupas": 67.5
+                },
+                "total_virupas": 87.801749,
+                "uccha": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Uchchabala (60*(180-|d|)/180).",
+                  "note": null,
+                  "virupas": 5.301749
+                }
+              },
+              "total_rupas": 4.641256,
+              "total_virupas": 278.475347
+            },
+            "mars": {
+              "cheshta": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Cheshtabala (motional state from true speed).",
+                "note": null,
+                "virupas": 30.0
+              },
+              "dig": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Digbala (linear taper, 60 Virupas at strong cusp).",
+                "note": null,
+                "virupas": 49.413982
+              },
+              "drik": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Drikbala (benefic - malefic drishti / 4).",
+                "note": null,
+                "virupas": -3.302395
+              },
+              "kala": {
+                "abda": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Abdabala (year-lord, 15 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "ayana": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Ayanabala (declination-driven, 60 Virupas range).",
+                  "note": null,
+                  "virupas": 57.384781
+                },
+                "hora": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Horabala (hora-lord from sunrise, 60 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "masa": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Masabala (month-lord, 30 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "nathonnatha": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Nathonnatha (diurnal/nocturnal, 60 at peak).",
+                  "note": null,
+                  "virupas": 39.552822
+                },
+                "paksha": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Pakshabala (lunar phase; Moon doubled).",
+                  "note": null,
+                  "virupas": 54.522741
+                },
+                "total_virupas": 151.460345,
+                "tribhaga": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Tribhagabala (thirds of day/night; Jupiter always).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "vara": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Varabala (weekday-lord, 45 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "yuddha": {
+                  "approximated": true,
+                  "citation": "BPHS Kalabala \u2014 Yuddhabala (planetary-war adjustment).",
+                  "note": "War-outcome strength transfer not modelled; 0 Virupas pending a rigorous war model.",
+                  "virupas": 0.0
+                }
+              },
+              "meets_minimum": true,
+              "naisargika": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Naisargikabala (k/7 of 60 Virupas).",
+                "note": null,
+                "virupas": 17.142857
+              },
+              "planet": "mars",
+              "required_rupas": 5.0,
+              "sthana": {
+                "drekkana": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Drekkanabala (gender decanate, 15 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "kendradi": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Kendradibala (kendra 60 / panaphara 30 / apoklima 15).",
+                  "note": null,
+                  "virupas": 30.0
+                },
+                "ojayugma": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Ojayugmabala (odd/even rasi + navamsa, 15 each).",
+                  "note": null,
+                  "virupas": 30.0
+                },
+                "saptavargaja": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Saptavargajabala (dignity over 7 vargas).",
+                  "note": null,
+                  "virupas": 60.0
+                },
+                "total_virupas": 129.411738,
+                "uccha": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Uchchabala (60*(180-|d|)/180).",
+                  "note": null,
+                  "virupas": 9.411738
+                }
+              },
+              "total_rupas": 6.235442,
+              "total_virupas": 374.126528
+            },
+            "mercury": {
+              "cheshta": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Cheshtabala (motional state from true speed).",
+                "note": null,
+                "virupas": 30.0
+              },
+              "dig": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Digbala (linear taper, 60 Virupas at strong cusp).",
+                "note": null,
+                "virupas": 49.110388
+              },
+              "drik": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Drikbala (benefic - malefic drishti / 4).",
+                "note": null,
+                "virupas": 15.448166
+              },
+              "kala": {
+                "abda": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Abdabala (year-lord, 15 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "ayana": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Ayanabala (declination-driven, 60 Virupas range).",
+                  "note": null,
+                  "virupas": 49.353641
+                },
+                "hora": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Horabala (hora-lord from sunrise, 60 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "masa": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Masabala (month-lord, 30 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "nathonnatha": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Nathonnatha (diurnal/nocturnal, 60 at peak).",
+                  "note": null,
+                  "virupas": 60.0
+                },
+                "paksha": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Pakshabala (lunar phase; Moon doubled).",
+                  "note": null,
+                  "virupas": 5.477259
+                },
+                "total_virupas": 114.8309,
+                "tribhaga": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Tribhagabala (thirds of day/night; Jupiter always).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "vara": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Varabala (weekday-lord, 45 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "yuddha": {
+                  "approximated": true,
+                  "citation": "BPHS Kalabala \u2014 Yuddhabala (planetary-war adjustment).",
+                  "note": "War-outcome strength transfer not modelled; 0 Virupas pending a rigorous war model.",
+                  "virupas": 0.0
+                }
+              },
+              "meets_minimum": false,
+              "naisargika": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Naisargikabala (k/7 of 60 Virupas).",
+                "note": null,
+                "virupas": 25.714286
+              },
+              "planet": "mercury",
+              "required_rupas": 7.0,
+              "sthana": {
+                "drekkana": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Drekkanabala (gender decanate, 15 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "kendradi": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Kendradibala (kendra 60 / panaphara 30 / apoklima 15).",
+                  "note": null,
+                  "virupas": 15.0
+                },
+                "ojayugma": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Ojayugmabala (odd/even rasi + navamsa, 15 each).",
+                  "note": null,
+                  "virupas": 15.0
+                },
+                "saptavargaja": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Saptavargajabala (dignity over 7 vargas).",
+                  "note": null,
+                  "virupas": 86.25
+                },
+                "total_virupas": 159.695965,
+                "uccha": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Uchchabala (60*(180-|d|)/180).",
+                  "note": null,
+                  "virupas": 43.445965
+                }
+              },
+              "total_rupas": 6.579995,
+              "total_virupas": 394.799704
+            },
+            "moon": {
+              "cheshta": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Cheshtabala (motional state from true speed).",
+                "note": null,
+                "virupas": 10.954517
+              },
+              "dig": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Digbala (linear taper, 60 Virupas at strong cusp).",
+                "note": null,
+                "virupas": 1.451865
+              },
+              "drik": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Drikbala (benefic - malefic drishti / 4).",
+                "note": null,
+                "virupas": -7.710587
+              },
+              "kala": {
+                "abda": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Abdabala (year-lord, 15 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "ayana": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Ayanabala (declination-driven, 60 Virupas range).",
+                  "note": null,
+                  "virupas": 0.791963
+                },
+                "hora": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Horabala (hora-lord from sunrise, 60 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "masa": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Masabala (month-lord, 30 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "nathonnatha": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Nathonnatha (diurnal/nocturnal, 60 at peak).",
+                  "note": null,
+                  "virupas": 39.552822
+                },
+                "paksha": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Pakshabala (lunar phase; Moon doubled).",
+                  "note": null,
+                  "virupas": 10.954517
+                },
+                "total_virupas": 51.299303,
+                "tribhaga": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Tribhagabala (thirds of day/night; Jupiter always).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "vara": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Varabala (weekday-lord, 45 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "yuddha": {
+                  "approximated": true,
+                  "citation": "BPHS Kalabala \u2014 Yuddhabala (planetary-war adjustment).",
+                  "note": "War-outcome strength transfer not modelled; 0 Virupas pending a rigorous war model.",
+                  "virupas": 0.0
+                }
+              },
+              "meets_minimum": false,
+              "naisargika": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Naisargikabala (k/7 of 60 Virupas).",
+                "note": null,
+                "virupas": 51.428571
+              },
+              "planet": "moon",
+              "required_rupas": 6.0,
+              "sthana": {
+                "drekkana": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Drekkanabala (gender decanate, 15 Virupas).",
+                  "note": null,
+                  "virupas": 15.0
+                },
+                "kendradi": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Kendradibala (kendra 60 / panaphara 30 / apoklima 15).",
+                  "note": null,
+                  "virupas": 60.0
+                },
+                "ojayugma": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Ojayugmabala (odd/even rasi + navamsa, 15 each).",
+                  "note": null,
+                  "virupas": 15.0
+                },
+                "saptavargaja": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Saptavargajabala (dignity over 7 vargas).",
+                  "note": null,
+                  "virupas": 67.5
+                },
+                "total_virupas": 210.616288,
+                "uccha": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Uchchabala (60*(180-|d|)/180).",
+                  "note": null,
+                  "virupas": 53.116288
+                }
+              },
+              "total_rupas": 5.300666,
+              "total_virupas": 318.039957
+            },
+            "saturn": {
+              "cheshta": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Cheshtabala (motional state from true speed).",
+                "note": null,
+                "virupas": 60.0
+              },
+              "dig": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Digbala (linear taper, 60 Virupas at strong cusp).",
+                "note": null,
+                "virupas": 19.966914
+              },
+              "drik": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Drikbala (benefic - malefic drishti / 4).",
+                "note": null,
+                "virupas": 13.920408
+              },
+              "kala": {
+                "abda": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Abdabala (year-lord, 15 Virupas).",
+                  "note": null,
+                  "virupas": 15.0
+                },
+                "ayana": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Ayanabala (declination-driven, 60 Virupas range).",
+                  "note": null,
+                  "virupas": 53.222163
+                },
+                "hora": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Horabala (hora-lord from sunrise, 60 Virupas).",
+                  "note": null,
+                  "virupas": 60.0
+                },
+                "masa": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Masabala (month-lord, 30 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "nathonnatha": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Nathonnatha (diurnal/nocturnal, 60 at peak).",
+                  "note": null,
+                  "virupas": 39.552822
+                },
+                "paksha": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Pakshabala (lunar phase; Moon doubled).",
+                  "note": null,
+                  "virupas": 54.522741
+                },
+                "total_virupas": 222.297726,
+                "tribhaga": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Tribhagabala (thirds of day/night; Jupiter always).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "vara": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Varabala (weekday-lord, 45 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "yuddha": {
+                  "approximated": true,
+                  "citation": "BPHS Kalabala \u2014 Yuddhabala (planetary-war adjustment).",
+                  "note": "War-outcome strength transfer not modelled; 0 Virupas pending a rigorous war model.",
+                  "virupas": 0.0
+                }
+              },
+              "meets_minimum": true,
+              "naisargika": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Naisargikabala (k/7 of 60 Virupas).",
+                "note": null,
+                "virupas": 8.571429
+              },
+              "planet": "saturn",
+              "required_rupas": 5.0,
+              "sthana": {
+                "drekkana": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Drekkanabala (gender decanate, 15 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "kendradi": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Kendradibala (kendra 60 / panaphara 30 / apoklima 15).",
+                  "note": null,
+                  "virupas": 15.0
+                },
+                "ojayugma": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Ojayugmabala (odd/even rasi + navamsa, 15 each).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "saptavargaja": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Saptavargajabala (dignity over 7 vargas).",
+                  "note": null,
+                  "virupas": 82.5
+                },
+                "total_virupas": 154.864175,
+                "uccha": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Uchchabala (60*(180-|d|)/180).",
+                  "note": null,
+                  "virupas": 57.364175
+                }
+              },
+              "total_rupas": 7.993678,
+              "total_virupas": 479.620652
+            },
+            "sun": {
+              "cheshta": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Cheshtabala (motional state from true speed).",
+                "note": null,
+                "virupas": 57.58551
+              },
+              "dig": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Digbala (linear taper, 60 Virupas at strong cusp).",
+                "note": null,
+                "virupas": 49.727806
+              },
+              "drik": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Drikbala (benefic - malefic drishti / 4).",
+                "note": null,
+                "virupas": -3.655447
+              },
+              "kala": {
+                "abda": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Abdabala (year-lord, 15 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "ayana": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Ayanabala (declination-driven, 60 Virupas range).",
+                  "note": null,
+                  "virupas": 57.58551
+                },
+                "hora": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Horabala (hora-lord from sunrise, 60 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "masa": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Masabala (month-lord, 30 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "nathonnatha": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Nathonnatha (diurnal/nocturnal, 60 at peak).",
+                  "note": null,
+                  "virupas": 20.447178
+                },
+                "paksha": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Pakshabala (lunar phase; Moon doubled).",
+                  "note": null,
+                  "virupas": 54.522741
+                },
+                "total_virupas": 237.555429,
+                "tribhaga": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Tribhagabala (thirds of day/night; Jupiter always).",
+                  "note": null,
+                  "virupas": 60.0
+                },
+                "vara": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Varabala (weekday-lord, 45 Virupas).",
+                  "note": null,
+                  "virupas": 45.0
+                },
+                "yuddha": {
+                  "approximated": true,
+                  "citation": "BPHS Kalabala \u2014 Yuddhabala (planetary-war adjustment).",
+                  "note": "War-outcome strength transfer not modelled; 0 Virupas pending a rigorous war model.",
+                  "virupas": 0.0
+                }
+              },
+              "meets_minimum": true,
+              "naisargika": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Naisargikabala (k/7 of 60 Virupas).",
+                "note": null,
+                "virupas": 60.0
+              },
+              "planet": "sun",
+              "required_rupas": 6.5,
+              "sthana": {
+                "drekkana": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Drekkanabala (gender decanate, 15 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "kendradi": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Kendradibala (kendra 60 / panaphara 30 / apoklima 15).",
+                  "note": null,
+                  "virupas": 30.0
+                },
+                "ojayugma": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Ojayugmabala (odd/even rasi + navamsa, 15 each).",
+                  "note": null,
+                  "virupas": 30.0
+                },
+                "saptavargaja": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Saptavargajabala (dignity over 7 vargas).",
+                  "note": null,
+                  "virupas": 56.25
+                },
+                "total_virupas": 149.975562,
+                "uccha": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Uchchabala (60*(180-|d|)/180).",
+                  "note": null,
+                  "virupas": 33.725562
+                }
+              },
+              "total_rupas": 9.186481,
+              "total_virupas": 551.18886
+            },
+            "venus": {
+              "cheshta": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Cheshtabala (motional state from true speed).",
+                "note": null,
+                "virupas": 30.0
+              },
+              "dig": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Digbala (linear taper, 60 Virupas at strong cusp).",
+                "note": null,
+                "virupas": 4.07858
+              },
+              "drik": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Drikbala (benefic - malefic drishti / 4).",
+                "note": null,
+                "virupas": -14.94895
+              },
+              "kala": {
+                "abda": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Abdabala (year-lord, 15 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "ayana": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Ayanabala (declination-driven, 60 Virupas range).",
+                  "note": null,
+                  "virupas": 57.967981
+                },
+                "hora": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Horabala (hora-lord from sunrise, 60 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "masa": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Masabala (month-lord, 30 Virupas).",
+                  "note": null,
+                  "virupas": 30.0
+                },
+                "nathonnatha": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Nathonnatha (diurnal/nocturnal, 60 at peak).",
+                  "note": null,
+                  "virupas": 20.447178
+                },
+                "paksha": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Pakshabala (lunar phase; Moon doubled).",
+                  "note": null,
+                  "virupas": 5.477259
+                },
+                "total_virupas": 113.892418,
+                "tribhaga": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Tribhagabala (thirds of day/night; Jupiter always).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "vara": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Varabala (weekday-lord, 45 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "yuddha": {
+                  "approximated": true,
+                  "citation": "BPHS Kalabala \u2014 Yuddhabala (planetary-war adjustment).",
+                  "note": "War-outcome strength transfer not modelled; 0 Virupas pending a rigorous war model.",
+                  "virupas": 0.0
+                }
+              },
+              "meets_minimum": true,
+              "naisargika": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Naisargikabala (k/7 of 60 Virupas).",
+                "note": null,
+                "virupas": 42.857143
+              },
+              "planet": "venus",
+              "required_rupas": 5.5,
+              "sthana": {
+                "drekkana": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Drekkanabala (gender decanate, 15 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "kendradi": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Kendradibala (kendra 60 / panaphara 30 / apoklima 15).",
+                  "note": null,
+                  "virupas": 60.0
+                },
+                "ojayugma": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Ojayugmabala (odd/even rasi + navamsa, 15 each).",
+                  "note": null,
+                  "virupas": 30.0
+                },
+                "saptavargaja": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Saptavargajabala (dignity over 7 vargas).",
+                  "note": null,
+                  "virupas": 108.75
+                },
+                "total_virupas": 242.493003,
+                "uccha": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Uchchabala (60*(180-|d|)/180).",
+                  "note": null,
+                  "virupas": 43.743003
+                }
+              },
+              "total_rupas": 6.97287,
+              "total_virupas": 418.372194
+            }
+          }
+        },
+        "sunrise_utc_iso": "1985-07-14T19:36:33.850941+00:00"
+      },
+      "lat": 35.6762,
+      "lon": 139.6503,
+      "name": "tokyo_1985"
+    },
+    {
+      "birth_iso": "1990-01-15T12:00:00-05:00",
+      "expected": {
+        "ashtakavarga": {
+          "bhinna": {
+            "jupiter": {
+              "bindus": {
+                "Aquarius": 6,
+                "Aries": 6,
+                "Cancer": 3,
+                "Capricorn": 4,
+                "Gemini": 4,
+                "Leo": 5,
+                "Libra": 4,
+                "Pisces": 3,
+                "Sagittarius": 5,
+                "Scorpio": 4,
+                "Taurus": 5,
+                "Virgo": 7
+              },
+              "planet": "jupiter",
+              "total": 56
+            },
+            "mars": {
+              "bindus": {
+                "Aquarius": 3,
+                "Aries": 3,
+                "Cancer": 1,
+                "Capricorn": 2,
+                "Gemini": 6,
+                "Leo": 3,
+                "Libra": 4,
+                "Pisces": 3,
+                "Sagittarius": 3,
+                "Scorpio": 4,
+                "Taurus": 4,
+                "Virgo": 3
+              },
+              "planet": "mars",
+              "total": 39
+            },
+            "mercury": {
+              "bindus": {
+                "Aquarius": 4,
+                "Aries": 4,
+                "Cancer": 3,
+                "Capricorn": 5,
+                "Gemini": 4,
+                "Leo": 4,
+                "Libra": 2,
+                "Pisces": 3,
+                "Sagittarius": 4,
+                "Scorpio": 7,
+                "Taurus": 7,
+                "Virgo": 7
+              },
+              "planet": "mercury",
+              "total": 54
+            },
+            "moon": {
+              "bindus": {
+                "Aquarius": 4,
+                "Aries": 5,
+                "Cancer": 5,
+                "Capricorn": 4,
+                "Gemini": 5,
+                "Leo": 3,
+                "Libra": 5,
+                "Pisces": 5,
+                "Sagittarius": 3,
+                "Scorpio": 2,
+                "Taurus": 3,
+                "Virgo": 5
+              },
+              "planet": "moon",
+              "total": 49
+            },
+            "saturn": {
+              "bindus": {
+                "Aquarius": 3,
+                "Aries": 5,
+                "Cancer": 3,
+                "Capricorn": 4,
+                "Gemini": 3,
+                "Leo": 3,
+                "Libra": 6,
+                "Pisces": 1,
+                "Sagittarius": 1,
+                "Scorpio": 4,
+                "Taurus": 3,
+                "Virgo": 3
+              },
+              "planet": "saturn",
+              "total": 39
+            },
+            "sun": {
+              "bindus": {
+                "Aquarius": 5,
+                "Aries": 3,
+                "Cancer": 5,
+                "Capricorn": 4,
+                "Gemini": 5,
+                "Leo": 4,
+                "Libra": 5,
+                "Pisces": 2,
+                "Sagittarius": 3,
+                "Scorpio": 4,
+                "Taurus": 3,
+                "Virgo": 5
+              },
+              "planet": "sun",
+              "total": 48
+            },
+            "venus": {
+              "bindus": {
+                "Aquarius": 5,
+                "Aries": 7,
+                "Cancer": 4,
+                "Capricorn": 3,
+                "Gemini": 2,
+                "Leo": 6,
+                "Libra": 6,
+                "Pisces": 5,
+                "Sagittarius": 3,
+                "Scorpio": 4,
+                "Taurus": 3,
+                "Virgo": 4
+              },
+              "planet": "venus",
+              "total": 52
+            }
+          },
+          "sarva": {
+            "bindus": {
+              "Aquarius": 30,
+              "Aries": 33,
+              "Cancer": 24,
+              "Capricorn": 26,
+              "Gemini": 29,
+              "Leo": 28,
+              "Libra": 32,
+              "Pisces": 22,
+              "Sagittarius": 22,
+              "Scorpio": 29,
+              "Taurus": 28,
+              "Virgo": 34
+            },
+            "total": 337
+          }
+        },
+        "shadbala": {
+          "planets": {
+            "jupiter": {
+              "cheshta": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Cheshtabala (motional state from true speed).",
+                "note": null,
+                "virupas": 60.0
+              },
+              "dig": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Digbala (linear taper, 60 Virupas at strong cusp).",
+                "note": null,
+                "virupas": 42.918364
+              },
+              "drik": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Drikbala (benefic - malefic drishti / 4).",
+                "note": null,
+                "virupas": -22.128087
+              },
+              "kala": {
+                "abda": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Abdabala (year-lord, 15 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "ayana": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Ayanabala (declination-driven, 60 Virupas range).",
+                  "note": null,
+                  "virupas": 59.928965
+                },
+                "hora": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Horabala (hora-lord from sunrise, 60 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "masa": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Masabala (month-lord, 30 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "nathonnatha": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Nathonnatha (diurnal/nocturnal, 60 at peak).",
+                  "note": null,
+                  "virupas": 29.412529
+                },
+                "paksha": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Pakshabala (lunar phase; Moon doubled).",
+                  "note": null,
+                  "virupas": 47.290237
+                },
+                "total_virupas": 196.631731,
+                "tribhaga": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Tribhagabala (thirds of day/night; Jupiter always).",
+                  "note": null,
+                  "virupas": 60.0
+                },
+                "vara": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Varabala (weekday-lord, 45 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "yuddha": {
+                  "approximated": true,
+                  "citation": "BPHS Kalabala \u2014 Yuddhabala (planetary-war adjustment).",
+                  "note": "War-outcome strength transfer not modelled; 0 Virupas pending a rigorous war model.",
+                  "virupas": 0.0
+                }
+              },
+              "meets_minimum": true,
+              "naisargika": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Naisargikabala (k/7 of 60 Virupas).",
+                "note": null,
+                "virupas": 34.285714
+              },
+              "planet": "jupiter",
+              "required_rupas": 6.5,
+              "sthana": {
+                "drekkana": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Drekkanabala (gender decanate, 15 Virupas).",
+                  "note": null,
+                  "virupas": 15.0
+                },
+                "kendradi": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Kendradibala (kendra 60 / panaphara 30 / apoklima 15).",
+                  "note": null,
+                  "virupas": 15.0
+                },
+                "ojayugma": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Ojayugmabala (odd/even rasi + navamsa, 15 each).",
+                  "note": null,
+                  "virupas": 30.0
+                },
+                "saptavargaja": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Saptavargajabala (dignity over 7 vargas).",
+                  "note": null,
+                  "virupas": 78.75
+                },
+                "total_virupas": 190.291427,
+                "uccha": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Uchchabala (60*(180-|d|)/180).",
+                  "note": null,
+                  "virupas": 51.541427
+                }
+              },
+              "total_rupas": 8.366652,
+              "total_virupas": 501.99915
+            },
+            "mars": {
+              "cheshta": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Cheshtabala (motional state from true speed).",
+                "note": null,
+                "virupas": 30.0
+              },
+              "dig": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Digbala (linear taper, 60 Virupas at strong cusp).",
+                "note": null,
+                "virupas": 42.653554
+              },
+              "drik": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Drikbala (benefic - malefic drishti / 4).",
+                "note": null,
+                "virupas": 12.771704
+              },
+              "kala": {
+                "abda": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Abdabala (year-lord, 15 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "ayana": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Ayanabala (declination-driven, 60 Virupas range).",
+                  "note": null,
+                  "virupas": 0.493569
+                },
+                "hora": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Horabala (hora-lord from sunrise, 60 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "masa": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Masabala (month-lord, 30 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "nathonnatha": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Nathonnatha (diurnal/nocturnal, 60 at peak).",
+                  "note": null,
+                  "virupas": 30.587471
+                },
+                "paksha": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Pakshabala (lunar phase; Moon doubled).",
+                  "note": null,
+                  "virupas": 12.709763
+                },
+                "total_virupas": 43.790804,
+                "tribhaga": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Tribhagabala (thirds of day/night; Jupiter always).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "vara": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Varabala (weekday-lord, 45 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "yuddha": {
+                  "approximated": true,
+                  "citation": "BPHS Kalabala \u2014 Yuddhabala (planetary-war adjustment).",
+                  "note": "War-outcome strength transfer not modelled; 0 Virupas pending a rigorous war model.",
+                  "virupas": 0.0
+                }
+              },
+              "meets_minimum": true,
+              "naisargika": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Naisargikabala (k/7 of 60 Virupas).",
+                "note": null,
+                "virupas": 17.142857
+              },
+              "planet": "mars",
+              "required_rupas": 5.0,
+              "sthana": {
+                "drekkana": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Drekkanabala (gender decanate, 15 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "kendradi": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Kendradibala (kendra 60 / panaphara 30 / apoklima 15).",
+                  "note": null,
+                  "virupas": 30.0
+                },
+                "ojayugma": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Ojayugmabala (odd/even rasi + navamsa, 15 each).",
+                  "note": null,
+                  "virupas": 15.0
+                },
+                "saptavargaja": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Saptavargajabala (dignity over 7 vargas).",
+                  "note": null,
+                  "virupas": 131.25
+                },
+                "total_virupas": 215.696678,
+                "uccha": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Uchchabala (60*(180-|d|)/180).",
+                  "note": null,
+                  "virupas": 39.446678
+                }
+              },
+              "total_rupas": 6.03426,
+              "total_virupas": 362.055597
+            },
+            "mercury": {
+              "cheshta": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Cheshtabala (motional state from true speed).",
+                "note": null,
+                "virupas": 60.0
+              },
+              "dig": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Digbala (linear taper, 60 Virupas at strong cusp).",
+                "note": null,
+                "virupas": 19.700289
+              },
+              "drik": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Drikbala (benefic - malefic drishti / 4).",
+                "note": null,
+                "virupas": 12.184412
+              },
+              "kala": {
+                "abda": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Abdabala (year-lord, 15 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "ayana": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Ayanabala (declination-driven, 60 Virupas range).",
+                  "note": null,
+                  "virupas": 59.379155
+                },
+                "hora": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Horabala (hora-lord from sunrise, 60 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "masa": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Masabala (month-lord, 30 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "nathonnatha": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Nathonnatha (diurnal/nocturnal, 60 at peak).",
+                  "note": null,
+                  "virupas": 60.0
+                },
+                "paksha": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Pakshabala (lunar phase; Moon doubled).",
+                  "note": null,
+                  "virupas": 47.290237
+                },
+                "total_virupas": 166.669392,
+                "tribhaga": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Tribhagabala (thirds of day/night; Jupiter always).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "vara": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Varabala (weekday-lord, 45 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "yuddha": {
+                  "approximated": true,
+                  "citation": "BPHS Kalabala \u2014 Yuddhabala (planetary-war adjustment).",
+                  "note": "War-outcome strength transfer not modelled; 0 Virupas pending a rigorous war model.",
+                  "virupas": 0.0
+                }
+              },
+              "meets_minimum": true,
+              "naisargika": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Naisargikabala (k/7 of 60 Virupas).",
+                "note": null,
+                "virupas": 25.714286
+              },
+              "planet": "mercury",
+              "required_rupas": 7.0,
+              "sthana": {
+                "drekkana": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Drekkanabala (gender decanate, 15 Virupas).",
+                  "note": null,
+                  "virupas": 15.0
+                },
+                "kendradi": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Kendradibala (kendra 60 / panaphara 30 / apoklima 15).",
+                  "note": null,
+                  "virupas": 15.0
+                },
+                "ojayugma": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Ojayugmabala (odd/even rasi + navamsa, 15 each).",
+                  "note": null,
+                  "virupas": 15.0
+                },
+                "saptavargaja": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Saptavargajabala (dignity over 7 vargas).",
+                  "note": null,
+                  "virupas": 93.75
+                },
+                "total_virupas": 167.923253,
+                "uccha": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Uchchabala (60*(180-|d|)/180).",
+                  "note": null,
+                  "virupas": 29.173253
+                }
+              },
+              "total_rupas": 7.536527,
+              "total_virupas": 452.191632
+            },
+            "moon": {
+              "cheshta": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Cheshtabala (motional state from true speed).",
+                "note": null,
+                "virupas": 60.0
+              },
+              "dig": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Digbala (linear taper, 60 Virupas at strong cusp).",
+                "note": null,
+                "virupas": 47.333332
+              },
+              "drik": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Drikbala (benefic - malefic drishti / 4).",
+                "note": null,
+                "virupas": -23.60948
+              },
+              "kala": {
+                "abda": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Abdabala (year-lord, 15 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "ayana": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Ayanabala (declination-driven, 60 Virupas range).",
+                  "note": null,
+                  "virupas": 24.982076
+                },
+                "hora": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Horabala (hora-lord from sunrise, 60 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "masa": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Masabala (month-lord, 30 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "nathonnatha": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Nathonnatha (diurnal/nocturnal, 60 at peak).",
+                  "note": null,
+                  "virupas": 30.587471
+                },
+                "paksha": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Pakshabala (lunar phase; Moon doubled).",
+                  "note": null,
+                  "virupas": 60.0
+                },
+                "total_virupas": 160.569547,
+                "tribhaga": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Tribhagabala (thirds of day/night; Jupiter always).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "vara": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Varabala (weekday-lord, 45 Virupas).",
+                  "note": null,
+                  "virupas": 45.0
+                },
+                "yuddha": {
+                  "approximated": true,
+                  "citation": "BPHS Kalabala \u2014 Yuddhabala (planetary-war adjustment).",
+                  "note": "War-outcome strength transfer not modelled; 0 Virupas pending a rigorous war model.",
+                  "virupas": 0.0
+                }
+              },
+              "meets_minimum": true,
+              "naisargika": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Naisargikabala (k/7 of 60 Virupas).",
+                "note": null,
+                "virupas": 51.428571
+              },
+              "planet": "moon",
+              "required_rupas": 6.0,
+              "sthana": {
+                "drekkana": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Drekkanabala (gender decanate, 15 Virupas).",
+                  "note": null,
+                  "virupas": 15.0
+                },
+                "kendradi": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Kendradibala (kendra 60 / panaphara 30 / apoklima 15).",
+                  "note": null,
+                  "virupas": 30.0
+                },
+                "ojayugma": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Ojayugmabala (odd/even rasi + navamsa, 15 each).",
+                  "note": null,
+                  "virupas": 15.0
+                },
+                "saptavargaja": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Saptavargajabala (dignity over 7 vargas).",
+                  "note": null,
+                  "virupas": 90.0
+                },
+                "total_virupas": 172.206874,
+                "uccha": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Uchchabala (60*(180-|d|)/180).",
+                  "note": null,
+                  "virupas": 22.206874
+                }
+              },
+              "total_rupas": 7.798814,
+              "total_virupas": 467.928843
+            },
+            "saturn": {
+              "cheshta": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Cheshtabala (motional state from true speed).",
+                "note": null,
+                "virupas": 15.0
+              },
+              "dig": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Digbala (linear taper, 60 Virupas at strong cusp).",
+                "note": null,
+                "virupas": 38.252584
+              },
+              "drik": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Drikbala (benefic - malefic drishti / 4).",
+                "note": null,
+                "virupas": 8.346049
+              },
+              "kala": {
+                "abda": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Abdabala (year-lord, 15 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "ayana": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Ayanabala (declination-driven, 60 Virupas range).",
+                  "note": null,
+                  "virupas": 58.545076
+                },
+                "hora": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Horabala (hora-lord from sunrise, 60 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "masa": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Masabala (month-lord, 30 Virupas).",
+                  "note": null,
+                  "virupas": 30.0
+                },
+                "nathonnatha": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Nathonnatha (diurnal/nocturnal, 60 at peak).",
+                  "note": null,
+                  "virupas": 30.587471
+                },
+                "paksha": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Pakshabala (lunar phase; Moon doubled).",
+                  "note": null,
+                  "virupas": 12.709763
+                },
+                "total_virupas": 131.84231,
+                "tribhaga": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Tribhagabala (thirds of day/night; Jupiter always).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "vara": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Varabala (weekday-lord, 45 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "yuddha": {
+                  "approximated": true,
+                  "citation": "BPHS Kalabala \u2014 Yuddhabala (planetary-war adjustment).",
+                  "note": "War-outcome strength transfer not modelled; 0 Virupas pending a rigorous war model.",
+                  "virupas": 0.0
+                }
+              },
+              "meets_minimum": true,
+              "naisargika": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Naisargikabala (k/7 of 60 Virupas).",
+                "note": null,
+                "virupas": 8.571429
+              },
+              "planet": "saturn",
+              "required_rupas": 5.0,
+              "sthana": {
+                "drekkana": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Drekkanabala (gender decanate, 15 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "kendradi": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Kendradibala (kendra 60 / panaphara 30 / apoklima 15).",
+                  "note": null,
+                  "virupas": 15.0
+                },
+                "ojayugma": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Ojayugmabala (odd/even rasi + navamsa, 15 each).",
+                  "note": null,
+                  "virupas": 15.0
+                },
+                "saptavargaja": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Saptavargajabala (dignity over 7 vargas).",
+                  "note": null,
+                  "virupas": 63.75
+                },
+                "total_virupas": 132.542793,
+                "uccha": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Uchchabala (60*(180-|d|)/180).",
+                  "note": null,
+                  "virupas": 38.792793
+                }
+              },
+              "total_rupas": 5.575919,
+              "total_virupas": 334.555165
+            },
+            "sun": {
+              "cheshta": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Cheshtabala (motional state from true speed).",
+                "note": null,
+                "virupas": 3.036441
+              },
+              "dig": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Digbala (linear taper, 60 Virupas at strong cusp).",
+                "note": null,
+                "virupas": 54.397873
+              },
+              "drik": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Drikbala (benefic - malefic drishti / 4).",
+                "note": null,
+                "virupas": 4.025645
+              },
+              "kala": {
+                "abda": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Abdabala (year-lord, 15 Virupas).",
+                  "note": null,
+                  "virupas": 15.0
+                },
+                "ayana": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Ayanabala (declination-driven, 60 Virupas range).",
+                  "note": null,
+                  "virupas": 3.036441
+                },
+                "hora": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Horabala (hora-lord from sunrise, 60 Virupas).",
+                  "note": null,
+                  "virupas": 60.0
+                },
+                "masa": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Masabala (month-lord, 30 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "nathonnatha": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Nathonnatha (diurnal/nocturnal, 60 at peak).",
+                  "note": null,
+                  "virupas": 29.412529
+                },
+                "paksha": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Pakshabala (lunar phase; Moon doubled).",
+                  "note": null,
+                  "virupas": 12.709763
+                },
+                "total_virupas": 180.158734,
+                "tribhaga": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Tribhagabala (thirds of day/night; Jupiter always).",
+                  "note": null,
+                  "virupas": 60.0
+                },
+                "vara": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Varabala (weekday-lord, 45 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "yuddha": {
+                  "approximated": true,
+                  "citation": "BPHS Kalabala \u2014 Yuddhabala (planetary-war adjustment).",
+                  "note": "War-outcome strength transfer not modelled; 0 Virupas pending a rigorous war model.",
+                  "virupas": 0.0
+                }
+              },
+              "meets_minimum": true,
+              "naisargika": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Naisargikabala (k/7 of 60 Virupas).",
+                "note": null,
+                "virupas": 60.0
+              },
+              "planet": "sun",
+              "required_rupas": 6.5,
+              "sthana": {
+                "drekkana": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Drekkanabala (gender decanate, 15 Virupas).",
+                  "note": null,
+                  "virupas": 15.0
+                },
+                "kendradi": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Kendradibala (kendra 60 / panaphara 30 / apoklima 15).",
+                  "note": null,
+                  "virupas": 60.0
+                },
+                "ojayugma": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Ojayugmabala (odd/even rasi + navamsa, 15 each).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "saptavargaja": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Saptavargajabala (dignity over 7 vargas).",
+                  "note": null,
+                  "virupas": 48.75
+                },
+                "total_virupas": 150.940997,
+                "uccha": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Uchchabala (60*(180-|d|)/180).",
+                  "note": null,
+                  "virupas": 27.190997
+                }
+              },
+              "total_rupas": 7.542661,
+              "total_virupas": 452.559689
+            },
+            "venus": {
+              "cheshta": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Cheshtabala (motional state from true speed).",
+                "note": null,
+                "virupas": 60.0
+              },
+              "dig": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Digbala (linear taper, 60 Virupas at strong cusp).",
+                "note": null,
+                "virupas": 3.845038
+              },
+              "drik": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Drikbala (benefic - malefic drishti / 4).",
+                "note": null,
+                "virupas": 1.39001
+              },
+              "kala": {
+                "abda": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Abdabala (year-lord, 15 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "ayana": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Ayanabala (declination-driven, 60 Virupas range).",
+                  "note": null,
+                  "virupas": 4.377522
+                },
+                "hora": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Horabala (hora-lord from sunrise, 60 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "masa": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Masabala (month-lord, 30 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "nathonnatha": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Nathonnatha (diurnal/nocturnal, 60 at peak).",
+                  "note": null,
+                  "virupas": 29.412529
+                },
+                "paksha": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Pakshabala (lunar phase; Moon doubled).",
+                  "note": null,
+                  "virupas": 47.290237
+                },
+                "total_virupas": 81.080288,
+                "tribhaga": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Tribhagabala (thirds of day/night; Jupiter always).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "vara": {
+                  "approximated": false,
+                  "citation": "BPHS Kalabala \u2014 Varabala (weekday-lord, 45 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "yuddha": {
+                  "approximated": true,
+                  "citation": "BPHS Kalabala \u2014 Yuddhabala (planetary-war adjustment).",
+                  "note": "War-outcome strength transfer not modelled; 0 Virupas pending a rigorous war model.",
+                  "virupas": 0.0
+                }
+              },
+              "meets_minimum": true,
+              "naisargika": {
+                "approximated": false,
+                "citation": "BPHS Shadbala Adhyaya \u2014 Naisargikabala (k/7 of 60 Virupas).",
+                "note": null,
+                "virupas": 42.857143
+              },
+              "planet": "venus",
+              "required_rupas": 5.5,
+              "sthana": {
+                "drekkana": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Drekkanabala (gender decanate, 15 Virupas).",
+                  "note": null,
+                  "virupas": 0.0
+                },
+                "kendradi": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Kendradibala (kendra 60 / panaphara 30 / apoklima 15).",
+                  "note": null,
+                  "virupas": 60.0
+                },
+                "ojayugma": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Ojayugmabala (odd/even rasi + navamsa, 15 each).",
+                  "note": null,
+                  "virupas": 30.0
+                },
+                "saptavargaja": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Saptavargajabala (dignity over 7 vargas).",
+                  "note": null,
+                  "virupas": 67.5
+                },
+                "total_virupas": 190.78142,
+                "uccha": {
+                  "approximated": false,
+                  "citation": "BPHS Sthanabala \u2014 Uchchabala (60*(180-|d|)/180).",
+                  "note": null,
+                  "virupas": 33.28142
+                }
+              },
+              "total_rupas": 6.332565,
+              "total_virupas": 379.953899
+            }
+          }
+        },
+        "sunrise_utc_iso": "1990-01-15T12:18:05.465686+00:00"
+      },
+      "lat": 40.7128,
+      "lon": -74.006,
+      "name": "newyork_1990"
+    }
+  ]
+}

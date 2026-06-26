@@ -1,0 +1,16 @@
+{
+  "generic": "Lo sentimos, estamos experimentando dificultades técnicas. Código de error: {{code}}",
+  "chat": "Lo sentimos, no pudimos procesar tu solicitud. Inténtalo de nuevo. (Error: {{code}})",
+  "engine_warming": "El motor astrológico aún se está iniciando — inténtalo de nuevo en un momento.",
+  "needs_regeneration": "Esta carta debe regenerarse antes de que puedas hacer preguntas sobre ella en el dispositivo.",
+  "missing_birth_data": "Faltan los datos de nacimiento",
+  "missing_timezone": "Falta la zona horaria del lugar de nacimiento",
+  "codes": {
+    "CHART_GEN_001": "Error al generar la carta",
+    "CHART_UPDATE_001": "Error al actualizar los datos de nacimiento",
+    "RECT_001": "Error al guardar los datos de rectificación",
+    "QA_001": "Error al responder la pregunta",
+    "UNKNOWN_001": "Ocurrió un error inesperado",
+    "ENGINE_WARMING": "El motor de cartas aún se está iniciando"
+  }
+}

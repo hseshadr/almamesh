@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AlmaMesh - Vedic Astrology Platform</title>
+    <meta name="description" content="Discover your cosmic blueprint with authentic Vedic astrology insights" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <!-- Observatory typography (Fraunces / Hanken Grotesk / Spline Sans Mono) is
+         SELF-HOSTED via @fontsource-variable (imported in main.tsx). No external
+         font CDN: AlmaMesh makes zero cross-origin requests and stays fully
+         offline; Vite bundles+hashes the woff2 and the SW precaches them. -->
+    <!-- Prevent caching of HTML shell -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+  </head>
+  <body class="font-sans antialiased bg-background-primary">
+    <div id="root"></div>
+    <!--
+      The PWA Service Worker (vite-plugin-pwa / Workbox) is registered from
+      main.tsx with a prompt-driven update flow. Do NOT unregister it here:
+      the SW caches the offline app shell + immutable engine data.
+    -->
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

@@ -1,0 +1,37 @@
+{
+  "name": "@almamesh/frontend",
+  "private": true,
+  "version": "0.0.1",
+  "description": "AlmaMesh frontend monorepo",
+  "workspaces": [
+    "packages/*",
+    "apps/web"
+  ],
+  "scripts": {
+    "build": "bun run --filter '*' build",
+    "dev": "bun run --filter '*' dev",
+    "typecheck": "bun run --filter '*' typecheck",
+    "lint": "bun run --filter '*' lint",
+    "clean": "bun run --filter '*' clean && rm -rf node_modules",
+    "prepare": "cd .. && husky frontend/.husky"
+  },
+  "lint-staged": {
+    "apps/web/**/*.{ts,tsx}": "bun run --filter @almamesh/web lint"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^16.0.0",
+    "typescript": "~5.7.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "baseline-browser-mapping": "^2.10.38",
+    "caniuse-lite": "^1.0.30001799"
+  },
+  "//overrides": "Force a single fresh caniuse-lite across the tree: autoprefixer + browserslist otherwise each pin their own nested (stale) copy, which trips the 'caniuse-lite is N months old' build notice even after `update-browserslist-db`. Refresh both this range and the DB periodically (a `bunx update-browserslist-db@latest` step in release/CI keeps it current).",
+  "overrides": {
+    "caniuse-lite": "^1.0.30001799"
+  }
+}

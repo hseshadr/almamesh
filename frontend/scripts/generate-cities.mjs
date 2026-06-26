@@ -1,0 +1,59 @@
+/**
+ * generate-cities.mjs — build the bundled offline city database.
+ *
+ * AlmaMesh is local-first / no-egress: birth-location entry must resolve to
+ * { latitude, longitude } with ZERO network calls. This script pre-bakes a
+ * pruned, browser-ready city list from `all-the-cities` (GeoNames, cities with
+ * population >= 1000) into a static JSON asset that the LocationSearch component
+ * lazy-loads. IANA timezone is derived at runtime from lat/lon via `tz-lookup`.
+ *
+ * We keep only cities with population > MIN_POPULATION to bound the bundle size
+ * (full set is ~135k cities / ~6.4 MB; the pruned set is ~24k cities / ~2 MB raw,
+ * ~0.56 MB gzipped). Country ISO2 codes are resolved to display names via
+ * `countries-list`.
+ *
+ * Run: `bun run --filter @almamesh/web data:cities`  (regenerates the JSON)
+ *
+ * Output shape (compact keys to shrink the payload):
+ *   { n: name, c: countryName, cc: ISO2, lat, lon, p: population }
+ */
+import { writeFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, resolve } from 'node:path';
+import { gzipSync } from 'node:zlib';
+import { createRequire } from 'node:module';
+
+const here = dirname(fileURLToPath(import.meta.url));
+const webRoot = resolve(here, '../apps/web');
+
+// Resolve build-time deps from the web app's node_modules (bun hoists workspace
+// devDependencies there, not to the monorepo root).
+const require = createRequire(resolve(webRoot, 'package.json'));
+const cities = require('all-the-cities');
+const { countries } = require('countries-list');
+
+const MIN_POPULATION = 15000;
+
+const outPath = resolve(webRoot, 'src/data/cities.min.json');
+
+const rows = cities
+  .filter((city) => city.population > MIN_POPULATION)
+  .map((city) => ({
+    n: city.name,
+    c: countries[city.country]?.name ?? city.country,
+    cc: city.country,
+    lat: city.loc.coordinates[1],
+    lon: city.loc.coordinates[0],
+    p: city.population,
+  }))
+  .sort((a, b) => b.p - a.p);
+
+const json = JSON.stringify(rows);
+writeFileSync(outPath, json);
+
+const gzipped = gzipSync(Buffer.from(json)).length;
+const fmt = (bytes) => `${(bytes / 1024 / 1024).toFixed(2)} MB`;
+process.stdout.write(
+  `Wrote ${rows.length} cities (pop > ${MIN_POPULATION}) to ${outPath}\n` +
+    `  raw: ${fmt(json.length)}  gzipped: ${fmt(gzipped)}\n`,
+);

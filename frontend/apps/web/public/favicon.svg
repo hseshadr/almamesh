@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Dark blue sphere background -->
+  <defs>
+    <radialGradient id="sphereGrad" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#1e3a5f"/>
+      <stop offset="100%" stop-color="#0f1c2e"/>
+    </radialGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="0.5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Main sphere -->
+  <circle cx="16" cy="16" r="14" fill="url(#sphereGrad)"/>
+
+  <!-- Network lines - cyan -->
+  <g stroke="#4ecdc4" stroke-width="0.6" fill="none" opacity="0.8">
+    <line x1="16" y1="6" x2="24" y2="11"/>
+    <line x1="24" y1="11" x2="22" y2="20"/>
+    <line x1="22" y1="20" x2="16" y2="16"/>
+    <line x1="16" y1="16" x2="24" y2="11"/>
+    <line x1="16" y1="6" x2="16" y2="16"/>
+    <line x1="16" y1="16" x2="10" y2="12"/>
+    <line x1="10" y1="12" x2="16" y2="6"/>
+  </g>
+
+  <!-- Network lines - gold -->
+  <g stroke="#d4a855" stroke-width="0.6" fill="none" opacity="0.8">
+    <line x1="16" y1="16" x2="10" y2="22"/>
+    <line x1="10" y1="22" x2="18" y2="25"/>
+    <line x1="18" y1="25" x2="22" y2="20"/>
+    <line x1="22" y1="20" x2="26" y2="16"/>
+    <line x1="10" y1="22" x2="6" y2="18"/>
+    <line x1="6" y1="18" x2="10" y2="12"/>
+  </g>
+
+  <!-- Cyan nodes -->
+  <g fill="#4ecdc4" filter="url(#glow)">
+    <circle cx="16" cy="6" r="1.5"/>
+    <circle cx="24" cy="11" r="1.2"/>
+    <circle cx="10" cy="12" r="1"/>
+    <circle cx="16" cy="16" r="1.8"/>
+  </g>
+
+  <!-- Gold nodes -->
+  <g fill="#d4a855" filter="url(#glow)">
+    <circle cx="22" cy="20" r="1.2"/>
+    <circle cx="10" cy="22" r="1"/>
+    <circle cx="18" cy="25" r="1"/>
+    <circle cx="6" cy="18" r="0.8"/>
+    <circle cx="26" cy="16" r="0.8"/>
+  </g>
+</svg>

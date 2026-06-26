@@ -1,0 +1,334 @@
+name: Test
+
+on:
+  push:
+    branches: [main, p2-browser-engine]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Every job runs from a SINGLE checkout of this repo. The formerly-private
+# dependencies are vendored in-tree (backend/vendor/{edge-proc,shared-libs-python}
+# and frontend/packages/edgeproc-browser — see each VENDORED.md), so CI needs no
+# extra tokens, no sibling checkouts, and no path patching.
+
+jobs:
+  # Secret scan: fail the build if any credential/key is committed (e.g. a
+  # leftover SaaS .env, an API key, a private signing key). gitleaks scans the
+  # working tree AND full git history, so `fetch-depth: 0` is required.
+  secret-scan:
+    name: Secret Scan (gitleaks)
+    runs-on: ubuntu-latest
+    # gitleaks-action lists the PR's commits via the GitHub API on pull_request
+    # events; the default GITHUB_TOKEN needs pull-requests:read for that call
+    # (else 403 "Resource not accessible by integration" before the scan runs).
+    permissions:
+      contents: read
+      pull-requests: read
+
+    steps:
+      - name: Checkout code (full history)
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Run gitleaks
+        uses: gitleaks/gitleaks-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  backend:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: "latest"
+
+      - name: Cache uv dependencies
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/uv
+          key: ${{ runner.os }}-uv-${{ hashFiles('backend/uv.lock', 'backend/vendor/edge-proc/uv.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-uv-
+
+      # edge-proc + shared-libs-python are vendored in-repo (backend/vendor/)
+      # as local path sources, recorded as such in the checked-in uv.lock —
+      # `--locked` asserts the lock still matches pyproject and installs
+      # exactly what's committed.
+      - name: Install dependencies
+        run: uv sync --locked --extra dev
+
+      # ruff/mypy are scoped to this project's own code — pyproject excludes
+      # vendor/ (vendored sources keep their upstream style; see VENDORED.md).
+      - name: Lint + format + types
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
+          uv run mypy src/
+
+      - name: Run tests
+        run: uv run pytest -q
+
+      # The vendored edge-proc substrate ships its own pinned test suite (its
+      # uv.lock creates a private .venv under vendor/edge-proc). Run it as a
+      # gate so a re-vendor or a local patch can never silently break the
+      # bundle/signing substrate. `--all-extras` pulls the bundles + localvec
+      # extras the tests exercise — the command documented in
+      # backend/vendor/edge-proc/VENDORED.md.
+      - name: Run vendored edge-proc suite
+        working-directory: backend/vendor/edge-proc
+        run: uv run --all-extras pytest -q
+
+  frontend:
+    name: Frontend Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      # The whole frontend — including @edgeproc/browser, the edge-proc browser
+      # sync tier vendored at packages/edgeproc-browser — is a single bun
+      # workspace installed from this checkout.
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.bun/install/cache
+            frontend/node_modules
+            frontend/apps/*/node_modules
+            frontend/packages/*/node_modules
+          key: ${{ runner.os }}-bun-${{ hashFiles('frontend/bun.lock', 'frontend/**/package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # Emit package type declarations (dist) BEFORE the workspace typecheck —
+      # composite project references need the shared-types/constants dist
+      # present or dependents fail TS6305. --force ignores a stale/cached
+      # .tsbuildinfo that would otherwise skip the emit. (@edgeproc/browser and
+      # @almamesh/memory export raw TS source — no declaration build needed.)
+      - name: Build package declarations (forced, dependency order)
+        run: bunx tsc -b packages/shared-types packages/constants packages/store packages/llm --force
+
+      # Workspace-wide: every package + the app (incl. the vendored
+      # @edgeproc/browser) — the same gate as local dev.
+      - name: Type check
+        run: bun run --filter '*' typecheck
+
+      - name: Lint
+        run: bun run --filter @almamesh/web lint
+
+      # Unit tests: the package vitest suites (incl. the vendored
+      # @edgeproc/browser engine suite) + the web app's vitest suite.
+      # EDGE_RECO_SKIP_EMBEDDING_PARITY=1 skips the one parity case that would
+      # download an embedding model, keeping the run offline + deterministic
+      # (see packages/edgeproc-browser/VENDORED.md). (Playwright e2e is NOT run
+      # here — it needs the generated 38 MB engine assets + a built preview
+      # server.)
+      - name: Unit tests
+        env:
+          EDGE_RECO_SKIP_EMBEDDING_PARITY: "1"
+        run: |
+          bun run --filter @edgeproc/browser test
+          bun run --filter @almamesh/browser test
+          bun run --filter @almamesh/store test
+          bun run --filter @almamesh/llm test
+          bun run --filter @almamesh/web test:unit
+
+      - name: Build
+        run: bun run --filter @almamesh/web build
+
+  # Live-browser exit gate: the heavyweight e2e job that PROVES the in-browser
+  # engine works end-to-end with no backend and no login. It generates the large
+  # git-ignored runtime assets (Pyodide dist + signed edge-proc bundle), serves a
+  # real production build via `vite preview`, then drives headless Chromium
+  # (Playwright) through scripts/verify-exit-gate.mjs — which exits non-zero on
+  # any failed check. This is intentionally heavier than the unit jobs (it needs
+  # BOTH toolchains: bun for the build, uv/Python for the bundle publisher) and
+  # downloads a browser + the Pyodide dist, so expect a longer runtime.
+  exit-gate:
+    name: In-Browser Engine Exit Gate (e2e)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      # Both dependency layers the gate needs live IN this checkout:
+      #  - edge-proc + shared-libs-python (Python): vendored under
+      #    backend/vendor/ — setup-dev-assets.sh's `uv build --wheel` +
+      #    `almamesh-bundle` resolve them as local path sources.
+      #  - @edgeproc/browser (TS): vendored at frontend/packages/edgeproc-browser,
+      #    a regular bun workspace member.
+
+      # ---- Python toolchain (for the bundle publisher) ----
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: "latest"
+
+      - name: Cache uv dependencies
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/uv
+          key: ${{ runner.os }}-uv-${{ hashFiles('backend/uv.lock', 'backend/vendor/edge-proc/uv.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-uv-
+
+      # ---- JS toolchain ----
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.bun/install/cache
+            frontend/node_modules
+            frontend/apps/*/node_modules
+            frontend/packages/*/node_modules
+          key: ${{ runner.os }}-bun-${{ hashFiles('frontend/bun.lock', 'frontend/**/package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # Cache the Skyfield ephemeris data (de421.bsp ~16MB + finals2000A.all ~3.5MB).
+      # NASA's JPL FTP server (ssd.jpl.nasa.gov) is unreliable from GH Actions runners
+      # and causes intermittent ETIMEDOUT failures. The files are static (de421 is a
+      # 1997 ephemeris; finals are only re-fetched when stale), so a cache keyed on
+      # a fixed version string eliminates the flaky external download after the first
+      # successful run. setup-dev-assets.sh's Skyfield Loader is a no-op when the
+      # files already exist at ~/.skyfield-data.
+      - name: Cache Skyfield ephemeris data (de421.bsp + finals2000A.all)
+        uses: actions/cache@v5
+        with:
+          path: ~/.skyfield-data
+          key: skyfield-data-de421-v1
+
+      # Generate the large git-ignored runtime assets: fetch the pinned Pyodide
+      # dist from jsdelivr, then `uv build --wheel` + `almamesh-bundle keygen`/
+      # `bundle --offline` (Python) into apps/web/public/{pyodide,bundle,public.key}.
+      # uv resolves the backend's vendored path sources straight from this
+      # checkout. Both the CDN fetch and uv run fine on ubuntu-latest.
+      - name: Generate dev assets (Pyodide dist + signed bundle)
+        run: bash apps/web/scripts/setup-dev-assets.sh
+
+      # Install only the Chromium browser + its OS deps for Playwright.
+      - name: Install Playwright Chromium
+        working-directory: frontend/apps/web
+        run: bunx playwright install --with-deps chromium
+
+      # Build a REAL production build with the exit-gate observability hooks
+      # opted in (window.__ALMAMESH_STAGE__ / __almameshGenerate). The dev server
+      # cannot be used — its ESM module workers fail to resolve `pyodide` in
+      # worker scope (see verify-exit-gate.mjs header).
+      - name: Build verification bundle (exit-gate hooks)
+        working-directory: frontend/apps/web
+        env:
+          VITE_API_URL: ""
+          VITE_EXIT_GATE_HOOKS: "1"
+        run: ./node_modules/.bin/vite build --outDir dist-verify
+
+      # Serve the built bundle and run the headless-Chromium gate. The preview
+      # server is started in the background on a fixed strict port; we poll until
+      # it responds before driving the gate. verify-exit-gate.mjs exits non-zero
+      # on any failed check, failing the job.
+      - name: Run exit-gate verification (headless Chromium)
+        working-directory: frontend/apps/web
+        env:
+          VITE_API_URL: ""
+        run: |
+          set -euo pipefail
+          ./node_modules/.bin/vite preview --outDir dist-verify --port 4199 --strictPort &
+          preview_pid=$!
+          trap 'kill "$preview_pid" 2>/dev/null || true' EXIT
+
+          # Wait (up to ~60s) for the preview server to accept connections.
+          for i in $(seq 1 60); do
+            if curl -fsS -o /dev/null "http://localhost:4199"; then
+              echo "preview server is up (attempt $i)"
+              break
+            fi
+            if ! kill -0 "$preview_pid" 2>/dev/null; then
+              echo "preview server exited prematurely" >&2
+              exit 1
+            fi
+            sleep 1
+          done
+          curl -fsS -o /dev/null "http://localhost:4199" || {
+            echo "preview server never became ready" >&2
+            exit 1
+          }
+
+          node scripts/verify-exit-gate.mjs http://localhost:4199
+
+          # i18n live-drive gate: reuse the SAME already-running preview (4199)
+          # — no second build/preview. Asserts the onboarding screen renders
+          # translated in en/es/pt with the right <html lang> and a clean
+          # console. Runs from apps/web so it resolves @playwright/test from the
+          # app's node_modules; exits non-zero on any failed check (set -e fails
+          # the job). The preview is torn down by the trap above on step exit.
+          node scripts/verify-i18n.mjs http://localhost:4199
+
+      # Stubbed Playwright "human tests": boot the SAME real in-browser engine
+      # (Pyodide dist + signed bundle already generated above) but stub the
+      # OpenAI-compatible LLM via page.route — so they need NO API key and are
+      # deterministic + CI-safe. Each config self-builds a production bundle with
+      # VITE_EXIT_GATE_HOOKS=1 and serves it via `vite preview` on its own strict
+      # port (4191/4192, distinct from the exit gate's 4199). These lock in:
+      #   - interpretation.spec.ts: the 5-section structured reading renders (and
+      #     a failing endpoint shows a loud error + Retry, never a blank card).
+      #   - chat.grounding.spec.ts: the outbound chat request uses the fast chat
+      #     model (minimax/minimax-m2.7) AND its prompt reuses the generated
+      #     reading ("Your chart reading …" block) — the two chat behaviours that
+      #     otherwise have unit coverage only.
+      - name: Run stubbed Playwright human tests (interpretation + chat grounding)
+        working-directory: frontend/apps/web
+        env:
+          VITE_API_URL: ""
+        run: |
+          bun run test:e2e:interp
+          bun run test:e2e:chat:grounding
+          bun run test:e2e:rectification

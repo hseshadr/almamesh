@@ -1,0 +1,454 @@
+{
+  "_provenance": {
+    "ephemeris": "~/.skyfield-data/de421.bsp",
+    "horizons_cross_check": "CONFIRMED \u2014 JPL Horizons Delhi Sun ObsEcLon 295.0782476 deg vs astropy 295.0782602 deg (0.045 arcsec); see module docstring for the exact query.",
+    "lagna": "astropy sidereal_time('apparent') + ERFA obl06/nut06a true obliquity",
+    "lahiri_j2000_published_deg": 23.85306,
+    "no_swiss_ephemeris": true,
+    "nodes": "mean lunar node (Meeus); Ketu = Rahu + 180",
+    "oracle": "astropy get_body + GeocentricTrueEcliptic (true apparent), BSD; independent of Skyfield; SAME local DE421 ephemeris.",
+    "sidereal_convention": "apparent_ecliptic_of_date minus engine Lahiri ayanamsa"
+  },
+  "fixtures": {
+    "1972-03-10T08:15:00+00:00": {
+      "ayanamsa": 23.4681,
+      "datetime_utc": "1972-03-10T08:15:00+00:00",
+      "label": "London",
+      "lagna_longitude": 22.983006481714163,
+      "latitude": 51.5074,
+      "longitude": -0.1278,
+      "planets": {
+        "jupiter": {
+          "longitude": 251.76193364192216,
+          "nakshatra": "Mula",
+          "nakshatra_pada": 4
+        },
+        "ketu": {
+          "longitude": 99.489171601706,
+          "nakshatra": "Pushya",
+          "nakshatra_pada": 2
+        },
+        "mars": {
+          "longitude": 25.492092286215943,
+          "nakshatra": "Bharani",
+          "nakshatra_pada": 4
+        },
+        "mercury": {
+          "longitude": 343.85258516856834,
+          "nakshatra": "Uttara Bhadrapada",
+          "nakshatra_pada": 4
+        },
+        "moon": {
+          "longitude": 259.9192406857648,
+          "nakshatra": "Purva Ashadha",
+          "nakshatra_pada": 2
+        },
+        "rahu": {
+          "longitude": 279.489171601706,
+          "nakshatra": "Uttara Ashadha",
+          "nakshatra_pada": 4
+        },
+        "saturn": {
+          "longitude": 37.494142849015205,
+          "nakshatra": "Krittika",
+          "nakshatra_pada": 4
+        },
+        "sun": {
+          "longitude": 326.398208402654,
+          "nakshatra": "Purva Bhadrapada",
+          "nakshatra_pada": 2
+        },
+        "venus": {
+          "longitude": 10.144711234268122,
+          "nakshatra": "Ashwini",
+          "nakshatra_pada": 4
+        }
+      }
+    },
+    "1985-07-23T04:30:00+00:00": {
+      "ayanamsa": 23.6548,
+      "datetime_utc": "1985-07-23T04:30:00+00:00",
+      "label": "Mumbai",
+      "lagna_longitude": 148.04813969958298,
+      "latitude": 19.076,
+      "longitude": 72.8777,
+      "planets": {
+        "jupiter": {
+          "longitude": 289.946593348554,
+          "nakshatra": "Shravana",
+          "nakshatra_pada": 3
+        },
+        "ketu": {
+          "longitude": 200.7373869827155,
+          "nakshatra": "Vishakha",
+          "nakshatra_pada": 1
+        },
+        "mars": {
+          "longitude": 95.06330069751178,
+          "nakshatra": "Pushya",
+          "nakshatra_pada": 1
+        },
+        "mercury": {
+          "longitude": 120.70425575243559,
+          "nakshatra": "Magha",
+          "nakshatra_pada": 1
+        },
+        "moon": {
+          "longitude": 162.981557123917,
+          "nakshatra": "Hasta",
+          "nakshatra_pada": 1
+        },
+        "rahu": {
+          "longitude": 20.737386982715485,
+          "nakshatra": "Bharani",
+          "nakshatra_pada": 3
+        },
+        "saturn": {
+          "longitude": 207.8183868259327,
+          "nakshatra": "Vishakha",
+          "nakshatra_pada": 3
+        },
+        "sun": {
+          "longitude": 96.61948268632204,
+          "nakshatra": "Pushya",
+          "nakshatra_pada": 1
+        },
+        "venus": {
+          "longitude": 54.82576081002909,
+          "nakshatra": "Mrigashira",
+          "nakshatra_pada": 1
+        }
+      }
+    },
+    "1990-01-15T12:00:00+00:00": {
+      "ayanamsa": 23.7174,
+      "datetime_utc": "1990-01-15T12:00:00+00:00",
+      "label": "Delhi",
+      "lagna_longitude": 88.81812668802266,
+      "latitude": 28.6139,
+      "longitude": 77.209,
+      "planets": {
+        "jupiter": {
+          "longitude": 69.64867096994352,
+          "nakshatra": "Ardra",
+          "nakshatra_pada": 1
+        },
+        "ketu": {
+          "longitude": 113.97290200389278,
+          "nakshatra": "Ashlesha",
+          "nakshatra_pada": 3
+        },
+        "mars": {
+          "longitude": 236.19169912383194,
+          "nakshatra": "Jyeshtha",
+          "nakshatra_pada": 3
+        },
+        "mercury": {
+          "longitude": 257.6269003272377,
+          "nakshatra": "Purva Ashadha",
+          "nakshatra_pada": 2
+        },
+        "moon": {
+          "longitude": 143.78370345070195,
+          "nakshatra": "Purva Phalguni",
+          "nakshatra_pada": 4
+        },
+        "rahu": {
+          "longitude": 293.9729020038928,
+          "nakshatra": "Dhanishta",
+          "nakshatra_pada": 1
+        },
+        "saturn": {
+          "longitude": 263.59708201941663,
+          "nakshatra": "Purva Ashadha",
+          "nakshatra_pada": 4
+        },
+        "sun": {
+          "longitude": 271.36086021330715,
+          "nakshatra": "Uttara Ashadha",
+          "nakshatra_pada": 2
+        },
+        "venus": {
+          "longitude": 276.9683310831498,
+          "nakshatra": "Uttara Ashadha",
+          "nakshatra_pada": 4
+        }
+      }
+    },
+    "1995-12-11T18:34:00+00:00": {
+      "ayanamsa": 23.7998,
+      "datetime_utc": "1995-12-11T18:34:00+00:00",
+      "label": "Kolkata",
+      "lagna_longitude": 153.30512874941462,
+      "latitude": 22.5726,
+      "longitude": 88.3639,
+      "planets": {
+        "jupiter": {
+          "longitude": 241.0710656419884,
+          "nakshatra": "Mula",
+          "nakshatra_pada": 1
+        },
+        "ketu": {
+          "longitude": 359.70767667201073,
+          "nakshatra": "Revati",
+          "nakshatra_pada": 4
+        },
+        "mars": {
+          "longitude": 254.72539359601637,
+          "nakshatra": "Purva Ashadha",
+          "nakshatra_pada": 1
+        },
+        "mercury": {
+          "longitude": 245.65598877112666,
+          "nakshatra": "Mula",
+          "nakshatra_pada": 2
+        },
+        "moon": {
+          "longitude": 106.69983509370701,
+          "nakshatra": "Ashlesha",
+          "nakshatra_pada": 1
+        },
+        "rahu": {
+          "longitude": 179.70767667201076,
+          "nakshatra": "Chitra",
+          "nakshatra_pada": 2
+        },
+        "saturn": {
+          "longitude": 324.54939207013194,
+          "nakshatra": "Purva Bhadrapada",
+          "nakshatra_pada": 2
+        },
+        "sun": {
+          "longitude": 235.44073526052983,
+          "nakshatra": "Jyeshtha",
+          "nakshatra_pada": 3
+        },
+        "venus": {
+          "longitude": 263.8363184553575,
+          "nakshatra": "Purva Ashadha",
+          "nakshatra_pada": 4
+        }
+      }
+    },
+    "1998-09-15T06:45:00+00:00": {
+      "ayanamsa": 23.8384,
+      "datetime_utc": "1998-09-15T06:45:00+00:00",
+      "label": "CapeTown",
+      "lagna_longitude": 191.23680907441434,
+      "latitude": -33.9249,
+      "longitude": 18.4241,
+      "planets": {
+        "jupiter": {
+          "longitude": 329.3293936575377,
+          "nakshatra": "Purva Bhadrapada",
+          "nakshatra_pada": 3
+        },
+        "ketu": {
+          "longitude": 306.2647960309156,
+          "nakshatra": "Dhanishta",
+          "nakshatra_pada": 4
+        },
+        "mars": {
+          "longitude": 112.37225543658496,
+          "nakshatra": "Ashlesha",
+          "nakshatra_pada": 2
+        },
+        "mercury": {
+          "longitude": 139.10673497261308,
+          "nakshatra": "Purva Phalguni",
+          "nakshatra_pada": 2
+        },
+        "moon": {
+          "longitude": 85.84382816021974,
+          "nakshatra": "Punarvasu",
+          "nakshatra_pada": 2
+        },
+        "rahu": {
+          "longitude": 126.26479603091556,
+          "nakshatra": "Magha",
+          "nakshatra_pada": 2
+        },
+        "saturn": {
+          "longitude": 9.000469357905871,
+          "nakshatra": "Ashwini",
+          "nakshatra_pada": 3
+        },
+        "sun": {
+          "longitude": 148.3930724453692,
+          "nakshatra": "Uttara Phalguni",
+          "nakshatra_pada": 1
+        },
+        "venus": {
+          "longitude": 136.6507646145862,
+          "nakshatra": "Purva Phalguni",
+          "nakshatra_pada": 1
+        }
+      }
+    },
+    "2000-12-31T23:59:00+00:00": {
+      "ayanamsa": 23.8705,
+      "datetime_utc": "2000-12-31T23:59:00+00:00",
+      "label": "NYC",
+      "lagna_longitude": 106.12099158712186,
+      "latitude": 40.7128,
+      "longitude": -74.006,
+      "planets": {
+        "jupiter": {
+          "longitude": 38.319715473052035,
+          "nakshatra": "Krittika",
+          "nakshatra_pada": 4
+        },
+        "ketu": {
+          "longitude": 261.81941659181643,
+          "nakshatra": "Purva Ashadha",
+          "nakshatra_pada": 3
+        },
+        "mars": {
+          "longitude": 191.06691156551483,
+          "nakshatra": "Swati",
+          "nakshatra_pada": 2
+        },
+        "mercury": {
+          "longitude": 260.3998734170278,
+          "nakshatra": "Purva Ashadha",
+          "nakshatra_pada": 3
+        },
+        "moon": {
+          "longitude": 324.8268446699114,
+          "nakshatra": "Purva Bhadrapada",
+          "nakshatra_pada": 2
+        },
+        "rahu": {
+          "longitude": 81.8194165918164,
+          "nakshatra": "Punarvasu",
+          "nakshatra_pada": 1
+        },
+        "saturn": {
+          "longitude": 30.720584578466017,
+          "nakshatra": "Krittika",
+          "nakshatra_pada": 2
+        },
+        "sun": {
+          "longitude": 256.7621977720122,
+          "nakshatra": "Purva Ashadha",
+          "nakshatra_pada": 2
+        },
+        "venus": {
+          "longitude": 303.095485889672,
+          "nakshatra": "Dhanishta",
+          "nakshatra_pada": 3
+        }
+      }
+    },
+    "2003-02-05T21:20:00+00:00": {
+      "ayanamsa": 23.899788963175936,
+      "datetime_utc": "2003-02-05T21:20:00+00:00",
+      "label": "Reykjavik",
+      "lagna_longitude": 146.71268125978946,
+      "latitude": 64.1466,
+      "longitude": -21.9426,
+      "planets": {
+        "jupiter": {
+          "longitude": 108.73468677485276,
+          "nakshatra": "Ashlesha",
+          "nakshatra_pada": 1
+        },
+        "ketu": {
+          "longitude": 221.23339251443412,
+          "nakshatra": "Anuradha",
+          "nakshatra_pada": 3
+        },
+        "mars": {
+          "longitude": 228.7965768539741,
+          "nakshatra": "Jyeshtha",
+          "nakshatra_pada": 1
+        },
+        "mercury": {
+          "longitude": 267.4858393659133,
+          "nakshatra": "Uttara Ashadha",
+          "nakshatra_pada": 1
+        },
+        "moon": {
+          "longitude": 343.9579716525312,
+          "nakshatra": "Uttara Bhadrapada",
+          "nakshatra_pada": 4
+        },
+        "rahu": {
+          "longitude": 41.233392514434115,
+          "nakshatra": "Rohini",
+          "nakshatra_pada": 1
+        },
+        "saturn": {
+          "longitude": 58.48697226413037,
+          "nakshatra": "Mrigashira",
+          "nakshatra_pada": 2
+        },
+        "sun": {
+          "longitude": 292.75865830860306,
+          "nakshatra": "Shravana",
+          "nakshatra_pada": 4
+        },
+        "venus": {
+          "longitude": 247.60005444383978,
+          "nakshatra": "Mula",
+          "nakshatra_pada": 3
+        }
+      }
+    },
+    "2010-06-21T18:00:00+00:00": {
+      "ayanamsa": 24.0027,
+      "datetime_utc": "2010-06-21T18:00:00+00:00",
+      "label": "Sydney",
+      "lagna_longitude": 26.887608021583336,
+      "latitude": -33.8688,
+      "longitude": 151.2093,
+      "planets": {
+        "jupiter": {
+          "longitude": 337.80864757139466,
+          "nakshatra": "Uttara Bhadrapada",
+          "nakshatra_pada": 2
+        },
+        "ketu": {
+          "longitude": 78.53336692797689,
+          "nakshatra": "Ardra",
+          "nakshatra_pada": 4
+        },
+        "mars": {
+          "longitude": 133.76879062664165,
+          "nakshatra": "Purva Phalguni",
+          "nakshatra_pada": 1
+        },
+        "mercury": {
+          "longitude": 58.05420171993754,
+          "nakshatra": "Mrigashira",
+          "nakshatra_pada": 2
+        },
+        "moon": {
+          "longitude": 189.26458482362986,
+          "nakshatra": "Swati",
+          "nakshatra_pada": 1
+        },
+        "rahu": {
+          "longitude": 258.5333669279769,
+          "nakshatra": "Purva Ashadha",
+          "nakshatra_pada": 2
+        },
+        "saturn": {
+          "longitude": 154.23801675574308,
+          "nakshatra": "Uttara Phalguni",
+          "nakshatra_pada": 3
+        },
+        "sun": {
+          "longitude": 66.25673533605335,
+          "nakshatra": "Mrigashira",
+          "nakshatra_pada": 4
+        },
+        "venus": {
+          "longitude": 104.59663512522721,
+          "nakshatra": "Pushya",
+          "nakshatra_pada": 4
+        }
+      }
+    }
+  }
+}

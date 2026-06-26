@@ -1,0 +1,90 @@
+{
+  "_meta": { "review": "machine-translated, pending native review" },
+  "saving": "Guardando progreso...",
+  "steps": {
+    "name": "Nombre",
+    "birth_date": "Fecha de nacimiento",
+    "location": "Lugar",
+    "birth_time": "Hora de nacimiento",
+    "life_events": "Eventos de vida"
+  },
+  "name": {
+    "title": "¿Cómo te llamas?",
+    "subtitle": "Lo usaremos para personalizar tus lecturas",
+    "placeholder": "Escribe tu nombre completo"
+  },
+  "birth_date": {
+    "title": "¿Cuándo naciste?",
+    "subtitle": "Tu fecha de nacimiento determina tu signo solar y mucho más"
+  },
+  "location": {
+    "title": "¿Dónde naciste?",
+    "subtitle": "Tu lugar de nacimiento influye en el cálculo de las casas",
+    "placeholder": "Busca tu ciudad de nacimiento...",
+    "timezone_auto_title": "Zona horaria detectada automáticamente",
+    "timezone_auto_body": "Tu zona horaria se determinará automáticamente a partir de las coordenadas de tu ciudad de nacimiento para lograr cálculos planetarios precisos.",
+    "hint": "Empieza a escribir para buscar ciudades de todo el mundo"
+  },
+  "birth_time": {
+    "title": "¿A qué hora naciste?",
+    "subtitle": "Esto determina tu Ascendente y la ubicación de las casas",
+    "location_label": "Lugar de nacimiento",
+    "timezone_label": "Zona horaria",
+    "placeholder": "Selecciona tu hora de nacimiento",
+    "clock_hint": "Introduce la hora tal como aparecía en el reloj de tu lugar de nacimiento.",
+    "timezone_hint": " Usaremos la zona horaria {{timezone}} para los cálculos.",
+    "estimate_hint": "¿No sabes tu hora exacta de nacimiento? Indica tu mejor estimación."
+  },
+  "life_events": {
+    "title": "Comparte la historia de tu vida",
+    "subtitle": "Describe con tus propias palabras los eventos importantes de tu vida. Esto nos ayuda a afinar tu hora de nacimiento para lecturas más precisas.",
+    "why_title": "¿Por qué ayuda esto?",
+    "why_body": "Los grandes eventos de la vida (matrimonio, cambios de carrera, hijos) coinciden con los periodos planetarios. Al relacionar tus eventos con la sincronización astrológica, podemos validar y afinar tu hora de nacimiento.",
+    "textarea_label": "Cuéntanos sobre los eventos de tu vida:",
+    "textarea_placeholder": "Por ejemplo: me casé en 2015, tuve mi primer hijo en 2018, cambié de carrera en 2020...",
+    "char_count": "{{count}}/5000 caracteres",
+    "min_length_error": "Describe al menos un evento importante de tu vida.",
+    "saved_feedback": "¡Gracias! Tu historia se ha guardado en este dispositivo y nos ayudará a afinar tu hora de nacimiento en una futura actualización.",
+    "saved_label": "Guardado en este dispositivo:",
+    "inspiration_label": "¿Necesitas inspiración? Prueba un ejemplo:",
+    "helpful_title": "Los eventos que más ayudan:",
+    "analyzing": "Analizando...",
+    "analyze_continue": "Analizar y continuar",
+    "skip": "Omitir: usaré una hora de nacimiento aproximada",
+    "examples": [
+      "Me casé en junio de 2015, tuve mi primer hijo en 2018 y cambié de la ingeniería a la docencia en 2020.",
+      "Mi padre falleció cuando yo tenía 23 años, compré mi primera casa a los 30 y me mudé de Nueva York a California en 2019.",
+      "He tenido una vida estable: el mismo trabajo durante 15 años, me casé con mi novia de la universidad en 2010 y tuve dos hijos en 2012 y 2015."
+    ],
+    "event_types": {
+      "marriage": "Matrimonio",
+      "children": "Hijos",
+      "career_changes": "Cambios de carrera",
+      "relocations": "Mudanzas",
+      "graduations": "Graduaciones",
+      "property_purchases": "Compras de propiedades"
+    }
+  },
+  "generating": {
+    "title": "Generando tu carta",
+    "subtitle": "Esto puede tardar un minuto...",
+    "step_counter": "Paso {{current}} de {{total}}",
+    "steps": {
+      "positions": "Calculando posiciones planetarias",
+      "houses": "Calculando la ubicación de las casas",
+      "yogas": "Analizando los yogas planetarios",
+      "dashas": "Calculando los periodos dasha",
+      "interpretation": "Generando ideas personalizadas"
+    }
+  },
+  "error": {
+    "title": "Problema de conexión",
+    "default_body": "No se pudo comprobar el estado de generación de la carta. Es posible que tu carta ya esté lista.",
+    "go_to_dashboard": "Ir al panel",
+    "retry_generation": "Reintentar generación",
+    "reset_and_reload": "Restablecer y recargar",
+    "reset_hint": "¿Sigue sin funcionar? Borra los datos del motor en caché y recarga para empezar de cero.",
+    "still_warming": "El motor en el dispositivo aún se está preparando — espera un momento, tu carta se generará en cuanto esté listo.",
+    "help": "Si tu carta ya se generó, la verás en el panel. De lo contrario, intenta generarla de nuevo."
+  }
+}

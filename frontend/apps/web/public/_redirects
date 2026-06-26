@@ -1,0 +1,15 @@
+# SPA fallback for the almamesh.com Cloudflare Pages deployment: any path that
+# does not match a real static asset serves the app shell, and React Router
+# takes over (deep links to /dashboard, /predictive, /mesh/:id, /report, …).
+#
+# Verified against `wrangler pages dev` (same asset-serving code as production,
+# see docs/deploy/almamesh-com.md): with this rule in place real assets still
+# win — /assets/*.js, /pyodide/*, /bundle/* (including the extensionless
+# /bundle/latest pointer) and /models/* are all served as themselves, NOT
+# rewritten to index.html. Pages also has implicit SPA rendering when no
+# top-level 404.html exists; this rule makes that behavior explicit and keeps
+# it stable even if a 404.html is ever added.
+#
+# Inside the app the service worker applies the same fallback offline
+# (navigateFallback: /index.html with /pyodide|/bundle|/models denylisted).
+/* /index.html 200

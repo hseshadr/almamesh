@@ -1,0 +1,586 @@
+{
+  "1990-01-15T12:00:00+00:00": {
+    "fusion": {
+      "afflicting": [
+        "ketu"
+      ],
+      "antar_lord": "mercury",
+      "instant": "2026-06-09T12:00:00Z",
+      "maha_lord": "rahu",
+      "maha_lord_transit_house_from_lagna": 9,
+      "maha_lord_transit_house_from_moon": 7,
+      "net_weight": 0.05,
+      "reinforcing": [],
+      "severity": "neutral"
+    },
+    "gochara": {
+      "instant": "2026-06-09T12:00:00Z",
+      "placements": {
+        "jupiter": {
+          "graha": "jupiter",
+          "house_from_lagna": 2,
+          "house_from_moon": 12,
+          "is_retrograde": false,
+          "longitude": 91.486331,
+          "nakshatra": "Punarvasu",
+          "nakshatra_pada": 4,
+          "natal_sign_occupied": "Cancer",
+          "sign": "Cancer",
+          "sign_degrees": 1.486331
+        },
+        "ketu": {
+          "graha": "ketu",
+          "house_from_lagna": 3,
+          "house_from_moon": 1,
+          "is_retrograde": true,
+          "longitude": 129.497319,
+          "nakshatra": "Magha",
+          "nakshatra_pada": 3,
+          "natal_sign_occupied": "Leo",
+          "sign": "Leo",
+          "sign_degrees": 9.497319
+        },
+        "mars": {
+          "graha": "mars",
+          "house_from_lagna": 11,
+          "house_from_moon": 9,
+          "is_retrograde": false,
+          "longitude": 21.800718,
+          "nakshatra": "Bharani",
+          "nakshatra_pada": 3,
+          "natal_sign_occupied": "Aries",
+          "sign": "Aries",
+          "sign_degrees": 21.800718
+        },
+        "mercury": {
+          "graha": "mercury",
+          "house_from_lagna": 1,
+          "house_from_moon": 11,
+          "is_retrograde": false,
+          "longitude": 77.801645,
+          "nakshatra": "Ardra",
+          "nakshatra_pada": 4,
+          "natal_sign_occupied": "Gemini",
+          "sign": "Gemini",
+          "sign_degrees": 17.801645
+        },
+        "moon": {
+          "graha": "moon",
+          "house_from_lagna": 10,
+          "house_from_moon": 8,
+          "is_retrograde": false,
+          "longitude": 337.695704,
+          "nakshatra": "Uttara Bhadrapada",
+          "nakshatra_pada": 2,
+          "natal_sign_occupied": "Pisces",
+          "sign": "Pisces",
+          "sign_degrees": 7.695704
+        },
+        "rahu": {
+          "graha": "rahu",
+          "house_from_lagna": 9,
+          "house_from_moon": 7,
+          "is_retrograde": true,
+          "longitude": 309.497319,
+          "nakshatra": "Shatabhisha",
+          "nakshatra_pada": 1,
+          "natal_sign_occupied": "Aquarius",
+          "sign": "Aquarius",
+          "sign_degrees": 9.497319
+        },
+        "saturn": {
+          "graha": "saturn",
+          "house_from_lagna": 10,
+          "house_from_moon": 8,
+          "is_retrograde": false,
+          "longitude": 348.692973,
+          "nakshatra": "Revati",
+          "nakshatra_pada": 1,
+          "natal_sign_occupied": "Pisces",
+          "sign": "Pisces",
+          "sign_degrees": 18.692973
+        },
+        "sun": {
+          "graha": "sun",
+          "house_from_lagna": 12,
+          "house_from_moon": 10,
+          "is_retrograde": false,
+          "longitude": 54.44989,
+          "nakshatra": "Mrigashira",
+          "nakshatra_pada": 1,
+          "natal_sign_occupied": "Taurus",
+          "sign": "Taurus",
+          "sign_degrees": 24.44989
+        },
+        "venus": {
+          "graha": "venus",
+          "house_from_lagna": 2,
+          "house_from_moon": 12,
+          "is_retrograde": false,
+          "longitude": 91.162883,
+          "nakshatra": "Punarvasu",
+          "nakshatra_pada": 4,
+          "natal_sign_occupied": "Cancer",
+          "sign": "Cancer",
+          "sign_degrees": 1.162883
+        }
+      },
+      "transit_ayanamsa": 24.22575
+    },
+    "instant": "2026-06-09T12:00:00Z",
+    "sade_sati": {
+      "current_phase": "none",
+      "cycle": [],
+      "cycle_end": null,
+      "cycle_start": null,
+      "is_active": false,
+      "natal_moon_sign": "Leo"
+    },
+    "slow_hits": [
+      {
+        "exact": "2027-10-19T18:32:08.796866Z",
+        "graha": "jupiter",
+        "kind": "sign_ingress",
+        "natal_point": "moon",
+        "severity": "supportive"
+      },
+      {
+        "exact": "2034-07-03T18:40:47.865566Z",
+        "graha": "saturn",
+        "kind": "sign_ingress",
+        "natal_point": "lagna",
+        "severity": "challenging"
+      },
+      {
+        "exact": "2033-08-31T03:57:20.871705Z",
+        "graha": "saturn",
+        "kind": "return",
+        "natal_point": "natal_saturn",
+        "severity": "neutral"
+      }
+    ],
+    "timeline": {
+      "events": [
+        {
+          "date": "2026-10-31T05:58:13.713998Z",
+          "descriptor": "jupiter.ingress.leo",
+          "from_lord": null,
+          "from_sign": "Cancer",
+          "graha": "jupiter",
+          "kind": "sign_ingress",
+          "sade_sati_phase": null,
+          "severity": "neutral",
+          "to_lord": null,
+          "to_sign": "Leo"
+        },
+        {
+          "date": "2027-06-02T23:04:25.266583Z",
+          "descriptor": "saturn.ingress.aries",
+          "from_lord": null,
+          "from_sign": "Pisces",
+          "graha": "saturn",
+          "kind": "sign_ingress",
+          "sade_sati_phase": null,
+          "severity": "neutral",
+          "to_lord": null,
+          "to_sign": "Aries"
+        }
+      ],
+      "window_end": "2027-06-09T18:00:00Z",
+      "window_start": "2026-06-09T12:00:00Z"
+    }
+  },
+  "2000-12-31T23:59:00+00:00": {
+    "fusion": {
+      "afflicting": [],
+      "antar_lord": "rahu",
+      "instant": "2026-06-09T12:00:00Z",
+      "maha_lord": "saturn",
+      "maha_lord_transit_house_from_lagna": 9,
+      "maha_lord_transit_house_from_moon": 2,
+      "net_weight": 0.5,
+      "reinforcing": [
+        "jupiter",
+        "moon"
+      ],
+      "severity": "supportive"
+    },
+    "gochara": {
+      "instant": "2026-06-09T12:00:00Z",
+      "placements": {
+        "jupiter": {
+          "graha": "jupiter",
+          "house_from_lagna": 1,
+          "house_from_moon": 6,
+          "is_retrograde": false,
+          "longitude": 91.486331,
+          "nakshatra": "Punarvasu",
+          "nakshatra_pada": 4,
+          "natal_sign_occupied": "Cancer",
+          "sign": "Cancer",
+          "sign_degrees": 1.486331
+        },
+        "ketu": {
+          "graha": "ketu",
+          "house_from_lagna": 2,
+          "house_from_moon": 7,
+          "is_retrograde": true,
+          "longitude": 129.497319,
+          "nakshatra": "Magha",
+          "nakshatra_pada": 3,
+          "natal_sign_occupied": "Leo",
+          "sign": "Leo",
+          "sign_degrees": 9.497319
+        },
+        "mars": {
+          "graha": "mars",
+          "house_from_lagna": 10,
+          "house_from_moon": 3,
+          "is_retrograde": false,
+          "longitude": 21.800718,
+          "nakshatra": "Bharani",
+          "nakshatra_pada": 3,
+          "natal_sign_occupied": "Aries",
+          "sign": "Aries",
+          "sign_degrees": 21.800718
+        },
+        "mercury": {
+          "graha": "mercury",
+          "house_from_lagna": 12,
+          "house_from_moon": 5,
+          "is_retrograde": false,
+          "longitude": 77.801645,
+          "nakshatra": "Ardra",
+          "nakshatra_pada": 4,
+          "natal_sign_occupied": "Gemini",
+          "sign": "Gemini",
+          "sign_degrees": 17.801645
+        },
+        "moon": {
+          "graha": "moon",
+          "house_from_lagna": 9,
+          "house_from_moon": 2,
+          "is_retrograde": false,
+          "longitude": 337.695704,
+          "nakshatra": "Uttara Bhadrapada",
+          "nakshatra_pada": 2,
+          "natal_sign_occupied": "Pisces",
+          "sign": "Pisces",
+          "sign_degrees": 7.695704
+        },
+        "rahu": {
+          "graha": "rahu",
+          "house_from_lagna": 8,
+          "house_from_moon": 1,
+          "is_retrograde": true,
+          "longitude": 309.497319,
+          "nakshatra": "Shatabhisha",
+          "nakshatra_pada": 1,
+          "natal_sign_occupied": "Aquarius",
+          "sign": "Aquarius",
+          "sign_degrees": 9.497319
+        },
+        "saturn": {
+          "graha": "saturn",
+          "house_from_lagna": 9,
+          "house_from_moon": 2,
+          "is_retrograde": false,
+          "longitude": 348.692973,
+          "nakshatra": "Revati",
+          "nakshatra_pada": 1,
+          "natal_sign_occupied": "Pisces",
+          "sign": "Pisces",
+          "sign_degrees": 18.692973
+        },
+        "sun": {
+          "graha": "sun",
+          "house_from_lagna": 11,
+          "house_from_moon": 4,
+          "is_retrograde": false,
+          "longitude": 54.44989,
+          "nakshatra": "Mrigashira",
+          "nakshatra_pada": 1,
+          "natal_sign_occupied": "Taurus",
+          "sign": "Taurus",
+          "sign_degrees": 24.44989
+        },
+        "venus": {
+          "graha": "venus",
+          "house_from_lagna": 1,
+          "house_from_moon": 6,
+          "is_retrograde": false,
+          "longitude": 91.162883,
+          "nakshatra": "Punarvasu",
+          "nakshatra_pada": 4,
+          "natal_sign_occupied": "Cancer",
+          "sign": "Cancer",
+          "sign_degrees": 1.162883
+        }
+      },
+      "transit_ayanamsa": 24.22575
+    },
+    "instant": "2026-06-09T12:00:00Z",
+    "sade_sati": {
+      "current_phase": "setting",
+      "cycle": [],
+      "cycle_end": null,
+      "cycle_start": null,
+      "is_active": true,
+      "natal_moon_sign": "Aquarius"
+    },
+    "slow_hits": [
+      {
+        "exact": "2027-10-25T07:17:52.128213Z",
+        "graha": "jupiter",
+        "kind": "sign_ingress",
+        "natal_point": "moon",
+        "severity": "supportive"
+      },
+      {
+        "exact": "2035-08-13T06:28:48.221466Z",
+        "graha": "saturn",
+        "kind": "sign_ingress",
+        "natal_point": "lagna",
+        "severity": "challenging"
+      },
+      {
+        "exact": "2029-08-31T20:16:47.711822Z",
+        "graha": "saturn",
+        "kind": "return",
+        "natal_point": "natal_saturn",
+        "severity": "neutral"
+      }
+    ],
+    "timeline": {
+      "events": [
+        {
+          "date": "2026-10-31T05:58:13.713998Z",
+          "descriptor": "jupiter.ingress.leo",
+          "from_lord": null,
+          "from_sign": "Cancer",
+          "graha": "jupiter",
+          "kind": "sign_ingress",
+          "sade_sati_phase": null,
+          "severity": "neutral",
+          "to_lord": null,
+          "to_sign": "Leo"
+        },
+        {
+          "date": "2027-06-02T23:04:25.266583Z",
+          "descriptor": "saturn.ingress.aries",
+          "from_lord": null,
+          "from_sign": "Pisces",
+          "graha": "saturn",
+          "kind": "sign_ingress",
+          "sade_sati_phase": null,
+          "severity": "neutral",
+          "to_lord": null,
+          "to_sign": "Aries"
+        }
+      ],
+      "window_end": "2027-06-09T18:00:00Z",
+      "window_start": "2026-06-09T12:00:00Z"
+    }
+  },
+  "2019-11-09T17:45:00+00:00": {
+    "fusion": {
+      "afflicting": [],
+      "antar_lord": "rahu",
+      "instant": "2026-06-09T12:00:00Z",
+      "maha_lord": "mercury",
+      "maha_lord_transit_house_from_lagna": 10,
+      "maha_lord_transit_house_from_moon": 4,
+      "net_weight": 0.3,
+      "reinforcing": [],
+      "severity": "supportive"
+    },
+    "gochara": {
+      "instant": "2026-06-09T12:00:00Z",
+      "placements": {
+        "jupiter": {
+          "graha": "jupiter",
+          "house_from_lagna": 11,
+          "house_from_moon": 5,
+          "is_retrograde": false,
+          "longitude": 91.486331,
+          "nakshatra": "Punarvasu",
+          "nakshatra_pada": 4,
+          "natal_sign_occupied": "Cancer",
+          "sign": "Cancer",
+          "sign_degrees": 1.486331
+        },
+        "ketu": {
+          "graha": "ketu",
+          "house_from_lagna": 12,
+          "house_from_moon": 6,
+          "is_retrograde": true,
+          "longitude": 129.497319,
+          "nakshatra": "Magha",
+          "nakshatra_pada": 3,
+          "natal_sign_occupied": "Leo",
+          "sign": "Leo",
+          "sign_degrees": 9.497319
+        },
+        "mars": {
+          "graha": "mars",
+          "house_from_lagna": 8,
+          "house_from_moon": 2,
+          "is_retrograde": false,
+          "longitude": 21.800718,
+          "nakshatra": "Bharani",
+          "nakshatra_pada": 3,
+          "natal_sign_occupied": "Aries",
+          "sign": "Aries",
+          "sign_degrees": 21.800718
+        },
+        "mercury": {
+          "graha": "mercury",
+          "house_from_lagna": 10,
+          "house_from_moon": 4,
+          "is_retrograde": false,
+          "longitude": 77.801645,
+          "nakshatra": "Ardra",
+          "nakshatra_pada": 4,
+          "natal_sign_occupied": "Gemini",
+          "sign": "Gemini",
+          "sign_degrees": 17.801645
+        },
+        "moon": {
+          "graha": "moon",
+          "house_from_lagna": 7,
+          "house_from_moon": 1,
+          "is_retrograde": false,
+          "longitude": 337.695704,
+          "nakshatra": "Uttara Bhadrapada",
+          "nakshatra_pada": 2,
+          "natal_sign_occupied": "Pisces",
+          "sign": "Pisces",
+          "sign_degrees": 7.695704
+        },
+        "rahu": {
+          "graha": "rahu",
+          "house_from_lagna": 6,
+          "house_from_moon": 12,
+          "is_retrograde": true,
+          "longitude": 309.497319,
+          "nakshatra": "Shatabhisha",
+          "nakshatra_pada": 1,
+          "natal_sign_occupied": "Aquarius",
+          "sign": "Aquarius",
+          "sign_degrees": 9.497319
+        },
+        "saturn": {
+          "graha": "saturn",
+          "house_from_lagna": 7,
+          "house_from_moon": 1,
+          "is_retrograde": false,
+          "longitude": 348.692973,
+          "nakshatra": "Revati",
+          "nakshatra_pada": 1,
+          "natal_sign_occupied": "Pisces",
+          "sign": "Pisces",
+          "sign_degrees": 18.692973
+        },
+        "sun": {
+          "graha": "sun",
+          "house_from_lagna": 9,
+          "house_from_moon": 3,
+          "is_retrograde": false,
+          "longitude": 54.44989,
+          "nakshatra": "Mrigashira",
+          "nakshatra_pada": 1,
+          "natal_sign_occupied": "Taurus",
+          "sign": "Taurus",
+          "sign_degrees": 24.44989
+        },
+        "venus": {
+          "graha": "venus",
+          "house_from_lagna": 11,
+          "house_from_moon": 5,
+          "is_retrograde": false,
+          "longitude": 91.162883,
+          "nakshatra": "Punarvasu",
+          "nakshatra_pada": 4,
+          "natal_sign_occupied": "Cancer",
+          "sign": "Cancer",
+          "sign_degrees": 1.162883
+        }
+      },
+      "transit_ayanamsa": 24.22575
+    },
+    "instant": "2026-06-09T12:00:00Z",
+    "sade_sati": {
+      "current_phase": "peak",
+      "cycle": [
+        {
+          "end": "2025-03-29T16:05:54.659418Z",
+          "phase": "rising",
+          "saturn_sign": "Aquarius",
+          "start": "2023-01-17T13:01:08.956683Z"
+        },
+        {
+          "end": "2028-02-23T12:37:39.735091Z",
+          "phase": "peak",
+          "saturn_sign": "Pisces",
+          "start": "2025-03-29T16:05:54.659418Z"
+        },
+        {
+          "end": "2030-04-17T02:37:10.293496Z",
+          "phase": "setting",
+          "saturn_sign": "Aries",
+          "start": "2028-02-23T12:37:39.735091Z"
+        }
+      ],
+      "cycle_end": "2030-04-17T02:37:10.293496Z",
+      "cycle_start": "2023-01-17T13:01:08.956683Z",
+      "is_active": true,
+      "natal_moon_sign": "Pisces"
+    },
+    "slow_hits": [
+      {
+        "exact": "2028-11-03T11:23:55.241166Z",
+        "graha": "jupiter",
+        "kind": "sign_ingress",
+        "natal_point": "moon",
+        "severity": "supportive"
+      },
+      {
+        "exact": "2033-08-15T12:55:44.028455Z",
+        "graha": "saturn",
+        "kind": "return",
+        "natal_point": "natal_saturn",
+        "severity": "neutral"
+      }
+    ],
+    "timeline": {
+      "events": [
+        {
+          "date": "2026-10-31T05:58:13.713998Z",
+          "descriptor": "jupiter.ingress.leo",
+          "from_lord": null,
+          "from_sign": "Cancer",
+          "graha": "jupiter",
+          "kind": "sign_ingress",
+          "sade_sati_phase": null,
+          "severity": "neutral",
+          "to_lord": null,
+          "to_sign": "Leo"
+        },
+        {
+          "date": "2027-06-02T23:04:25.266583Z",
+          "descriptor": "saturn.ingress.aries",
+          "from_lord": null,
+          "from_sign": "Pisces",
+          "graha": "saturn",
+          "kind": "sign_ingress",
+          "sade_sati_phase": null,
+          "severity": "neutral",
+          "to_lord": null,
+          "to_sign": "Aries"
+        }
+      ],
+      "window_end": "2027-06-09T18:00:00Z",
+      "window_start": "2026-06-09T12:00:00Z"
+    }
+  }
+}

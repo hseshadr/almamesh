@@ -1,0 +1,51 @@
+# gitleaks configuration for AlmaMesh.
+#
+# We keep the full upstream ruleset (extend.useDefault = true) so every built-in
+# secret detector stays active, then add a SMALL allowlist for known-safe,
+# non-secret strings that would otherwise be false positives. Real secrets must
+# still fail the build.
+#
+# Context: AlmaMesh is local-first with no server. The only secrets that ever
+# exist are local-disk-only (a developer's optional LLM API key in an untracked
+# backend/.env, and a bundle signing private.key — both gitignored). Nothing
+# secret is tracked or in history; the .env.example files ship placeholders.
+title = "AlmaMesh gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Known-safe, non-secret strings (verified by inspection)"
+
+# Files that only ever held placeholders, test fixtures, or deleted SaaS-runtime
+# code with illustrative (non-secret) token strings:
+#  - .env.example ships placeholders (OPENROUTER_API_KEY=your-openrouter-api-key)
+#  - e2e specs use dummy keys
+#  - the api-client schema.ts (deleted with the SaaS runtime in P5) had truncated
+#    JWT *examples* in its OpenAPI doc strings
+paths = [
+  '''(^|/)\.env\.example$''',
+  '''(^|/)e2e/.*\.spec\.ts$''',
+  '''frontend/apps/web/src/lib/api/schema\.ts$''',
+]
+
+# Narrow regex allowlist for confirmed false positives:
+#  - the PUBLIC Supabase project ref in a deleted OAuth callback URL — a
+#    *.supabase.co URL is not a credential; the anon/service keys were never
+#    committed.
+#  - obvious test dummies (sk-or-test-dummy-…).
+#  - `api_key=cfg.api_key` — a Python keyword argument, not a literal secret.
+#  - truncated JWT *examples* (end in `...`) in OpenAPI schema docs.
+regexes = [
+  '''eajphoavrnzyfsklgrjr\.supabase\.co''',
+  '''(?i)(dummy|test|example|sample|placeholder|fake)[-_a-z0-9]*key''',
+  '''api_key=cfg\.api_key''',
+  '''eyJ[A-Za-z0-9_-]+\.\.\.''',
+]
+
+# Common non-secret tokens that trip the generic-api-key heuristic.
+stopwords = [
+  "dummy",
+  "example",
+  "placeholder",
+]

@@ -1,0 +1,101 @@
+{
+  "_meta": {
+    "review": "machine-translated, pending native review"
+  },
+  "app_name": "AlmaMesh",
+  "accessibility": {
+    "reduced_motion": "Movimento reduzido"
+  },
+  "profiles": {
+    "add_person": "Adicionar pessoa",
+    "add_a_person": "Adicionar uma pessoa",
+    "add": "Adicionar",
+    "rename": "Renomear",
+    "delete": "Excluir",
+    "active_badge": "ativa",
+    "dialog_title": "Quem está visualizando?",
+    "dialog_description": "Cada pessoa neste dispositivo mantém os seus próprios mapas. Sem contas, sem senhas — tudo fica neste dispositivo.",
+    "empty_state": "Ainda não há pessoas — adicione uma abaixo.",
+    "name_placeholder": "Nome",
+    "last_person_hint": "Pelo menos uma pessoa deve permanecer",
+    "active_switch_aria": "Perfil ativo: {{name}}. Trocar de pessoa",
+    "people_list_aria": "Pessoas neste dispositivo",
+    "rename_aria": "Renomear {{name}}",
+    "delete_aria": "Excluir {{name}}",
+    "delete_confirm": "Excluir {{name}} e os seus mapas? Isto não pode ser desfeito.",
+    "new_person_name_aria": "Nome da nova pessoa"
+  },
+  "actions": {
+    "save": "Salvar",
+    "cancel": "Cancelar",
+    "close": "Fechar",
+    "back": "Voltar",
+    "continue": "Continuar",
+    "retry": "Tentar novamente"
+  },
+  "nav": {
+    "dashboard": "Painel",
+    "astrologer_view": "Vista do astrólogo",
+    "mesh": "Malha",
+    "report": "Relatório",
+    "settings": "Configurações",
+    "menu": "Menu de navegação",
+    "menu_aria": "Menu de navegação",
+    "home": "Início do AlmaMesh"
+  },
+  "loading": "Carregando",
+  "error_boundary": {
+    "title": "Algo deu errado",
+    "body": "Ocorreu um erro inesperado. Tente atualizar a página.",
+    "try_again": "Tentar novamente",
+    "refresh": "Atualizar página",
+    "details": "Detalhes do erro (apenas desenvolvimento)",
+    "warning_aria": "aviso",
+    "reset_app_data": "Redefinir dados do app",
+    "reset_hint": "Ainda travado após uma atualização? Isto limpa os dados em cache e recarrega uma cópia nova. Seus mapas salvos podem ser apagados."
+  },
+  "update": {
+    "available": "Uma nova versão está disponível!",
+    "reload_cta": "Recarregar para atualizar",
+    "dismiss_aria": "Dispensar aviso de atualização"
+  },
+  "footer": {
+    "privacy": "Política de privacidade",
+    "terms": "Termos de serviço",
+    "data_deletion": "Exclusão de dados"
+  },
+  "provenance": {
+    "aria": "Procedência do cálculo"
+  },
+  "location": {
+    "search_placeholder": "Procure uma cidade...",
+    "no_results": "Nenhuma cidade encontrada",
+    "offline_hint": "Banco de dados de cidades offline · não requer rede",
+    "search_aria": "Procurar uma cidade",
+    "clear_aria": "Limpar busca de localização"
+  },
+  "content_mode": {
+    "for_you": "Para você",
+    "for_astrologer": "Para astrólogos",
+    "aria": "Modo de exibição de conteúdo"
+  },
+  "dialog": {
+    "close_aria": "Fechar diálogo"
+  },
+  "time_picker": {
+    "placeholder": "Selecione o horário"
+  },
+  "ai_badge": {
+    "setup": "Configurar IA",
+    "label": "IA: {{provider}}",
+    "title_ready": "Modelo de IA: {{provider}} — alterar",
+    "title_setup": "Conecte um modelo de IA (ex.: OpenRouter) para habilitar as interpretações",
+    "title_finish": "Modelo de IA: {{provider}} — concluir configuração"
+  },
+  "language": {
+    "label": "Idioma",
+    "english": "English",
+    "spanish": "Español",
+    "portuguese": "Português"
+  }
+}

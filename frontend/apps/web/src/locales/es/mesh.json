@@ -1,0 +1,164 @@
+{
+  "_meta": { "review": "machine-translated" },
+  "page": {
+    "kicker": "La malla",
+    "title": "Una malla de almas",
+    "subtitle": "Las personas tejidas en tu cielo: cada una con su carta completa, leída desde la tuya.",
+    "people_count": "Personas en tu malla: {{count}}",
+    "manage": "Gestionar personas",
+    "computed_note": "Cada vínculo se calcula en este dispositivo. Nada sale de él."
+  },
+  "invitation": {
+    "kicker": "La malla",
+    "title": "Teje tu primer hilo",
+    "body": "AlmaMesh lee relaciones entre cartas completas: la tuya y las de las personas cercanas a ti. Marca tu propio perfil como \"esta soy yo\" y añade al menos una persona para empezar.",
+    "cta": "Añadir personas",
+    "hint": "Las personas viven en Ajustes. Cada una recibe su propia carta completa."
+  },
+  "graph": {
+    "you": "Tú",
+    "no_chart": "Aún sin carta",
+    "generate": "Generar carta",
+    "open_edge": "Abrir tu vínculo con {{name}}",
+    "generate_for": "Generar la carta de {{name}}",
+    "rising": "ascendente {{sign}}"
+  },
+  "edge": {
+    "back": "La malla",
+    "kicker": "Vínculo de la malla · {{relationship}}",
+    "title": "{{anchor}} · {{member}}",
+    "frame": "Dos cartas terminadas, leídas lado a lado. Ninguna cambia a la otra.",
+    "computing": "Tejiendo este vínculo en tu dispositivo — {{elapsed}} hasta ahora.",
+    "error_title": "No se pudo calcular este vínculo",
+    "retry": "Reintentar",
+    "needs_charts_title": "Este vínculo necesita ambas cartas",
+    "needs_chart_member": "{{name}} aún no tiene una carta generada. El vínculo lee dos cartas terminadas.",
+    "needs_chart_anchor": "Tu propia carta aún no está generada. El vínculo lee dos cartas terminadas.",
+    "generate_for": "Generar la carta de {{name}}",
+    "generate_yours": "Generar tu carta",
+    "discuss": "Conversar en el chat",
+    "integrity_label": "Promesa de solo lectura"
+  },
+  "compat": {
+    "heading": "Compatibilidad",
+    "badge": "Guna Milan · tablas matrimoniales",
+    "roles_label": "Las tablas clásicas son asimétricas por rol: elige para qué carta se leen las reglas de la tabla de la novia.",
+    "roles_read_for": "La tabla de la novia se lee para",
+    "role_you": "Tú",
+    "moon_you": "Tu Luna",
+    "moon_member": "La Luna de {{name}}",
+    "moon_line": "{{nakshatra}} · pada {{pada}} · {{sign}}",
+    "of_max": "de {{max}}",
+    "total_note": "Convención clásica: una etiqueta, no un veredicto.",
+    "koota": {
+      "varna": "Varna",
+      "vashya": "Vashya",
+      "tara": "Tārā",
+      "yoni": "Yoni",
+      "graha_maitri": "Graha Maitri",
+      "gana": "Gaṇa",
+      "bhakoot": "Bhakoot",
+      "nadi": "Nāḍī"
+    },
+    "bands": {
+      "not_recommended": "Bajo el umbral clásico",
+      "average": "Media",
+      "good": "Buena",
+      "excellent": "Excelente"
+    },
+    "doshas_heading": "Indicadores de dosha",
+    "dosha": {
+      "bhakoot_dosha": "Dosha de Bhakoot",
+      "nadi_dosha": "Dosha de Nāḍī"
+    },
+    "dosha_clear": "no presente",
+    "dosha_cancelled": "presente — cancelado",
+    "dosha_present": "presente — no cancelado",
+    "cancelled_by": "Cancelado por",
+    "mangal_heading": "Dosha de Mangal (Kuja)",
+    "mangal_you": "Tú",
+    "mangal_ref": {
+      "lagna": "desde el Lagna",
+      "moon": "desde la Luna",
+      "venus": "desde Venus"
+    },
+    "mangal_position": "Marte en {{sign}}, casa {{house}}",
+    "mangal_clear": "libre",
+    "mangal_net": "casa de dosha",
+    "mangal_cancelled": "cancelado",
+    "mangal_summary_has": "Lleva el dosha en al menos una referencia.",
+    "mangal_summary_clear": "Libre en las tres referencias.",
+    "mangal_mutual": "Cancelación mutua: ambas cartas lo llevan, lo que las tablas leen como compatible."
+  },
+  "maitri": {
+    "heading": "Graha Maitri",
+    "badge": "amistad de los regentes lunares",
+    "note": "De las tablas clásicas de compatibilidad, la amistad entre los regentes de los dos signos lunares es la que se generaliza más allá del matrimonio. Las demás tablas solo se leen para vínculos de cónyuge y pareja."
+  },
+  "connection": {
+    "heading": "Conexión",
+    "badge": "superposición en ambos sentidos",
+    "theirs_in_yours": "Los planetas de {{name}} en tu carta",
+    "yours_in_theirs": "Tus planetas en la carta de {{name}}",
+    "host_rising": "casas contadas desde el ascendente {{sign}}",
+    "placements": "Posiciones",
+    "contacts": "Contactos más fuertes",
+    "house_n": "casa {{n}}",
+    "kind": {
+      "close_conjunction": "conjunción estrecha",
+      "same_sign": "mismo signo",
+      "graha_drishti": "graha dṛṣṭi"
+    },
+    "on_target": "sobre {{target}}",
+    "target_lagna": "el Lagna",
+    "orb": "orbe de {{degrees}}°",
+    "none": "Sin contactos dentro del alcance de esta convención.",
+    "heuristic_note": "† sigue la convención declarada: {{convention}}"
+  },
+  "synchrony": {
+    "heading": "Juntos en el tiempo",
+    "badge": "sincronía de daśās",
+    "window": "{{start}} → {{end}}",
+    "years_label": "Ventana",
+    "years": {
+      "1": "1 año",
+      "2": "2 años",
+      "5": "5 años"
+    },
+    "you": "Tú",
+    "shared_lords": "Regente compartido: {{lords}}",
+    "boundary_note": "Ambas cartas cambian de período en este límite.",
+    "empty": "Ninguna ventana conjunta cae dentro de este rango.",
+    "conventions": "Convenciones — tú: {{a}} · {{name}}: {{b}}"
+  },
+  "signif": {
+    "heading": "Corroboración",
+    "badge": "casas y kārakas",
+    "you_col": "Tu carta",
+    "member_col": "La carta de {{name}}",
+    "house_title": "Casa {{n}} — {{sign}}",
+    "lord_line": "Regente {{lord}} — {{dignity}}, casa {{house}}",
+    "retrograde": "retrógrado",
+    "combust": "combusto",
+    "occupants": "Ocupantes",
+    "occupants_none": "ninguno",
+    "karakas": "Kārakas"
+  },
+  "reading": {
+    "heading": "Lectura de IA",
+    "badge": "opcional · solo narra",
+    "cta_title": "Conecta un modelo para narrar este vínculo",
+    "cta_body": "Todo lo anterior se calcula en tu dispositivo y se sostiene por sí solo. Un modelo de IA opcional puede narrarlo en lenguaje sencillo: nunca calcula ni cambia un solo número.",
+    "cta_link": "Abrir ajustes de IA",
+    "generate": "Generar lectura",
+    "regenerate": "Regenerar",
+    "generating": "Narrando este vínculo — {{elapsed}} hasta ahora.",
+    "failed": "La lectura falló: {{message}}",
+    "retry": "Reintentar",
+    "sections": {
+      "connection": "Conexión",
+      "timing_together": "Tiempos compartidos",
+      "care": "Cuidado"
+    }
+  }
+}

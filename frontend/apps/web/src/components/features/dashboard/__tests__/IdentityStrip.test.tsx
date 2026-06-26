@@ -1,0 +1,154 @@
+import { describe, it, expect, beforeEach } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import { useLanguageStore } from '@almamesh/store';
+import type { VimshottariDashaData } from '@almamesh/shared-types';
+
+import '../../../../i18n/config';
+import { IdentityStrip } from '../IdentityStrip';
+import { FOUNDER_DASHA_CTX } from '../../../../test/dashaFixtures';
+
+const DASHA: VimshottariDashaData = {
+  maha_dasha: {
+    lord: 'saturn',
+    start_date: '2010-03-01T00:00:00Z',
+    end_date: '2029-03-01T00:00:00Z',
+    level: 'maha',
+    duration_years: 19,
+  },
+  antar_dasha: {
+    lord: 'mercury',
+    start_date: '2025-01-01T00:00:00Z',
+    end_date: '2027-09-01T00:00:00Z',
+    level: 'antar',
+    duration_years: 2.7,
+  },
+  pratyantar_dasha: {
+    lord: 'venus',
+    start_date: '2026-05-01T00:00:00Z',
+    end_date: '2026-10-01T00:00:00Z',
+    level: 'pratyantar',
+    duration_years: 0.4,
+  },
+  full_sequence: [],
+  convention: 'gregorian_365_2425',
+};
+
+function renderStrip(
+  overrides: Partial<Parameters<typeof IdentityStrip>[0]> = {},
+): ReturnType<typeof render> {
+  return render(
+    <MemoryRouter>
+      <IdentityStrip
+        name="Asha Rao"
+        lagna={{ sign: 'Aquarius', longitude: 328.84, nakshatra: 'Purva_Bhadrapada', nakshatraPada: 3 }}
+        moon={{ sign: 'Cancer', nakshatra: 'Pushya', nakshatraPada: 1 }}
+        dasha={DASHA}
+        {...overrides}
+      />
+    </MemoryRouter>,
+  );
+}
+
+describe('IdentityStrip', () => {
+  beforeEach(() => {
+    useLanguageStore.setState({ language: 'en' });
+  });
+
+  it('renders the person name as the page heading', () => {
+    renderStrip();
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Asha Rao');
+  });
+
+  it('shows the Lagna sign with in-sign degrees and nakshatra', () => {
+    renderStrip();
+    const strip = screen.getByTestId('identity-strip');
+    expect(strip.textContent).toContain('Aquarius');
+    expect(strip.textContent).toContain('28°'); // 328.84 % 30 = 28.84
+    expect(strip.textContent).toContain('Purva Bhadrapada');
+  });
+
+  it('elevates a near-cusp lagna into the Birth-time sensitivity callout (product feature)', () => {
+    renderStrip();
+    // 328.84 → 28.84° in sign → ~1.2° from the Pisces cusp.
+    const callout = screen.getByTestId('birth-time-sensitivity');
+    expect(callout.textContent).toContain('Birth-time sensitivity');
+    // States the computed rising sign and the engine-measured distance…
+    expect(callout.textContent).toMatch(/Aquarius rises only ~1\.2° from the Pisces cusp/);
+    // …names the ALTERNATIVE rising sign explicitly, qualitatively ("a few
+    // minutes" — never a fake-precise minutes number), and says the stakes:
+    expect(callout.textContent).toMatch(
+      /A few minutes' difference in your recorded birth time would make it Pisces/,
+    );
+    expect(callout.textContent).toMatch(/every house in this chart would shift/);
+    // …and carries the rectification link.
+    const refine = screen.getByRole('link', { name: /refine your birth time/i });
+    expect(refine.getAttribute('href')).toBe('/settings/profile');
+  });
+
+  it('names the correct alternative sign at a lower boundary too (generic, any sign)', () => {
+    // 120.8 → 0.8° within Leo → the Cancer cusp; proves it is not chart-specific.
+    renderStrip({ lagna: { sign: 'Leo', longitude: 120.8 } });
+    const callout = screen.getByTestId('birth-time-sensitivity');
+    expect(callout.textContent).toMatch(/Leo rises only ~0\.8° from the Cancer cusp/);
+    expect(callout.textContent).toMatch(/would make it Cancer/);
+  });
+
+  it('renders NO sensitivity callout when the lagna sits mid-sign', () => {
+    renderStrip({ lagna: { sign: 'Aquarius', longitude: 315.0, nakshatra: 'Shatabhisha' } });
+    expect(screen.queryByTestId('birth-time-sensitivity')).toBeNull();
+    expect(screen.queryByRole('link', { name: /refine your birth time/i })).toBeNull();
+  });
+
+  it('shows the Moon sign and nakshatra', () => {
+    renderStrip();
+    const strip = screen.getByTestId('identity-strip');
+    expect(strip.textContent).toContain('Cancer');
+    expect(strip.textContent).toContain('Pushya');
+  });
+
+  it('shows the full running daśā stack with level labels and convention', () => {
+    renderStrip();
+    const strip = screen.getByTestId('identity-strip');
+    expect(strip.textContent).toContain('Saturn');
+    expect(strip.textContent).toContain('Maha');
+    expect(strip.textContent).toContain('Mercury');
+    expect(strip.textContent).toContain('Antar');
+    expect(strip.textContent).toContain('Venus');
+    expect(strip.textContent).toContain('Pratyantar');
+    expect(strip.textContent).toContain('Gregorian year (365.2425 days)');
+    expect(strip.textContent).toContain('2029');
+  });
+
+  it('derives the engine-dated "now + next" line by pure list lookup (founder example)', () => {
+    renderStrip({ dasha: FOUNDER_DASHA_CTX });
+    const next = screen.getByTestId('identity-next-periods');
+    // Running Saturn PD ends 2026-06-13 → next PD is Mercury from that date…
+    expect(next.textContent).toContain('Next:');
+    expect(next.textContent).toContain('Mercury Pratyantar from 06/13/2026');
+    // …and the running Venus antar ends 2027-01-31 → next antar is Sun.
+    expect(next.textContent).toContain('Sun Antar from 01/31/2027');
+    // No raw ISO leaks.
+    expect(next.textContent).not.toContain('2026-06-13');
+    // And it links straight to the Periods explorer.
+    const link = screen.getByRole('link', { name: 'All periods' });
+    expect(link.getAttribute('href')).toBe('/predictive?tab=periods');
+  });
+
+  it('omits the next line entirely on older payloads without sequences (no crash)', () => {
+    renderStrip(); // legacy DASHA fixture: empty full_sequence, no pratyantar_sequence
+    expect(screen.queryByTestId('identity-next-periods')).toBeNull();
+    expect(screen.queryByRole('link', { name: 'All periods' })).toBeNull();
+  });
+
+  it('renders honest placeholders when chart facts are unavailable', () => {
+    renderStrip({ lagna: null, moon: null, dasha: undefined });
+    const strip = screen.getByTestId('identity-strip');
+    expect(strip.textContent).toContain('Not available');
+  });
+
+  it('renders the actions slot', () => {
+    renderStrip({ actions: <button type="button">Mode</button> });
+    expect(screen.getByRole('button', { name: 'Mode' })).toBeTruthy();
+  });
+});

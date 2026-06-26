@@ -1,0 +1,49 @@
+{
+  "_meta": { "review": "machine-translated, pending native review" },
+  "actions": {
+    "export_pdf": "Exportar PDF",
+    "export_pdf_title": "Exportar PDF",
+    "export_pdf_disabled_title": "Genera primero tu interpretación",
+    "settings": "Configuración",
+    "settings_title": "Configuración",
+    "try_again": "Intentar de nuevo",
+    "retry": "Reintentar",
+    "connect_ai": "Conectar un modelo de IA",
+    "switch_recommended": "Cambiar al recomendado (DeepSeek V4)",
+    "ai_settings": "Configuración de IA"
+  },
+  "loading": {
+    "title": "Cargando tu carta",
+    "subtitle": "Espera mientras recuperamos tu carta natal..."
+  },
+  "error": {
+    "title": "No se pudo cargar la carta",
+    "body": "No pudimos cargar los datos de tu carta. Puede tratarse de un problema temporal de conexión."
+  },
+  "cta": {
+    "title": "Conecta un modelo de IA para generar tu interpretación",
+    "body": "Tu carta se calcula en tu dispositivo. Para convertirla en una lectura personalizada, conecta un modelo de IA: usa la configuración rápida de OpenRouter con un clic o apunta AlmaMesh a un modelo local (por ejemplo, Ollama)."
+  },
+  "generation": {
+    "title_generating": "Generando tu interpretación personalizada",
+    "title_failed": "No se pudo generar la interpretación",
+    "elapsed": "Generando desde tu modelo: {{elapsed}} transcurridos. Una lectura completa puede tardar entre 1 y 3 minutos en un modelo en la nube.",
+    "model_unavailable": "El modelo de IA de tu configuración no está disponible en tu endpoint, por lo que no se pudo generar la lectura. Cambia al modelo recomendado e inténtalo de nuevo."
+  },
+  "sections": {
+    "core": "Identidad y personalidad",
+    "yoga": "Trayectoria de vida (yogas)",
+    "guidance1": "Salud, educación, carrera, relaciones",
+    "guidance2": "Finanzas, camino espiritual, evolución de vida",
+    "remedial": "Medidas correctivas y autocuidado"
+  },
+  "chat": {
+    "not_configured_notice": "Conecta un modelo de IA para hacer preguntas sobre tu carta: abre Configuración → Modelo de IA (o la insignia de IA en la cabecera) y usa la configuración rápida de OpenRouter con un clic, o apunta AlmaMesh a un modelo local (por ejemplo, Ollama en http://localhost:11434/v1)."
+  },
+  "chart_visualization": {
+    "empty_title": "Datos de la carta no disponibles",
+    "empty_body": "Genera tu carta natal para ver el análisis técnico.",
+    "force_field_title": "Campo de fuerza planetario",
+    "kundli_title": "Kundli y posición planetaria"
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "identity": {
+    "kicker": "Birth chart",
+    "lagna": "Lagna · Ascendant",
+    "moon": "Moon",
+    "dasha": "Running daśā",
+    "until": "until {{date}}",
+    "next_label": "Next:",
+    "next_leg": "{{lord}} {{level}} from {{date}}",
+    "all_periods": "All periods",
+    "pada": "pada {{pada}}",
+    "unavailable": "Not available"
+  },
+  "atlas": {
+    "heading": "Life Atlas",
+    "subtitle": "Seven domains of your life — strength, current emphasis and dated windows, computed deterministically on this device.",
+    "as_of": "As of {{date}}",
+    "pending_hint": "Loading forecast…",
+    "next_window": "Next window",
+    "no_window": "No timed window in the next twelve months",
+    "emphasis_active": "Activated by the running daśā ({{levels}})",
+    "emphasis_quiet": "Not emphasized by the running daśā",
+    "tone_label": "{{severity}} transit tone",
+    "sade_sati": "Under Sade Sati",
+    "open_domain": "Open {{domain}}",
+    "computing_body": "Computing on this device — {{elapsed}} elapsed. This usually takes about half a minute.",
+    "error_title": "The Life Atlas could not be computed",
+    "retry": "Try again",
+    "engine_warming": "The chart engine is still starting up. Computation begins once it is ready.",
+    "about_title": "About these forecasts",
+    "about_body": "A deterministic synthesis of your daśā timeline, transits, divisional charts and planetary strength. No AI is involved.",
+    "about_link": "Open Sky & Timing"
+  },
+  "domain": {
+    "kicker": "Life Atlas",
+    "back": "Back to dashboard",
+    "engine_heading": "Engine forecast",
+    "engine_badge": "Deterministic · on-device",
+    "ai_heading": "From your reading",
+    "ai_badge": "AI narration",
+    "ai_missing": "Your generated reading has no section for this domain yet. Generate or refresh the reading from the dashboard.",
+    "engine_only": "This domain is read from the engine alone — the structured reading has no section for it.",
+    "chat": "Discuss in chat",
+    "open_timing": "Open Sky & Timing"
+  },
+  "reading": {
+    "heading": "The reading",
+    "this_period": "This period",
+    "themes": "Key themes"
+  },
+  "continue": {
+    "report_title": "Print-ready report",
+    "report_body": "An archival paper document of the chart, timing layer and reading.",
+    "report_locked": "Available once your reading is generated.",
+    "timing_body": "Transits, the sixteen divisional charts, Ashtakavarga and Shadbala — the full instrument panel.",
+    "open": "Open"
+  }
+}

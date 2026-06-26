@@ -1,0 +1,17 @@
+# Nixpacks configuration for AlmaMesh Web Frontend (Vite + React)
+# Root Directory: /frontend
+
+[phases.setup]
+nixPkgs = ["nodejs_20", "bun"]
+
+[phases.install]
+cmds = ["bun install"]
+
+[phases.build]
+cmds = ["bun run --filter @almamesh/web build"]
+
+[start]
+cmd = "cd apps/web && bunx serve dist -l ${PORT:-3000}"
+
+[variables]
+NODE_ENV = "production"

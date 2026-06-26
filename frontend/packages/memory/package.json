@@ -1,0 +1,30 @@
+{
+  "name": "@almamesh/memory",
+  "version": "0.0.1",
+  "license": "MIT",
+  "description": "In-browser, zero-egress semantic memory for AlmaMesh chat: chunk + embed (Transformers.js, self-hosted weights) + IndexedDB vector store + cosine RAG retrieval. No network, offline-first.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc -b --pretty false",
+    "test": "vitest run",
+    "test:unit": "vitest run",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@huggingface/transformers": "^3.7.0",
+    "idb-keyval": "^6.2.1"
+  },
+  "devDependencies": {
+    "fake-indexeddb": "^6.0.0",
+    "typescript": "~5.7.0",
+    "vitest": "^4.0.16"
+  }
+}

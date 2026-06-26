@@ -1,0 +1,28 @@
+{
+  "name": "@almamesh/constants",
+  "version": "0.0.1",
+  "license": "MIT",
+  "description": "Shared constants and design tokens for AlmaMesh",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts",
+      "require": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./tailwind.preset": {
+      "require": "./tailwind.preset.js",
+      "import": "./tailwind.preset.js"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc -b --pretty false",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "typescript": "~5.7.0"
+  }
+}

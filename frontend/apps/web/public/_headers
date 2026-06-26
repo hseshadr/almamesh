@@ -1,0 +1,95 @@
+# HTTP headers for the almamesh.com Cloudflare Pages deployment.
+# Vite copies this verbatim from public/ into dist/; Pages parses it (it is
+# never served as an asset).
+#
+# Pages semantics (verified against `wrangler pages dev`, which runs the same
+# asset-serving code as production — see docs/deploy/almamesh-com.md):
+#   - EVERY matching rule applies; same-name headers MERGE into one comma-joined
+#     value ("no-cache, public, max-age=…" — which browsers resolve as no-cache).
+#     So each Cache-Control override below DETACHES the catch-all value first
+#     with "! Cache-Control" before setting its own.
+#
+# DELIBERATELY NO COOP/COEP: the app runs non-cross-origin-isolated by design
+# (Pyodide module Workers + the embedding/worker behavior depend on it; the
+# in-browser embedder even pins numThreads=1 for non-isolated hosts). Adding
+# Cross-Origin-Opener-Policy / Cross-Origin-Embedder-Policy would change that
+# contract — do not "harden" this file with them.
+
+# --- Default: safe security headers + always-revalidate caching. -------------
+# Everything not overridden below rides this: index.html, the SPA-fallback HTML
+# for client routes (/dashboard, /predictive, /mesh, …), sw.js, the
+# manifest.webmanifest, version.json, public.key, /bundle/latest, icons.
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Cache-Control: no-cache
+
+# --- Immutable: content-hashed app shell (Rollup [name]-[hash] filenames) ----
+/assets/*
+  ! Cache-Control
+  Cache-Control: public, max-age=31536000, immutable
+
+# Workbox runtime is emitted content-hashed at the root (workbox-<hash>.js).
+/workbox-*.js
+  ! Cache-Control
+  Cache-Control: public, max-age=31536000, immutable
+
+# --- Immutable: engine data --------------------------------------------------
+# Pyodide dist is version-pinned; the SW already CacheFirst-pins it for a year,
+# so a long browser cache matches the design (a Pyodide bump ships as a new
+# build + SW update, not as a changed URL).
+/pyodide/*
+  ! Cache-Control
+  Cache-Control: public, max-age=31536000, immutable
+
+# Signed bundle: chunk/ + manifest/ entries are content-addressed (sha256 file
+# names) -> genuinely immutable. NOTE: /bundle/latest is NOT matched by these
+# globs — it is the mutable update pointer and stays no-cache (rule below).
+/bundle/chunk/*
+  ! Cache-Control
+  Cache-Control: public, max-age=31536000, immutable
+/bundle/chunks/*
+  ! Cache-Control
+  Cache-Control: public, max-age=31536000, immutable
+/bundle/manifest/*
+  ! Cache-Control
+  Cache-Control: public, max-age=31536000, immutable
+/bundle/manifests/*
+  ! Cache-Control
+  Cache-Control: public, max-age=31536000, immutable
+
+# Self-hosted RAG model (MiniLM ONNX) + onnxruntime-web wasm: version-pinned,
+# SW CacheFirst, fetched once on first chat use.
+/models/*
+  ! Cache-Control
+  Cache-Control: public, max-age=31536000, immutable
+
+# Self-hosted fonts (stable @fontsource snapshots, SW-precached).
+/fonts/*
+  ! Cache-Control
+  Cache-Control: public, max-age=31536000, immutable
+
+# Planet artwork: stable but NOT fingerprinted — cache a day so art swaps
+# propagate without a URL change.
+/planets/*
+  ! Cache-Control
+  Cache-Control: public, max-age=86400
+
+# --- Update signals: explicitly no-cache (redundant with /* today, but these
+# gate the entire update flow — keep them pinned even if the catch-all changes).
+/bundle/latest
+  ! Cache-Control
+  Cache-Control: no-cache
+/sw.js
+  ! Cache-Control
+  Cache-Control: no-cache
+/version.json
+  ! Cache-Control
+  Cache-Control: no-cache
+/manifest.webmanifest
+  ! Cache-Control
+  Cache-Control: no-cache
+/public.key
+  ! Cache-Control
+  Cache-Control: no-cache

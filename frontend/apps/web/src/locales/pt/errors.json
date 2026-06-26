@@ -1,0 +1,16 @@
+{
+  "generic": "Desculpe, estamos com dificuldades técnicas. Código de erro: {{code}}",
+  "chat": "Desculpe, não foi possível processar sua solicitação. Tente novamente. (Erro: {{code}})",
+  "engine_warming": "O motor astrológico ainda está sendo iniciado — tente novamente em um momento.",
+  "needs_regeneration": "Este mapa precisa ser gerado novamente antes que você possa fazer perguntas sobre ele no dispositivo.",
+  "missing_birth_data": "Dados de nascimento ausentes",
+  "missing_timezone": "Fuso horário do local de nascimento ausente",
+  "codes": {
+    "CHART_GEN_001": "Falha ao gerar o mapa",
+    "CHART_UPDATE_001": "Falha ao atualizar os dados de nascimento",
+    "RECT_001": "Falha ao salvar os dados de retificação",
+    "QA_001": "Falha ao responder à pergunta",
+    "UNKNOWN_001": "Ocorreu um erro inesperado",
+    "ENGINE_WARMING": "O motor de mapas ainda está sendo iniciado"
+  }
+}

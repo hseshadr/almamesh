@@ -1,0 +1,144 @@
+domain: career
+rules:
+  # Lordship placements
+  - rule_id: R_10L_11H
+    category: career
+    pattern: "10th lord in 11th house"
+    interpretation: "Career advancement through networks, organizations, or group activities. Strong potential for gains and recognition through professional connections."
+    strength_modifier: 1.2
+    classical_source: "BPHS 24.15"
+    tags: ["promotion", "gains", "networking", "10H", "11H"]
+    counter_patterns:
+      - "10th lord debilitated"
+      - "11th house afflicted by malefics"
+    priority: 60
+    enabled: true
+
+  - rule_id: R_10L_9H
+    category: career
+    pattern: "10th lord in 9th house"
+    interpretation: "Career involving higher learning, publishing, teaching, or international work. Fortune supports professional endeavors."
+    strength_modifier: 1.15
+    classical_source: "BPHS 24.14"
+    tags: ["education", "travel", "publishing", "10H", "9H"]
+    counter_patterns:
+      - "10th lord debilitated"
+      - "9th house afflicted"
+    priority: 55
+    enabled: true
+
+  # Dasha period
+  - rule_id: R_10L_DASHA
+    category: career
+    pattern: "10th lord dasha active"
+    interpretation: "Current dasha of 10th lord brings career into focus. Major professional developments, recognition, and status changes likely during this period."
+    strength_modifier: 1.3
+    tags: ["dasha", "timing", "10H", "career_peak"]
+    priority: 70
+    enabled: true
+
+  # Yoga combinations
+  - rule_id: R_RAJA_YOGA_CAREER
+    category: career
+    pattern: "Raja Yoga involving 10th house or lord"
+    interpretation: "Powerful combination for career success, authority, and recognition. Rise to positions of power and influence in professional life."
+    strength_modifier: 1.4
+    classical_source: "BPHS 41.2"
+    tags: ["raja_yoga", "authority", "success", "10H"]
+    requires_dignity: true
+    priority: 80
+    enabled: true
+
+  - rule_id: R_DHANA_YOGA_10H
+    category: career
+    pattern: "Dhana Yoga with 10th lord involvement"
+    interpretation: "Wealth accumulation through career and profession. Professional success brings financial prosperity."
+    strength_modifier: 1.25
+    classical_source: "BPHS 41.8"
+    tags: ["dhana_yoga", "wealth", "10H", "prosperity"]
+    priority: 65
+    enabled: true
+
+  # Transit influences
+  - rule_id: R_JUPITER_TRANSIT_10H
+    category: career
+    pattern: "Jupiter transiting 10th house"
+    interpretation: "Auspicious period for career expansion, promotions, and professional growth. Opportunities for recognition and advancement."
+    strength_modifier: 1.2
+    tags: ["transit", "jupiter", "expansion", "10H", "opportunity"]
+    priority: 50
+    enabled: true
+
+  - rule_id: R_SATURN_TRANSIT_10H
+    category: career
+    pattern: "Saturn transiting 10th house"
+    interpretation: "Period of hard work, increased responsibilities, and career restructuring. Rewards come through discipline and perseverance."
+    strength_modifier: 0.9
+    tags: ["transit", "saturn", "responsibility", "10H", "discipline"]
+    counter_patterns:
+      - "Saturn well-aspected"
+      - "Saturn in own sign"
+    priority: 55
+    enabled: true
+
+  # Afflictions
+  - rule_id: R_10H_AFFLICTED
+    category: career
+    pattern: "10th house or lord afflicted by malefics"
+    interpretation: "Career challenges, obstacles to professional growth, or difficulties with authority figures. May face setbacks before achieving success."
+    strength_modifier: 0.7
+    tags: ["affliction", "obstacles", "10H", "challenges"]
+    counter_patterns:
+      - "10th lord in own sign"
+      - "benefic aspects to 10th house"
+    priority: 45
+    enabled: true
+
+  # Dignity states
+  - rule_id: R_10L_STRONG
+    category: career
+    pattern: "10th lord dignified (own sign, exalted, or friendly sign)"
+    interpretation: "Strong foundation for career success. Native commands respect and achieves recognition through merit and capability."
+    strength_modifier: 1.25
+    classical_source: "BPHS 34.12"
+    tags: ["dignity", "strength", "10H", "success"]
+    requires_dignity: true
+    priority: 60
+    enabled: true
+
+  - rule_id: R_10L_WEAK
+    category: career
+    pattern: "10th lord debilitated or combust"
+    interpretation: "Professional challenges due to weakened career significator. Success requires extra effort and may come through unconventional paths."
+    strength_modifier: 0.6
+    tags: ["debilitation", "combust", "10H", "challenges"]
+    counter_patterns:
+      - "neechabhanga raja yoga"
+      - "combust planet in own sign"
+    priority: 50
+    enabled: true
+
+  # Planetary placements in 10H
+  - rule_id: R_SUN_10H
+    category: career
+    pattern: "Sun in 10th house"
+    interpretation: "Natural authority and leadership in career. Success in government, administration, or positions requiring command and visibility."
+    strength_modifier: 1.3
+    classical_source: "BPHS 24.8"
+    tags: ["sun", "authority", "leadership", "10H", "government"]
+    requires_dignity: false
+    priority: 65
+    enabled: true
+
+  - rule_id: R_MARS_10H
+    category: career
+    pattern: "Mars in 10th house"
+    interpretation: "Dynamic and action-oriented career. Success in engineering, military, sports, surgery, or fields requiring courage and initiative."
+    strength_modifier: 1.2
+    classical_source: "BPHS 24.10"
+    tags: ["mars", "action", "leadership", "10H", "engineering", "military"]
+    counter_patterns:
+      - "Mars debilitated"
+      - "Mars afflicted by Saturn"
+    priority: 60
+    enabled: true

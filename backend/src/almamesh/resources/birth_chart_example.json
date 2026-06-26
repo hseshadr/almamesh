@@ -1,0 +1,68 @@
+{
+  "person_name": "{{person_name}}",
+  "summary": "{{summary_based_on_actual_chart_data}}",
+  "strengths": [
+    {
+      "layman": "{{strength_1_layman_description}}",
+      "technical": "{{strength_1_technical_analysis}}",
+      "title": "{{strength_1_title}}"
+    },
+    {
+      "layman": "{{strength_2_layman_description}}",
+      "technical": "{{strength_2_technical_analysis}}",
+      "title": "{{strength_2_title}}"
+    }
+  ],
+  "challenges": [
+    {
+      "layman": "{{challenge_1_layman_description}}",
+      "technical": "{{challenge_1_technical_analysis}}",
+      "title": "{{challenge_1_title}}"
+    },
+    {
+      "layman": "{{challenge_2_layman_description}}",
+      "technical": "{{challenge_2_technical_analysis}}",
+      "title": "{{challenge_2_title}}"
+    }
+  ],
+  "life_themes": [
+    {
+      "layman": "{{life_theme_1_layman_description}}",
+      "technical": "{{life_theme_1_technical_analysis}}",
+      "title": "{{life_theme_1_title}}"
+    },
+    {
+      "layman": "{{life_theme_2_layman_description}}",
+      "technical": "{{life_theme_2_technical_analysis}}",
+      "title": "{{life_theme_2_title}}"
+    }
+  ],
+  "health_guidance": {
+    "layman": "{{health_layman_guidance}}",
+    "technical": "{{health_technical_analysis}}"
+  },
+  "education_guidance": {
+    "layman": "{{education_layman_guidance}}",
+    "technical": "{{education_technical_analysis}}"
+  },
+  "career_guidance": {
+    "layman": "{{career_layman_guidance}}",
+    "technical": "{{career_technical_analysis}}"
+  },
+  "relationship_guidance": {
+    "layman": "{{relationship_layman_guidance}}",
+    "technical": "{{relationship_technical_analysis}}"
+  },
+  "finances_guidance": {
+    "layman": "{{finances_layman_guidance}}",
+    "technical": "{{finances_technical_analysis}}"
+  },
+  "spiritual_guidance": {
+    "layman": "{{spiritual_layman_guidance}}",
+    "technical": "{{spiritual_technical_analysis}}"
+  },
+  "remedial_measures": {
+    "layman": "{{remedial_layman_measures}}",
+    "technical": "{{remedial_technical_measures}}"
+  }
+}

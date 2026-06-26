@@ -1,0 +1,49 @@
+{
+  "_meta": { "review": "machine-translated, pending native review" },
+  "actions": {
+    "export_pdf": "Exportar PDF",
+    "export_pdf_title": "Exportar PDF",
+    "export_pdf_disabled_title": "Gere primeiro sua interpretação",
+    "settings": "Configurações",
+    "settings_title": "Configurações",
+    "try_again": "Tentar novamente",
+    "retry": "Tentar novamente",
+    "connect_ai": "Conectar um modelo de IA",
+    "switch_recommended": "Mudar para o recomendado (DeepSeek V4)",
+    "ai_settings": "Configurações de IA"
+  },
+  "loading": {
+    "title": "Carregando seu mapa",
+    "subtitle": "Aguarde enquanto recuperamos seu mapa natal..."
+  },
+  "error": {
+    "title": "Não foi possível carregar o mapa",
+    "body": "Não conseguimos carregar os dados do seu mapa. Pode ser um problema temporário de conexão."
+  },
+  "cta": {
+    "title": "Conecte um modelo de IA para gerar sua interpretação",
+    "body": "Seu mapa é calculado no seu dispositivo. Para transformá-lo em uma leitura personalizada, conecte um modelo de IA: use a configuração rápida do OpenRouter com um clique ou aponte o AlmaMesh para um modelo local (por exemplo, Ollama)."
+  },
+  "generation": {
+    "title_generating": "Gerando sua interpretação personalizada",
+    "title_failed": "Não foi possível gerar a interpretação",
+    "elapsed": "Gerando a partir do seu modelo — {{elapsed}} decorridos. Uma leitura completa pode levar de 1 a 3 minutos em um modelo na nuvem.",
+    "model_unavailable": "O modelo de IA nas suas configurações não está disponível no seu endpoint, então a leitura não pôde ser gerada. Mude para o modelo recomendado e tente novamente."
+  },
+  "sections": {
+    "core": "Identidade e personalidade",
+    "yoga": "Jornada de vida (yogas)",
+    "guidance1": "Saúde, educação, carreira, relacionamentos",
+    "guidance2": "Finanças, caminho espiritual, evolução de vida",
+    "remedial": "Medidas corretivas e autocuidado"
+  },
+  "chat": {
+    "not_configured_notice": "Conecte um modelo de IA para fazer perguntas sobre seu mapa: abra Configurações → Modelo de IA (ou o selo de IA no cabeçalho) e use a configuração rápida do OpenRouter com um clique, ou aponte o AlmaMesh para um modelo local (por exemplo, Ollama em http://localhost:11434/v1)."
+  },
+  "chart_visualization": {
+    "empty_title": "Dados do mapa indisponíveis",
+    "empty_body": "Gere seu mapa natal para ver a análise técnica.",
+    "force_field_title": "Campo de força planetário",
+    "kundli_title": "Kundli e posição planetária"
+  }
+}

@@ -1,0 +1,23 @@
+#!/usr/bin/env sh
+# Pre-push gate: block a push to any branch when the frontend lint or typecheck
+# fails. This is the guard for the recurring "green-locally-but-I-didn't-run-the
+# -gate" incident — a lint break (e.g. the unused DELHI_BIRTH import) can no
+# longer reach main. The git root is the repo root; the JS workspace is
+# frontend/, so cd into it before running the Bun workspace commands.
+#
+# To skip in an emergency (use sparingly): git push --no-verify
+cd frontend || exit 1
+
+echo "[pre-push] Running frontend lint + typecheck gate..."
+
+bun run --filter @almamesh/web lint && bun run --filter '*' typecheck
+
+status=$?
+if [ "$status" -ne 0 ]; then
+  echo ""
+  echo "[pre-push] BLOCKED: lint/typecheck failed (exit $status). Fix the errors above before pushing."
+  echo "[pre-push] Emergency override (discouraged): git push --no-verify"
+  exit "$status"
+fi
+
+echo "[pre-push] Gate passed. Pushing."

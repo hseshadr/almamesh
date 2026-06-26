@@ -1,0 +1,179 @@
+{
+  "labels": {
+    "ascendant": "Ascendant",
+    "moon_sign": "Moon Sign",
+    "current_dasha": "Current Dasha",
+    "ascendant_lagna": "Ascendant (Lagna)",
+    "lagna_ascendant": "Lagna (Ascendant)",
+    "rising_sign_lagna": "Rising Sign (Lagna)",
+    "sign_rising": "{{sign}} Rising",
+    "degrees_in_sign": "{{degrees}} in {{sign}}",
+    "nakshatra": "Nakshatra",
+    "sign": "Sign",
+    "sign_lord": "Sign Lord",
+    "nakshatra_lord": "Nakshatra Lord",
+    "lagna_lord": "Lagna Lord",
+    "pada_short": "P{{pada}}",
+    "pada": "Pada {{pada}}",
+    "name": "Name",
+    "date_of_birth": "Date of Birth",
+    "time_of_birth": "Time of Birth",
+    "place_of_birth": "Place of Birth",
+    "location": "Location",
+    "coordinates": "Coordinates",
+    "utc_datetime": "UTC Datetime",
+    "julian_day": "Julian Day",
+    "ayanamsa": "Ayanamsa",
+    "sidereal_time": "Sidereal Time",
+    "house_system": "House System",
+    "not_available": "N/A"
+  },
+  "banner": {
+    "lagna_unavailable": "Lagna data not available",
+    "chart_processing": "Chart may still be processing"
+  },
+  "cusp": {
+    "label": "Birth-time sensitivity",
+    "proximity": "{{sign}} rises only ~{{degrees}}° from the {{neighbour}} cusp.",
+    "flip": "A few minutes' difference in your recorded birth time would make it {{neighbour}} — and every house in this chart would shift.",
+    "refine_link": "Refine your birth time"
+  },
+  "birth_details": {
+    "heading": "Birth Details",
+    "technical_heading": "Technical Details",
+    "chart_for": "Birth Chart for {{name}}"
+  },
+  "sections": {
+    "astrological_data": "Astrological Data",
+    "part1": "Part 1: Astrological Data",
+    "part2": "Part 2: Astrological Interpretations",
+    "birth_details_numbered": "1.1 Birth Details",
+    "technical_numbered": "1.1 Technical (Calculation) Details",
+    "lagna_numbered": "1.2 Lagna (Ascendant)",
+    "dasha_full_numbered": "1.5 Vimshottari Dasha - Full Sequence",
+    "dasha_current_numbered": "1.5 Current Dasha Periods",
+    "yogas_numbered": "1.6 Key Yogas"
+  },
+  "tables": {
+    "planet": "Planet",
+    "sign": "Sign",
+    "degree": "Degree",
+    "house": "House",
+    "nakshatra_pada": "Nakshatra · Pada",
+    "dignity": "Dignity",
+    "retro": "Retro",
+    "lords": "Lords",
+    "combust": "Combust",
+    "mahadasha_lord": "Mahadasha Lord",
+    "start": "Start",
+    "end": "End",
+    "duration": "Duration",
+    "level": "Level",
+    "lord": "Lord",
+    "period": "Period"
+  },
+  "planetary": {
+    "title": "Planetary Positions",
+    "subtitle": "Rāśi / D1",
+    "unavailable": "Planetary data not available.",
+    "retrograde_aria": "retrograde",
+    "yogakaraka_aria": "yogakaraka",
+    "combust_aria": "combust",
+    "strength_pointer": "Quantified strength (Ṣaḍbala · Aṣṭakavarga) lives in the Predictive panel.",
+    "strength_pointer_link": "Open Strength"
+  },
+  "chart": {
+    "north_aria": "North Indian birth chart",
+    "south_aria": "South Indian Rāśi chart"
+  },
+  "varga": {
+    "d9_title": "D9 · Navamsa",
+    "d9_subtitle": "Divisional chart (1/9) — marriage, dharma & inner strength"
+  },
+  "dasha": {
+    "title": "Vimshottari Dasha",
+    "unavailable": "Dasha data not available",
+    "as_of": "as of {{date}}",
+    "current": "(current)",
+    "maha": "Maha",
+    "antar": "Antar",
+    "pratyantar": "Pratyantar",
+    "full_sequence_unavailable": "Full sequence not available",
+    "current_unavailable": "Current period data not available",
+    "duration_years": "{{years}} years"
+  },
+  "yoga": {
+    "comprehensive_analysis": "Comprehensive Yoga Analysis",
+    "calculated_yogas": "Calculated Yogas",
+    "none_detected": "No yogas detected in this chart.",
+    "no_layman": "No layman interpretation available.",
+    "no_technical": "No technical interpretation available.",
+    "grade": {
+      "strong": "Strong",
+      "moderate": "Moderate",
+      "weak": "Weak"
+    },
+    "grade_aria": "Yoga grade: {{grade}}",
+    "category": {
+      "mahapurusha": "Mahāpuruṣa",
+      "raja": "Rāja",
+      "dhana": "Dhana",
+      "chandra": "Chandra",
+      "surya": "Sūrya",
+      "auspicious": "Auspicious",
+      "dosha": "Doṣa",
+      "special": "Special"
+    },
+    "planets_label": "Planets",
+    "houses_label": "Houses",
+    "formation_trace": "Formation trace",
+    "show_trace": "Show",
+    "hide_trace": "Hide",
+    "rules_heading": "Formation rules",
+    "factors_heading": "Observed strength factors"
+  },
+  "interpretation": {
+    "strengths": "Strengths",
+    "challenges": "Challenges",
+    "life_themes": "Major Life Themes",
+    "health": "Health & Wellness",
+    "relationships": "Relationships & Connections",
+    "career": "Career & Professional Life",
+    "education": "Learning & Education",
+    "finances": "Finances & Money Management",
+    "remedies": "Remedial Measures & Self-Care",
+    "spiritual": "Spiritual Growth & Inner Development",
+    "no_interpretation": "No interpretation available.",
+    "no_technical_interpretation": "No technical interpretation available.",
+    "generating": "No interpretation yet — generating… open the dashboard to start or watch progress.",
+    "connect_prompt": "Connect an AI model to generate your interpretation. Your chart is calculated on-device; an AI model turns it into a personalized reading.",
+    "connect_ai_link": "Connect an AI model"
+  },
+  "mode": {
+    "for_you": "For You",
+    "for_astrologer": "For Astrologer"
+  },
+  "report": {
+    "title_for": "Comprehensive Vedic Report for {{name}}",
+    "generated_on": "Generated on {{date}}",
+    "loading": "Loading Chart Data",
+    "please_wait": "Please wait...",
+    "no_data_title": "No Chart Data Available",
+    "load_error": "Failed to load chart data. Please try again.",
+    "no_chart_error": "No chart found. Please generate a chart first.",
+    "generate_prompt": "Generate your birth chart to see the full report.",
+    "back_to_dashboard": "Back to Dashboard",
+    "print_chart": "Print Chart",
+    "footer_note": "*Report calculated using Lahiri Ayanamsa ({{ayanamsa}}°) and {{houseSystem}} house system.*"
+  },
+  "print": {
+    "tagline": "Vedic Astrology Intelligence",
+    "for_astrologer": "For Astrologer",
+    "technical_analysis": "Technical Analysis",
+    "report_title": "Comprehensive Vedic Astrology Report",
+    "prepared_for": "Prepared For",
+    "report_generated": "Report Generated",
+    "disclaimer": "This report is calculated using Lahiri Ayanamsa and traditional Vedic methodologies.",
+    "footer_note": "Calculated using Lahiri Ayanamsa ({{ayanamsa}}°) and {{houseSystem}} house system"
+  }
+}

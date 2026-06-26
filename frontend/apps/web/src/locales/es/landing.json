@@ -1,0 +1,150 @@
+{
+  "_meta": { "review": "machine-translated" },
+  "nav": {
+    "cta": "Crear mi carta",
+    "languageLabel": "Idioma",
+    "github": "Estrella en GitHub"
+  },
+  "hero": {
+    "headline": "Tu cielo real. Calculado en tu dispositivo. Gratis, para siempre.",
+    "subhead": "Una carta védica (sideral) fiel — planetas, nakshatras, dashas — calculada en tu navegador. Un experimento honesto, no un adivino. Sin cuenta. Sin correo. Nada sale de tu pestaña.",
+    "cta": "Crear mi carta — gratis",
+    "microcopy": "Funciona sin conexión · 3 idiomas · motor abierto."
+  },
+  "what": {
+    "title": "Lo que calcula",
+    "intro": "Resultados védicos reales, calculados en tu propio dispositivo — nunca en un servidor.",
+    "items": [
+      "Planetas, signos y casas",
+      "Nakshatras con padas",
+      "Dasha Vimshottari — maha, antar, pratyantar",
+      "Cartas divisionales D1–D60",
+      "Tránsitos y Gochara",
+      "Ashtakavarga y Shadbala"
+    ]
+  },
+  "features": {
+    "title": "Lo que puedes hacer",
+    "intro": "Calcula, rectifica, narra y predice — cada paso se ejecuta en tu dispositivo, fundamentado en las matemáticas del motor.",
+    "rectify": {
+      "badge": "El punto de honestidad",
+      "title": "Rectifica tu hora de nacimiento — el dato que lo define todo.",
+      "body": "Unos pocos minutos pueden mover tu Ascendente al siguiente signo y cambiar con él cada predicción. La mayoría de las personas no conocen su hora al minuto. Así que, en lugar de fingir certeza sobre una hora aproximada como hacen los sitios de pago, AlmaMesh te ayuda a rectificarla a partir de eventos reales de tu vida — una carta honesta necesita una hora honesta."
+    },
+    "items": [
+      {
+        "title": "Calcula tu carta",
+        "body": "Gratis, en tu dispositivo, en segundos."
+      },
+      {
+        "title": "Usa tu propia IA",
+        "body": "Conecta cualquier modelo compatible con OpenAI (OpenRouter o tu propio endpoint). Tú eliges; nada queda atado."
+      },
+      {
+        "title": "Conversa con tu carta",
+        "body": "Pregunta en lenguaje sencillo; la IA narra la salida del motor, nunca la inventa."
+      },
+      {
+        "title": "Observa tu timing",
+        "body": "Tránsitos, dashas, todas las cartas divisionales (D1–D60), Ashtakavarga y Shadbala, y pronósticos por ámbito de vida. Profundamente predictivo — fundamentado en las matemáticas, no en intuiciones."
+      }
+    ]
+  },
+  "why": {
+    "anchor": "Estas tradiciones se transmitieron para el beneficio de todos — un regalo, no un negocio.",
+    "title": "Por qué somos diferentes",
+    "colA": "AlmaMesh",
+    "colB": "El típico sitio de astrología de pago",
+    "rows": [
+      {
+        "a": "Gratis, para siempre — sin muro de pago",
+        "b": "Suscripciones y \"desbloquea tu lectura completa\""
+      },
+      {
+        "a": "Funciona en tu dispositivo, en tu navegador",
+        "b": "Funciona en sus servidores"
+      },
+      {
+        "a": "Sin cuenta, sin correo",
+        "b": "Requiere registro y correo electrónico"
+      },
+      {
+        "a": "Tus datos de nacimiento nunca salen de tu pestaña",
+        "b": "Datos de nacimiento almacenados, perfilados, monetizados"
+      },
+      {
+        "a": "Motor abierto, idéntico byte a byte a CPython — verificable",
+        "b": "\"Predicciones\" de caja negra"
+      },
+      {
+        "a": "Indicadores honestos (una banda es una convención, nunca un veredicto)",
+        "b": "Certeza vaga, ventas adicionales basadas en el miedo"
+      }
+    ]
+  },
+  "how": {
+    "title": "Cómo funciona",
+    "steps": [
+      {
+        "title": "Introduce tus datos de nacimiento",
+        "body": "Tu fecha, hora y lugar de nacimiento — nada más. Sin cuenta, sin correo."
+      },
+      {
+        "title": "El motor calcula tu carta localmente",
+        "body": "La carta sideral completa se calcula directamente en tu navegador, en tu dispositivo."
+      },
+      {
+        "title": "Explora carta, tiempos y relaciones",
+        "body": "Sumérgete en tu carta, tus dashas y la malla — con una IA opcional que solo narra, nunca inventa."
+      }
+    ],
+    "zeroEgress": "El motor de cartas no hace llamadas de red. Tus datos de nacimiento permanecen en tu dispositivo."
+  },
+  "who": {
+    "title": "Para quién es",
+    "items": [
+      "Los curiosos, que exploran la astrología védica por primera vez",
+      "Quienes valoran su privacidad y no quieren que nada se guarde ni se venda",
+      "Los escépticos que quieren un motor verificable, no una caja negra",
+      "Los profesionales que quieren una herramienta de nivel profesional, gratis"
+    ]
+  },
+  "whereWhen": {
+    "title": "Dónde y cuándo",
+    "where": "Cualquier sistema operativo, en cualquier navegador moderno. Instálalo como una app y funciona sin conexión tras la primera carga.",
+    "when": "Disponible ahora — gratis, sin lista de espera, sin registro."
+  },
+  "founder": {
+    "title": "Por qué creé esto",
+    "body": [
+      "Me ha atraído la astrología védica durante mucho tiempo. No creo que sea una ciencia exacta — y no voy a fingir que lo es. Pero seguía notando correlaciones demasiado interesantes para descartarlas.",
+      "También creo que estas tradiciones — la astrología, el yoga, toda la herencia — se transmitieron para el beneficio de todos. Eran un regalo, no un negocio. Encerrarlas tras suscripciones y ventas adicionales es justo lo contrario.",
+      "Así que AlmaMesh es, sinceramente, un experimento: si calculas la carta con rigor — el cielo real, los mejores métodos, sin atajos, sin espectáculo — ¿puede hacerlo notablemente mejor que lanzar una moneda, de forma constante?",
+      "Todavía no lo sé. Ese es el punto. También por eso esto es gratis, funciona en tu propio dispositivo y nunca pide tus datos — un experimento honesto no puede ser un embudo de ventas, y un regalo no debería tener un muro de pago. Las matemáticas tienen que ser impecables, y deberías poder comprobarlo tú mismo."
+    ],
+    "signature": "— Harish"
+  },
+  "trust": {
+    "title": "El motor en el que puedes confiar",
+    "body": "Las matemáticas son la fuente de la verdad; la IA solo las explica.",
+    "points": [
+      "Skyfield + la efeméride DE421 para las posiciones reales del cielo",
+      "Validado externamente con precisión de subsegundo de arco frente a astropy + JPL Horizons",
+      "Determinista e idéntico byte a byte en CPython y en tu navegador",
+      "El motor es la fuente de la verdad — la IA narra, nunca inventa"
+    ]
+  },
+  "finalCta": {
+    "title": "Crea tu carta — gratis, privada, tuya.",
+    "cta": "Crear mi carta — gratis",
+    "installPwa": "Instalar como app",
+    "viewSource": "Ver el código en GitHub"
+  },
+  "footer": {
+    "tagline": "Astrología védica gratis y en tu dispositivo. Un experimento honesto — tus datos nunca salen de tu pestaña.",
+    "privacy": "Política de privacidad",
+    "terms": "Términos del servicio",
+    "dataDeletion": "Eliminación de datos",
+    "github": "GitHub"
+  }
+}

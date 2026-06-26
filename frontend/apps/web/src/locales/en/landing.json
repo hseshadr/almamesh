@@ -1,0 +1,149 @@
+{
+  "nav": {
+    "cta": "Draw my chart",
+    "languageLabel": "Language",
+    "github": "Star on GitHub"
+  },
+  "hero": {
+    "headline": "Your real sky. Computed on your device. Free, forever.",
+    "subhead": "A faithful Vedic (sidereal) chart — planets, nakshatras, dashas — calculated in your browser. An honest experiment, not a fortune-teller. No account. No email. Nothing leaves your tab.",
+    "cta": "Draw my chart — free",
+    "microcopy": "Works offline · 3 languages · open engine."
+  },
+  "what": {
+    "title": "What it computes",
+    "intro": "Real Vedic outputs, calculated on your own device — never on a server.",
+    "items": [
+      "Planets, signs & houses",
+      "Nakshatras with padas",
+      "Vimshottari dasha — maha, antar, pratyantar",
+      "D1–D60 divisional charts",
+      "Transits & Gochara",
+      "Ashtakavarga & Shadbala"
+    ]
+  },
+  "features": {
+    "title": "What you can do",
+    "intro": "Cast, rectify, narrate, and predict — every step runs on your device, grounded in the engine's math.",
+    "rectify": {
+      "badge": "The honesty point",
+      "title": "Rectify your birth time — the input that makes or breaks everything.",
+      "body": "A few minutes can move your Ascendant to the next sign and shift every prediction with it. Most people don't know their time to the minute. So instead of faking confidence on a rough time like the paid sites do, AlmaMesh helps you rectify it from real life events — an honest chart needs an honest time."
+    },
+    "items": [
+      {
+        "title": "Cast your chart",
+        "body": "Free, on your device, in seconds."
+      },
+      {
+        "title": "Bring your own AI",
+        "body": "Plug in any OpenAI-compatible model (OpenRouter or your own endpoint). You choose; nothing's locked in."
+      },
+      {
+        "title": "Chat with your chart",
+        "body": "Ask in plain language; the AI narrates the engine's output, never invents it."
+      },
+      {
+        "title": "See your timing",
+        "body": "Transits, dashas, all divisional charts (D1–D60), Ashtakavarga & Shadbala, and per-life-domain forecasts. Deeply predictive — grounded in the math, not vibes."
+      }
+    ]
+  },
+  "why": {
+    "anchor": "These traditions were handed down for the benefit of all — a gift, not a scheme.",
+    "title": "Why we're different",
+    "colA": "AlmaMesh",
+    "colB": "The typical paid astrology site",
+    "rows": [
+      {
+        "a": "Free, forever — no paywall",
+        "b": "Subscriptions & \"unlock your full reading\""
+      },
+      {
+        "a": "Runs on your device, in your browser",
+        "b": "Runs on their servers"
+      },
+      {
+        "a": "No account, no email",
+        "b": "Sign-up + email required"
+      },
+      {
+        "a": "Your birth data never leaves your tab",
+        "b": "Birth data stored, profiled, monetized"
+      },
+      {
+        "a": "Open engine, byte-identical to CPython — verifiable",
+        "b": "Black-box \"predictions\""
+      },
+      {
+        "a": "Honest markers (a band is a convention, never a verdict)",
+        "b": "Vague certainty, fear-based upsells"
+      }
+    ]
+  },
+  "how": {
+    "title": "How it works",
+    "steps": [
+      {
+        "title": "Enter your birth details",
+        "body": "Your birth date, time, and place — nothing more. No account, no email."
+      },
+      {
+        "title": "The engine computes your chart locally",
+        "body": "The full sidereal chart is calculated right in your browser, on your device."
+      },
+      {
+        "title": "Explore chart, timing & relationships",
+        "body": "Dive into your chart, dashas, and the mesh — with an optional AI that only narrates, never invents."
+      }
+    ],
+    "zeroEgress": "The chart engine makes no network calls. Your birth data stays on your device."
+  },
+  "who": {
+    "title": "Who it's for",
+    "items": [
+      "The curious, exploring Vedic astrology for the first time",
+      "The privacy-conscious, who want nothing stored or sold",
+      "Skeptics who want a verifiable engine, not a black box",
+      "Practitioners who want a professional-grade tool, free"
+    ]
+  },
+  "whereWhen": {
+    "title": "Where & when",
+    "where": "Every OS, in any modern browser. Install it as an app and it works offline after the first load.",
+    "when": "Available now — free, no waitlist, no sign-up."
+  },
+  "founder": {
+    "title": "Why I built this",
+    "body": [
+      "I've been drawn to Vedic astrology for a long time. I don't think it's an exact science — and I won't pretend it is. But I kept noticing correlations too interesting to wave away.",
+      "I also believe these traditions — astrology, yoga, the whole inheritance — were handed down for the benefit of all. They were a gift, not a scheme. Locking them behind subscriptions and upsells gets that exactly backwards.",
+      "So AlmaMesh is, honestly, an experiment: if you compute the chart rigorously — the real sky, the best-practice methods, no shortcuts, no showmanship — can it do meaningfully better than a coin flip, consistently?",
+      "I don't know yet. That's the point. It's also why this is free, runs on your own device, and never asks for your data — an honest experiment can't be a sales funnel, and a gift shouldn't have a paywall. The math has to be impeccable, and you should be able to check it yourself."
+    ],
+    "signature": "— Harish"
+  },
+  "trust": {
+    "title": "The engine you can trust",
+    "body": "The math is the source of truth; the AI only explains it.",
+    "points": [
+      "Skyfield + the DE421 ephemeris for the real positions of the sky",
+      "Externally validated sub-arcsecond against astropy + JPL Horizons",
+      "Deterministic and byte-identical on CPython and in your browser",
+      "The engine is the source of truth — the AI narrates, never invents"
+    ]
+  },
+  "finalCta": {
+    "title": "Draw your chart — free, private, yours.",
+    "cta": "Draw my chart — free",
+    "installPwa": "Install as an app",
+    "viewSource": "View source on GitHub"
+  },
+  "footer": {
+    "tagline": "Free, on-device Vedic astrology. An honest experiment — your data never leaves your tab.",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "dataDeletion": "Data Deletion",
+    "github": "GitHub"
+  }
+}

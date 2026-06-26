@@ -1,0 +1,98 @@
+{
+  "app_name": "AlmaMesh",
+  "accessibility": {
+    "reduced_motion": "Reduced motion"
+  },
+  "profiles": {
+    "add_person": "Add person",
+    "add_a_person": "Add a person",
+    "add": "Add",
+    "rename": "Rename",
+    "delete": "Delete",
+    "active_badge": "active",
+    "dialog_title": "Who's viewing?",
+    "dialog_description": "Each person on this device keeps their own charts. No accounts, no passwords — everything stays on this device.",
+    "empty_state": "No people yet — add one below.",
+    "name_placeholder": "Name",
+    "last_person_hint": "At least one person must remain",
+    "active_switch_aria": "Active profile: {{name}}. Switch person",
+    "people_list_aria": "People on this device",
+    "rename_aria": "Rename {{name}}",
+    "delete_aria": "Delete {{name}}",
+    "delete_confirm": "Delete {{name}} and their charts? This cannot be undone.",
+    "new_person_name_aria": "New person name"
+  },
+  "actions": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "close": "Close",
+    "back": "Back",
+    "continue": "Continue",
+    "retry": "Retry"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "astrologer_view": "Astrologer View",
+    "mesh": "Mesh",
+    "report": "Report",
+    "settings": "Settings",
+    "menu": "Navigation menu",
+    "menu_aria": "Navigation menu",
+    "home": "AlmaMesh home"
+  },
+  "loading": "Loading",
+  "error_boundary": {
+    "title": "Something went wrong",
+    "body": "We encountered an unexpected error. Please try refreshing the page.",
+    "try_again": "Try Again",
+    "refresh": "Refresh Page",
+    "details": "Error details (dev only)",
+    "warning_aria": "warning",
+    "reset_app_data": "Reset app data",
+    "reset_hint": "Still stuck after an update? This clears cached data and reloads a fresh copy. Your saved charts may be cleared."
+  },
+  "update": {
+    "available": "A new version is available!",
+    "reload_cta": "Reload to update",
+    "dismiss_aria": "Dismiss update notice"
+  },
+  "footer": {
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "data_deletion": "Data Deletion"
+  },
+  "provenance": {
+    "aria": "Calculation provenance"
+  },
+  "location": {
+    "search_placeholder": "Search for a city...",
+    "no_results": "No matching cities found",
+    "offline_hint": "Offline city database · no network required",
+    "search_aria": "Search for a city",
+    "clear_aria": "Clear location search"
+  },
+  "content_mode": {
+    "for_you": "For You",
+    "for_astrologer": "For Astrologer",
+    "aria": "Content display mode"
+  },
+  "dialog": {
+    "close_aria": "Close dialog"
+  },
+  "time_picker": {
+    "placeholder": "Select time"
+  },
+  "ai_badge": {
+    "setup": "Set up AI",
+    "label": "AI: {{provider}}",
+    "title_ready": "AI model: {{provider}} — change",
+    "title_setup": "Connect an AI model (e.g. OpenRouter) to enable interpretations",
+    "title_finish": "AI model: {{provider}} — finish setup"
+  },
+  "language": {
+    "label": "Language",
+    "english": "English",
+    "spanish": "Español",
+    "portuguese": "Português"
+  }
+}

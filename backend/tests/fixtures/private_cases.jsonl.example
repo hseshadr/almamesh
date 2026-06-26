@@ -1,0 +1,2 @@
+{"case_id": "example_001", "birth_datetime": "1985-03-15T14:30:00", "latitude": 12.9716, "longitude": 77.5946, "timezone": "Asia/Kolkata"}
+{"case_id": "example_002", "birth_datetime": "1990-07-22T08:15:00", "latitude": 40.7128, "longitude": -74.0060, "timezone": "America/New_York"}

@@ -1,0 +1,912 @@
+/*
+ * report-print.css — the "fine almanac" stylesheet for the ON-SCREEN /report page.
+ *
+ * The dark app is an observatory astrolabe; THIS is its paper counterpart: a
+ * letterpress Vedic almanac. Warm ivory stock, dark ink, a single restrained
+ * brass-gold accent, a dignified serif display face (Fraunces, already
+ * self-hosted) for every heading + cover, and a refined sans for the data so
+ * tables stay legible. Real typographic hierarchy: a titled cover with a hairline
+ * frame, numbered section openers, framed chart plates, a pull-quote summary,
+ * and elegant rules/ornaments.
+ *
+ * Everything is scoped under `.report-document` so it never touches the dark
+ * shell. It renders a centered A4 sheet (WYSIWYG) for SCREEN reading. The PDF is
+ * now produced entirely by the @react-pdf "Download PDF" document (the legacy
+ * browser-print path and its `@media print` rules were retired) — so this file
+ * styles the on-screen surface only.
+ */
+
+:root {
+  /* Ink */
+  --report-ink: #211c14; /* warm near-black */
+  --report-ink-soft: #4a4031; /* warm slate for secondary prose */
+  --report-muted: #7a6f5c; /* sepia label grey */
+  /* Paper */
+  --report-paper: #fbf7ef; /* ivory stock */
+  --report-paper-edge: #f4ecdc; /* slightly deeper panel fill */
+  --report-cream: #f6efe0; /* boxed-data fill */
+  /* Rules */
+  --report-rule: #d8cdb6; /* hairline on ivory */
+  --report-rule-soft: #e7ddc8;
+  /* Brass accent — the single restrained gold the brief asks for */
+  --report-gold: #c9a24b;
+  --report-gold-deep: #a07d2c; /* for text-on-paper contrast */
+  --report-gold-tint: #f0e4c4; /* current-period highlight */
+  --report-page-width: 186mm; /* A4 width (210mm) minus 2×12mm screen padding */
+  --report-serif: 'Fraunces Variable', 'Fraunces', 'Hoefler Text', Georgia, serif;
+  --report-sans: 'Hanken Grotesk Variable', 'Hanken Grotesk', system-ui, sans-serif;
+  --report-measure: 33em; /* a true reading measure for prose */
+}
+
+/* ---- Screen shell: a centered paper sheet on a warm neutral backdrop ------ */
+.report-screen {
+  min-height: 100vh;
+  background:
+    radial-gradient(120% 80% at 50% -10%, #efe9dc 0%, #e3dccc 55%, #d8cfba 100%);
+  padding: 28px 12px 72px;
+}
+
+.report-document {
+  box-sizing: border-box;
+  max-width: var(--report-page-width);
+  margin: 0 auto;
+  position: relative;
+  background-color: var(--report-paper);
+  /* A faint paper grain (CSS only, no asset, prints faithfully). */
+  background-image:
+    radial-gradient(rgba(120, 96, 48, 0.035) 0.5px, transparent 0.6px),
+    radial-gradient(rgba(120, 96, 48, 0.025) 0.5px, transparent 0.6px);
+  background-size: 3px 3px, 7px 7px;
+  background-position: 0 0, 2px 3px;
+  color: var(--report-ink);
+  font-family: var(--report-sans);
+  font-size: 10.5pt;
+  line-height: 1.55;
+  padding: 20mm 18mm 18mm;
+  box-shadow: 0 18px 50px -12px rgba(33, 28, 20, 0.32), 0 2px 8px rgba(33, 28, 20, 0.12);
+  border-radius: 2px;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+/* A hairline brass keyline inset from the sheet edge — the bound-page feel. */
+.report-document::before {
+  content: '';
+  position: absolute;
+  inset: 7mm;
+  border: 0.5px solid var(--report-rule);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.report-document > * {
+  position: relative;
+  z-index: 1;
+}
+
+.report-document * {
+  box-sizing: border-box;
+}
+
+/* ---- Sticky toolbar (screen only) ---------------------------------------- */
+.report-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  align-items: center;
+  padding: 12px;
+  background: rgba(227, 220, 204, 0.9);
+  backdrop-filter: blur(6px);
+}
+
+.report-toolbar-button {
+  font-family: var(--report-sans);
+  font-weight: 600;
+  font-size: 0.9rem;
+  letter-spacing: 0.01em;
+  padding: 9px 20px;
+  border-radius: 2px;
+  cursor: pointer;
+  border: 1px solid var(--report-rule);
+  background: var(--report-paper);
+  color: var(--report-ink);
+  transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease;
+}
+
+.report-toolbar-button-primary {
+  background: var(--report-gold-deep);
+  border-color: var(--report-gold-deep);
+  color: #fdf8ec;
+}
+
+.report-toolbar-button:hover {
+  background: #efe7d6;
+}
+
+.report-toolbar-button-primary:hover {
+  background: #8a6b22;
+  color: #fdf8ec;
+}
+
+/* ---- Section openers (numbered, serif, double-rule ornament) ------------- */
+.report-section {
+  margin-bottom: 22px;
+}
+
+/* The eyebrow row that opens each section: a roman numeral + the title in a
+   serif display face, closed by a thin/thick double rule. */
+.report-section-opener {
+  margin: 0 0 14px;
+}
+
+.report-section-eyebrow {
+  display: block;
+  font-family: var(--report-sans);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--report-gold-deep);
+  margin-bottom: 5px;
+}
+
+.report-section-title {
+  font-family: var(--report-serif);
+  font-optical-sizing: auto;
+  font-weight: 560;
+  font-size: 1.7rem;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  color: var(--report-ink);
+  margin: 0 0 6px;
+}
+
+/* Double rule: a hairline over a heavier brass line — a letterpress device. */
+.report-rule-double {
+  height: 3px;
+  border: 0;
+  margin: 0;
+  background:
+    linear-gradient(var(--report-gold) 0 0) bottom / 100% 1.5px no-repeat,
+    linear-gradient(var(--report-rule) 0 0) top / 100% 0.5px no-repeat;
+}
+
+.report-subsection-title {
+  font-family: var(--report-serif);
+  font-weight: 600;
+  font-size: 1.05rem;
+  letter-spacing: -0.005em;
+  color: var(--report-ink);
+  margin: 16px 0 5px;
+}
+
+/* ---- Prose (rendered markdown) — refined reading column ------------------ */
+.report-prose {
+  margin: 0 0 10px;
+  max-width: var(--report-measure);
+  color: var(--report-ink-soft);
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
+
+.report-prose p {
+  margin: 0 0 9px;
+  line-height: 1.66;
+  text-align: justify;
+  text-justify: inter-word;
+}
+
+.report-prose > :first-child {
+  margin-top: 0;
+}
+
+.report-prose > :last-child {
+  margin-bottom: 0;
+}
+
+.report-prose strong {
+  font-weight: 650;
+  color: var(--report-ink);
+}
+
+.report-prose em {
+  font-style: italic;
+}
+
+.report-prose code {
+  font-family: 'Spline Sans Mono Variable', ui-monospace, 'SFMono-Regular', 'Menlo', monospace;
+  font-size: 0.86em;
+  padding: 1px 4px;
+  border-radius: 2px;
+  background: var(--report-cream);
+  color: var(--report-ink);
+}
+
+.report-prose pre {
+  margin: 0 0 8px;
+  padding: 9px 11px;
+  border-radius: 2px;
+  background: var(--report-cream);
+  border: 0.5px solid var(--report-rule);
+  overflow-x: auto;
+}
+
+.report-prose pre code {
+  padding: 0;
+  background: none;
+}
+
+.report-prose ul,
+.report-prose ol {
+  margin: 4px 0 9px;
+  padding-left: 1.3em;
+}
+
+.report-prose ul {
+  list-style: none;
+}
+
+.report-prose ol {
+  list-style: decimal;
+}
+
+.report-prose li {
+  margin: 0 0 4px;
+  line-height: 1.6;
+}
+
+/* Unordered markers as small brass lozenges hung in the margin. */
+.report-prose ul > li {
+  position: relative;
+  padding-left: 0.2em;
+}
+
+.report-prose ul > li::before {
+  content: '';
+  position: absolute;
+  left: -0.95em;
+  top: 0.62em;
+  width: 4px;
+  height: 4px;
+  transform: rotate(45deg);
+  background: var(--report-gold-deep);
+}
+
+.report-prose ol > li::marker {
+  color: var(--report-gold-deep);
+  font-weight: 600;
+}
+
+.report-prose li > ul,
+.report-prose li > ol {
+  margin: 4px 0 2px;
+}
+
+.report-prose h1,
+.report-prose h2,
+.report-prose h3,
+.report-prose h4,
+.report-prose h5,
+.report-prose h6 {
+  font-family: var(--report-serif);
+  margin: 12px 0 4px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--report-ink);
+}
+
+.report-prose h1,
+.report-prose h2 {
+  font-size: 1.05rem;
+}
+
+.report-prose h3,
+.report-prose h4 {
+  font-size: 0.98rem;
+}
+
+.report-prose h5,
+.report-prose h6 {
+  font-size: 0.92rem;
+  color: var(--report-ink-soft);
+}
+
+.report-prose blockquote {
+  margin: 8px 0 9px;
+  padding: 3px 0 3px 14px;
+  border-left: 2px solid var(--report-gold);
+  font-style: italic;
+  color: var(--report-ink-soft);
+}
+
+.report-prose a {
+  color: var(--report-ink);
+  text-decoration: underline;
+  text-decoration-color: var(--report-gold);
+  text-underline-offset: 2px;
+}
+
+/* ======================================================================== */
+/* COVER — the opening page                                                  */
+/* ======================================================================== */
+.report-cover {
+  text-align: center;
+  padding-top: 14mm;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.report-cover-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10mm;
+}
+
+.report-cover-mark {
+  font-family: var(--report-serif);
+  font-size: 1.6rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--report-ink);
+}
+
+.report-cover-kicker {
+  font-family: var(--report-sans);
+  font-size: 0.66rem;
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+  color: var(--report-gold-deep);
+}
+
+/* A small celestial ornament between the brand and the name. */
+.report-cover-ornament {
+  width: 64px;
+  height: 18px;
+  margin: 4mm auto 6mm;
+  color: var(--report-gold);
+}
+
+.report-cover-badge {
+  display: inline-block;
+  padding: 4px 18px;
+  border: 0.5px solid var(--report-gold);
+  border-radius: 0;
+  font-family: var(--report-sans);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--report-gold-deep);
+  margin-bottom: 7mm;
+}
+
+.report-cover-prepared {
+  font-family: var(--report-sans);
+  font-size: 0.66rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--report-muted);
+  margin-bottom: 3mm;
+}
+
+.report-cover-name {
+  font-family: var(--report-serif);
+  font-optical-sizing: auto;
+  font-size: 3rem;
+  font-weight: 540;
+  line-height: 1.04;
+  letter-spacing: -0.015em;
+  margin: 0 0 9mm;
+  color: var(--report-ink);
+}
+
+/* Birth details: a hairline-framed almanac panel, label/value rows. */
+.report-cover-birth {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  width: 100%;
+  max-width: 132mm;
+  margin: 0 auto 9mm;
+  border: 0.5px solid var(--report-rule);
+  background: var(--report-paper-edge);
+  text-align: left;
+}
+
+.report-cover-birth-item {
+  padding: 11px 18px;
+  border-bottom: 0.5px solid var(--report-rule-soft);
+}
+
+.report-cover-birth-item:nth-child(odd) {
+  border-right: 0.5px solid var(--report-rule-soft);
+}
+
+.report-cover-birth-item-full {
+  grid-column: 1 / -1;
+  border-right: 0;
+}
+
+.report-cover-birth dt {
+  font-family: var(--report-sans);
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--report-muted);
+  margin-bottom: 3px;
+}
+
+.report-cover-birth dd {
+  margin: 0;
+  font-family: var(--report-serif);
+  font-size: 1.05rem;
+  font-weight: 540;
+  color: var(--report-ink);
+}
+
+.report-cover-generated {
+  font-family: var(--report-sans);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  color: var(--report-muted);
+}
+
+/* ---- Charts page --------------------------------------------------------- */
+.report-charts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+/* Each kundli sits in a framed paper plate with a captioned brass header. */
+.report-chart-figure {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border: 0.5px solid var(--report-rule);
+  background: var(--report-paper);
+  padding: 12px 12px 14px;
+}
+
+.report-chart-caption {
+  font-family: var(--report-sans);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--report-gold-deep);
+  margin-bottom: 10px;
+  padding-bottom: 7px;
+  width: 100%;
+  text-align: center;
+  border-bottom: 0.5px solid var(--report-rule-soft);
+}
+
+.report-chart-frame {
+  max-width: 100%;
+}
+
+/* Ascendant / current-dasha summary: a captioned almanac data panel. */
+.report-ascendant,
+.report-dasha-current {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  margin: 0;
+  border: 0.5px solid var(--report-rule);
+  background: var(--report-paper-edge);
+}
+
+.report-ascendant-item,
+.report-dasha-leg {
+  padding: 9px 16px;
+  border-bottom: 0.5px solid var(--report-rule-soft);
+}
+
+.report-ascendant-item:nth-child(odd),
+.report-dasha-leg:nth-child(odd) {
+  border-right: 0.5px solid var(--report-rule-soft);
+}
+
+.report-ascendant-item dt,
+.report-dasha-leg dt {
+  font-family: var(--report-sans);
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--report-muted);
+  margin-bottom: 2px;
+}
+
+.report-ascendant-item dd,
+.report-dasha-leg dd {
+  margin: 0;
+  font-family: var(--report-serif);
+  font-size: 1rem;
+  font-weight: 540;
+  color: var(--report-ink);
+}
+
+/* ---- Tables -------------------------------------------------------------- */
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--report-sans);
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums lining-nums;
+  border-top: 1.5px solid var(--report-ink);
+  border-bottom: 1.5px solid var(--report-ink);
+}
+
+.report-table th,
+.report-table td {
+  text-align: left;
+  padding: 7px 10px;
+}
+
+.report-table th {
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--report-ink);
+  border-bottom: 1px solid var(--report-ink);
+  white-space: nowrap;
+}
+
+.report-table tbody tr {
+  border-bottom: 0.5px solid var(--report-rule-soft);
+}
+
+.report-table tbody tr:nth-child(even) {
+  background: rgba(201, 162, 75, 0.06);
+}
+
+.report-table tbody td:first-child {
+  font-weight: 650;
+  color: var(--report-ink);
+}
+
+.report-table thead {
+  display: table-header-group;
+}
+
+.report-dasha-row-current {
+  background: var(--report-gold-tint) !important;
+  font-weight: 700;
+}
+
+.report-dasha-current {
+  margin-bottom: 14px;
+}
+
+/* ---- Yogas — an almanac roster ------------------------------------------- */
+.report-yoga-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  border-top: 0.5px solid var(--report-rule);
+}
+
+.report-yoga-item {
+  padding: 10px 0;
+  border-bottom: 0.5px solid var(--report-rule-soft);
+}
+
+.report-yoga-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.report-yoga-name {
+  font-family: var(--report-serif);
+  font-weight: 580;
+  font-size: 1.02rem;
+  color: var(--report-ink);
+}
+
+/* The engine's qualitative grade as a small-caps typographic mark — a
+   letterpress word (strong / moderate / weak), never a number or a web badge. */
+.report-yoga-grade {
+  font-family: var(--report-sans);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--report-gold-deep);
+  white-space: nowrap;
+}
+
+.report-yoga-desc {
+  margin: 4px 0 0;
+  max-width: var(--report-measure);
+  font-size: 0.85rem;
+  color: var(--report-ink-soft);
+}
+
+/* One-line formation basis + its classical citation (engine words verbatim). */
+.report-yoga-basis {
+  margin: 3px 0 0;
+  max-width: var(--report-measure);
+  font-size: 0.78rem;
+  color: var(--report-ink-soft);
+}
+
+.report-yoga-source {
+  font-style: italic;
+  color: var(--report-ink-faint, var(--report-ink-soft));
+}
+
+/* ---- Interpretation ------------------------------------------------------ */
+/* The summary as a centered serif pull-quote that opens the reading. */
+.report-summary-quote {
+  max-width: 38em;
+  margin: 2px auto 20px;
+  padding: 4px 0 0;
+  text-align: center;
+}
+
+.report-summary-quote .report-prose {
+  max-width: none;
+  font-family: var(--report-serif);
+  font-size: 1.18rem;
+  line-height: 1.5;
+  font-weight: 420;
+  color: var(--report-ink);
+}
+
+.report-summary-quote .report-prose p {
+  text-align: center;
+  margin: 0;
+}
+
+.report-summary-quote::before {
+  content: '\201C';
+  display: block;
+  font-family: var(--report-serif);
+  font-size: 2.6rem;
+  line-height: 0.4;
+  color: var(--report-gold);
+  margin-bottom: 10px;
+}
+
+.report-titled-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.report-titled-item {
+  margin-bottom: 12px;
+  padding-left: 14px;
+  border-left: 2px solid var(--report-gold-tint);
+}
+
+.report-titled-name {
+  display: block;
+  font-family: var(--report-serif);
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--report-ink);
+  margin-bottom: 2px;
+}
+
+/* ---- Footer / colophon --------------------------------------------------- */
+.report-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 26px;
+  padding-top: 9px;
+  border-top: 1.5px solid var(--report-ink);
+  font-family: var(--report-sans);
+  font-size: 0.66rem;
+  letter-spacing: 0.06em;
+  color: var(--report-muted);
+}
+
+.report-footer-name {
+  font-family: var(--report-serif);
+  font-style: italic;
+  font-size: 0.86rem;
+  letter-spacing: 0;
+  color: var(--report-ink-soft);
+}
+
+/* ---- Empty-state / graceful guard --------------------------------------- */
+.report-empty {
+  max-width: 520px;
+  margin: 80px auto;
+  text-align: center;
+  color: var(--report-ink-soft);
+}
+
+.report-empty h1 {
+  font-family: var(--report-serif);
+  font-size: 1.7rem;
+  font-weight: 600;
+  color: var(--report-ink);
+  margin-bottom: 12px;
+}
+
+/* The legacy `@media print { … }` rules were removed when the browser-print
+   ("Save as PDF") path was retired in favour of the @react-pdf "Download PDF"
+   document — page geometry, breaks, and running heads now live entirely in the
+   @react-pdf layer. This stylesheet styles the ON-SCREEN /report page only. */
+
+/* ---- Predictive sections (Transits / Vargas / Strength / Domains) --------- */
+
+/* Small italic engine annotations: as-of dates, conventions, approx flags. */
+.report-note {
+  font-family: var(--report-sans);
+  font-size: 0.72rem;
+  font-style: italic;
+  color: var(--report-muted);
+  margin: 6px 0 14px;
+  max-width: var(--report-measure);
+}
+
+/* SAV per-sign bindu grid: six almanac cells across, two rows. */
+.report-sign-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0;
+  margin: 0 0 16px;
+  border: 0.5px solid var(--report-rule);
+  background: var(--report-paper-edge);
+}
+
+.report-sign-cell {
+  padding: 7px 10px;
+  text-align: center;
+  border-right: 0.5px solid var(--report-rule-soft);
+  border-bottom: 0.5px solid var(--report-rule-soft);
+}
+
+.report-sign-cell:nth-child(6n) {
+  border-right: none;
+}
+
+.report-sign-cell dt {
+  font-family: var(--report-sans);
+  font-size: 0.55rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--report-muted);
+  margin-bottom: 2px;
+}
+
+.report-sign-cell dd {
+  margin: 0;
+  font-family: var(--report-serif);
+  font-size: 1rem;
+  font-weight: 540;
+  font-variant-numeric: tabular-nums lining-nums;
+  color: var(--report-ink);
+}
+
+/* Life-domain forecast blocks: two almanac panels per row. */
+.report-domain-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.report-domain-block {
+  border: 0.5px solid var(--report-rule);
+  background: var(--report-paper);
+  padding: 10px 14px 12px;
+}
+
+.report-domain-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  border-bottom: 0.5px solid var(--report-rule-soft);
+  padding-bottom: 6px;
+  margin-bottom: 8px;
+}
+
+.report-domain-head h3 {
+  font-family: var(--report-serif);
+  font-size: 1.02rem;
+  font-weight: 600;
+  color: var(--report-ink);
+  margin: 0;
+}
+
+.report-domain-band {
+  font-family: var(--report-sans);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--report-gold-deep);
+  white-space: nowrap;
+}
+
+.report-domain-line {
+  font-family: var(--report-sans);
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--report-ink-soft);
+  margin: 0 0 6px;
+}
+
+.report-domain-windows-label {
+  font-family: var(--report-sans);
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--report-muted);
+  margin: 8px 0 4px;
+}
+
+.report-domain-windows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-family: var(--report-sans);
+  font-size: 0.76rem;
+  line-height: 1.5;
+  color: var(--report-ink-soft);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.report-domain-windows li {
+  padding: 2px 0;
+  border-bottom: 0.5px dotted var(--report-rule-soft);
+}
+
+.report-domain-windows li:last-child {
+  border-bottom: none;
+}
+
+/* Cover near-cusp note (generic, any sign) under the ascendant value. */
+.report-cover-cusp {
+  display: block;
+  font-family: var(--report-sans);
+  font-size: 0.68rem;
+  font-style: italic;
+  color: var(--report-muted);
+  margin-top: 3px;
+}
+
+/* On-screen-only "compute timing sections before printing" affordance. */
+.report-pending {
+  width: min(100%, var(--report-page-width));
+  margin: 0 auto 14px;
+  padding: 12px 16px;
+  border: 0.5px dashed var(--report-gold-deep);
+  background: var(--report-cream);
+  font-family: var(--report-sans);
+  color: var(--report-ink-soft);
+}
+
+.report-pending h2 {
+  font-family: var(--report-serif);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--report-ink);
+  margin: 0 0 4px;
+}
+
+.report-pending p {
+  font-size: 0.8rem;
+  line-height: 1.5;
+  margin: 0 0 8px;
+  max-width: none;
+}
+

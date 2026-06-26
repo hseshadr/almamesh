@@ -1,0 +1,90 @@
+{
+  "_meta": { "review": "machine-translated, pending native review" },
+  "saving": "Salvando progresso...",
+  "steps": {
+    "name": "Nome",
+    "birth_date": "Data de nascimento",
+    "location": "Local",
+    "birth_time": "Hora de nascimento",
+    "life_events": "Eventos de vida"
+  },
+  "name": {
+    "title": "Qual é o seu nome?",
+    "subtitle": "Vamos usá-lo para personalizar suas leituras",
+    "placeholder": "Digite seu nome completo"
+  },
+  "birth_date": {
+    "title": "Quando você nasceu?",
+    "subtitle": "Sua data de nascimento determina seu signo solar e muito mais"
+  },
+  "location": {
+    "title": "Onde você nasceu?",
+    "subtitle": "Seu local de nascimento influencia o cálculo das casas",
+    "placeholder": "Busque sua cidade de nascimento...",
+    "timezone_auto_title": "Fuso horário detectado automaticamente",
+    "timezone_auto_body": "Seu fuso horário será determinado automaticamente a partir das coordenadas da sua cidade de nascimento para cálculos planetários precisos.",
+    "hint": "Comece a digitar para buscar cidades do mundo todo"
+  },
+  "birth_time": {
+    "title": "A que horas você nasceu?",
+    "subtitle": "Isso determina seu Ascendente e a posição das casas",
+    "location_label": "Local de nascimento",
+    "timezone_label": "Fuso horário",
+    "placeholder": "Selecione sua hora de nascimento",
+    "clock_hint": "Informe a hora como aparecia no relógio do seu local de nascimento.",
+    "timezone_hint": " Vamos usar o fuso horário {{timezone}} para os cálculos.",
+    "estimate_hint": "Não sabe sua hora exata de nascimento? Informe sua melhor estimativa."
+  },
+  "life_events": {
+    "title": "Compartilhe a história da sua vida",
+    "subtitle": "Descreva com suas próprias palavras os eventos importantes da sua vida. Isso nos ajuda a refinar sua hora de nascimento para leituras mais precisas.",
+    "why_title": "Por que isso ajuda?",
+    "why_body": "Grandes eventos da vida (casamento, mudanças de carreira, filhos) coincidem com os períodos planetários. Ao relacionar seus eventos com a sincronia astrológica, podemos validar e refinar sua hora de nascimento.",
+    "textarea_label": "Conte-nos sobre os eventos da sua vida:",
+    "textarea_placeholder": "Por exemplo: casei em 2015, tive meu primeiro filho em 2018, mudei de carreira em 2020...",
+    "char_count": "{{count}}/5000 caracteres",
+    "min_length_error": "Descreva pelo menos um evento importante da sua vida.",
+    "saved_feedback": "Obrigado! Sua história foi salva neste dispositivo e ajudará a refinar sua hora de nascimento em uma atualização futura.",
+    "saved_label": "Salvo neste dispositivo:",
+    "inspiration_label": "Precisa de inspiração? Experimente um exemplo:",
+    "helpful_title": "Os eventos que mais ajudam:",
+    "analyzing": "Analisando...",
+    "analyze_continue": "Analisar e continuar",
+    "skip": "Pular: vou usar uma hora de nascimento aproximada",
+    "examples": [
+      "Casei em junho de 2015, tive meu primeiro filho em 2018 e mudei da engenharia para o ensino em 2020.",
+      "Meu pai faleceu quando eu tinha 23 anos, comprei minha primeira casa aos 30 e me mudei de Nova York para a Califórnia em 2019.",
+      "Tive uma vida estável: o mesmo emprego por 15 anos, casei com minha namorada da faculdade em 2010 e tive dois filhos em 2012 e 2015."
+    ],
+    "event_types": {
+      "marriage": "Casamento",
+      "children": "Filhos",
+      "career_changes": "Mudanças de carreira",
+      "relocations": "Mudanças de cidade",
+      "graduations": "Formaturas",
+      "property_purchases": "Compras de imóveis"
+    }
+  },
+  "generating": {
+    "title": "Gerando seu mapa",
+    "subtitle": "Isso pode levar um minuto...",
+    "step_counter": "Etapa {{current}} de {{total}}",
+    "steps": {
+      "positions": "Calculando posições planetárias",
+      "houses": "Calculando a posição das casas",
+      "yogas": "Analisando os yogas planetários",
+      "dashas": "Calculando os períodos dasha",
+      "interpretation": "Gerando insights personalizados"
+    }
+  },
+  "error": {
+    "title": "Problema de conexão",
+    "default_body": "Não foi possível verificar o status da geração do mapa. Seu mapa pode já estar pronto.",
+    "go_to_dashboard": "Ir para o painel",
+    "retry_generation": "Tentar gerar novamente",
+    "reset_and_reload": "Redefinir e recarregar",
+    "reset_hint": "Ainda travado? Limpe os dados do motor em cache e recarregue para começar do zero.",
+    "still_warming": "O motor no dispositivo ainda está se preparando — aguarde, seu mapa será gerado assim que estiver pronto.",
+    "help": "Se o seu mapa já foi gerado, você o verá no painel. Caso contrário, tente gerar novamente."
+  }
+}

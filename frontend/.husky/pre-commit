@@ -1,0 +1,10 @@
+#!/usr/bin/env sh
+# Pre-commit: fast ESLint pass on the staged web-app TS/TSX files via
+# lint-staged (config in frontend/package.json). Catches a lint break at commit
+# time so it never even becomes a commit; the pre-push hook is the hard,
+# full-gate backstop. The git root is the repo root; the JS workspace is
+# frontend/, so cd into it before running lint-staged.
+#
+# To skip in an emergency (use sparingly): git commit --no-verify
+cd frontend || exit 1
+bunx lint-staged

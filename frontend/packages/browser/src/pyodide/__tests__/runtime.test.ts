@@ -1,0 +1,238 @@
+import { describe, expect, it } from "vitest";
+
+import { AlmaMeshRuntime } from "../runtime";
+import type { ChartEnginePort, EnginePort, RuntimeConfig } from "../runtime";
+import type { SiderealChart } from "../chart";
+import type { MeshEdgeContext } from "../mesh";
+import type { PredictiveContexts } from "../predictive";
+import type { BirthInput, BootConfig, MeshEdgeInput, PredictiveInput } from "../protocol";
+import type { SyncResult } from "@edgeproc/browser/engine";
+
+const CONFIG: RuntimeConfig = {
+  bundleBaseUrl: "https://cdn.test/almamesh",
+  pubkeyUrl: "https://app.test/public.key",
+  pyodideIndexUrl: "https://app.test/pyodide/",
+  wheelPaths: [
+    "wheels/jplephem-2.23-py3-none-any.whl",
+    "wheels/almamesh-0.1.0-py3-none-any.whl",
+  ],
+  skyfieldDataPaths: ["data/de421.bsp", "data/finals2000A.all"],
+};
+
+const BIRTH: BirthInput = {
+  datetimeUtc: "1990-01-15T12:00:00+00:00",
+  latitude: 28.6139,
+  longitude: 77.209,
+};
+
+const SYNC_RESULT: SyncResult = {
+  version: "2026.05",
+  manifestHash: "abc",
+  chunksFetched: 3,
+  chunksReused: 1,
+  bytesFetched: 1024,
+};
+
+class FakeSyncEngine implements EnginePort {
+  public readonly syncCalls: Array<readonly [string, string]> = [];
+  public readonly readPaths: string[] = [];
+
+  public constructor(private readonly files: Readonly<Record<string, Uint8Array>>) {}
+
+  public async sync(baseUrl: string, pubkeyUrl: string): Promise<SyncResult> {
+    this.syncCalls.push([baseUrl, pubkeyUrl]);
+    return SYNC_RESULT;
+  }
+
+  public async readFile(path: string): Promise<Uint8Array> {
+    this.readPaths.push(path);
+    const bytes = this.files[path];
+    if (bytes === undefined) {
+      throw new Error(`missing ${path}`);
+    }
+    return bytes;
+  }
+}
+
+class FakeChartEngine implements ChartEnginePort {
+  public bootConfig: BootConfig | undefined;
+  public bootCount = 0;
+
+  public async boot(config: BootConfig): Promise<void> {
+    this.bootConfig = config;
+    this.bootCount += 1;
+  }
+
+  public async generateChart(birth: BirthInput): Promise<SiderealChart> {
+    return { ayanamsa_value: birth.latitude } as unknown as SiderealChart;
+  }
+
+  public async computePredictive(input: PredictiveInput): Promise<PredictiveContexts> {
+    return {
+      transit_context: { instant: input.referenceInstant },
+    } as unknown as PredictiveContexts;
+  }
+
+  public async computeMeshEdge(input: MeshEdgeInput): Promise<MeshEdgeContext> {
+    return {
+      relationship: input.relationship,
+      role_a: input.roleA,
+      role_b: input.roleB,
+      synchrony: { window_start: input.windowStart, window_end: input.windowEnd },
+    } as unknown as MeshEdgeContext;
+  }
+}
+
+const jplephemBytes = new Uint8Array([10, 11]);
+const almameshBytes = new Uint8Array([20, 21]);
+const de421Bytes = new Uint8Array([30, 31]);
+const finalsBytes = new Uint8Array([40, 41]);
+
+const FILES: Readonly<Record<string, Uint8Array>> = {
+  [CONFIG.wheelPaths[0]]: jplephemBytes,
+  [CONFIG.wheelPaths[1]]: almameshBytes,
+  [CONFIG.skyfieldDataPaths[0]]: de421Bytes,
+  [CONFIG.skyfieldDataPaths[1]]: finalsBytes,
+};
+
+const makeRuntime = () => {
+  const sync = new FakeSyncEngine(FILES);
+  const chart = new FakeChartEngine();
+  const runtime = new AlmaMeshRuntime({
+    spawnSyncEngine: () => sync,
+    spawnChartEngine: () => chart,
+  });
+  return { runtime, sync, chart };
+};
+
+describe("AlmaMeshRuntime.bootstrap", () => {
+  it("syncs the signed bundle with the configured origin + pinned key", async () => {
+    const { runtime, sync } = makeRuntime();
+
+    await runtime.bootstrap(CONFIG);
+
+    expect(sync.syncCalls).toEqual([[CONFIG.bundleBaseUrl, CONFIG.pubkeyUrl]]);
+  });
+
+  it("reads the wheels + skyfield data from the synced bundle (order preserved) and boots with them", async () => {
+    const { runtime, chart } = makeRuntime();
+
+    await runtime.bootstrap(CONFIG);
+
+    expect(chart.bootConfig).toEqual({
+      pyodideIndexUrl: CONFIG.pyodideIndexUrl,
+      wheels: [
+        { filename: "jplephem-2.23-py3-none-any.whl", bytes: jplephemBytes },
+        { filename: "almamesh-0.1.0-py3-none-any.whl", bytes: almameshBytes },
+      ],
+      skyfieldData: [
+        { filename: "de421.bsp", bytes: de421Bytes },
+        { filename: "finals2000A.all", bytes: finalsBytes },
+      ],
+    });
+  });
+
+  it("emits progress stages in order", async () => {
+    const { runtime } = makeRuntime();
+    const stages: string[] = [];
+
+    await runtime.bootstrap(CONFIG, (stage) => stages.push(stage.kind));
+
+    expect(stages).toEqual(["syncing", "synced", "reassembling", "booting-engine", "ready"]);
+  });
+
+  it("returns a chart engine that computes charts on-device", async () => {
+    const { runtime } = makeRuntime();
+
+    const engine = await runtime.bootstrap(CONFIG);
+    const chart = await engine.generateChart(BIRTH);
+
+    expect(chart.ayanamsa_value).toBe(BIRTH.latitude);
+  });
+
+  it("returns an engine that computes the lazy predictive payload on-device", async () => {
+    const { runtime } = makeRuntime();
+
+    const engine = await runtime.bootstrap(CONFIG);
+    const predictive = await engine.computePredictive({
+      ...BIRTH,
+      referenceInstant: "2026-06-09T12:00:00+00:00",
+    });
+
+    expect(predictive.transit_context.instant).toBe("2026-06-09T12:00:00+00:00");
+  });
+
+  it("returns an engine that computes the relational mesh edge on-device", async () => {
+    const { runtime } = makeRuntime();
+
+    const engine = await runtime.bootstrap(CONFIG);
+    const meshEdge = await engine.computeMeshEdge({
+      a: { datetimeUtc: BIRTH.datetimeUtc, latitude: BIRTH.latitude, longitude: BIRTH.longitude },
+      b: { datetimeUtc: "1985-07-23T04:30:00+00:00", latitude: 19.076, longitude: 72.8777 },
+      relationship: "spouse",
+      roleA: "bride",
+      roleB: "groom",
+      windowStart: "2025-01-01T00:00:00+00:00",
+      windowEnd: "2027-01-01T00:00:00+00:00",
+      referenceInstant: "2025-01-01T00:00:00+00:00",
+    });
+
+    expect(meshEdge.relationship).toBe("spouse");
+    expect(meshEdge.synchrony.window_start).toBe("2025-01-01T00:00:00+00:00");
+  });
+
+  it("surfaces the synced bundle provenance via engine.meta()", async () => {
+    const meta = {
+      bundle_id: "almamesh-constructs",
+      version: "dev",
+      engine_version: "0.1.0",
+      ephemeris_file: "de421.bsp",
+      ayanamsa: "lahiri",
+      constructs: ["lahiri_ayanamsa.txt"],
+    };
+    const sync = new FakeSyncEngine({
+      ...FILES,
+      "almamesh_meta.json": new TextEncoder().encode(JSON.stringify(meta)),
+    });
+    const runtime = new AlmaMeshRuntime({
+      spawnSyncEngine: () => sync,
+      spawnChartEngine: () => new FakeChartEngine(),
+    });
+
+    const engine = await runtime.bootstrap(CONFIG);
+
+    expect(engine.meta()).toEqual(meta);
+  });
+
+  it("meta() is null (not a bootstrap failure) when the bundle has no meta file", async () => {
+    const { runtime } = makeRuntime(); // FILES has no almamesh_meta.json
+
+    const engine = await runtime.bootstrap(CONFIG);
+
+    expect(engine.meta()).toBeNull();
+  });
+
+  it("is idempotent: a second bootstrap reuses the engine without re-syncing", async () => {
+    const { runtime, sync, chart } = makeRuntime();
+
+    await runtime.bootstrap(CONFIG);
+    await runtime.bootstrap(CONFIG);
+
+    expect(sync.syncCalls).toHaveLength(1);
+    expect(chart.bootCount).toBe(1);
+  });
+
+  it("clears its memo on failure so bootstrap can be retried", async () => {
+    const chart = new FakeChartEngine();
+    const failing = new FakeSyncEngine({}); // no files -> readFile throws
+    const ok = new FakeSyncEngine(FILES);
+    const engines = [failing, ok];
+    const runtime = new AlmaMeshRuntime({
+      spawnSyncEngine: () => engines.shift() ?? ok,
+      spawnChartEngine: () => chart,
+    });
+
+    await expect(runtime.bootstrap(CONFIG)).rejects.toThrow();
+    await expect(runtime.bootstrap(CONFIG)).resolves.toBeDefined();
+  });
+});

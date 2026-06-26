@@ -1,0 +1,148 @@
+#!/usr/bin/env bash
+#
+# setup-dev-assets.sh — regenerate the large, git-ignored dev assets the
+# in-browser engine needs at runtime. Run once after a fresh clone (or whenever
+# the bundle/Pyodide inputs change). Everything it writes under
+# apps/web/public/{pyodide,bundle,public.key} is .gitignored.
+#
+# What it produces:
+#   apps/web/public/pyodide/   — self-hosted Pyodide dist (offline, 17 files)
+#   apps/web/public/bundle/    — signed dev edge-proc bundle (origin layout)
+#   apps/web/public/public.key — pinned ed25519 verify key for that bundle
+#   apps/web/public/models/    — self-hosted RAG embedding model (MiniLM q8 ONNX)
+#                                + onnxruntime-web wasm (offline, zero-egress)
+#
+# Usage:  bash apps/web/scripts/setup-dev-assets.sh
+set -euo pipefail
+
+# Resolve repo paths relative to this script (apps/web/scripts/).
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WEB_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"            # frontend/apps/web
+REPO_ROOT="$(cd "${WEB_DIR}/../../.." && pwd)"        # repo root (almamesh/)
+BACKEND_DIR="${REPO_ROOT}/backend"
+PUBLIC_DIR="${WEB_DIR}/public"
+
+# The self-hosted Pyodide dist: the core runtime + ONLY the package wheels our
+# engine loads (numpy/pydantic/pyyaml + skyfield's pure-Python deps), pinned to
+# the `pyodide` npm dep version. We fetch them once from Pyodide's official CDN
+# (jsdelivr) so a fresh clone is fully reproducible; the RUNTIME stays offline
+# (these are served same-origin from public/pyodide/). The npm package ships only
+# the core files — the wheels are not in it — hence the CDN fetch.
+#
+# To change the set: keep it in lockstep with chartWorker.ts LOAD_PACKAGES (+ the
+# lock's transitive closure) and the `pyodide` dep version. Override with a local
+# dir via PYODIDE_DIST=/path (skips the download).
+PYODIDE_VERSION="${PYODIDE_VERSION:-0.29.4}"
+PYODIDE_CDN="https://cdn.jsdelivr.net/pyodide/v${PYODIDE_VERSION}/full"
+PYODIDE_FILES=(
+  pyodide.asm.js pyodide.asm.wasm pyodide.mjs pyodide-lock.json python_stdlib.zip
+  micropip-0.11.1-py3-none-any.whl
+  numpy-2.2.5-cp313-cp313-pyemscripten_2025_0_wasm32.whl
+  pydantic-2.12.5-py3-none-any.whl
+  pydantic_core-2.41.5-cp313-cp313-pyemscripten_2025_0_wasm32.whl
+  pyyaml-6.0.2-cp313-cp313-pyemscripten_2025_0_wasm32.whl
+  annotated_types-0.7.0-py3-none-any.whl
+  typing_extensions-4.15.0-py3-none-any.whl
+  typing_inspection-0.4.2-py3-none-any.whl
+  python_dateutil-2.9.0.post0-py2.py3-none-any.whl
+  pytz-2025.2-py2.py3-none-any.whl
+  certifi-2026.1.4-py3-none-any.whl
+  six-1.17.0-py2.py3-none-any.whl
+)
+
+mkdir -p "${PUBLIC_DIR}/pyodide"
+if [[ -n "${PYODIDE_DIST:-}" ]]; then
+  echo "==> Pyodide dist (local override): ${PYODIDE_DIST} -> ${PUBLIC_DIR}/pyodide/"
+  cp -R "${PYODIDE_DIST}/." "${PUBLIC_DIR}/pyodide/"
+else
+  echo "==> Fetching Pyodide ${PYODIDE_VERSION} dist (${#PYODIDE_FILES[@]} files) from ${PYODIDE_CDN}"
+  for f in "${PYODIDE_FILES[@]}"; do
+    if [[ ! -f "${PUBLIC_DIR}/pyodide/${f}" ]]; then
+      curl -fsSL "${PYODIDE_CDN}/${f}" -o "${PUBLIC_DIR}/pyodide/${f}"
+    fi
+  done
+fi
+
+# Ensure the ephemeris + IERS data the publisher bundles exist in skyfield's data
+# dir (the publisher's --offline default, ~/.skyfield-data). Skyfield downloads
+# them on demand if missing — a no-op on a dev box that already has them, but
+# essential on a clean machine / CI runner. (de421.bsp ~16MB, finals2000A.all ~3.5MB.)
+echo "==> Ensuring de421.bsp + finals2000A.all (skyfield downloads if missing)"
+( cd "${BACKEND_DIR}" && uv run python -c "
+from pathlib import Path
+from skyfield.api import Loader
+L = Loader(str(Path.home() / '.skyfield-data'))
+L('de421.bsp')
+L.timescale(builtin=False)  # fetches finals2000A.all
+" )
+
+# The self-hosted RAG embedding model: Transformers.js loads it same-origin from
+# public/models/ with `env.allowRemoteModels = false`, so the bytes NEVER touch
+# the HuggingFace CDN at runtime (offline + no usage leak, same discipline as the
+# Pyodide dist and the self-hosted fonts). We fetch the q8 quantized MiniLM ONNX
+# + its config/tokenizer once from the HF Hub, and copy the onnxruntime-web wasm
+# from the version-matched npm package (no version skew with @huggingface/transformers).
+# Idempotent: each file is skipped if it already exists.
+MINILM_REPO="Xenova/all-MiniLM-L6-v2"
+MINILM_BASE="https://huggingface.co/${MINILM_REPO}/resolve/main"
+MINILM_DIR="${PUBLIC_DIR}/models/${MINILM_REPO}"
+MINILM_FILES=(
+  config.json
+  tokenizer.json
+  tokenizer_config.json
+  onnx/model_quantized.onnx
+)
+echo "==> Fetching self-hosted RAG model (${MINILM_REPO}, q8) into ${MINILM_DIR}"
+mkdir -p "${MINILM_DIR}/onnx"
+# NON-FATAL + retried on purpose: the HF Hub rate-limits anonymous fetches (HTTP
+# 429), and the chart engine / exit-gate does NOT need this model (it's lazy-loaded
+# only for the optional in-browser chat search). So retry transient errors, and if
+# the Hub is still unreachable, warn and continue rather than failing the whole
+# build — RAG/search simply won't work in that build, everything else does.
+for f in "${MINILM_FILES[@]}"; do
+  if [[ ! -f "${MINILM_DIR}/${f}" ]]; then
+    echo "    - ${f}"
+    if ! curl -fsSL --retry 5 --retry-delay 4 --retry-all-errors \
+         "${MINILM_BASE}/${f}?download=true" -o "${MINILM_DIR}/${f}"; then
+      rm -f "${MINILM_DIR}/${f}"
+      echo "    !! Could not fetch ${f} from the HF Hub (rate-limited / offline)." >&2
+      echo "    !! Skipping the RAG model: chart engine + chat still work; in-browser search is disabled in this build." >&2
+      break
+    fi
+  fi
+done
+
+# onnxruntime-web wasm: copy from the installed package so the binaries match the
+# @huggingface/transformers runtime exactly (the worker pins wasmPaths=/models/ort/).
+ORT_DEST="${PUBLIC_DIR}/models/ort"
+ORT_DIST="$(find "${WEB_DIR}/.." "${REPO_ROOT}/frontend" -type d -path '*onnxruntime-web/dist' 2>/dev/null | head -1)"
+echo "==> Publishing onnxruntime-web wasm into ${ORT_DEST}"
+mkdir -p "${ORT_DEST}"
+if [[ -n "${ORT_DIST:-}" && -d "${ORT_DIST}" ]]; then
+  # The JSEP build (WebGPU + WASM) is what Transformers.js v3 loads; copy the
+  # wasm + its loader .mjs siblings so both the threaded + non-threaded paths work.
+  for f in ort-wasm-simd-threaded.jsep.wasm ort-wasm-simd-threaded.jsep.mjs \
+           ort-wasm-simd-threaded.wasm ort-wasm-simd-threaded.mjs; do
+    if [[ -f "${ORT_DIST}/${f}" && ! -f "${ORT_DEST}/${f}" ]]; then
+      cp "${ORT_DIST}/${f}" "${ORT_DEST}/${f}"
+    fi
+  done
+else
+  echo "    !! onnxruntime-web not found in node_modules — run 'bun install' first."
+fi
+
+echo "==> Building almamesh wheel"
+( cd "${BACKEND_DIR}" && uv build --wheel )
+
+echo "==> Generating a dev signing keypair (./backend/keys)"
+( cd "${BACKEND_DIR}" && uv run almamesh-bundle keygen ./keys --force )
+
+echo "==> Signing the offline dev bundle (./backend/origin)"
+( cd "${BACKEND_DIR}" && uv run almamesh-bundle bundle ./origin ./keys/private.key --version dev --offline )
+
+echo "==> Publishing bundle + pubkey into ${PUBLIC_DIR}"
+mkdir -p "${PUBLIC_DIR}/bundle"
+cp -R "${BACKEND_DIR}/origin/." "${PUBLIC_DIR}/bundle/"
+cp "${BACKEND_DIR}/keys/public.key" "${PUBLIC_DIR}/public.key"
+
+echo "==> Done. Dev assets are in ${PUBLIC_DIR} (pyodide/, bundle/, public.key, models/)."

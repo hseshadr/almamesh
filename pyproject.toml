@@ -1,0 +1,53 @@
+[project]
+name = "almamesh-workspace"
+version = "0"
+description = "Repo-root task runner for the AlmaMesh browser demo (not a package)."
+requires-python = ">=3.13"
+dependencies = ["poethepoet>=0.30"]
+
+[tool.uv]
+package = false                 # virtual project: uv won't build/install a root package
+
+[tool.poe.tasks.frontend-install]
+help = "Install the frontend workspace deps (bun)"
+shell = "cd frontend && bun install"
+
+[tool.poe.tasks.dev-assets]
+help = "Fetch Pyodide dist + sign the dev bundle (skips when already present)"
+shell = """
+if [ -d frontend/apps/web/public/bundle ] && [ -d frontend/apps/web/public/pyodide ]; then
+  echo '==> Dev assets already present — skipping (run: uv run poe dev-assets-fresh to rebuild)'
+else
+  bash frontend/apps/web/scripts/setup-dev-assets.sh
+fi
+"""
+
+[tool.poe.tasks.dev-assets-fresh]
+help = "Force re-fetch Pyodide dist + re-sign the dev bundle"
+shell = "bash frontend/apps/web/scripts/setup-dev-assets.sh"
+
+[tool.poe.tasks.frontend-build]
+help = "Production build of the web app (module Workers only resolve in a build, not vite dev)"
+shell = "cd frontend/apps/web && bun run build"
+
+[tool.poe.tasks.frontend-preview]
+help = "Serve the build and open the browser demo (http://localhost:4173)"
+shell = "cd frontend/apps/web && bun run preview --open"
+
+[tool.poe.tasks.demo]
+help = "Turnkey: install -> fetch/sign assets -> build -> open the browser demo"
+sequence = [
+  { ref = "frontend-install" },
+  { ref = "dev-assets" },
+  { ref = "frontend-build" },
+  { ref = "frontend-preview" },
+]
+
+[tool.poe.tasks.demo-fresh]
+help = "Like demo, but force-rebuilds the dev bundle first"
+sequence = [
+  { ref = "frontend-install" },
+  { ref = "dev-assets-fresh" },
+  { ref = "frontend-build" },
+  { ref = "frontend-preview" },
+]

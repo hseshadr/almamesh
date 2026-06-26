@@ -1,0 +1,2831 @@
+{
+  "1988-08-08T01:14:00+00:00": {
+    "charts": {
+      "D1": {
+        "chart": "D1",
+        "lagna_sign": "Leo",
+        "lagna_sign_lord": "sun",
+        "placements": {
+          "jupiter": {
+            "graha": "jupiter",
+            "sign": "Taurus",
+            "sign_lord": "venus"
+          },
+          "ketu": {
+            "graha": "ketu",
+            "sign": "Leo",
+            "sign_lord": "sun"
+          },
+          "mars": {
+            "graha": "mars",
+            "sign": "Pisces",
+            "sign_lord": "jupiter"
+          },
+          "mercury": {
+            "graha": "mercury",
+            "sign": "Cancer",
+            "sign_lord": "moon"
+          },
+          "moon": {
+            "graha": "moon",
+            "sign": "Gemini",
+            "sign_lord": "mercury"
+          },
+          "rahu": {
+            "graha": "rahu",
+            "sign": "Aquarius",
+            "sign_lord": "saturn"
+          },
+          "saturn": {
+            "graha": "saturn",
+            "sign": "Sagittarius",
+            "sign_lord": "jupiter"
+          },
+          "sun": {
+            "graha": "sun",
+            "sign": "Cancer",
+            "sign_lord": "moon"
+          },
+          "venus": {
+            "graha": "venus",
+            "sign": "Gemini",
+            "sign_lord": "mercury"
+          }
+        }
+      },
+      "D10": {
+        "chart": "D10",
+        "lagna_sign": "Leo",
+        "lagna_sign_lord": "sun",
+        "placements": {
+          "jupiter": {
+            "graha": "jupiter",
+            "sign": "Pisces",
+            "sign_lord": "jupiter"
+          },
+          "ketu": {
+            "graha": "ketu",
+            "sign": "Pisces",
+            "sign_lord": "jupiter"
+          },
+          "mars": {
+            "graha": "mars",
+            "sign": "Aries",
+            "sign_lord": "mars"
+          },
+          "mercury": {
+            "graha": "mercury",
+            "sign": "Sagittarius",
+            "sign_lord": "jupiter"
+          },
+          "moon": {
+            "graha": "moon",
+            "sign": "Gemini",
+            "sign_lord": "mercury"
+          },
+          "rahu": {
+            "graha": "rahu",
+            "sign": "Virgo",
+            "sign_lord": "mercury"
+          },
+          "saturn": {
+            "graha": "saturn",
+            "sign": "Sagittarius",
+            "sign_lord": "jupiter"
+          },
+          "sun": {
+            "graha": "sun",
+            "sign": "Libra",
+            "sign_lord": "venus"
+          },
+          "venus": {
+            "graha": "venus",
+            "sign": "Leo",
+            "sign_lord": "sun"
+          }
+        }
+      },
+      "D12": {
+        "chart": "D12",
+        "lagna_sign": "Leo",
+        "lagna_sign_lord": "sun",
+        "placements": {
+          "jupiter": {
+            "graha": "jupiter",
+            "sign": "Leo",
+            "sign_lord": "sun"
+          },
+          "ketu": {
+            "graha": "ketu",
+            "sign": "Aries",
+            "sign_lord": "mars"
+          },
+          "mars": {
+            "graha": "mars",
+            "sign": "Virgo",
+            "sign_lord": "mercury"
+          },
+          "mercury": {
+            "graha": "mercury",
+            "sign": "Taurus",
+            "sign_lord": "venus"
+          },
+          "moon": {
+            "graha": "moon",
+            "sign": "Gemini",
+            "sign_lord": "mercury"
+          },
+          "rahu": {
+            "graha": "rahu",
+            "sign": "Libra",
+            "sign_lord": "venus"
+          },
+          "saturn": {
+            "graha": "saturn",
+            "sign": "Capricorn",
+            "sign_lord": "saturn"
+          },
+          "sun": {
+            "graha": "sun",
+            "sign": "Pisces",
+            "sign_lord": "jupiter"
+          },
+          "venus": {
+            "graha": "venus",
+            "sign": "Leo",
+            "sign_lord": "sun"
+          }
+        }
+      },
+      "D16": {
+        "chart": "D16",
+        "lagna_sign": "Leo",
+        "lagna_sign_lord": "sun",
+        "placements": {
+          "jupiter": {
+            "graha": "jupiter",
+            "sign": "Sagittarius",
+            "sign_lord": "jupiter"
+          },
+          "ketu": {
+            "graha": "ketu",
+            "sign": "Cancer",
+            "sign_lord": "moon"
+          },
+          "mars": {
+            "graha": "mars",
+            "sign": "Leo",
+            "sign_lord": "sun"
+          },
+          "mercury": {
+            "graha": "mercury",
+            "sign": "Gemini",
+            "sign_lord": "mercury"
+          },
+          "moon": {
+            "graha": "moon",
+            "sign": "Sagittarius",
+            "sign_lord": "jupiter"
+          },
+          "rahu": {
+            "graha": "rahu",
+            "sign": "Cancer",
+            "sign_lord": "moon"
+          },
+          "saturn": {
+            "graha": "saturn",
+            "sign": "Capricorn",
+            "sign_lord": "saturn"
+          },
+          "sun": {
+            "graha": "sun",
+            "sign": "Pisces",
+            "sign_lord": "jupiter"
+          },
+          "venus": {
+            "graha": "venus",
+            "sign": "Pisces",
+            "sign_lord": "jupiter"
+          }
+        }
+      },
+      "D2": {
+        "chart": "D2",
+        "lagna_sign": "Leo",
+        "lagna_sign_lord": "sun",
+        "placements": {
+          "jupiter": {
+            "graha": "jupiter",
+            "sign": "Cancer",
+            "sign_lord": "moon"
+          },
+          "ketu": {
+            "graha": "ketu",
+            "sign": "Cancer",
+            "sign_lord": "moon"
+          },
+          "mars": {
+            "graha": "mars",
+            "sign": "Leo",
+            "sign_lord": "sun"
+          },
+          "mercury": {
+            "graha": "mercury",
+            "sign": "Leo",
+            "sign_lord": "sun"
+          },
+          "moon": {
+            "graha": "moon",
+            "sign": "Leo",
+            "sign_lord": "sun"
+          },
+          "rahu": {
+            "graha": "rahu",
+            "sign": "Cancer",
+            "sign_lord": "moon"
+          },
+          "saturn": {
+            "graha": "saturn",
+            "sign": "Leo",
+            "sign_lord": "sun"
+          },
+          "sun": {
+            "graha": "sun",
+            "sign": "Leo",
+            "sign_lord": "sun"
+          },
+          "venus": {
+            "graha": "venus",
+            "sign": "Leo",
+            "sign_lord": "sun"
+          }
+        }
+      },
+      "D20": {
+        "chart": "D20",
+        "lagna_sign": "Sagittarius",
+        "lagna_sign_lord": "jupiter",
+        "placements": {
+          "jupiter": {
+            "graha": "jupiter",
+            "sign": "Taurus",
+            "sign_lord": "venus"
+          },
+          "ketu": {
+            "graha": "ketu",
+            "sign": "Aquarius",
+            "sign_lord": "saturn"
+          },
+          "mars": {
+            "graha": "mars",
+            "sign": "Gemini",
+            "sign_lord": "mercury"
+          },
+          "mercury": {
+            "graha": "mercury",
+            "sign": "Libra",
+            "sign_lord": "venus"
+          },
+          "moon": {
+            "graha": "moon",
+            "sign": "Virgo",
+            "sign_lord": "mercury"
+          },
+          "rahu": {
+            "graha": "rahu",
+            "sign": "Aquarius",
+            "sign_lord": "saturn"
+          },
+          "saturn": {
+            "graha": "saturn",
+            "sign": "Virgo",
+            "sign_lord": "mercury"
+          },
+          "sun": {
+            "graha": "sun",
+            "sign": "Gemini",
+            "sign_lord": "mercury"
+          },
+          "venus": {
+            "graha": "venus",
+            "sign": "Sagittarius",
+            "sign_lord": "jupiter"
+          }
+        }
+      },
+      "D24": {
+        "chart": "D24",
+        "lagna_sign": "Leo",
+        "lagna_sign_lord": "sun",
+        "placements": {
+          "jupiter": {
+            "graha": "jupiter",
+            "sign": "Aquarius",
+            "sign_lord": "saturn"
+          },
+          "ketu": {
+            "graha": "ketu",
+            "sign": "Capricorn",
+            "sign_lord": "saturn"
+          },
+          "mars": {
+            "graha": "mars",
+            "sign": "Cancer",
+            "sign_lord": "moon"
+          },
+          "mercury": {
+            "graha": "mercury",
+            "sign": "Aries",
+            "sign_lord": "mars"
+          },
+          "moon": {
+            "graha": "moon",
+            "sign": "Virgo",
+            "sign_lord": "mercury"
+          },
+          "rahu": {
+            "graha": "rahu",
+            "sign": "Capricorn",
+            "sign_lord": "saturn"
+          },
+          "saturn": {
+            "graha": "saturn",
+            "sign": "Libra",
+            "sign_lord": "venus"
+          },
+          "sun": {
+            "graha": "sun",
+            "sign": "Sagittarius",
+            "sign_lord": "jupiter"
+          },
+          "venus": {
+            "graha": "venus",
+            "sign": "Capricorn",
+            "sign_lord": "saturn"
+          }
+        }
+      },
+      "D27": {
+        "chart": "D27",
+        "lagna_sign": "Aries",
+        "lagna_sign_lord": "mars",
+        "placements": {
+          "jupiter": {
+            "graha": "jupiter",
+            "sign": "Pisces",
+            "sign_lord": "jupiter"
+          },
+          "ketu": {
+            "graha": "ketu",
+            "sign": "Scorpio",
+            "sign_lord": "mars"
+          },
+          "mars": {
+            "graha": "mars",
+            "sign": "Aquarius",
+            "sign_lord": "saturn"
+          },
+          "mercury": {
+            "graha": "mercury",
+            "sign": "Capricorn",
+            "sign_lord": "saturn"
+          },
+          "moon": {
+            "graha": "moon",
+            "sign": "Scorpio",
+            "sign_lord": "mars"
+          },
+          "rahu": {
+            "graha": "rahu",
+            "sign": "Taurus",
+            "sign_lord": "venus"
+          },
+          "saturn": {
+            "graha": "saturn",
+            "sign": "Gemini",
+            "sign_lord": "mercury"
+          },
+          "sun": {
+            "graha": "sun",
+            "sign": "Leo",
+            "sign_lord": "sun"
+          },
+          "venus": {
+            "graha": "venus",
+            "sign": "Aries",
+            "sign_lord": "mars"
+          }
+        }
+      },
+      "D3": {
+        "chart": "D3",
+        "lagna_sign": "Leo",
+        "lagna_sign_lord": "sun",
+        "placements": {
+          "jupiter": {
+            "graha": "jupiter",
+            "sign": "Taurus",
+            "sign_lord": "venus"
+          },
+          "ketu": {
+            "graha": "ketu",
+            "sign": "Aries",
+            "sign_lord": "mars"
+          },
+          "mars": {
+            "graha": "mars",
+            "sign": "Cancer",
+            "sign_lord": "moon"
+          },
+          "mercury": {
+            "graha": "mercury",
+            "sign": "Pisces",
+            "sign_lord": "jupiter"
+          },
+          "moon": {
+            "graha": "moon",
+            "sign": "Gemini",
+            "sign_lord": "mercury"
+          },
+          "rahu": {
+            "graha": "rahu",
+            "sign": "Libra",
+            "sign_lord": "venus"
+          },
+          "saturn": {
+            "graha": "saturn",
+            "sign": "Sagittarius",
+            "sign_lord": "jupiter"
+          },
+          "sun": {
+            "graha": "sun",
+            "sign": "Pisces",
+            "sign_lord": "jupiter"
+          },
+          "venus": {
+            "graha": "venus",
+            "sign": "Gemini",
+            "sign_lord": "mercury"
+          }
+        }
+      },
+      "D30": {
+        "chart": "D30",
+        "lagna_sign": "Aries",
+        "lagna_sign_lord": "mars",
+        "placements": {
+          "jupiter": {
+            "graha": "jupiter",
+            "sign": "Virgo",
+            "sign_lord": "mercury"
+          },
+          "ketu": {
+            "graha": "ketu",
+            "sign": "Gemini",
+            "sign_lord": "mercury"
+          },
+          "mars": {
+            "graha": "mars",
+            "sign": "Pisces",
+            "sign_lord": "jupiter"
+          },
+          "mercury": {
+            "graha": "mercury",
+            "sign": "Scorpio",
+            "sign_lord": "mars"
+          },
+          "moon": {
+            "graha": "moon",
+            "sign": "Aries",
+            "sign_lord": "mars"
+          },
+          "rahu": {
+            "graha": "rahu",
+            "sign": "Gemini",
+            "sign_lord": "mercury"
+          },
+          "saturn": {
+            "graha": "saturn",
+            "sign": "Aries",
+            "sign_lord": "mars"
+          },
+          "sun": {
+            "graha": "sun",
+            "sign": "Capricorn",
+            "sign_lord": "saturn"
+          },
+          "venus": {
+            "graha": "venus",
+            "sign": "Aquarius",
+            "sign_lord": "saturn"
+          }
+        }
+      },
+      "D4": {
+        "chart": "D4",
+        "lagna_sign": "Leo",
+        "lagna_sign_lord": "sun",
+        "placements": {
+          "jupiter": {
+            "graha": "jupiter",
+            "sign": "Leo",
+            "sign_lord": "sun"
+          },
+          "ketu": {
+            "graha": "ketu",
+            "sign": "Aquarius",
+            "sign_lord": "saturn"
+          },
+          "mars": {
+            "graha": "mars",
+            "sign": "Virgo",
+            "sign_lord": "mercury"
+          },
+          "mercury": {
+            "graha": "mercury",
+            "sign": "Aries",
+            "sign_lord": "mars"
+          },
+          "moon": {
+            "graha": "moon",
+            "sign": "Gemini",
+            "sign_lord": "mercury"
+          },
+          "rahu": {
+            "graha": "rahu",
+            "sign": "Leo",
+            "sign_lord": "sun"
+          },
+          "saturn": {
+            "graha": "saturn",
+            "sign": "Sagittarius",
+            "sign_lord": "jupiter"
+          },
+          "sun": {
+            "graha": "sun",
+            "sign": "Capricorn",
+            "sign_lord": "saturn"
+          },
+          "venus": {
+            "graha": "venus",
+            "sign": "Gemini",
+            "sign_lord": "mercury"
+          }
+        }
+      },
+      "D40": {
+        "chart": "D40",
+        "lagna_sign": "Aries",
+        "lagna_sign_lord": "mars",
+        "placements": {
+          "jupiter": {
+            "graha": "jupiter",
+            "sign": "Virgo",
+            "sign_lord": "mercury"
+          },
+          "ketu": {
+            "graha": "ketu",
+            "sign": "Virgo",
+            "sign_lord": "mercury"
+          },
+          "mars": {
+            "graha": "mars",
+            "sign": "Gemini",
+            "sign_lord": "mercury"
+          },
+          "mercury": {
+            "graha": "mercury",
+            "sign": "Libra",
+            "sign_lord": "venus"
+          },
+          "moon": {
+            "graha": "moon",
+            "sign": "Gemini",
+            "sign_lord": "mercury"
+          },
+          "rahu": {
+            "graha": "rahu",
+            "sign": "Virgo",
+            "sign_lord": "mercury"
+          },
+          "saturn": {
+            "graha": "saturn",
+            "sign": "Cancer",
+            "sign_lord": "moon"
+          },
+          "sun": {
+            "graha": "sun",
+            "sign": "Pisces",
+            "sign_lord": "jupiter"
+          },
+          "venus": {
+            "graha": "venus",
+            "sign": "Capricorn",
+            "sign_lord": "saturn"
+          }
+        }
+      },
+      "D45": {
+        "chart": "D45",
+        "lagna_sign": "Leo",
+        "lagna_sign_lord": "sun",
+        "placements": {
+          "jupiter": {
+            "graha": "jupiter",
+            "sign": "Virgo",
+            "sign_lord": "mercury"
+          },
+          "ketu": {
+            "graha": "ketu",
+            "sign": "Aries",
+            "sign_lord": "mars"
+          },
+          "mars": {
+            "graha": "mars",
+            "sign": "Scorpio",
+            "sign_lord": "mars"
+          },
+          "mercury": {
+            "graha": "mercury",
+            "sign": "Leo",
+            "sign_lord": "sun"
+          },
+          "moon": {
+            "graha": "moon",
+            "sign": "Aquarius",
+            "sign_lord": "saturn"
+          },
+          "rahu": {
+            "graha": "rahu",
+            "sign": "Aries",
+            "sign_lord": "mars"
+          },
+          "saturn": {
+            "graha": "saturn",
+            "sign": "Pisces",
+            "sign_lord": "jupiter"
+          },
+          "sun": {
+            "graha": "sun",
+            "sign": "Capricorn",
+            "sign_lord": "saturn"
+          },
+          "venus": {
+            "graha": "venus",
+            "sign": "Libra",
+            "sign_lord": "venus"
+          }
+        }
+      },
+      "D60": {
+        "chart": "D60",
+        "lagna_sign": "Leo",
+        "lagna_sign_lord": "sun",
+        "placements": {
+          "jupiter": {
+            "graha": "jupiter",
+            "sign": "Libra",
+            "sign_lord": "venus"
+          },
+          "ketu": {
+            "graha": "ketu",
+            "sign": "Pisces",
+            "sign_lord": "jupiter"
+          },
+          "mars": {
+            "graha": "mars",
+            "sign": "Virgo",
+            "sign_lord": "mercury"
+          },
+          "mercury": {
+            "graha": "mercury",
+            "sign": "Capricorn",
+            "sign_lord": "saturn"
+          },
+          "moon": {
+            "graha": "moon",
+            "sign": "Virgo",
+            "sign_lord": "mercury"
+          },
+          "rahu": {
+            "graha": "rahu",
+            "sign": "Virgo",
+            "sign_lord": "mercury"
+          },
+          "saturn": {
+            "graha": "saturn",
+            "sign": "Taurus",
+            "sign_lord": "venus"
+          },
+          "sun": {
+            "graha": "sun",
+            "sign": "Pisces",
+            "sign_lord": "jupiter"
+          },
+          "venus": {
+            "graha": "venus",
+            "sign": "Leo",
+            "sign_lord": "sun"
+          }
+        }
+      },
+      "D7": {
+        "chart": "D7",
+        "lagna_sign": "Leo",
+        "lagna_sign_lord": "sun",
+        "placements": {
+          "jupiter": {
+            "graha": "jupiter",
+            "sign": "Capricorn",
+            "sign_lord": "saturn"
+          },
+          "ketu": {
+            "graha": "ketu",
+            "sign": "Capricorn",
+            "sign_lord": "saturn"
+          },
+          "mars": {
+            "graha": "mars",
+            "sign": "Sagittarius",
+            "sign_lord": "jupiter"
+          },
+          "mercury": {
+            "graha": "mercury",
+            "sign": "Cancer",
+            "sign_lord": "moon"
+          },
+          "moon": {
+            "graha": "moon",
+            "sign": "Gemini",
+            "sign_lord": "mercury"
+          },
+          "rahu": {
+            "graha": "rahu",
+            "sign": "Cancer",
+            "sign_lord": "moon"
+          },
+          "saturn": {
+            "graha": "saturn",
+            "sign": "Sagittarius",
+            "sign_lord": "jupiter"
+          },
+          "sun": {
+            "graha": "sun",
+            "sign": "Gemini",
+            "sign_lord": "mercury"
+          },
+          "venus": {
+            "graha": "venus",
+            "sign": "Cancer",
+            "sign_lord": "moon"
+          }
+        }
+      },
+      "D9": {
+        "chart": "D9",
+        "lagna_sign": "Aries",
+        "lagna_sign_lord": "mars",
+        "placements": {
+          "jupiter": {
+            "graha": "jupiter",
+            "sign": "Pisces",
+            "sign_lord": "jupiter"
+          },
+          "ketu": {
+            "graha": "ketu",
+            "sign": "Libra",
+            "sign_lord": "venus"
+          },
+          "mars": {
+            "graha": "mars",
+            "sign": "Scorpio",
+            "sign_lord": "mars"
+          },
+          "mercury": {
+            "graha": "mercury",
+            "sign": "Pisces",
+            "sign_lord": "jupiter"
+          },
+          "moon": {
+            "graha": "moon",
+            "sign": "Libra",
+            "sign_lord": "venus"
+          },
+          "rahu": {
+            "graha": "rahu",
+            "sign": "Aries",
+            "sign_lord": "mars"
+          },
+          "saturn": {
+            "graha": "saturn",
+            "sign": "Aries",
+            "sign_lord": "mars"
+          },
+          "sun": {
+            "graha": "sun",
+            "sign": "Capricorn",
+            "sign_lord": "saturn"
+          },
+          "venus": {
+            "graha": "venus",
+            "sign": "Sagittarius",
+            "sign_lord": "jupiter"
+          }
+        }
+      }
+    },
+    "shadvarga_own_sign": [
+      {
+        "charts_in_own_sign": [
+          "D2"
+        ],
+        "graha": "sun",
+        "own_sign_count": 1
+      },
+      {
+        "charts_in_own_sign": [],
+        "graha": "moon",
+        "own_sign_count": 0
+      },
+      {
+        "charts_in_own_sign": [
+          "D9"
+        ],
+        "graha": "mars",
+        "own_sign_count": 1
+      },
+      {
+        "charts_in_own_sign": [],
+        "graha": "mercury",
+        "own_sign_count": 0
+      },
+      {
+        "charts_in_own_sign": [
+          "D9"
+        ],
+        "graha": "jupiter",
+        "own_sign_count": 1
+      },
+      {
+        "charts_in_own_sign": [],
+        "graha": "venus",
+        "own_sign_count": 0
+      },
+      {
+        "charts_in_own_sign": [
+          "D12"
+        ],
+        "graha": "saturn",
+        "own_sign_count": 1
+      },
+      {
+        "charts_in_own_sign": [],
+        "graha": "rahu",
+        "own_sign_count": 0
+      },
+      {
+        "charts_in_own_sign": [],
+        "graha": "ketu",
+        "own_sign_count": 0
+      }
+    ],
+    "vargottama": [],
+    "vimshopaka": [
+      {
+        "approximated": true,
+        "graha": "sun",
+        "score": 2.0
+      },
+      {
+        "approximated": true,
+        "graha": "moon",
+        "score": 0.0
+      },
+      {
+        "approximated": true,
+        "graha": "mars",
+        "score": 5.0
+      },
+      {
+        "approximated": true,
+        "graha": "mercury",
+        "score": 0.0
+      },
+      {
+        "approximated": true,
+        "graha": "jupiter",
+        "score": 5.0
+      },
+      {
+        "approximated": true,
+        "graha": "venus",
+        "score": 0.0
+      },
+      {
+        "approximated": true,
+        "graha": "saturn",
+        "score": 2.0
+      },
+      {
+        "approximated": true,
+        "graha": "rahu",
+        "score": 0.0
+      },
+      {
+        "approximated": true,
+        "graha": "ketu",
+        "score": 0.0
+      }
+    ]
+  },
+  "1990-01-15T12:00:00+00:00": {
+    "charts": {
+      "D1": {
+        "chart": "D1",
+        "lagna_sign": "Gemini",
+        "lagna_sign_lord": "mercury",
+        "placements": {
+          "jupiter": {
+            "graha": "jupiter",
+            "sign": "Gemini",
+            "sign_lord": "mercury"
+          },
+          "ketu": {
+            "graha": "ketu",
+            "sign": "Cancer",
+            "sign_lord": "moon"
+          },
+          "mars": {
+            "graha": "mars",
+            "sign": "Scorpio",
+            "sign_lord": "mars"
+          },
+          "mercury": {
+            "graha": "mercury",
+            "sign": "Sagittarius",
+            "sign_lord": "jupiter"
+          },
+          "moon": {
+            "graha": "moon",
+            "sign": "Leo",
+            "sign_lord": "sun"
+          },
+          "rahu": {
+            "graha": "rahu",
+            "sign": "Capricorn",
+            "sign_lord": "saturn"
+          },
+          "saturn": {
+            "graha": "saturn",
+            "sign": "Sagittarius",
+            "sign_lord": "jupiter"
+          },
+          "sun": {
+            "graha": "sun",
+            "sign": "Capricorn",
+            "sign_lord": "saturn"
+          },
+          "venus": {
+            "graha": "venus",
+            "sign": "Capricorn",
+            "sign_lord": "saturn"
+          }
+        }
+      },
+      "D10": {
+        "chart": "D10",
+        "lagna_sign": "Pisces",
+        "lagna_sign_lord": "jupiter",
+        "placements": {
+          "jupiter": {
+            "graha": "jupiter",
+            "sign": "Virgo",
+            "sign_lord": "mercury"
+          },
+          "ketu": {
+            "graha": "ketu",
+            "sign": "Libra",
+            "sign_lord": "venus"
+          },
+          "mars": {
+            "graha": "mars",
+            "sign": "Pisces",
+            "sign_lord": "jupiter"
+          },
+          "mercury": {
+            "graha": "mercury",
+            "sign": "Taurus",
+            "sign_lord": "venus"
+          },
+          "moon": {
+            "graha": "moon",
+            "sign": "Pisces",
+            "sign_lord": "jupiter"
+          },
+          "rahu": {
+            "graha": "rahu",
+            "sign": "Aries",
+            "sign_lord": "mars"
+          },
+          "saturn": {
+            "graha": "saturn",
+            "sign": "Cancer",
+            "sign_lord": "moon"
+          },
+          "sun": {
+            "graha": "sun",
+            "sign": "Virgo",
+            "sign_lord": "mercury"
+          },
+          "venus": {
+            "graha": "venus",
+            "sign": "Scorpio",
+            "sign_lord": "mars"
+          }
+        }
+      },
+      "D12": {
+        "chart": "D12",
+        "lagna_sign": "Taurus",
+        "lagna_sign_lord": "venus",
+        "placements": {
+          "jupiter": {
+            "graha": "jupiter",
+            "sign": "Virgo",
+            "sign_lord": "mercury"
+          },
+          "ketu": {
+            "graha": "ketu",
+            "sign": "Aries",
+            "sign_lord": "mars"
+          },
+          "mars": {
+            "graha": "mars",
+            "sign": "Virgo",
+            "sign_lord": "mercury"
+          },
+          "mercury": {
+            "graha": "mercury",
+            "sign": "Cancer",
+            "sign_lord": "moon"
+          },
+          "moon": {
+            "graha": "moon",
+            "sign": "Taurus",
+            "sign_lord": "venus"
+          },
+          "rahu": {
+            "graha": "rahu",
+            "sign": "Libra",
+            "sign_lord": "venus"
+          },
+          "saturn": {
+            "graha": "saturn",
+            "sign": "Virgo",
+            "sign_lord": "mercury"
+          },
+          "sun": {
+            "graha": "sun",
+            "sign": "Capricorn",
+            "sign_lord": "saturn"
+          },
+          "venus": {
+            "graha": "venus",
+            "sign": "Pisces",
+            "sign_lord": "jupiter"
+          }
+        }
+      },
+      "D16": {
+        "chart": "D16",
+        "lagna_sign": "Pisces",
+        "lagna_sign_lord": "jupiter",
+        "placements": {
+          "jupiter": {
+            "graha": "jupiter",
+            "sign": "Taurus",
+            "sign_lord": "venus"
+          },
+          "ketu": {
+            "graha": "ketu",
+            "sign": "Aries",
+            "sign_lord": "mars"
+          },
+          "mars": {
+            "graha": "mars",
+            "sign": "Virgo",
+            "sign_lord": "mercury"
+          },
+          "mercury": {
+            "graha": "mercury",
+            "sign": "Virgo",
+            "sign_lord": "mercury"
+          },
+          "moon": {
+            "graha": "moon",
+            "sign": "Leo",
+            "sign_lord": "sun"
+          },
+          "rahu": {
+            "graha": "rahu",
+            "sign": "Aries",
+            "sign_lord": "mars"
+          },
+          "saturn": {
+            "graha": "saturn",
+            "sign": "Sagittarius",
+            "sign_lord": "jupiter"
+          },
+          "sun": {
+            "graha": "sun",
+            "sign": "Aries",
+            "sign_lord": "mars"
+          },
+          "venus": {
+            "graha": "venus",
+            "sign": "Cancer",
+            "sign_lord": "moon"
+          }
+        }
+      },
+      "D2": {
+        "chart": "D2",
+        "lagna_sign": "Cancer",
+        "lagna_sign_lord": "moon",
+        "placements": {
+          "jupiter": {
+            "graha": "jupiter",
+            "sign": "Leo",
+            "sign_lord": "sun"
+          },
+          "ketu": {
+            "graha": "ketu",
+            "sign": "Leo",
+            "sign_lord": "sun"
+          },
+          "mars": {
+            "graha": "mars",
+            "sign": "Leo",
+            "sign_lord": "sun"
+          },
+          "mercury": {
+            "graha": "mercury",
+            "sign": "Cancer",
+            "sign_lord": "moon"
+          },
+          "moon": {
+            "graha": "moon",
+            "sign": "Cancer",
+            "sign_lord": "moon"
+          },
+          "rahu": {
+            "graha": "rahu",
+            "sign": "Leo",
+            "sign_lord": "sun"
+          },
+          "saturn": {
+            "graha": "saturn",
+            "sign": "Cancer",
+            "sign_lord": "moon"
+          },
+          "sun": {
+            "graha": "sun",
+            "sign": "Cancer",
+            "sign_lord": "moon"
+          },
+          "venus": {
+            "graha": "venus",
+            "sign": "Cancer",
+            "sign_lord": "moon"
+          }
+        }
+      },
+      "D20": {
+        "chart": "D20",
+        "lagna_sign": "Pisces",
+        "lagna_sign_lord": "jupiter",
+        "placements": {
+          "jupiter": {
+            "graha": "jupiter",
+            "sign": "Aquarius",
+            "sign_lord": "saturn"
+          },
+          "ketu": {
+            "graha": "ketu",
+            "sign": "Cancer",
+            "sign_lord": "moon"
+          },
+          "mars": {
+            "graha": "mars",
+            "sign": "Taurus",
+            "sign_lord": "venus"
+          },
+          "mercury": {
+            "graha": "mercury",
+            "sign": "Cancer",
+            "sign_lord": "moon"
+          },
+          "moon": {
+            "graha": "moon",
+            "sign": "Pisces",
+            "sign_lord": "jupiter"
+          },
+          "rahu": {
+            "graha": "rahu",
+            "sign": "Cancer",
+            "sign_lord": "moon"
+          },
+          "saturn": {
+            "graha": "saturn",
+            "sign": "Scorpio",
+            "sign_lord": "mars"
+          },
+          "sun": {
+            "graha": "sun",
+            "sign": "Aries",
+            "sign_lord": "mars"
+          },
+          "venus": {
+            "graha": "venus",
+            "sign": "Leo",
+            "sign_lord": "sun"
+          }
+        }
+      },
+      "D24": {
+        "chart": "D24",
+        "lagna_sign": "Cancer",
+        "lagna_sign_lord": "moon",
+        "placements": {
+          "jupiter": {
+            "graha": "jupiter",
+            "sign": "Pisces",
+            "sign_lord": "jupiter"
+          },
+          "ketu": {
+            "graha": "ketu",
+            "sign": "Aquarius",
+            "sign_lord": "saturn"
+          },
+          "mars": {
+            "graha": "mars",
+            "sign": "Pisces",
+            "sign_lord": "jupiter"
+          },
+          "mercury": {
+            "graha": "mercury",
+            "sign": "Libra",
+            "sign_lord": "venus"
+          },
+          "moon": {
+            "graha": "moon",
+            "sign": "Pisces",
+            "sign_lord": "jupiter"
+          },
+          "rahu": {
+            "graha": "rahu",
+            "sign": "Aquarius",
+            "sign_lord": "saturn"
+          },
+          "saturn": {
+            "graha": "saturn",
+            "sign": "Aquarius",
+            "sign_lord": "saturn"
+          },
+          "sun": {
+            "graha": "sun",
+            "sign": "Leo",
+            "sign_lord": "sun"
+          },
+          "venus": {
+            "graha": "venus",
+            "sign": "Sagittarius",
+            "sign_lord": "jupiter"
+          }
+        }
+      },
+      "D27": {
+        "chart": "D27",
+        "lagna_sign": "Scorpio",
+        "lagna_sign_lord": "mars",
+        "placements": {
+          "jupiter": {
+            "graha": "jupiter",
+            "sign": "Gemini",
+            "sign_lord": "mercury"
+          },
+          "ketu": {
+            "graha": "ketu",
+            "sign": "Libra",
+            "sign_lord": "venus"
+          },
+          "mars": {
+            "graha": "mars",
+            "sign": "Sagittarius",
+            "sign_lord": "jupiter"
+          },
+          "mercury": {
+            "graha": "mercury",
+            "sign": "Cancer",
+            "sign_lord": "moon"
+          },
+          "moon": {
+            "graha": "moon",
+            "sign": "Capricorn",
+            "sign_lord": "saturn"
+          },
+          "rahu": {
+            "graha": "rahu",
+            "sign": "Aries",
+            "sign_lord": "mars"
+          },
+          "saturn": {
+            "graha": "saturn",
+            "sign": "Capricorn",
+            "sign_lord": "saturn"
+          },
+          "sun": {
+            "graha": "sun",
+            "sign": "Leo",
+            "sign_lord": "sun"
+          },
+          "venus": {
+            "graha": "venus",
+            "sign": "Capricorn",
+            "sign_lord": "saturn"
+          }
+        }
+      },
+      "D3": {
+        "chart": "D3",
+        "lagna_sign": "Aquarius",
+        "lagna_sign_lord": "saturn",
+        "placements": {
+          "jupiter": {
+            "graha": "jupiter",
+            "sign": "Gemini",
+            "sign_lord": "mercury"
+          },
+          "ketu": {
+            "graha": "ketu",
+            "sign": "Pisces",
+            "sign_lord": "jupiter"
+          },
+          "mars": {
+            "graha": "mars",
+            "sign": "Cancer",
+            "sign_lord": "moon"
+          },
+          "mercury": {
+            "graha": "mercury",
+            "sign": "Aries",
+            "sign_lord": "mars"
+          },
+          "moon": {
+            "graha": "moon",
+            "sign": "Aries",
+            "sign_lord": "mars"
+          },
+          "rahu": {
+            "graha": "rahu",
+            "sign": "Virgo",
+            "sign_lord": "mercury"
+          },
+          "saturn": {
+            "graha": "saturn",
+            "sign": "Leo",
+            "sign_lord": "sun"
+          },
+          "sun": {
+            "graha": "sun",
+            "sign": "Capricorn",
+            "sign_lord": "saturn"
+          },
+          "venus": {
+            "graha": "venus",
+            "sign": "Capricorn",
+            "sign_lord": "saturn"
+          }
+        }
+      },
+      "D30": {
+        "chart": "D30",
+        "lagna_sign": "Libra",
+        "lagna_sign_lord": "venus",
+        "placements": {
+          "jupiter": {
+            "graha": "jupiter",
+            "sign": "Aquarius",
+            "sign_lord": "saturn"
+          },
+          "ketu": {
+            "graha": "ketu",
+            "sign": "Capricorn",
+            "sign_lord": "saturn"
+          },
+          "mars": {
+            "graha": "mars",
+            "sign": "Scorpio",
+            "sign_lord": "mars"
+          },
+          "mercury": {
+            "graha": "mercury",
+            "sign": "Sagittarius",
+            "sign_lord": "jupiter"
+          },
+          "moon": {
+            "graha": "moon",
+            "sign": "Gemini",
+            "sign_lord": "mercury"
+          },
+          "rahu": {
+            "graha": "rahu",
+            "sign": "Capricorn",
+            "sign_lord": "saturn"
+          },
+          "saturn": {
+            "graha": "saturn",
+            "sign": "Gemini",
+            "sign_lord": "mercury"
+          },
+          "sun": {
+            "graha": "sun",
+            "sign": "Taurus",
+            "sign_lord": "venus"
+          },
+          "venus": {
+            "graha": "venus",
+            "sign": "Virgo",
+            "sign_lord": "mercury"
+          }
+        }
+      },
+      "D4": {
+        "chart": "D4",
+        "lagna_sign": "Pisces",
+        "lagna_sign_lord": "jupiter",
+        "placements": {
+          "jupiter": {
+            "graha": "jupiter",
+            "sign": "Virgo",
+            "sign_lord": "mercury"
+          },
+          "ketu": {
+            "graha": "ketu",
+            "sign": "Aries",
+            "sign_lord": "mars"
+          },
+          "mars": {
+            "graha": "mars",
+            "sign": "Leo",
+            "sign_lord": "sun"
+          },
+          "mercury": {
+            "graha": "mercury",
+            "sign": "Gemini",
+            "sign_lord": "mercury"
+          },
+          "moon": {
+            "graha": "moon",
+            "sign": "Taurus",
+            "sign_lord": "venus"
+          },
+          "rahu": {
+            "graha": "rahu",
+            "sign": "Libra",
+            "sign_lord": "venus"
+          },
+          "saturn": {
+            "graha": "saturn",
+            "sign": "Virgo",
+            "sign_lord": "mercury"
+          },
+          "sun": {
+            "graha": "sun",
+            "sign": "Capricorn",
+            "sign_lord": "saturn"
+          },
+          "venus": {
+            "graha": "venus",
+            "sign": "Capricorn",
+            "sign_lord": "saturn"
+          }
+        }
+      },
+      "D40": {
+        "chart": "D40",
+        "lagna_sign": "Gemini",
+        "lagna_sign_lord": "mercury",
+        "placements": {
+          "jupiter": {
+            "graha": "jupiter",
+            "sign": "Aries",
+            "sign_lord": "mars"
+          },
+          "ketu": {
+            "graha": "ketu",
+            "sign": "Taurus",
+            "sign_lord": "venus"
+          },
+          "mars": {
+            "graha": "mars",
+            "sign": "Leo",
+            "sign_lord": "sun"
+          },
+          "mercury": {
+            "graha": "mercury",
+            "sign": "Pisces",
+            "sign_lord": "jupiter"
+          },
+          "moon": {
+            "graha": "moon",
+            "sign": "Scorpio",
+            "sign_lord": "mars"
+          },
+          "rahu": {
+            "graha": "rahu",
+            "sign": "Taurus",
+            "sign_lord": "venus"
+          },
+          "saturn": {
+            "graha": "saturn",
+            "sign": "Scorpio",
+            "sign_lord": "mars"
+          },
+          "sun": {
+            "graha": "sun",
+            "sign": "Scorpio",
+            "sign_lord": "mars"
+          },
+          "venus": {
+            "graha": "venus",
+            "sign": "Cancer",
+            "sign_lord": "moon"
+          }
+        }
+      },
+      "D45": {
+        "chart": "D45",
+        "lagna_sign": "Cancer",
+        "lagna_sign_lord": "moon",
+        "placements": {
+          "jupiter": {
+            "graha": "jupiter",
+            "sign": "Aquarius",
+            "sign_lord": "saturn"
+          },
+          "ketu": {
+            "graha": "ketu",
+            "sign": "Pisces",
+            "sign_lord": "jupiter"
+          },
+          "mars": {
+            "graha": "mars",
+            "sign": "Scorpio",
+            "sign_lord": "mars"
+          },
+          "mercury": {
+            "graha": "mercury",
+            "sign": "Aquarius",
+            "sign_lord": "saturn"
+          },
+          "moon": {
+            "graha": "moon",
+            "sign": "Cancer",
+            "sign_lord": "moon"
+          },
+          "rahu": {
+            "graha": "rahu",
+            "sign": "Pisces",
+            "sign_lord": "jupiter"
+          },
+          "saturn": {
+            "graha": "saturn",
+            "sign": "Scorpio",
+            "sign_lord": "mars"
+          },
+          "sun": {
+            "graha": "sun",
+            "sign": "Gemini",
+            "sign_lord": "mercury"
+          },
+          "venus": {
+            "graha": "venus",
+            "sign": "Aquarius",
+            "sign_lord": "saturn"
+          }
+        }
+      },
+      "D60": {
+        "chart": "D60",
+        "lagna_sign": "Pisces",
+        "lagna_sign_lord": "jupiter",
+        "placements": {
+          "jupiter": {
+            "graha": "jupiter",
+            "sign": "Capricorn",
+            "sign_lord": "saturn"
+          },
+          "ketu": {
+            "graha": "ketu",
+            "sign": "Gemini",
+            "sign_lord": "mercury"
+          },
+          "mars": {
+            "graha": "mars",
+            "sign": "Pisces",
+            "sign_lord": "jupiter"
+          },
+          "mercury": {
+            "graha": "mercury",
+            "sign": "Scorpio",
+            "sign_lord": "mars"
+          },
+          "moon": {
+            "graha": "moon",
+            "sign": "Cancer",
+            "sign_lord": "moon"
+          },
+          "rahu": {
+            "graha": "rahu",
+            "sign": "Sagittarius",
+            "sign_lord": "jupiter"
+          },
+          "saturn": {
+            "graha": "saturn",
+            "sign": "Scorpio",
+            "sign_lord": "mars"
+          },
+          "sun": {
+            "graha": "sun",
+            "sign": "Pisces",
+            "sign_lord": "jupiter"
+          },
+          "venus": {
+            "graha": "venus",
+            "sign": "Aquarius",
+            "sign_lord": "saturn"
+          }
+        }
+      },
+      "D7": {
+        "chart": "D7",
+        "lagna_sign": "Sagittarius",
+        "lagna_sign_lord": "jupiter",
+        "placements": {
+          "jupiter": {
+            "graha": "jupiter",
+            "sign": "Leo",
+            "sign_lord": "sun"
+          },
+          "ketu": {
+            "graha": "ketu",
+            "sign": "Gemini",
+            "sign_lord": "mercury"
+          },
+          "mars": {
+            "graha": "mars",
+            "sign": "Scorpio",
+            "sign_lord": "mars"
+          },
+          "mercury": {
+            "graha": "mercury",
+            "sign": "Aries",
+            "sign_lord": "mars"
+          },
+          "moon": {
+            "graha": "moon",
+            "sign": "Capricorn",
+            "sign_lord": "saturn"
+          },
+          "rahu": {
+            "graha": "rahu",
+            "sign": "Sagittarius",
+            "sign_lord": "jupiter"
+          },
+          "saturn": {
+            "graha": "saturn",
+            "sign": "Taurus",
+            "sign_lord": "venus"
+          },
+          "sun": {
+            "graha": "sun",
+            "sign": "Cancer",
+            "sign_lord": "moon"
+          },
+          "venus": {
+            "graha": "venus",
+            "sign": "Leo",
+            "sign_lord": "sun"
+          }
+        }
+      },
+      "D9": {
+        "chart": "D9",
+        "lagna_sign": "Gemini",
+        "lagna_sign_lord": "mercury",
+        "placements": {
+          "jupiter": {
+            "graha": "jupiter",
+            "sign": "Sagittarius",
+            "sign_lord": "jupiter"
+          },
+          "ketu": {
+            "graha": "ketu",
+            "sign": "Aquarius",
+            "sign_lord": "saturn"
+          },
+          "mars": {
+            "graha": "mars",
+            "sign": "Aquarius",
+            "sign_lord": "saturn"
+          },
+          "mercury": {
+            "graha": "mercury",
+            "sign": "Virgo",
+            "sign_lord": "mercury"
+          },
+          "moon": {
+            "graha": "moon",
+            "sign": "Scorpio",
+            "sign_lord": "mars"
+          },
+          "rahu": {
+            "graha": "rahu",
+            "sign": "Leo",
+            "sign_lord": "sun"
+          },
+          "saturn": {
+            "graha": "saturn",
+            "sign": "Scorpio",
+            "sign_lord": "mars"
+          },
+          "sun": {
+            "graha": "sun",
+            "sign": "Capricorn",
+            "sign_lord": "saturn"
+          },
+          "venus": {
+            "graha": "venus",
+            "sign": "Pisces",
+            "sign_lord": "jupiter"
+          }
+        }
+      }
+    },
+    "shadvarga_own_sign": [
+      {
+        "charts_in_own_sign": [],
+        "graha": "sun",
+        "own_sign_count": 0
+      },
+      {
+        "charts_in_own_sign": [
+          "D2"
+        ],
+        "graha": "moon",
+        "own_sign_count": 1
+      },
+      {
+        "charts_in_own_sign": [
+          "D1",
+          "D30"
+        ],
+        "graha": "mars",
+        "own_sign_count": 2
+      },
+      {
+        "charts_in_own_sign": [
+          "D9"
+        ],
+        "graha": "mercury",
+        "own_sign_count": 1
+      },
+      {
+        "charts_in_own_sign": [
+          "D9"
+        ],
+        "graha": "jupiter",
+        "own_sign_count": 1
+      },
+      {
+        "charts_in_own_sign": [],
+        "graha": "venus",
+        "own_sign_count": 0
+      },
+      {
+        "charts_in_own_sign": [],
+        "graha": "saturn",
+        "own_sign_count": 0
+      },
+      {
+        "charts_in_own_sign": [],
+        "graha": "rahu",
+        "own_sign_count": 0
+      },
+      {
+        "charts_in_own_sign": [],
+        "graha": "ketu",
+        "own_sign_count": 0
+      }
+    ],
+    "vargottama": [
+      {
+        "point": "lagna",
+        "sign": "Gemini"
+      },
+      {
+        "point": "sun",
+        "sign": "Capricorn"
+      }
+    ],
+    "vimshopaka": [
+      {
+        "approximated": true,
+        "graha": "sun",
+        "score": 0.0
+      },
+      {
+        "approximated": true,
+        "graha": "moon",
+        "score": 2.0
+      },
+      {
+        "approximated": true,
+        "graha": "mars",
+        "score": 7.0
+      },
+      {
+        "approximated": true,
+        "graha": "mercury",
+        "score": 5.0
+      },
+      {
+        "approximated": true,
+        "graha": "jupiter",
+        "score": 5.0
+      },
+      {
+        "approximated": true,
+        "graha": "venus",
+        "score": 0.0
+      },
+      {
+        "approximated": true,
+        "graha": "saturn",
+        "score": 0.0
+      },
+      {
+        "approximated": true,
+        "graha": "rahu",
+        "score": 0.0
+      },
+      {
+        "approximated": true,
+        "graha": "ketu",
+        "score": 0.0
+      }
+    ]
+  },
+  "2000-12-31T23:59:00+00:00": {
+    "charts": {
+      "D1": {
+        "chart": "D1",
+        "lagna_sign": "Cancer",
+        "lagna_sign_lord": "moon",
+        "placements": {
+          "jupiter": {
+            "graha": "jupiter",
+            "sign": "Taurus",
+            "sign_lord": "venus"
+          },
+          "ketu": {
+            "graha": "ketu",
+            "sign": "Sagittarius",
+            "sign_lord": "jupiter"
+          },
+          "mars": {
+            "graha": "mars",
+            "sign": "Libra",
+            "sign_lord": "venus"
+          },
+          "mercury": {
+            "graha": "mercury",
+            "sign": "Sagittarius",
+            "sign_lord": "jupiter"
+          },
+          "moon": {
+            "graha": "moon",
+            "sign": "Aquarius",
+            "sign_lord": "saturn"
+          },
+          "rahu": {
+            "graha": "rahu",
+            "sign": "Gemini",
+            "sign_lord": "mercury"
+          },
+          "saturn": {
+            "graha": "saturn",
+            "sign": "Taurus",
+            "sign_lord": "venus"
+          },
+          "sun": {
+            "graha": "sun",
+            "sign": "Sagittarius",
+            "sign_lord": "jupiter"
+          },
+          "venus": {
+            "graha": "venus",
+            "sign": "Aquarius",
+            "sign_lord": "saturn"
+          }
+        }
+      },
+      "D10": {
+        "chart": "D10",
+        "lagna_sign": "Leo",
+        "lagna_sign_lord": "sun",
+        "placements": {
+          "jupiter": {
+            "graha": "jupiter",
+            "sign": "Pisces",
+            "sign_lord": "jupiter"
+          },
+          "ketu": {
+            "graha": "ketu",
+            "sign": "Cancer",
+            "sign_lord": "moon"
+          },
+          "mars": {
+            "graha": "mars",
+            "sign": "Capricorn",
+            "sign_lord": "saturn"
+          },
+          "mercury": {
+            "graha": "mercury",
+            "sign": "Gemini",
+            "sign_lord": "mercury"
+          },
+          "moon": {
+            "graha": "moon",
+            "sign": "Libra",
+            "sign_lord": "venus"
+          },
+          "rahu": {
+            "graha": "rahu",
+            "sign": "Capricorn",
+            "sign_lord": "saturn"
+          },
+          "saturn": {
+            "graha": "saturn",
+            "sign": "Capricorn",
+            "sign_lord": "saturn"
+          },
+          "sun": {
+            "graha": "sun",
+            "sign": "Taurus",
+            "sign_lord": "venus"
+          },
+          "venus": {
+            "graha": "venus",
+            "sign": "Pisces",
+            "sign_lord": "jupiter"
+          }
+        }
+      },
+      "D12": {
+        "chart": "D12",
+        "lagna_sign": "Capricorn",
+        "lagna_sign_lord": "saturn",
+        "placements": {
+          "jupiter": {
+            "graha": "jupiter",
+            "sign": "Leo",
+            "sign_lord": "sun"
+          },
+          "ketu": {
+            "graha": "ketu",
+            "sign": "Leo",
+            "sign_lord": "sun"
+          },
+          "mars": {
+            "graha": "mars",
+            "sign": "Aquarius",
+            "sign_lord": "saturn"
+          },
+          "mercury": {
+            "graha": "mercury",
+            "sign": "Leo",
+            "sign_lord": "sun"
+          },
+          "moon": {
+            "graha": "moon",
+            "sign": "Scorpio",
+            "sign_lord": "mars"
+          },
+          "rahu": {
+            "graha": "rahu",
+            "sign": "Aquarius",
+            "sign_lord": "saturn"
+          },
+          "saturn": {
+            "graha": "saturn",
+            "sign": "Taurus",
+            "sign_lord": "venus"
+          },
+          "sun": {
+            "graha": "sun",
+            "sign": "Gemini",
+            "sign_lord": "mercury"
+          },
+          "venus": {
+            "graha": "venus",
+            "sign": "Pisces",
+            "sign_lord": "jupiter"
+          }
+        }
+      },
+      "D16": {
+        "chart": "D16",
+        "lagna_sign": "Sagittarius",
+        "lagna_sign_lord": "jupiter",
+        "placements": {
+          "jupiter": {
+            "graha": "jupiter",
+            "sign": "Sagittarius",
+            "sign_lord": "jupiter"
+          },
+          "ketu": {
+            "graha": "ketu",
+            "sign": "Scorpio",
+            "sign_lord": "mars"
+          },
+          "mars": {
+            "graha": "mars",
+            "sign": "Virgo",
+            "sign_lord": "mercury"
+          },
+          "mercury": {
+            "graha": "mercury",
+            "sign": "Libra",
+            "sign_lord": "venus"
+          },
+          "moon": {
+            "graha": "moon",
+            "sign": "Virgo",
+            "sign_lord": "mercury"
+          },
+          "rahu": {
+            "graha": "rahu",
+            "sign": "Scorpio",
+            "sign_lord": "mars"
+          },
+          "saturn": {
+            "graha": "saturn",
+            "sign": "Leo",
+            "sign_lord": "sun"
+          },
+          "sun": {
+            "graha": "sun",
+            "sign": "Leo",
+            "sign_lord": "sun"
+          },
+          "venus": {
+            "graha": "venus",
+            "sign": "Virgo",
+            "sign_lord": "mercury"
+          }
+        }
+      },
+      "D2": {
+        "chart": "D2",
+        "lagna_sign": "Leo",
+        "lagna_sign_lord": "sun",
+        "placements": {
+          "jupiter": {
+            "graha": "jupiter",
+            "sign": "Cancer",
+            "sign_lord": "moon"
+          },
+          "ketu": {
+            "graha": "ketu",
+            "sign": "Cancer",
+            "sign_lord": "moon"
+          },
+          "mars": {
+            "graha": "mars",
+            "sign": "Leo",
+            "sign_lord": "sun"
+          },
+          "mercury": {
+            "graha": "mercury",
+            "sign": "Cancer",
+            "sign_lord": "moon"
+          },
+          "moon": {
+            "graha": "moon",
+            "sign": "Cancer",
+            "sign_lord": "moon"
+          },
+          "rahu": {
+            "graha": "rahu",
+            "sign": "Cancer",
+            "sign_lord": "moon"
+          },
+          "saturn": {
+            "graha": "saturn",
+            "sign": "Cancer",
+            "sign_lord": "moon"
+          },
+          "sun": {
+            "graha": "sun",
+            "sign": "Cancer",
+            "sign_lord": "moon"
+          },
+          "venus": {
+            "graha": "venus",
+            "sign": "Leo",
+            "sign_lord": "sun"
+          }
+        }
+      },
+      "D20": {
+        "chart": "D20",
+        "lagna_sign": "Aquarius",
+        "lagna_sign_lord": "saturn",
+        "placements": {
+          "jupiter": {
+            "graha": "jupiter",
+            "sign": "Taurus",
+            "sign_lord": "venus"
+          },
+          "ketu": {
+            "graha": "ketu",
+            "sign": "Libra",
+            "sign_lord": "venus"
+          },
+          "mars": {
+            "graha": "mars",
+            "sign": "Scorpio",
+            "sign_lord": "mars"
+          },
+          "mercury": {
+            "graha": "mercury",
+            "sign": "Virgo",
+            "sign_lord": "mercury"
+          },
+          "moon": {
+            "graha": "moon",
+            "sign": "Aries",
+            "sign_lord": "mars"
+          },
+          "rahu": {
+            "graha": "rahu",
+            "sign": "Libra",
+            "sign_lord": "venus"
+          },
+          "saturn": {
+            "graha": "saturn",
+            "sign": "Sagittarius",
+            "sign_lord": "jupiter"
+          },
+          "sun": {
+            "graha": "sun",
+            "sign": "Cancer",
+            "sign_lord": "moon"
+          },
+          "venus": {
+            "graha": "venus",
+            "sign": "Aquarius",
+            "sign_lord": "saturn"
+          }
+        }
+      },
+      "D24": {
+        "chart": "D24",
+        "lagna_sign": "Cancer",
+        "lagna_sign_lord": "moon",
+        "placements": {
+          "jupiter": {
+            "graha": "jupiter",
+            "sign": "Capricorn",
+            "sign_lord": "saturn"
+          },
+          "ketu": {
+            "graha": "ketu",
+            "sign": "Capricorn",
+            "sign_lord": "saturn"
+          },
+          "mars": {
+            "graha": "mars",
+            "sign": "Aries",
+            "sign_lord": "mars"
+          },
+          "mercury": {
+            "graha": "mercury",
+            "sign": "Sagittarius",
+            "sign_lord": "jupiter"
+          },
+          "moon": {
+            "graha": "moon",
+            "sign": "Pisces",
+            "sign_lord": "jupiter"
+          },
+          "rahu": {
+            "graha": "rahu",
+            "sign": "Capricorn",
+            "sign_lord": "saturn"
+          },
+          "saturn": {
+            "graha": "saturn",
+            "sign": "Cancer",
+            "sign_lord": "moon"
+          },
+          "sun": {
+            "graha": "sun",
+            "sign": "Virgo",
+            "sign_lord": "mercury"
+          },
+          "venus": {
+            "graha": "venus",
+            "sign": "Libra",
+            "sign_lord": "venus"
+          }
+        }
+      },
+      "D27": {
+        "chart": "D27",
+        "lagna_sign": "Pisces",
+        "lagna_sign_lord": "jupiter",
+        "placements": {
+          "jupiter": {
+            "graha": "jupiter",
+            "sign": "Aquarius",
+            "sign_lord": "saturn"
+          },
+          "ketu": {
+            "graha": "ketu",
+            "sign": "Scorpio",
+            "sign_lord": "mars"
+          },
+          "mars": {
+            "graha": "mars",
+            "sign": "Cancer",
+            "sign_lord": "moon"
+          },
+          "mercury": {
+            "graha": "mercury",
+            "sign": "Libra",
+            "sign_lord": "venus"
+          },
+          "moon": {
+            "graha": "moon",
+            "sign": "Leo",
+            "sign_lord": "sun"
+          },
+          "rahu": {
+            "graha": "rahu",
+            "sign": "Taurus",
+            "sign_lord": "venus"
+          },
+          "saturn": {
+            "graha": "saturn",
+            "sign": "Cancer",
+            "sign_lord": "moon"
+          },
+          "sun": {
+            "graha": "sun",
+            "sign": "Cancer",
+            "sign_lord": "moon"
+          },
+          "venus": {
+            "graha": "venus",
+            "sign": "Sagittarius",
+            "sign_lord": "jupiter"
+          }
+        }
+      },
+      "D3": {
+        "chart": "D3",
+        "lagna_sign": "Scorpio",
+        "lagna_sign_lord": "mars",
+        "placements": {
+          "jupiter": {
+            "graha": "jupiter",
+            "sign": "Taurus",
+            "sign_lord": "venus"
+          },
+          "ketu": {
+            "graha": "ketu",
+            "sign": "Leo",
+            "sign_lord": "sun"
+          },
+          "mars": {
+            "graha": "mars",
+            "sign": "Aquarius",
+            "sign_lord": "saturn"
+          },
+          "mercury": {
+            "graha": "mercury",
+            "sign": "Leo",
+            "sign_lord": "sun"
+          },
+          "moon": {
+            "graha": "moon",
+            "sign": "Libra",
+            "sign_lord": "venus"
+          },
+          "rahu": {
+            "graha": "rahu",
+            "sign": "Aquarius",
+            "sign_lord": "saturn"
+          },
+          "saturn": {
+            "graha": "saturn",
+            "sign": "Taurus",
+            "sign_lord": "venus"
+          },
+          "sun": {
+            "graha": "sun",
+            "sign": "Aries",
+            "sign_lord": "mars"
+          },
+          "venus": {
+            "graha": "venus",
+            "sign": "Aquarius",
+            "sign_lord": "saturn"
+          }
+        }
+      },
+      "D30": {
+        "chart": "D30",
+        "lagna_sign": "Pisces",
+        "lagna_sign_lord": "jupiter",
+        "placements": {
+          "jupiter": {
+            "graha": "jupiter",
+            "sign": "Virgo",
+            "sign_lord": "mercury"
+          },
+          "ketu": {
+            "graha": "ketu",
+            "sign": "Gemini",
+            "sign_lord": "mercury"
+          },
+          "mars": {
+            "graha": "mars",
+            "sign": "Sagittarius",
+            "sign_lord": "jupiter"
+          },
+          "mercury": {
+            "graha": "mercury",
+            "sign": "Gemini",
+            "sign_lord": "mercury"
+          },
+          "moon": {
+            "graha": "moon",
+            "sign": "Gemini",
+            "sign_lord": "mercury"
+          },
+          "rahu": {
+            "graha": "rahu",
+            "sign": "Gemini",
+            "sign_lord": "mercury"
+          },
+          "saturn": {
+            "graha": "saturn",
+            "sign": "Taurus",
+            "sign_lord": "venus"
+          },
+          "sun": {
+            "graha": "sun",
+            "sign": "Sagittarius",
+            "sign_lord": "jupiter"
+          },
+          "venus": {
+            "graha": "venus",
+            "sign": "Aries",
+            "sign_lord": "mars"
+          }
+        }
+      },
+      "D4": {
+        "chart": "D4",
+        "lagna_sign": "Capricorn",
+        "lagna_sign_lord": "saturn",
+        "placements": {
+          "jupiter": {
+            "graha": "jupiter",
+            "sign": "Leo",
+            "sign_lord": "sun"
+          },
+          "ketu": {
+            "graha": "ketu",
+            "sign": "Gemini",
+            "sign_lord": "mercury"
+          },
+          "mars": {
+            "graha": "mars",
+            "sign": "Capricorn",
+            "sign_lord": "saturn"
+          },
+          "mercury": {
+            "graha": "mercury",
+            "sign": "Gemini",
+            "sign_lord": "mercury"
+          },
+          "moon": {
+            "graha": "moon",
+            "sign": "Scorpio",
+            "sign_lord": "mars"
+          },
+          "rahu": {
+            "graha": "rahu",
+            "sign": "Sagittarius",
+            "sign_lord": "jupiter"
+          },
+          "saturn": {
+            "graha": "saturn",
+            "sign": "Taurus",
+            "sign_lord": "venus"
+          },
+          "sun": {
+            "graha": "sun",
+            "sign": "Gemini",
+            "sign_lord": "mercury"
+          },
+          "venus": {
+            "graha": "venus",
+            "sign": "Aquarius",
+            "sign_lord": "saturn"
+          }
+        }
+      },
+      "D40": {
+        "chart": "D40",
+        "lagna_sign": "Cancer",
+        "lagna_sign_lord": "moon",
+        "placements": {
+          "jupiter": {
+            "graha": "jupiter",
+            "sign": "Virgo",
+            "sign_lord": "mercury"
+          },
+          "ketu": {
+            "graha": "ketu",
+            "sign": "Virgo",
+            "sign_lord": "mercury"
+          },
+          "mars": {
+            "graha": "mars",
+            "sign": "Gemini",
+            "sign_lord": "mercury"
+          },
+          "mercury": {
+            "graha": "mercury",
+            "sign": "Cancer",
+            "sign_lord": "moon"
+          },
+          "moon": {
+            "graha": "moon",
+            "sign": "Capricorn",
+            "sign_lord": "saturn"
+          },
+          "rahu": {
+            "graha": "rahu",
+            "sign": "Virgo",
+            "sign_lord": "mercury"
+          },
+          "saturn": {
+            "graha": "saturn",
+            "sign": "Libra",
+            "sign_lord": "venus"
+          },
+          "sun": {
+            "graha": "sun",
+            "sign": "Aquarius",
+            "sign_lord": "saturn"
+          },
+          "venus": {
+            "graha": "venus",
+            "sign": "Leo",
+            "sign_lord": "sun"
+          }
+        }
+      },
+      "D45": {
+        "chart": "D45",
+        "lagna_sign": "Aries",
+        "lagna_sign_lord": "mars",
+        "placements": {
+          "jupiter": {
+            "graha": "jupiter",
+            "sign": "Leo",
+            "sign_lord": "sun"
+          },
+          "ketu": {
+            "graha": "ketu",
+            "sign": "Leo",
+            "sign_lord": "sun"
+          },
+          "mars": {
+            "graha": "mars",
+            "sign": "Leo",
+            "sign_lord": "sun"
+          },
+          "mercury": {
+            "graha": "mercury",
+            "sign": "Gemini",
+            "sign_lord": "mercury"
+          },
+          "moon": {
+            "graha": "moon",
+            "sign": "Virgo",
+            "sign_lord": "mercury"
+          },
+          "rahu": {
+            "graha": "rahu",
+            "sign": "Leo",
+            "sign_lord": "sun"
+          },
+          "saturn": {
+            "graha": "saturn",
+            "sign": "Virgo",
+            "sign_lord": "mercury"
+          },
+          "sun": {
+            "graha": "sun",
+            "sign": "Capricorn",
+            "sign_lord": "saturn"
+          },
+          "venus": {
+            "graha": "venus",
+            "sign": "Sagittarius",
+            "sign_lord": "jupiter"
+          }
+        }
+      },
+      "D60": {
+        "chart": "D60",
+        "lagna_sign": "Pisces",
+        "lagna_sign_lord": "jupiter",
+        "placements": {
+          "jupiter": {
+            "graha": "jupiter",
+            "sign": "Virgo",
+            "sign_lord": "mercury"
+          },
+          "ketu": {
+            "graha": "ketu",
+            "sign": "Cancer",
+            "sign_lord": "moon"
+          },
+          "mars": {
+            "graha": "mars",
+            "sign": "Leo",
+            "sign_lord": "sun"
+          },
+          "mercury": {
+            "graha": "mercury",
+            "sign": "Aries",
+            "sign_lord": "mars"
+          },
+          "moon": {
+            "graha": "moon",
+            "sign": "Pisces",
+            "sign_lord": "jupiter"
+          },
+          "rahu": {
+            "graha": "rahu",
+            "sign": "Capricorn",
+            "sign_lord": "saturn"
+          },
+          "saturn": {
+            "graha": "saturn",
+            "sign": "Gemini",
+            "sign_lord": "mercury"
+          },
+          "sun": {
+            "graha": "sun",
+            "sign": "Virgo",
+            "sign_lord": "mercury"
+          },
+          "venus": {
+            "graha": "venus",
+            "sign": "Leo",
+            "sign_lord": "sun"
+          }
+        }
+      },
+      "D7": {
+        "chart": "D7",
+        "lagna_sign": "Aries",
+        "lagna_sign_lord": "mars",
+        "placements": {
+          "jupiter": {
+            "graha": "jupiter",
+            "sign": "Sagittarius",
+            "sign_lord": "jupiter"
+          },
+          "ketu": {
+            "graha": "ketu",
+            "sign": "Taurus",
+            "sign_lord": "venus"
+          },
+          "mars": {
+            "graha": "mars",
+            "sign": "Sagittarius",
+            "sign_lord": "jupiter"
+          },
+          "mercury": {
+            "graha": "mercury",
+            "sign": "Aries",
+            "sign_lord": "mars"
+          },
+          "moon": {
+            "graha": "moon",
+            "sign": "Cancer",
+            "sign_lord": "moon"
+          },
+          "rahu": {
+            "graha": "rahu",
+            "sign": "Scorpio",
+            "sign_lord": "mars"
+          },
+          "saturn": {
+            "graha": "saturn",
+            "sign": "Scorpio",
+            "sign_lord": "mars"
+          },
+          "sun": {
+            "graha": "sun",
+            "sign": "Pisces",
+            "sign_lord": "jupiter"
+          },
+          "venus": {
+            "graha": "venus",
+            "sign": "Aquarius",
+            "sign_lord": "saturn"
+          }
+        }
+      },
+      "D9": {
+        "chart": "D9",
+        "lagna_sign": "Scorpio",
+        "lagna_sign_lord": "mars",
+        "placements": {
+          "jupiter": {
+            "graha": "jupiter",
+            "sign": "Pisces",
+            "sign_lord": "jupiter"
+          },
+          "ketu": {
+            "graha": "ketu",
+            "sign": "Libra",
+            "sign_lord": "venus"
+          },
+          "mars": {
+            "graha": "mars",
+            "sign": "Capricorn",
+            "sign_lord": "saturn"
+          },
+          "mercury": {
+            "graha": "mercury",
+            "sign": "Libra",
+            "sign_lord": "venus"
+          },
+          "moon": {
+            "graha": "moon",
+            "sign": "Taurus",
+            "sign_lord": "venus"
+          },
+          "rahu": {
+            "graha": "rahu",
+            "sign": "Aries",
+            "sign_lord": "mars"
+          },
+          "saturn": {
+            "graha": "saturn",
+            "sign": "Capricorn",
+            "sign_lord": "saturn"
+          },
+          "sun": {
+            "graha": "sun",
+            "sign": "Virgo",
+            "sign_lord": "mercury"
+          },
+          "venus": {
+            "graha": "venus",
+            "sign": "Libra",
+            "sign_lord": "venus"
+          }
+        }
+      }
+    },
+    "shadvarga_own_sign": [
+      {
+        "charts_in_own_sign": [],
+        "graha": "sun",
+        "own_sign_count": 0
+      },
+      {
+        "charts_in_own_sign": [
+          "D2"
+        ],
+        "graha": "moon",
+        "own_sign_count": 1
+      },
+      {
+        "charts_in_own_sign": [],
+        "graha": "mars",
+        "own_sign_count": 0
+      },
+      {
+        "charts_in_own_sign": [
+          "D30"
+        ],
+        "graha": "mercury",
+        "own_sign_count": 1
+      },
+      {
+        "charts_in_own_sign": [
+          "D9"
+        ],
+        "graha": "jupiter",
+        "own_sign_count": 1
+      },
+      {
+        "charts_in_own_sign": [
+          "D9"
+        ],
+        "graha": "venus",
+        "own_sign_count": 1
+      },
+      {
+        "charts_in_own_sign": [
+          "D9"
+        ],
+        "graha": "saturn",
+        "own_sign_count": 1
+      },
+      {
+        "charts_in_own_sign": [],
+        "graha": "rahu",
+        "own_sign_count": 0
+      },
+      {
+        "charts_in_own_sign": [],
+        "graha": "ketu",
+        "own_sign_count": 0
+      }
+    ],
+    "vargottama": [],
+    "vimshopaka": [
+      {
+        "approximated": true,
+        "graha": "sun",
+        "score": 0.0
+      },
+      {
+        "approximated": true,
+        "graha": "moon",
+        "score": 2.0
+      },
+      {
+        "approximated": true,
+        "graha": "mars",
+        "score": 0.0
+      },
+      {
+        "approximated": true,
+        "graha": "mercury",
+        "score": 1.0
+      },
+      {
+        "approximated": true,
+        "graha": "jupiter",
+        "score": 5.0
+      },
+      {
+        "approximated": true,
+        "graha": "venus",
+        "score": 5.0
+      },
+      {
+        "approximated": true,
+        "graha": "saturn",
+        "score": 5.0
+      },
+      {
+        "approximated": true,
+        "graha": "rahu",
+        "score": 0.0
+      },
+      {
+        "approximated": true,
+        "graha": "ketu",
+        "score": 0.0
+      }
+    ]
+  }
+}

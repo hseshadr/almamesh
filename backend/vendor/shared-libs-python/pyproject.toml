@@ -1,0 +1,129 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "shared-libs-python"
+version = "0.1.1"
+description = "HNSW vector indexing and generic partition-key management for Python."
+readme = "README.md"
+requires-python = ">=3.13"
+license = {text = "MIT"}
+authors = [
+    {name = "Harish Seshadri", email = "harish.seshadri@gmail.com"}
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Database",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+dependencies = [
+    "pydantic>=2.5.0",
+]
+
+[project.optional-dependencies]
+pgvector = [
+    "pgvector>=0.2.4",
+    "sqlalchemy[asyncio]>=2.0.23",
+    "numpy>=1.26.0",
+]
+dev = [
+    "pytest>=7.4.3",
+    "pytest-asyncio>=0.21.1",
+    "pytest-cov>=4.1.0",
+    "mypy>=1.7.0",
+    "ruff>=0.1.6",
+    "xenon>=0.9.0",
+    "radon>=6.0.0",
+    "poethepoet>=0.30.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=7.4.3",
+    "pytest-asyncio>=0.21.1",
+    "pytest-cov>=4.1.0",
+    "mypy>=1.7.0",
+    "ruff>=0.1.6",
+    "xenon>=0.9.0",
+    "radon>=6.0.0",
+    "poethepoet>=0.30.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/hseshadr/shared-libs-python"
+Documentation = "https://github.com/hseshadr/shared-libs-python#readme"
+Repository = "https://github.com/hseshadr/shared-libs-python"
+Issues = "https://github.com/hseshadr/shared-libs-python/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["shared_libs_python*"]
+
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+exclude = [".git", "__pycache__", "build", "dist", ".venv", "venv"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "C901", "B", "UP", "SIM", "N", "RUF", "ASYNC", "S", "PL"]
+ignore = ["ARG002", "S101", "PLR0913"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101", "PLR2004", "C901", "PLR0911", "PLR0912"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 5
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = ["pgvector.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+minversion = "7.4"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+asyncio_mode = "auto"
+addopts = [
+    "--strict-markers",
+    "--cov=shared_libs_python",
+    "--cov-report=term-missing",
+    "--cov-fail-under=90",
+    "-v",
+]
+
+[tool.coverage.run]
+source = ["shared_libs_python"]
+omit = ["*/tests/*", "*/__pycache__/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "@abstractmethod",
+]
+fail_under = 90.0
+
+[tool.poe.tasks]
+lint = "ruff check shared_libs_python/ tests/"
+fmt = "ruff format shared_libs_python/ tests/"
+typecheck = "mypy --strict shared_libs_python/"
+complexity = "xenon --max-absolute A --max-modules A --max-average A shared_libs_python/"
+test = "pytest"
+quality = ["lint", "typecheck", "complexity", "test"]

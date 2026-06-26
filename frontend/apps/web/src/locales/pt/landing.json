@@ -1,0 +1,150 @@
+{
+  "_meta": { "review": "machine-translated" },
+  "nav": {
+    "cta": "Criar meu mapa",
+    "languageLabel": "Idioma",
+    "github": "Estrela no GitHub"
+  },
+  "hero": {
+    "headline": "Seu céu real. Calculado no seu dispositivo. Grátis, para sempre.",
+    "subhead": "Um mapa védico (sideral) fiel — planetas, nakshatras, dashas — calculado no seu navegador. Um experimento honesto, não um adivinho. Sem conta. Sem e-mail. Nada sai da sua aba.",
+    "cta": "Criar meu mapa — grátis",
+    "microcopy": "Funciona offline · 3 idiomas · motor aberto."
+  },
+  "what": {
+    "title": "O que ele calcula",
+    "intro": "Resultados védicos reais, calculados no seu próprio dispositivo — nunca em um servidor.",
+    "items": [
+      "Planetas, signos e casas",
+      "Nakshatras com padas",
+      "Dasha Vimshottari — maha, antar, pratyantar",
+      "Mapas divisionais D1–D60",
+      "Trânsitos e Gochara",
+      "Ashtakavarga e Shadbala"
+    ]
+  },
+  "features": {
+    "title": "O que você pode fazer",
+    "intro": "Calcule, retifique, narre e preveja — cada etapa roda no seu dispositivo, fundamentada na matemática do motor.",
+    "rectify": {
+      "badge": "O ponto de honestidade",
+      "title": "Retifique sua hora de nascimento — o dado que define tudo.",
+      "body": "Alguns minutos podem mover seu Ascendente para o próximo signo e mudar com ele cada previsão. A maioria das pessoas não sabe sua hora ao minuto. Então, em vez de fingir confiança sobre uma hora aproximada como fazem os sites pagos, o AlmaMesh ajuda você a retificá-la a partir de eventos reais da sua vida — um mapa honesto precisa de uma hora honesta."
+    },
+    "items": [
+      {
+        "title": "Calcule seu mapa",
+        "body": "Grátis, no seu dispositivo, em segundos."
+      },
+      {
+        "title": "Use sua própria IA",
+        "body": "Conecte qualquer modelo compatível com OpenAI (OpenRouter ou seu próprio endpoint). Você escolhe; nada fica preso."
+      },
+      {
+        "title": "Converse com seu mapa",
+        "body": "Pergunte em linguagem simples; a IA narra a saída do motor, nunca a inventa."
+      },
+      {
+        "title": "Veja seu timing",
+        "body": "Trânsitos, dashas, todos os mapas divisionais (D1–D60), Ashtakavarga e Shadbala, e previsões por área da vida. Profundamente preditivo — fundamentado na matemática, não em achismos."
+      }
+    ]
+  },
+  "why": {
+    "anchor": "Essas tradições foram transmitidas para o benefício de todos — um presente, não um esquema.",
+    "title": "Por que somos diferentes",
+    "colA": "AlmaMesh",
+    "colB": "O típico site de astrologia pago",
+    "rows": [
+      {
+        "a": "Grátis, para sempre — sem barreira de pagamento",
+        "b": "Assinaturas e \"desbloqueie sua leitura completa\""
+      },
+      {
+        "a": "Funciona no seu dispositivo, no seu navegador",
+        "b": "Funciona nos servidores deles"
+      },
+      {
+        "a": "Sem conta, sem e-mail",
+        "b": "Cadastro e e-mail obrigatórios"
+      },
+      {
+        "a": "Seus dados de nascimento nunca saem da sua aba",
+        "b": "Dados de nascimento armazenados, perfilados, monetizados"
+      },
+      {
+        "a": "Motor aberto, idêntico byte a byte ao CPython — verificável",
+        "b": "\"Previsões\" de caixa-preta"
+      },
+      {
+        "a": "Marcadores honestos (uma faixa é uma convenção, nunca um veredito)",
+        "b": "Certeza vaga, vendas adicionais baseadas no medo"
+      }
+    ]
+  },
+  "how": {
+    "title": "Como funciona",
+    "steps": [
+      {
+        "title": "Insira seus dados de nascimento",
+        "body": "Sua data, hora e local de nascimento — nada mais. Sem conta, sem e-mail."
+      },
+      {
+        "title": "O motor calcula seu mapa localmente",
+        "body": "O mapa sideral completo é calculado diretamente no seu navegador, no seu dispositivo."
+      },
+      {
+        "title": "Explore mapa, tempos e relacionamentos",
+        "body": "Mergulhe no seu mapa, nas suas dashas e na malha — com uma IA opcional que apenas narra, nunca inventa."
+      }
+    ],
+    "zeroEgress": "O motor de mapas não faz chamadas de rede. Seus dados de nascimento permanecem no seu dispositivo."
+  },
+  "who": {
+    "title": "Para quem é",
+    "items": [
+      "Os curiosos, explorando a astrologia védica pela primeira vez",
+      "Os que prezam a privacidade e não querem nada armazenado ou vendido",
+      "Os céticos que querem um motor verificável, não uma caixa-preta",
+      "Os profissionais que querem uma ferramenta de nível profissional, grátis"
+    ]
+  },
+  "whereWhen": {
+    "title": "Onde e quando",
+    "where": "Qualquer sistema operacional, em qualquer navegador moderno. Instale como um app e ele funciona offline após o primeiro carregamento.",
+    "when": "Disponível agora — grátis, sem lista de espera, sem cadastro."
+  },
+  "founder": {
+    "title": "Por que eu criei isto",
+    "body": [
+      "Sou atraído pela astrologia védica há muito tempo. Não acho que seja uma ciência exata — e não vou fingir que é. Mas continuei notando correlações interessantes demais para ignorar.",
+      "Também acredito que essas tradições — a astrologia, o yoga, toda a herança — foram transmitidas para o benefício de todos. Eram um presente, não um esquema. Trancá-las atrás de assinaturas e vendas adicionais é exatamente o contrário disso.",
+      "Então AlmaMesh é, honestamente, um experimento: se você calcular o mapa com rigor — o céu real, os melhores métodos, sem atalhos, sem espetáculo — ele consegue fazer significativamente melhor do que jogar uma moeda, de forma consistente?",
+      "Ainda não sei. Esse é o ponto. É também por isso que isto é grátis, funciona no seu próprio dispositivo e nunca pede seus dados — um experimento honesto não pode ser um funil de vendas, e um presente não deveria ter uma barreira de pagamento. A matemática precisa ser impecável, e você deve poder verificá-la você mesmo."
+    ],
+    "signature": "— Harish"
+  },
+  "trust": {
+    "title": "O motor em que você pode confiar",
+    "body": "A matemática é a fonte da verdade; a IA apenas a explica.",
+    "points": [
+      "Skyfield + a efeméride DE421 para as posições reais do céu",
+      "Validado externamente com precisão de subsegundo de arco contra astropy + JPL Horizons",
+      "Determinístico e idêntico byte a byte no CPython e no seu navegador",
+      "O motor é a fonte da verdade — a IA narra, nunca inventa"
+    ]
+  },
+  "finalCta": {
+    "title": "Crie seu mapa — grátis, privado, seu.",
+    "cta": "Criar meu mapa — grátis",
+    "installPwa": "Instalar como app",
+    "viewSource": "Ver o código no GitHub"
+  },
+  "footer": {
+    "tagline": "Astrologia védica grátis e no seu dispositivo. Um experimento honesto — seus dados nunca saem da sua aba.",
+    "privacy": "Política de privacidade",
+    "terms": "Termos de serviço",
+    "dataDeletion": "Exclusão de dados",
+    "github": "GitHub"
+  }
+}

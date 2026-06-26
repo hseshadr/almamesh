@@ -1,0 +1,19 @@
+{
+  "_provenance": {
+    "ephemeris": "de421.bsp (vendored, offline)",
+    "oracle": "astropy get_body + GeocentricTrueEcliptic (true apparent), independent of Skyfield; SAME local DE421; no Swiss Ephemeris.",
+    "sidereal_convention": "apparent_ecliptic_of_date minus engine Lahiri ayanamsa",
+    "transit_instant": "2026-06-09T12:00:00+00:00"
+  },
+  "ayanamsa": 24.22575,
+  "longitudes": {
+    "jupiter": 91.486331,
+    "mars": 21.800718,
+    "mercury": 77.801645,
+    "moon": 337.695704,
+    "saturn": 348.692973,
+    "sun": 54.449891,
+    "venus": 91.162883
+  },
+  "transit_instant": "2026-06-09T12:00:00+00:00"
+}

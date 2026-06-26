@@ -1,0 +1,164 @@
+{
+  "_meta": { "review": "machine-translated" },
+  "page": {
+    "kicker": "A malha",
+    "title": "Uma malha de almas",
+    "subtitle": "As pessoas tecidas no seu céu — cada uma com o seu mapa completo, lido a partir do seu.",
+    "people_count": "Pessoas na sua malha: {{count}}",
+    "manage": "Gerir pessoas",
+    "computed_note": "Cada vínculo é calculado neste dispositivo. Nada sai dele."
+  },
+  "invitation": {
+    "kicker": "A malha",
+    "title": "Teça o seu primeiro fio",
+    "body": "O AlmaMesh lê relações entre mapas completos — o seu e os das pessoas próximas de você. Marque o seu próprio perfil como \"este sou eu\" e adicione pelo menos uma pessoa para começar.",
+    "cta": "Adicionar pessoas",
+    "hint": "As pessoas vivem em Configurações. Cada uma recebe o seu próprio mapa completo."
+  },
+  "graph": {
+    "you": "Você",
+    "no_chart": "Ainda sem mapa",
+    "generate": "Gerar mapa",
+    "open_edge": "Abrir o seu vínculo com {{name}}",
+    "generate_for": "Gerar o mapa de {{name}}",
+    "rising": "ascendente {{sign}}"
+  },
+  "edge": {
+    "back": "A malha",
+    "kicker": "Vínculo da malha · {{relationship}}",
+    "title": "{{anchor}} · {{member}}",
+    "frame": "Dois mapas concluídos, lidos lado a lado. Nenhum altera o outro.",
+    "computing": "Tecendo este vínculo no seu dispositivo — {{elapsed}} até agora.",
+    "error_title": "Não foi possível calcular este vínculo",
+    "retry": "Tentar novamente",
+    "needs_charts_title": "Este vínculo precisa dos dois mapas",
+    "needs_chart_member": "{{name}} ainda não tem um mapa gerado. O vínculo lê dois mapas concluídos.",
+    "needs_chart_anchor": "O seu próprio mapa ainda não foi gerado. O vínculo lê dois mapas concluídos.",
+    "generate_for": "Gerar o mapa de {{name}}",
+    "generate_yours": "Gerar o seu mapa",
+    "discuss": "Conversar no chat",
+    "integrity_label": "Promessa de somente leitura"
+  },
+  "compat": {
+    "heading": "Compatibilidade",
+    "badge": "Guna Milan · tabelas matrimoniais",
+    "roles_label": "As tabelas clássicas são assimétricas por papel — escolha para qual mapa as regras da tabela da noiva são lidas.",
+    "roles_read_for": "A tabela da noiva é lida para",
+    "role_you": "Você",
+    "moon_you": "Sua Lua",
+    "moon_member": "A Lua de {{name}}",
+    "moon_line": "{{nakshatra}} · pada {{pada}} · {{sign}}",
+    "of_max": "de {{max}}",
+    "total_note": "Convenção clássica — um rótulo, não um veredicto.",
+    "koota": {
+      "varna": "Varna",
+      "vashya": "Vashya",
+      "tara": "Tārā",
+      "yoni": "Yoni",
+      "graha_maitri": "Graha Maitri",
+      "gana": "Gaṇa",
+      "bhakoot": "Bhakoot",
+      "nadi": "Nāḍī"
+    },
+    "bands": {
+      "not_recommended": "Abaixo do limiar clássico",
+      "average": "Média",
+      "good": "Boa",
+      "excellent": "Excelente"
+    },
+    "doshas_heading": "Indicadores de dosha",
+    "dosha": {
+      "bhakoot_dosha": "Dosha de Bhakoot",
+      "nadi_dosha": "Dosha de Nāḍī"
+    },
+    "dosha_clear": "não presente",
+    "dosha_cancelled": "presente — cancelado",
+    "dosha_present": "presente — não cancelado",
+    "cancelled_by": "Cancelado por",
+    "mangal_heading": "Dosha de Mangal (Kuja)",
+    "mangal_you": "Você",
+    "mangal_ref": {
+      "lagna": "a partir do Lagna",
+      "moon": "a partir da Lua",
+      "venus": "a partir de Vênus"
+    },
+    "mangal_position": "Marte em {{sign}}, casa {{house}}",
+    "mangal_clear": "livre",
+    "mangal_net": "casa de dosha",
+    "mangal_cancelled": "cancelado",
+    "mangal_summary_has": "Carrega o dosha em pelo menos uma referência.",
+    "mangal_summary_clear": "Livre nas três referências.",
+    "mangal_mutual": "Cancelamento mútuo — os dois mapas o carregam, o que as tabelas leem como compatível."
+  },
+  "maitri": {
+    "heading": "Graha Maitri",
+    "badge": "amizade dos regentes lunares",
+    "note": "Das tabelas clássicas de compatibilidade, a amizade entre os regentes dos dois signos lunares é a que se generaliza para além do casamento. As demais tabelas são lidas apenas para vínculos de cônjuge e parceiro(a)."
+  },
+  "connection": {
+    "heading": "Conexão",
+    "badge": "sobreposição nos dois sentidos",
+    "theirs_in_yours": "Os planetas de {{name}} no seu mapa",
+    "yours_in_theirs": "Os seus planetas no mapa de {{name}}",
+    "host_rising": "casas contadas a partir do ascendente {{sign}}",
+    "placements": "Posições",
+    "contacts": "Contatos mais fortes",
+    "house_n": "casa {{n}}",
+    "kind": {
+      "close_conjunction": "conjunção estreita",
+      "same_sign": "mesmo signo",
+      "graha_drishti": "graha dṛṣṭi"
+    },
+    "on_target": "sobre {{target}}",
+    "target_lagna": "o Lagna",
+    "orb": "orbe de {{degrees}}°",
+    "none": "Nenhum contato dentro do alcance desta convenção.",
+    "heuristic_note": "† segue a convenção declarada: {{convention}}"
+  },
+  "synchrony": {
+    "heading": "Juntos no tempo",
+    "badge": "sincronia de daśās",
+    "window": "{{start}} → {{end}}",
+    "years_label": "Janela",
+    "years": {
+      "1": "1 ano",
+      "2": "2 anos",
+      "5": "5 anos"
+    },
+    "you": "Você",
+    "shared_lords": "Regente compartilhado: {{lords}}",
+    "boundary_note": "Os dois mapas mudam de período neste limite.",
+    "empty": "Nenhuma janela conjunta cai dentro deste intervalo.",
+    "conventions": "Convenções — você: {{a}} · {{name}}: {{b}}"
+  },
+  "signif": {
+    "heading": "Corroboração",
+    "badge": "casas e kārakas",
+    "you_col": "Seu mapa",
+    "member_col": "O mapa de {{name}}",
+    "house_title": "Casa {{n}} — {{sign}}",
+    "lord_line": "Regente {{lord}} — {{dignity}}, casa {{house}}",
+    "retrograde": "retrógrado",
+    "combust": "combusto",
+    "occupants": "Ocupantes",
+    "occupants_none": "nenhum",
+    "karakas": "Kārakas"
+  },
+  "reading": {
+    "heading": "Leitura de IA",
+    "badge": "opcional · apenas narra",
+    "cta_title": "Conecte um modelo para narrar este vínculo",
+    "cta_body": "Tudo acima é calculado no seu dispositivo e se sustenta por si só. Um modelo de IA opcional pode narrá-lo em linguagem simples — ele nunca calcula nem altera um único número.",
+    "cta_link": "Abrir configurações de IA",
+    "generate": "Gerar leitura",
+    "regenerate": "Regenerar",
+    "generating": "Narrando este vínculo — {{elapsed}} até agora.",
+    "failed": "A leitura falhou: {{message}}",
+    "retry": "Tentar novamente",
+    "sections": {
+      "connection": "Conexão",
+      "timing_together": "Tempos compartilhados",
+      "care": "Cuidado"
+    }
+  }
+}

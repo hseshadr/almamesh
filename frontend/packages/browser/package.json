@@ -1,0 +1,36 @@
+{
+  "name": "@almamesh/browser",
+  "version": "0.0.1",
+  "license": "MIT",
+  "description": "In-browser local-first AlmaMesh engine: edge-proc signed-bundle sync + Pyodide chart compute, entirely on-device. Reuses @edgeproc/browser/engine (the edge-reco sync tier, vendored at packages/edgeproc-browser) as a workspace dependency.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts"
+    },
+    "./types": {
+      "types": "./src/types.ts",
+      "import": "./src/types.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:parity": "node integration/parity.mjs",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@edgeproc/browser": "workspace:*",
+    "@hpcc-js/wasm-zstd": "^1.12.6",
+    "@noble/ed25519": "^3.1.0",
+    "pyodide": "^0.29.4"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "~5.7.0",
+    "vitest": "^4.0.16"
+  }
+}

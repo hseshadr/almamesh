@@ -1,0 +1,2353 @@
+{
+  "1972-03-10T08:15:00+00:00|2000-12-31T23:59:00+00:00|business": {
+    "ashtakoota": {
+      "band": "good",
+      "band_basis": "Classical convention (panchanga practice): below 18 of 36 the match is traditionally not recommended; 18-24 average; 25-32 good; 33-36 excellent. A label, not a verdict.",
+      "bhakoot_dosha": {
+        "basis": "Aquarius and Sagittarius stand 3/11 from each other",
+        "cancellations": [],
+        "cancelled": false,
+        "name": "bhakoot_dosha",
+        "present": false,
+        "source": "Bhakoot (Rasi) kuta: mutual Moon-sign positions; the complementary pairs 2/12 (dwirdwadasha), 5/9 (nava-pancham) and 6/8 (shadashtaka) are dosha (0 points), all other placements earn the full 7. B.V. Raman, 'Muhurtha', Kuta agreement; standard panchanga Melapaka practice."
+      },
+      "bride_moon": {
+        "nakshatra": "Purva Ashadha",
+        "nakshatra_index": 19,
+        "nakshatra_pada": 2,
+        "sign": "Sagittarius",
+        "sign_degrees": 19.919241
+      },
+      "groom_moon": {
+        "nakshatra": "Purva Bhadrapada",
+        "nakshatra_index": 24,
+        "nakshatra_pada": 2,
+        "sign": "Aquarius",
+        "sign_degrees": 24.826845
+      },
+      "kootas": [
+        {
+          "basis": "groom Aquarius (shudra) x bride Sagittarius (kshatriya)",
+          "earned": 0.0,
+          "koota": "varna",
+          "maximum": 1.0,
+          "source": "Varna kuta: Moon-sign varna by element (water=Brahmin, fire=Kshatriya, earth=Vaishya, air=Shudra); 1 point when the groom's varna is not below the bride's. B.V. Raman, 'Muhurtha', Kuta agreement; standard panchanga Melapaka table."
+        },
+        {
+          "basis": "groom Aquarius (manava) x bride Sagittarius (chatushpada)",
+          "earned": 1.0,
+          "koota": "vashya",
+          "maximum": 2.0,
+          "source": "Vashya kuta: five-fold sign classification (chatushpada/manava/jalachara/vanachara/keeta) with the first/second-half split of Sagittarius and Capricorn; scored groom-class x bride-class by the standard five-class points matrix (incl. the half-point cells). B.V. Raman, 'Muhurtha', Kuta agreement; matrix as tabulated in standard panchanga Melapaka practice."
+        },
+        {
+          "basis": "bride->groom Sadhaka, groom->bride Pratyari (malefic taras: Vipat/Pratyari/Vadha)",
+          "earned": 1.5,
+          "koota": "tara",
+          "maximum": 3.0,
+          "source": "Tara (Dina) kuta: count nakshatras inclusively between the Moons, mod 9; remainders 3 (Vipat), 5 (Pratyari) and 7 (Vadha) are malefic. Each direction contributes 1.5 of the 3 points. B.V. Raman, 'Muhurtha', Kuta agreement; standard panchanga Melapaka scoring."
+        },
+        {
+          "basis": "groom Purva Bhadrapada (lion, male) x bride Purva Ashadha (monkey, male)",
+          "earned": 2.0,
+          "koota": "yoni",
+          "maximum": 4.0,
+          "source": "Yoni kuta: each nakshatra's animal (and sex) per the classical yoni table; scored by the standard 14x14 points matrix (same animal 4, sworn-enemy pair 0). B.V. Raman, 'Muhurtha', Kuta agreement; matrix as tabulated in standard panchanga Melapaka practice."
+        },
+        {
+          "basis": "groom lord saturn sees bride lord jupiter as neutral; bride lord sees groom lord as neutral",
+          "earned": 3.0,
+          "koota": "graha_maitri",
+          "maximum": 5.0,
+          "source": "Graha Maitri kuta: natural (naisargika) relationship between the two Moon-sign lords per the BPHS maitri table (reused from almamesh.strength.friendship); scored friend/friend 5, friend/neutral 4, neutral/neutral 3, friend/enemy 1, neutral/enemy 0.5, enemy/enemy 0 (same lord counts as friend/friend). B.V. Raman, 'Muhurtha', Kuta agreement; standard panchanga Melapaka scoring."
+        },
+        {
+          "basis": "groom Purva Bhadrapada (manushya) x bride Purva Ashadha (manushya)",
+          "earned": 6.0,
+          "koota": "gana",
+          "maximum": 6.0,
+          "source": "Gana kuta: nakshatra gana classes (deva/manushya/rakshasa) scored by the standard groom-x-bride matrix (same gana 6; deva groom + manushya bride 6; manushya groom + deva bride 5; rakshasa groom + deva bride 1; deva/manushya with rakshasa otherwise 0). B.V. Raman, 'Muhurtha', Kuta agreement; matrix as tabulated in standard panchanga Melapaka practice."
+        },
+        {
+          "basis": "Aquarius and Sagittarius stand 3/11 from each other",
+          "earned": 7.0,
+          "koota": "bhakoot",
+          "maximum": 7.0,
+          "source": "Bhakoot (Rasi) kuta: mutual Moon-sign positions; the complementary pairs 2/12 (dwirdwadasha), 5/9 (nava-pancham) and 6/8 (shadashtaka) are dosha (0 points), all other placements earn the full 7. B.V. Raman, 'Muhurtha', Kuta agreement; standard panchanga Melapaka practice."
+        },
+        {
+          "basis": "groom Purva Bhadrapada (adi nadi) x bride Purva Ashadha (madhya nadi)",
+          "earned": 8.0,
+          "koota": "nadi",
+          "maximum": 8.0,
+          "source": "Nadi kuta: nakshatra nadi classes (adi/madhya/antya); different nadis earn the full 8 points, the same nadi is Nadi dosha (0 points) \u2014 the gravest Melapaka dosha. B.V. Raman, 'Muhurtha', Kuta agreement; standard panchanga Melapaka table."
+        }
+      ],
+      "maximum": 36.0,
+      "nadi_dosha": {
+        "basis": "groom Purva Bhadrapada (adi nadi) x bride Purva Ashadha (madhya nadi)",
+        "cancellations": [],
+        "cancelled": false,
+        "name": "nadi_dosha",
+        "present": false,
+        "source": "Nadi kuta: nakshatra nadi classes (adi/madhya/antya); different nadis earn the full 8 points, the same nadi is Nadi dosha (0 points) \u2014 the gravest Melapaka dosha. B.V. Raman, 'Muhurtha', Kuta agreement; standard panchanga Melapaka table."
+      },
+      "source": "Ashtakoota Guna Milan (36 gunas) per the standard Melapaka tradition \u2014 B.V. Raman, 'Muhurtha (Electional Astrology)', Kuta agreement; the table behind every koota is cited on its own row.",
+      "total": 28.5
+    },
+    "integrity_note": "Relations are computed FROM two finished natal charts (read-only inputs); neither chart is recomputed, reweighted or mutated by the other.",
+    "mangal_match": {
+      "a": {
+        "convention": "Mars in whole-sign houses 1/2/4/7/8/12 from each reference; the 2nd house is the South-Indian inclusion (labeled). has_dosha applies the strictest screening convention: a net dosha under ANY of Lagna/Moon/Venus.",
+        "has_dosha": false,
+        "references": [
+          {
+            "cancellations": [
+              {
+                "description": "Mars stands in its own sign (Aries)",
+                "rule": "mangal.own_sign",
+                "source": "Classical chart-computable exceptions (standard Muhurta compilation; cf. B.V. Raman, 'Muhurtha'): Mars in its own sign (Aries/Scorpio) or exalted (Capricorn) causes no dosha; the five-fold sign-house exception \u2014 Aries in the 1st, Scorpio in the 4th, Capricorn in the 7th, Cancer in the 8th, Sagittarius in the 12th (stated from the Lagna)."
+              },
+              {
+                "description": "Mars in Aries in the 1th \u2014 classical five-fold exception",
+                "rule": "mangal.sign_house_exception",
+                "source": "Classical chart-computable exceptions (standard Muhurta compilation; cf. B.V. Raman, 'Muhurtha'): Mars in its own sign (Aries/Scorpio) or exalted (Capricorn) causes no dosha; the five-fold sign-house exception \u2014 Aries in the 1st, Scorpio in the 4th, Capricorn in the 7th, Cancer in the 8th, Sagittarius in the 12th (stated from the Lagna)."
+              }
+            ],
+            "in_dosha_house": true,
+            "mars_house": 1,
+            "mars_sign": "Aries",
+            "net_dosha": false,
+            "reference": "lagna",
+            "school": "from the Lagna \u2014 the classical reference (all schools)",
+            "source": "Kuja (Mangal) dosha per the classical Muhurta tradition \u2014 Mars in houses 1/4/7/8/12 from the reference (cf. B.V. Raman, 'Muhurtha', marriage adyaya); the 2nd house and the Moon/Venus references per standard South-Indian practice."
+          },
+          {
+            "cancellations": [],
+            "in_dosha_house": false,
+            "mars_house": 5,
+            "mars_sign": "Aries",
+            "net_dosha": false,
+            "reference": "moon",
+            "school": "from the Moon \u2014 Chandra-lagna school",
+            "source": "Kuja (Mangal) dosha per the classical Muhurta tradition \u2014 Mars in houses 1/4/7/8/12 from the reference (cf. B.V. Raman, 'Muhurtha', marriage adyaya); the 2nd house and the Moon/Venus references per standard South-Indian practice."
+          },
+          {
+            "cancellations": [
+              {
+                "description": "Mars stands in its own sign (Aries)",
+                "rule": "mangal.own_sign",
+                "source": "Classical chart-computable exceptions (standard Muhurta compilation; cf. B.V. Raman, 'Muhurtha'): Mars in its own sign (Aries/Scorpio) or exalted (Capricorn) causes no dosha; the five-fold sign-house exception \u2014 Aries in the 1st, Scorpio in the 4th, Capricorn in the 7th, Cancer in the 8th, Sagittarius in the 12th (stated from the Lagna)."
+              }
+            ],
+            "in_dosha_house": true,
+            "mars_house": 1,
+            "mars_sign": "Aries",
+            "net_dosha": false,
+            "reference": "venus",
+            "school": "from Venus \u2014 South-Indian practice",
+            "source": "Kuja (Mangal) dosha per the classical Muhurta tradition \u2014 Mars in houses 1/4/7/8/12 from the reference (cf. B.V. Raman, 'Muhurtha', marriage adyaya); the 2nd house and the Moon/Venus references per standard South-Indian practice."
+          }
+        ]
+      },
+      "b": {
+        "convention": "Mars in whole-sign houses 1/2/4/7/8/12 from each reference; the 2nd house is the South-Indian inclusion (labeled). has_dosha applies the strictest screening convention: a net dosha under ANY of Lagna/Moon/Venus.",
+        "has_dosha": true,
+        "references": [
+          {
+            "cancellations": [],
+            "in_dosha_house": true,
+            "mars_house": 4,
+            "mars_sign": "Libra",
+            "net_dosha": true,
+            "reference": "lagna",
+            "school": "from the Lagna \u2014 the classical reference (all schools)",
+            "source": "Kuja (Mangal) dosha per the classical Muhurta tradition \u2014 Mars in houses 1/4/7/8/12 from the reference (cf. B.V. Raman, 'Muhurtha', marriage adyaya); the 2nd house and the Moon/Venus references per standard South-Indian practice."
+          },
+          {
+            "cancellations": [],
+            "in_dosha_house": false,
+            "mars_house": 9,
+            "mars_sign": "Libra",
+            "net_dosha": false,
+            "reference": "moon",
+            "school": "from the Moon \u2014 Chandra-lagna school",
+            "source": "Kuja (Mangal) dosha per the classical Muhurta tradition \u2014 Mars in houses 1/4/7/8/12 from the reference (cf. B.V. Raman, 'Muhurtha', marriage adyaya); the 2nd house and the Moon/Venus references per standard South-Indian practice."
+          },
+          {
+            "cancellations": [],
+            "in_dosha_house": false,
+            "mars_house": 9,
+            "mars_sign": "Libra",
+            "net_dosha": false,
+            "reference": "venus",
+            "school": "from Venus \u2014 South-Indian practice",
+            "source": "Kuja (Mangal) dosha per the classical Muhurta tradition \u2014 Mars in houses 1/4/7/8/12 from the reference (cf. B.V. Raman, 'Muhurtha', marriage adyaya); the 2nd house and the Moon/Venus references per standard South-Indian practice."
+          }
+        ]
+      },
+      "basis": "chart a clear, chart b afflicted",
+      "compatible": false,
+      "mutually_cancelled": false,
+      "source": "Mutual Kuja-dosha cancellation: when BOTH charts carry the dosha it stands neutralized between them \u2014 standard Muhurta practice; cf. B.V. Raman, 'Muhurtha', marriage adyaya."
+    },
+    "overlay": {
+      "a_in_b": {
+        "conjunction_orb_degrees": 3.0,
+        "contacts": [
+          {
+            "heuristic": true,
+            "host_house": 8,
+            "kind": "close_conjunction",
+            "orb_degrees": 1.571351,
+            "planet": "sun",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "moon"
+          },
+          {
+            "heuristic": false,
+            "host_house": 8,
+            "kind": "same_sign",
+            "orb_degrees": 23.30271,
+            "planet": "sun",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "venus"
+          },
+          {
+            "heuristic": false,
+            "host_house": 6,
+            "kind": "same_sign",
+            "orb_degrees": 3.157042,
+            "planet": "moon",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "sun"
+          },
+          {
+            "heuristic": true,
+            "host_house": 6,
+            "kind": "close_conjunction",
+            "orb_degrees": 0.480633,
+            "planet": "moon",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "mercury"
+          },
+          {
+            "heuristic": false,
+            "host_house": 6,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "moon",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "rahu"
+          },
+          {
+            "heuristic": true,
+            "host_house": 6,
+            "kind": "close_conjunction",
+            "orb_degrees": 1.900176,
+            "planet": "moon",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "ketu"
+          },
+          {
+            "heuristic": false,
+            "host_house": 10,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "mars",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "lagna"
+          },
+          {
+            "heuristic": false,
+            "host_house": 10,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "mars",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "mars"
+          },
+          {
+            "heuristic": false,
+            "host_house": 6,
+            "kind": "same_sign",
+            "orb_degrees": 5.000265,
+            "planet": "jupiter",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "sun"
+          },
+          {
+            "heuristic": false,
+            "host_house": 6,
+            "kind": "same_sign",
+            "orb_degrees": 8.63794,
+            "planet": "jupiter",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "mercury"
+          },
+          {
+            "heuristic": false,
+            "host_house": 6,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "jupiter",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "rahu"
+          },
+          {
+            "heuristic": false,
+            "host_house": 6,
+            "kind": "same_sign",
+            "orb_degrees": 10.057483,
+            "planet": "jupiter",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "ketu"
+          },
+          {
+            "heuristic": false,
+            "host_house": 10,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "venus",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "mars"
+          },
+          {
+            "heuristic": false,
+            "host_house": 11,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "saturn",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "lagna"
+          },
+          {
+            "heuristic": false,
+            "host_house": 11,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "saturn",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "moon"
+          },
+          {
+            "heuristic": true,
+            "host_house": 11,
+            "kind": "close_conjunction",
+            "orb_degrees": 0.825573,
+            "planet": "saturn",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "jupiter"
+          },
+          {
+            "heuristic": false,
+            "host_house": 11,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "saturn",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "venus"
+          },
+          {
+            "heuristic": false,
+            "host_house": 11,
+            "kind": "same_sign",
+            "orb_degrees": 6.773558,
+            "planet": "saturn",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "saturn"
+          },
+          {
+            "heuristic": false,
+            "host_house": 7,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "rahu",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "lagna"
+          },
+          {
+            "heuristic": false,
+            "host_house": 1,
+            "kind": "same_sign",
+            "orb_degrees": 6.63182,
+            "planet": "ketu",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "lagna"
+          }
+        ],
+        "convention": "Placements and drishti are whole-sign (classical); close_conjunction = same sign AND angular separation <= 3.0 deg \u2014 a modern orb convention, flagged heuristic on the contact.",
+        "host_lagna_sign": "Cancer",
+        "placements": [
+          {
+            "host_house": 8,
+            "planet": "sun",
+            "sign": "Aquarius"
+          },
+          {
+            "host_house": 6,
+            "planet": "moon",
+            "sign": "Sagittarius"
+          },
+          {
+            "host_house": 10,
+            "planet": "mars",
+            "sign": "Aries"
+          },
+          {
+            "host_house": 9,
+            "planet": "mercury",
+            "sign": "Pisces"
+          },
+          {
+            "host_house": 6,
+            "planet": "jupiter",
+            "sign": "Sagittarius"
+          },
+          {
+            "host_house": 10,
+            "planet": "venus",
+            "sign": "Aries"
+          },
+          {
+            "host_house": 11,
+            "planet": "saturn",
+            "sign": "Taurus"
+          },
+          {
+            "host_house": 7,
+            "planet": "rahu",
+            "sign": "Capricorn"
+          },
+          {
+            "host_house": 1,
+            "planet": "ketu",
+            "sign": "Cancer"
+          }
+        ]
+      },
+      "b_in_a": {
+        "conjunction_orb_degrees": 3.0,
+        "contacts": [
+          {
+            "heuristic": false,
+            "host_house": 9,
+            "kind": "same_sign",
+            "orb_degrees": 3.157042,
+            "planet": "sun",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "moon"
+          },
+          {
+            "heuristic": false,
+            "host_house": 9,
+            "kind": "same_sign",
+            "orb_degrees": 5.000265,
+            "planet": "sun",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "jupiter"
+          },
+          {
+            "heuristic": true,
+            "host_house": 11,
+            "kind": "close_conjunction",
+            "orb_degrees": 1.571351,
+            "planet": "moon",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "sun"
+          },
+          {
+            "heuristic": false,
+            "host_house": 7,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "mars",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "lagna"
+          },
+          {
+            "heuristic": false,
+            "host_house": 7,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "mars",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "mars"
+          },
+          {
+            "heuristic": false,
+            "host_house": 7,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "mars",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "venus"
+          },
+          {
+            "heuristic": false,
+            "host_house": 7,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "mars",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "saturn"
+          },
+          {
+            "heuristic": false,
+            "host_house": 7,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "mars",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "rahu"
+          },
+          {
+            "heuristic": true,
+            "host_house": 9,
+            "kind": "close_conjunction",
+            "orb_degrees": 0.480633,
+            "planet": "mercury",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "moon"
+          },
+          {
+            "heuristic": false,
+            "host_house": 9,
+            "kind": "same_sign",
+            "orb_degrees": 8.63794,
+            "planet": "mercury",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "jupiter"
+          },
+          {
+            "heuristic": true,
+            "host_house": 2,
+            "kind": "close_conjunction",
+            "orb_degrees": 0.825573,
+            "planet": "jupiter",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "saturn"
+          },
+          {
+            "heuristic": false,
+            "host_house": 2,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "jupiter",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "rahu"
+          },
+          {
+            "heuristic": false,
+            "host_house": 11,
+            "kind": "same_sign",
+            "orb_degrees": 23.30271,
+            "planet": "venus",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "sun"
+          },
+          {
+            "heuristic": false,
+            "host_house": 2,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "saturn",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "sun"
+          },
+          {
+            "heuristic": false,
+            "host_house": 2,
+            "kind": "same_sign",
+            "orb_degrees": 6.773558,
+            "planet": "saturn",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "saturn"
+          },
+          {
+            "heuristic": false,
+            "host_house": 2,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "saturn",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "ketu"
+          },
+          {
+            "heuristic": false,
+            "host_house": 3,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "rahu",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "moon"
+          },
+          {
+            "heuristic": false,
+            "host_house": 3,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "rahu",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "jupiter"
+          },
+          {
+            "heuristic": true,
+            "host_house": 9,
+            "kind": "close_conjunction",
+            "orb_degrees": 1.900176,
+            "planet": "ketu",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "moon"
+          },
+          {
+            "heuristic": false,
+            "host_house": 9,
+            "kind": "same_sign",
+            "orb_degrees": 10.057483,
+            "planet": "ketu",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "jupiter"
+          }
+        ],
+        "convention": "Placements and drishti are whole-sign (classical); close_conjunction = same sign AND angular separation <= 3.0 deg \u2014 a modern orb convention, flagged heuristic on the contact.",
+        "host_lagna_sign": "Aries",
+        "placements": [
+          {
+            "host_house": 9,
+            "planet": "sun",
+            "sign": "Sagittarius"
+          },
+          {
+            "host_house": 11,
+            "planet": "moon",
+            "sign": "Aquarius"
+          },
+          {
+            "host_house": 7,
+            "planet": "mars",
+            "sign": "Libra"
+          },
+          {
+            "host_house": 9,
+            "planet": "mercury",
+            "sign": "Sagittarius"
+          },
+          {
+            "host_house": 2,
+            "planet": "jupiter",
+            "sign": "Taurus"
+          },
+          {
+            "host_house": 11,
+            "planet": "venus",
+            "sign": "Aquarius"
+          },
+          {
+            "host_house": 2,
+            "planet": "saturn",
+            "sign": "Taurus"
+          },
+          {
+            "host_house": 3,
+            "planet": "rahu",
+            "sign": "Gemini"
+          },
+          {
+            "host_house": 9,
+            "planet": "ketu",
+            "sign": "Sagittarius"
+          }
+        ]
+      }
+    },
+    "relationship": "business",
+    "role_a": "bride",
+    "role_b": "groom",
+    "significators_a": {
+      "house_basis": "7th \u2014 vyapara, trade dealings and partnership (BPHS/Phaladeepika 7th significations; standard convention for business relations)",
+      "house_lord": "venus",
+      "house_sign": "Libra",
+      "karaka_house": 7,
+      "karakas": [
+        {
+          "condition": {
+            "dignity": "debilitated",
+            "house": 12,
+            "is_combust": false,
+            "is_retrograde": false,
+            "planet": "mercury",
+            "sign": "Pisces"
+          },
+          "source": "Mercury \u2014 vanijya (trade/commerce) karaka (standard Jataka practice)"
+        }
+      ],
+      "lord_condition": {
+        "dignity": "neutral",
+        "house": 1,
+        "is_combust": false,
+        "is_retrograde": false,
+        "planet": "venus",
+        "sign": "Aries"
+      },
+      "occupants": [],
+      "relationship": "business"
+    },
+    "significators_b": {
+      "house_basis": "7th \u2014 vyapara, trade dealings and partnership (BPHS/Phaladeepika 7th significations; standard convention for business relations)",
+      "house_lord": "saturn",
+      "house_sign": "Capricorn",
+      "karaka_house": 7,
+      "karakas": [
+        {
+          "condition": {
+            "dignity": "neutral",
+            "house": 6,
+            "is_combust": true,
+            "is_retrograde": false,
+            "planet": "mercury",
+            "sign": "Sagittarius"
+          },
+          "source": "Mercury \u2014 vanijya (trade/commerce) karaka (standard Jataka practice)"
+        }
+      ],
+      "lord_condition": {
+        "dignity": "neutral",
+        "house": 11,
+        "is_combust": false,
+        "is_retrograde": true,
+        "planet": "saturn",
+        "sign": "Taurus"
+      },
+      "occupants": [],
+      "relationship": "business"
+    },
+    "synchrony": {
+      "basis": "Pure interval intersection over the engine-emitted maha+antar dates of both charts; segments exist only where both dated trees cover the window.",
+      "convention_a": "julian_365_25",
+      "convention_b": "julian_365_25",
+      "segments": [
+        {
+          "a_antar": "jupiter",
+          "a_maha": "jupiter",
+          "b_antar": "rahu",
+          "b_maha": "saturn",
+          "end": "2025-06-11T12:57:15.440746Z",
+          "shared_lords": [],
+          "simultaneous_boundary": false,
+          "start": "2025-01-01T00:00:00Z"
+        },
+        {
+          "a_antar": "saturn",
+          "a_maha": "jupiter",
+          "b_antar": "rahu",
+          "b_maha": "saturn",
+          "end": "2027-01-01T00:00:00Z",
+          "shared_lords": [
+            "saturn"
+          ],
+          "simultaneous_boundary": false,
+          "start": "2025-06-11T12:57:15.440746Z"
+        }
+      ],
+      "window_end": "2027-01-01T00:00:00Z",
+      "window_start": "2025-01-01T00:00:00Z"
+    }
+  },
+  "1990-01-15T12:00:00+00:00|1985-07-23T04:30:00+00:00|spouse": {
+    "ashtakoota": {
+      "band": "average",
+      "band_basis": "Classical convention (panchanga practice): below 18 of 36 the match is traditionally not recommended; 18-24 average; 25-32 good; 33-36 excellent. A label, not a verdict.",
+      "bhakoot_dosha": {
+        "basis": "Virgo and Leo stand 2/12 from each other",
+        "cancellations": [],
+        "cancelled": false,
+        "name": "bhakoot_dosha",
+        "present": true,
+        "source": "Bhakoot (Rasi) kuta: mutual Moon-sign positions; the complementary pairs 2/12 (dwirdwadasha), 5/9 (nava-pancham) and 6/8 (shadashtaka) are dosha (0 points), all other placements earn the full 7. B.V. Raman, 'Muhurtha', Kuta agreement; standard panchanga Melapaka practice."
+      },
+      "bride_moon": {
+        "nakshatra": "Purva Phalguni",
+        "nakshatra_index": 10,
+        "nakshatra_pada": 4,
+        "sign": "Leo",
+        "sign_degrees": 23.783703
+      },
+      "groom_moon": {
+        "nakshatra": "Hasta",
+        "nakshatra_index": 12,
+        "nakshatra_pada": 1,
+        "sign": "Virgo",
+        "sign_degrees": 12.981557
+      },
+      "kootas": [
+        {
+          "basis": "groom Virgo (vaishya) x bride Leo (kshatriya)",
+          "earned": 0.0,
+          "koota": "varna",
+          "maximum": 1.0,
+          "source": "Varna kuta: Moon-sign varna by element (water=Brahmin, fire=Kshatriya, earth=Vaishya, air=Shudra); 1 point when the groom's varna is not below the bride's. B.V. Raman, 'Muhurtha', Kuta agreement; standard panchanga Melapaka table."
+        },
+        {
+          "basis": "groom Virgo (manava) x bride Leo (vanachara)",
+          "earned": 0.0,
+          "koota": "vashya",
+          "maximum": 2.0,
+          "source": "Vashya kuta: five-fold sign classification (chatushpada/manava/jalachara/vanachara/keeta) with the first/second-half split of Sagittarius and Capricorn; scored groom-class x bride-class by the standard five-class points matrix (incl. the half-point cells). B.V. Raman, 'Muhurtha', Kuta agreement; matrix as tabulated in standard panchanga Melapaka practice."
+        },
+        {
+          "basis": "bride->groom Vipat, groom->bride Maitra (malefic taras: Vipat/Pratyari/Vadha)",
+          "earned": 1.5,
+          "koota": "tara",
+          "maximum": 3.0,
+          "source": "Tara (Dina) kuta: count nakshatras inclusively between the Moons, mod 9; remainders 3 (Vipat), 5 (Pratyari) and 7 (Vadha) are malefic. Each direction contributes 1.5 of the 3 points. B.V. Raman, 'Muhurtha', Kuta agreement; standard panchanga Melapaka scoring."
+        },
+        {
+          "basis": "groom Hasta (buffalo, female) x bride Purva Phalguni (rat, female)",
+          "earned": 2.0,
+          "koota": "yoni",
+          "maximum": 4.0,
+          "source": "Yoni kuta: each nakshatra's animal (and sex) per the classical yoni table; scored by the standard 14x14 points matrix (same animal 4, sworn-enemy pair 0). B.V. Raman, 'Muhurtha', Kuta agreement; matrix as tabulated in standard panchanga Melapaka practice."
+        },
+        {
+          "basis": "groom lord mercury sees bride lord sun as friend; bride lord sees groom lord as neutral",
+          "earned": 4.0,
+          "koota": "graha_maitri",
+          "maximum": 5.0,
+          "source": "Graha Maitri kuta: natural (naisargika) relationship between the two Moon-sign lords per the BPHS maitri table (reused from almamesh.strength.friendship); scored friend/friend 5, friend/neutral 4, neutral/neutral 3, friend/enemy 1, neutral/enemy 0.5, enemy/enemy 0 (same lord counts as friend/friend). B.V. Raman, 'Muhurtha', Kuta agreement; standard panchanga Melapaka scoring."
+        },
+        {
+          "basis": "groom Hasta (deva) x bride Purva Phalguni (manushya)",
+          "earned": 6.0,
+          "koota": "gana",
+          "maximum": 6.0,
+          "source": "Gana kuta: nakshatra gana classes (deva/manushya/rakshasa) scored by the standard groom-x-bride matrix (same gana 6; deva groom + manushya bride 6; manushya groom + deva bride 5; rakshasa groom + deva bride 1; deva/manushya with rakshasa otherwise 0). B.V. Raman, 'Muhurtha', Kuta agreement; matrix as tabulated in standard panchanga Melapaka practice."
+        },
+        {
+          "basis": "Virgo and Leo stand 2/12 from each other",
+          "earned": 0.0,
+          "koota": "bhakoot",
+          "maximum": 7.0,
+          "source": "Bhakoot (Rasi) kuta: mutual Moon-sign positions; the complementary pairs 2/12 (dwirdwadasha), 5/9 (nava-pancham) and 6/8 (shadashtaka) are dosha (0 points), all other placements earn the full 7. B.V. Raman, 'Muhurtha', Kuta agreement; standard panchanga Melapaka practice."
+        },
+        {
+          "basis": "groom Hasta (adi nadi) x bride Purva Phalguni (madhya nadi)",
+          "earned": 8.0,
+          "koota": "nadi",
+          "maximum": 8.0,
+          "source": "Nadi kuta: nakshatra nadi classes (adi/madhya/antya); different nadis earn the full 8 points, the same nadi is Nadi dosha (0 points) \u2014 the gravest Melapaka dosha. B.V. Raman, 'Muhurtha', Kuta agreement; standard panchanga Melapaka table."
+        }
+      ],
+      "maximum": 36.0,
+      "nadi_dosha": {
+        "basis": "groom Hasta (adi nadi) x bride Purva Phalguni (madhya nadi)",
+        "cancellations": [],
+        "cancelled": false,
+        "name": "nadi_dosha",
+        "present": false,
+        "source": "Nadi kuta: nakshatra nadi classes (adi/madhya/antya); different nadis earn the full 8 points, the same nadi is Nadi dosha (0 points) \u2014 the gravest Melapaka dosha. B.V. Raman, 'Muhurtha', Kuta agreement; standard panchanga Melapaka table."
+      },
+      "source": "Ashtakoota Guna Milan (36 gunas) per the standard Melapaka tradition \u2014 B.V. Raman, 'Muhurtha (Electional Astrology)', Kuta agreement; the table behind every koota is cited on its own row.",
+      "total": 21.5
+    },
+    "integrity_note": "Relations are computed FROM two finished natal charts (read-only inputs); neither chart is recomputed, reweighted or mutated by the other.",
+    "mangal_match": {
+      "a": {
+        "convention": "Mars in whole-sign houses 1/2/4/7/8/12 from each reference; the 2nd house is the South-Indian inclusion (labeled). has_dosha applies the strictest screening convention: a net dosha under ANY of Lagna/Moon/Venus.",
+        "has_dosha": false,
+        "references": [
+          {
+            "cancellations": [],
+            "in_dosha_house": false,
+            "mars_house": 6,
+            "mars_sign": "Scorpio",
+            "net_dosha": false,
+            "reference": "lagna",
+            "school": "from the Lagna \u2014 the classical reference (all schools)",
+            "source": "Kuja (Mangal) dosha per the classical Muhurta tradition \u2014 Mars in houses 1/4/7/8/12 from the reference (cf. B.V. Raman, 'Muhurtha', marriage adyaya); the 2nd house and the Moon/Venus references per standard South-Indian practice."
+          },
+          {
+            "cancellations": [
+              {
+                "description": "Mars stands in its own sign (Scorpio)",
+                "rule": "mangal.own_sign",
+                "source": "Classical chart-computable exceptions (standard Muhurta compilation; cf. B.V. Raman, 'Muhurtha'): Mars in its own sign (Aries/Scorpio) or exalted (Capricorn) causes no dosha; the five-fold sign-house exception \u2014 Aries in the 1st, Scorpio in the 4th, Capricorn in the 7th, Cancer in the 8th, Sagittarius in the 12th (stated from the Lagna)."
+              }
+            ],
+            "in_dosha_house": true,
+            "mars_house": 4,
+            "mars_sign": "Scorpio",
+            "net_dosha": false,
+            "reference": "moon",
+            "school": "from the Moon \u2014 Chandra-lagna school",
+            "source": "Kuja (Mangal) dosha per the classical Muhurta tradition \u2014 Mars in houses 1/4/7/8/12 from the reference (cf. B.V. Raman, 'Muhurtha', marriage adyaya); the 2nd house and the Moon/Venus references per standard South-Indian practice."
+          },
+          {
+            "cancellations": [],
+            "in_dosha_house": false,
+            "mars_house": 11,
+            "mars_sign": "Scorpio",
+            "net_dosha": false,
+            "reference": "venus",
+            "school": "from Venus \u2014 South-Indian practice",
+            "source": "Kuja (Mangal) dosha per the classical Muhurta tradition \u2014 Mars in houses 1/4/7/8/12 from the reference (cf. B.V. Raman, 'Muhurtha', marriage adyaya); the 2nd house and the Moon/Venus references per standard South-Indian practice."
+          }
+        ]
+      },
+      "b": {
+        "convention": "Mars in whole-sign houses 1/2/4/7/8/12 from each reference; the 2nd house is the South-Indian inclusion (labeled). has_dosha applies the strictest screening convention: a net dosha under ANY of Lagna/Moon/Venus.",
+        "has_dosha": true,
+        "references": [
+          {
+            "cancellations": [],
+            "in_dosha_house": true,
+            "mars_house": 12,
+            "mars_sign": "Cancer",
+            "net_dosha": true,
+            "reference": "lagna",
+            "school": "from the Lagna \u2014 the classical reference (all schools)",
+            "source": "Kuja (Mangal) dosha per the classical Muhurta tradition \u2014 Mars in houses 1/4/7/8/12 from the reference (cf. B.V. Raman, 'Muhurtha', marriage adyaya); the 2nd house and the Moon/Venus references per standard South-Indian practice."
+          },
+          {
+            "cancellations": [],
+            "in_dosha_house": false,
+            "mars_house": 11,
+            "mars_sign": "Cancer",
+            "net_dosha": false,
+            "reference": "moon",
+            "school": "from the Moon \u2014 Chandra-lagna school",
+            "source": "Kuja (Mangal) dosha per the classical Muhurta tradition \u2014 Mars in houses 1/4/7/8/12 from the reference (cf. B.V. Raman, 'Muhurtha', marriage adyaya); the 2nd house and the Moon/Venus references per standard South-Indian practice."
+          },
+          {
+            "cancellations": [],
+            "in_dosha_house": false,
+            "mars_house": 3,
+            "mars_sign": "Cancer",
+            "net_dosha": false,
+            "reference": "venus",
+            "school": "from Venus \u2014 South-Indian practice",
+            "source": "Kuja (Mangal) dosha per the classical Muhurta tradition \u2014 Mars in houses 1/4/7/8/12 from the reference (cf. B.V. Raman, 'Muhurtha', marriage adyaya); the 2nd house and the Moon/Venus references per standard South-Indian practice."
+          }
+        ]
+      },
+      "basis": "chart a clear, chart b afflicted",
+      "compatible": false,
+      "mutually_cancelled": false,
+      "source": "Mutual Kuja-dosha cancellation: when BOTH charts carry the dosha it stands neutralized between them \u2014 standard Muhurta practice; cf. B.V. Raman, 'Muhurtha', marriage adyaya."
+    },
+    "overlay": {
+      "a_in_b": {
+        "conjunction_orb_degrees": 3.0,
+        "contacts": [
+          {
+            "heuristic": false,
+            "host_house": 6,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "sun",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "sun"
+          },
+          {
+            "heuristic": false,
+            "host_house": 6,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "sun",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "mars"
+          },
+          {
+            "heuristic": false,
+            "host_house": 6,
+            "kind": "same_sign",
+            "orb_degrees": 18.585732,
+            "planet": "sun",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "jupiter"
+          },
+          {
+            "heuristic": false,
+            "host_house": 1,
+            "kind": "same_sign",
+            "orb_degrees": 4.264436,
+            "planet": "moon",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "lagna"
+          },
+          {
+            "heuristic": false,
+            "host_house": 1,
+            "kind": "same_sign",
+            "orb_degrees": 23.079448,
+            "planet": "moon",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "mercury"
+          },
+          {
+            "heuristic": false,
+            "host_house": 4,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "mars",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "venus"
+          },
+          {
+            "heuristic": false,
+            "host_house": 11,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "jupiter",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "saturn"
+          },
+          {
+            "heuristic": false,
+            "host_house": 11,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "jupiter",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "ketu"
+          },
+          {
+            "heuristic": false,
+            "host_house": 6,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "venus",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "sun"
+          },
+          {
+            "heuristic": false,
+            "host_house": 6,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "venus",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "mars"
+          },
+          {
+            "heuristic": false,
+            "host_house": 6,
+            "kind": "same_sign",
+            "orb_degrees": 12.978262,
+            "planet": "venus",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "jupiter"
+          },
+          {
+            "heuristic": false,
+            "host_house": 5,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "saturn",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "moon"
+          },
+          {
+            "heuristic": false,
+            "host_house": 6,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "rahu",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "sun"
+          },
+          {
+            "heuristic": false,
+            "host_house": 6,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "rahu",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "mars"
+          },
+          {
+            "heuristic": false,
+            "host_house": 6,
+            "kind": "same_sign",
+            "orb_degrees": 4.026309,
+            "planet": "rahu",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "jupiter"
+          },
+          {
+            "heuristic": false,
+            "host_house": 12,
+            "kind": "same_sign",
+            "orb_degrees": 17.353418,
+            "planet": "ketu",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "sun"
+          },
+          {
+            "heuristic": false,
+            "host_house": 12,
+            "kind": "same_sign",
+            "orb_degrees": 18.909601,
+            "planet": "ketu",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "mars"
+          },
+          {
+            "heuristic": false,
+            "host_house": 12,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "ketu",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "jupiter"
+          }
+        ],
+        "convention": "Placements and drishti are whole-sign (classical); close_conjunction = same sign AND angular separation <= 3.0 deg \u2014 a modern orb convention, flagged heuristic on the contact.",
+        "host_lagna_sign": "Leo",
+        "placements": [
+          {
+            "host_house": 6,
+            "planet": "sun",
+            "sign": "Capricorn"
+          },
+          {
+            "host_house": 1,
+            "planet": "moon",
+            "sign": "Leo"
+          },
+          {
+            "host_house": 4,
+            "planet": "mars",
+            "sign": "Scorpio"
+          },
+          {
+            "host_house": 5,
+            "planet": "mercury",
+            "sign": "Sagittarius"
+          },
+          {
+            "host_house": 11,
+            "planet": "jupiter",
+            "sign": "Gemini"
+          },
+          {
+            "host_house": 6,
+            "planet": "venus",
+            "sign": "Capricorn"
+          },
+          {
+            "host_house": 5,
+            "planet": "saturn",
+            "sign": "Sagittarius"
+          },
+          {
+            "host_house": 6,
+            "planet": "rahu",
+            "sign": "Capricorn"
+          },
+          {
+            "host_house": 12,
+            "planet": "ketu",
+            "sign": "Cancer"
+          }
+        ]
+      },
+      "b_in_a": {
+        "conjunction_orb_degrees": 3.0,
+        "contacts": [
+          {
+            "heuristic": false,
+            "host_house": 2,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "sun",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "sun"
+          },
+          {
+            "heuristic": false,
+            "host_house": 2,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "sun",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "venus"
+          },
+          {
+            "heuristic": false,
+            "host_house": 2,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "sun",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "rahu"
+          },
+          {
+            "heuristic": false,
+            "host_house": 2,
+            "kind": "same_sign",
+            "orb_degrees": 17.353418,
+            "planet": "sun",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "ketu"
+          },
+          {
+            "heuristic": false,
+            "host_house": 2,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "mars",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "sun"
+          },
+          {
+            "heuristic": false,
+            "host_house": 2,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "mars",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "venus"
+          },
+          {
+            "heuristic": false,
+            "host_house": 2,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "mars",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "rahu"
+          },
+          {
+            "heuristic": false,
+            "host_house": 2,
+            "kind": "same_sign",
+            "orb_degrees": 18.909601,
+            "planet": "mars",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "ketu"
+          },
+          {
+            "heuristic": false,
+            "host_house": 3,
+            "kind": "same_sign",
+            "orb_degrees": 23.079448,
+            "planet": "mercury",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "moon"
+          },
+          {
+            "heuristic": false,
+            "host_house": 8,
+            "kind": "same_sign",
+            "orb_degrees": 18.585732,
+            "planet": "jupiter",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "sun"
+          },
+          {
+            "heuristic": false,
+            "host_house": 8,
+            "kind": "same_sign",
+            "orb_degrees": 12.978262,
+            "planet": "jupiter",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "venus"
+          },
+          {
+            "heuristic": false,
+            "host_house": 8,
+            "kind": "same_sign",
+            "orb_degrees": 4.026309,
+            "planet": "jupiter",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "rahu"
+          },
+          {
+            "heuristic": false,
+            "host_house": 8,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "jupiter",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "ketu"
+          },
+          {
+            "heuristic": false,
+            "host_house": 12,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "venus",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "mars"
+          },
+          {
+            "heuristic": false,
+            "host_house": 5,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "saturn",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "mercury"
+          },
+          {
+            "heuristic": false,
+            "host_house": 5,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "saturn",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "saturn"
+          },
+          {
+            "heuristic": false,
+            "host_house": 5,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "saturn",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "ketu"
+          }
+        ],
+        "convention": "Placements and drishti are whole-sign (classical); close_conjunction = same sign AND angular separation <= 3.0 deg \u2014 a modern orb convention, flagged heuristic on the contact.",
+        "host_lagna_sign": "Gemini",
+        "placements": [
+          {
+            "host_house": 2,
+            "planet": "sun",
+            "sign": "Cancer"
+          },
+          {
+            "host_house": 4,
+            "planet": "moon",
+            "sign": "Virgo"
+          },
+          {
+            "host_house": 2,
+            "planet": "mars",
+            "sign": "Cancer"
+          },
+          {
+            "host_house": 3,
+            "planet": "mercury",
+            "sign": "Leo"
+          },
+          {
+            "host_house": 8,
+            "planet": "jupiter",
+            "sign": "Capricorn"
+          },
+          {
+            "host_house": 12,
+            "planet": "venus",
+            "sign": "Taurus"
+          },
+          {
+            "host_house": 5,
+            "planet": "saturn",
+            "sign": "Libra"
+          },
+          {
+            "host_house": 11,
+            "planet": "rahu",
+            "sign": "Aries"
+          },
+          {
+            "host_house": 5,
+            "planet": "ketu",
+            "sign": "Libra"
+          }
+        ]
+      }
+    },
+    "relationship": "spouse",
+    "role_a": "bride",
+    "role_b": "groom",
+    "significators_a": {
+      "house_basis": "7th \u2014 kalatra bhava, marriage and union (BPHS house significations)",
+      "house_lord": "jupiter",
+      "house_sign": "Sagittarius",
+      "karaka_house": 7,
+      "karakas": [
+        {
+          "condition": {
+            "dignity": "neutral",
+            "house": 8,
+            "is_combust": true,
+            "is_retrograde": true,
+            "planet": "venus",
+            "sign": "Capricorn"
+          },
+          "source": "Venus \u2014 kalatra (spouse) karaka (BPHS karakatva)"
+        },
+        {
+          "condition": {
+            "dignity": "neutral",
+            "house": 1,
+            "is_combust": false,
+            "is_retrograde": true,
+            "planet": "jupiter",
+            "sign": "Gemini"
+          },
+          "source": "Jupiter \u2014 karaka of the husband in a woman's chart (stri-jataka tradition); emitted for both roles, the caller interprets by role"
+        }
+      ],
+      "lord_condition": {
+        "dignity": "neutral",
+        "house": 1,
+        "is_combust": false,
+        "is_retrograde": true,
+        "planet": "jupiter",
+        "sign": "Gemini"
+      },
+      "occupants": [
+        "mercury",
+        "saturn"
+      ],
+      "relationship": "spouse"
+    },
+    "significators_b": {
+      "house_basis": "7th \u2014 kalatra bhava, marriage and union (BPHS house significations)",
+      "house_lord": "saturn",
+      "house_sign": "Aquarius",
+      "karaka_house": 7,
+      "karakas": [
+        {
+          "condition": {
+            "dignity": "own",
+            "house": 10,
+            "is_combust": false,
+            "is_retrograde": false,
+            "planet": "venus",
+            "sign": "Taurus"
+          },
+          "source": "Venus \u2014 kalatra (spouse) karaka (BPHS karakatva)"
+        },
+        {
+          "condition": {
+            "dignity": "debilitated",
+            "house": 6,
+            "is_combust": false,
+            "is_retrograde": true,
+            "planet": "jupiter",
+            "sign": "Capricorn"
+          },
+          "source": "Jupiter \u2014 karaka of the husband in a woman's chart (stri-jataka tradition); emitted for both roles, the caller interprets by role"
+        }
+      ],
+      "lord_condition": {
+        "dignity": "exalted",
+        "house": 3,
+        "is_combust": false,
+        "is_retrograde": true,
+        "planet": "saturn",
+        "sign": "Libra"
+      },
+      "occupants": [],
+      "relationship": "spouse"
+    },
+    "synchrony": {
+      "basis": "Pure interval intersection over the engine-emitted maha+antar dates of both charts; segments exist only where both dated trees cover the window.",
+      "convention_a": "julian_365_25",
+      "convention_b": "julian_365_25",
+      "segments": [
+        {
+          "a_antar": "saturn",
+          "a_maha": "rahu",
+          "b_antar": "mercury",
+          "b_maha": "jupiter",
+          "end": "2025-04-03T13:51:09.612818Z",
+          "shared_lords": [],
+          "simultaneous_boundary": false,
+          "start": "2025-01-01T00:00:00Z"
+        },
+        {
+          "a_antar": "saturn",
+          "a_maha": "rahu",
+          "b_antar": "ketu",
+          "b_maha": "jupiter",
+          "end": "2025-04-25T11:47:00.089572Z",
+          "shared_lords": [],
+          "simultaneous_boundary": false,
+          "start": "2025-04-03T13:51:09.612818Z"
+        },
+        {
+          "a_antar": "mercury",
+          "a_maha": "rahu",
+          "b_antar": "ketu",
+          "b_maha": "jupiter",
+          "end": "2026-03-10T11:27:09.612818Z",
+          "shared_lords": [],
+          "simultaneous_boundary": false,
+          "start": "2025-04-25T11:47:00.089572Z"
+        },
+        {
+          "a_antar": "mercury",
+          "a_maha": "rahu",
+          "b_antar": "venus",
+          "b_maha": "jupiter",
+          "end": "2027-01-01T00:00:00Z",
+          "shared_lords": [],
+          "simultaneous_boundary": false,
+          "start": "2026-03-10T11:27:09.612818Z"
+        }
+      ],
+      "window_end": "2027-01-01T00:00:00Z",
+      "window_start": "2025-01-01T00:00:00Z"
+    }
+  },
+  "2010-06-21T18:00:00+00:00|2019-11-09T17:45:00+00:00|friend": {
+    "ashtakoota": {
+      "band": "not_recommended",
+      "band_basis": "Classical convention (panchanga practice): below 18 of 36 the match is traditionally not recommended; 18-24 average; 25-32 good; 33-36 excellent. A label, not a verdict.",
+      "bhakoot_dosha": {
+        "basis": "Pisces and Libra stand 6/8 from each other",
+        "cancellations": [],
+        "cancelled": false,
+        "name": "bhakoot_dosha",
+        "present": true,
+        "source": "Bhakoot (Rasi) kuta: mutual Moon-sign positions; the complementary pairs 2/12 (dwirdwadasha), 5/9 (nava-pancham) and 6/8 (shadashtaka) are dosha (0 points), all other placements earn the full 7. B.V. Raman, 'Muhurtha', Kuta agreement; standard panchanga Melapaka practice."
+      },
+      "bride_moon": {
+        "nakshatra": "Swati",
+        "nakshatra_index": 14,
+        "nakshatra_pada": 1,
+        "sign": "Libra",
+        "sign_degrees": 9.264585
+      },
+      "groom_moon": {
+        "nakshatra": "Revati",
+        "nakshatra_index": 26,
+        "nakshatra_pada": 2,
+        "sign": "Pisces",
+        "sign_degrees": 20.848643
+      },
+      "kootas": [
+        {
+          "basis": "groom Pisces (brahmin) x bride Libra (shudra)",
+          "earned": 1.0,
+          "koota": "varna",
+          "maximum": 1.0,
+          "source": "Varna kuta: Moon-sign varna by element (water=Brahmin, fire=Kshatriya, earth=Vaishya, air=Shudra); 1 point when the groom's varna is not below the bride's. B.V. Raman, 'Muhurtha', Kuta agreement; standard panchanga Melapaka table."
+        },
+        {
+          "basis": "groom Pisces (jalachara) x bride Libra (manava)",
+          "earned": 0.5,
+          "koota": "vashya",
+          "maximum": 2.0,
+          "source": "Vashya kuta: five-fold sign classification (chatushpada/manava/jalachara/vanachara/keeta) with the first/second-half split of Sagittarius and Capricorn; scored groom-class x bride-class by the standard five-class points matrix (incl. the half-point cells). B.V. Raman, 'Muhurtha', Kuta agreement; matrix as tabulated in standard panchanga Melapaka practice."
+        },
+        {
+          "basis": "bride->groom Kshema, groom->bride Vadha (malefic taras: Vipat/Pratyari/Vadha)",
+          "earned": 1.5,
+          "koota": "tara",
+          "maximum": 3.0,
+          "source": "Tara (Dina) kuta: count nakshatras inclusively between the Moons, mod 9; remainders 3 (Vipat), 5 (Pratyari) and 7 (Vadha) are malefic. Each direction contributes 1.5 of the 3 points. B.V. Raman, 'Muhurtha', Kuta agreement; standard panchanga Melapaka scoring."
+        },
+        {
+          "basis": "groom Revati (elephant, female) x bride Swati (buffalo, male)",
+          "earned": 3.0,
+          "koota": "yoni",
+          "maximum": 4.0,
+          "source": "Yoni kuta: each nakshatra's animal (and sex) per the classical yoni table; scored by the standard 14x14 points matrix (same animal 4, sworn-enemy pair 0). B.V. Raman, 'Muhurtha', Kuta agreement; matrix as tabulated in standard panchanga Melapaka practice."
+        },
+        {
+          "basis": "groom lord jupiter sees bride lord venus as enemy; bride lord sees groom lord as neutral",
+          "earned": 0.5,
+          "koota": "graha_maitri",
+          "maximum": 5.0,
+          "source": "Graha Maitri kuta: natural (naisargika) relationship between the two Moon-sign lords per the BPHS maitri table (reused from almamesh.strength.friendship); scored friend/friend 5, friend/neutral 4, neutral/neutral 3, friend/enemy 1, neutral/enemy 0.5, enemy/enemy 0 (same lord counts as friend/friend). B.V. Raman, 'Muhurtha', Kuta agreement; standard panchanga Melapaka scoring."
+        },
+        {
+          "basis": "groom Revati (deva) x bride Swati (deva)",
+          "earned": 6.0,
+          "koota": "gana",
+          "maximum": 6.0,
+          "source": "Gana kuta: nakshatra gana classes (deva/manushya/rakshasa) scored by the standard groom-x-bride matrix (same gana 6; deva groom + manushya bride 6; manushya groom + deva bride 5; rakshasa groom + deva bride 1; deva/manushya with rakshasa otherwise 0). B.V. Raman, 'Muhurtha', Kuta agreement; matrix as tabulated in standard panchanga Melapaka practice."
+        },
+        {
+          "basis": "Pisces and Libra stand 6/8 from each other",
+          "earned": 0.0,
+          "koota": "bhakoot",
+          "maximum": 7.0,
+          "source": "Bhakoot (Rasi) kuta: mutual Moon-sign positions; the complementary pairs 2/12 (dwirdwadasha), 5/9 (nava-pancham) and 6/8 (shadashtaka) are dosha (0 points), all other placements earn the full 7. B.V. Raman, 'Muhurtha', Kuta agreement; standard panchanga Melapaka practice."
+        },
+        {
+          "basis": "groom Revati (antya nadi) x bride Swati (antya nadi)",
+          "earned": 0.0,
+          "koota": "nadi",
+          "maximum": 8.0,
+          "source": "Nadi kuta: nakshatra nadi classes (adi/madhya/antya); different nadis earn the full 8 points, the same nadi is Nadi dosha (0 points) \u2014 the gravest Melapaka dosha. B.V. Raman, 'Muhurtha', Kuta agreement; standard panchanga Melapaka table."
+        }
+      ],
+      "maximum": 36.0,
+      "nadi_dosha": {
+        "basis": "groom Revati (antya nadi) x bride Swati (antya nadi)",
+        "cancellations": [],
+        "cancelled": false,
+        "name": "nadi_dosha",
+        "present": true,
+        "source": "Nadi kuta: nakshatra nadi classes (adi/madhya/antya); different nadis earn the full 8 points, the same nadi is Nadi dosha (0 points) \u2014 the gravest Melapaka dosha. B.V. Raman, 'Muhurtha', Kuta agreement; standard panchanga Melapaka table."
+      },
+      "source": "Ashtakoota Guna Milan (36 gunas) per the standard Melapaka tradition \u2014 B.V. Raman, 'Muhurtha (Electional Astrology)', Kuta agreement; the table behind every koota is cited on its own row.",
+      "total": 12.5
+    },
+    "integrity_note": "Relations are computed FROM two finished natal charts (read-only inputs); neither chart is recomputed, reweighted or mutated by the other.",
+    "mangal_match": {
+      "a": {
+        "convention": "Mars in whole-sign houses 1/2/4/7/8/12 from each reference; the 2nd house is the South-Indian inclusion (labeled). has_dosha applies the strictest screening convention: a net dosha under ANY of Lagna/Moon/Venus.",
+        "has_dosha": true,
+        "references": [
+          {
+            "cancellations": [],
+            "in_dosha_house": false,
+            "mars_house": 5,
+            "mars_sign": "Leo",
+            "net_dosha": false,
+            "reference": "lagna",
+            "school": "from the Lagna \u2014 the classical reference (all schools)",
+            "source": "Kuja (Mangal) dosha per the classical Muhurta tradition \u2014 Mars in houses 1/4/7/8/12 from the reference (cf. B.V. Raman, 'Muhurtha', marriage adyaya); the 2nd house and the Moon/Venus references per standard South-Indian practice."
+          },
+          {
+            "cancellations": [],
+            "in_dosha_house": false,
+            "mars_house": 11,
+            "mars_sign": "Leo",
+            "net_dosha": false,
+            "reference": "moon",
+            "school": "from the Moon \u2014 Chandra-lagna school",
+            "source": "Kuja (Mangal) dosha per the classical Muhurta tradition \u2014 Mars in houses 1/4/7/8/12 from the reference (cf. B.V. Raman, 'Muhurtha', marriage adyaya); the 2nd house and the Moon/Venus references per standard South-Indian practice."
+          },
+          {
+            "cancellations": [],
+            "in_dosha_house": true,
+            "mars_house": 2,
+            "mars_sign": "Leo",
+            "net_dosha": true,
+            "reference": "venus",
+            "school": "from Venus \u2014 South-Indian practice",
+            "source": "Kuja (Mangal) dosha per the classical Muhurta tradition \u2014 Mars in houses 1/4/7/8/12 from the reference (cf. B.V. Raman, 'Muhurtha', marriage adyaya); the 2nd house and the Moon/Venus references per standard South-Indian practice."
+          }
+        ]
+      },
+      "b": {
+        "convention": "Mars in whole-sign houses 1/2/4/7/8/12 from each reference; the 2nd house is the South-Indian inclusion (labeled). has_dosha applies the strictest screening convention: a net dosha under ANY of Lagna/Moon/Venus.",
+        "has_dosha": true,
+        "references": [
+          {
+            "cancellations": [],
+            "in_dosha_house": true,
+            "mars_house": 1,
+            "mars_sign": "Virgo",
+            "net_dosha": true,
+            "reference": "lagna",
+            "school": "from the Lagna \u2014 the classical reference (all schools)",
+            "source": "Kuja (Mangal) dosha per the classical Muhurta tradition \u2014 Mars in houses 1/4/7/8/12 from the reference (cf. B.V. Raman, 'Muhurtha', marriage adyaya); the 2nd house and the Moon/Venus references per standard South-Indian practice."
+          },
+          {
+            "cancellations": [],
+            "in_dosha_house": true,
+            "mars_house": 7,
+            "mars_sign": "Virgo",
+            "net_dosha": true,
+            "reference": "moon",
+            "school": "from the Moon \u2014 Chandra-lagna school",
+            "source": "Kuja (Mangal) dosha per the classical Muhurta tradition \u2014 Mars in houses 1/4/7/8/12 from the reference (cf. B.V. Raman, 'Muhurtha', marriage adyaya); the 2nd house and the Moon/Venus references per standard South-Indian practice."
+          },
+          {
+            "cancellations": [],
+            "in_dosha_house": false,
+            "mars_house": 11,
+            "mars_sign": "Virgo",
+            "net_dosha": false,
+            "reference": "venus",
+            "school": "from Venus \u2014 South-Indian practice",
+            "source": "Kuja (Mangal) dosha per the classical Muhurta tradition \u2014 Mars in houses 1/4/7/8/12 from the reference (cf. B.V. Raman, 'Muhurtha', marriage adyaya); the 2nd house and the Moon/Venus references per standard South-Indian practice."
+          }
+        ]
+      },
+      "basis": "chart a afflicted, chart b afflicted",
+      "compatible": true,
+      "mutually_cancelled": true,
+      "source": "Mutual Kuja-dosha cancellation: when BOTH charts carry the dosha it stands neutralized between them \u2014 standard Muhurta practice; cf. B.V. Raman, 'Muhurtha', marriage adyaya."
+    },
+    "overlay": {
+      "a_in_b": {
+        "conjunction_orb_degrees": 3.0,
+        "contacts": [
+          {
+            "heuristic": false,
+            "host_house": 10,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "sun",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "jupiter"
+          },
+          {
+            "heuristic": false,
+            "host_house": 10,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "sun",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "saturn"
+          },
+          {
+            "heuristic": false,
+            "host_house": 10,
+            "kind": "same_sign",
+            "orb_degrees": 10.620624,
+            "planet": "sun",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "rahu"
+          },
+          {
+            "heuristic": false,
+            "host_house": 10,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "sun",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "ketu"
+          },
+          {
+            "heuristic": false,
+            "host_house": 2,
+            "kind": "same_sign",
+            "orb_degrees": 13.623359,
+            "planet": "moon",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "sun"
+          },
+          {
+            "heuristic": false,
+            "host_house": 2,
+            "kind": "same_sign",
+            "orb_degrees": 18.03583,
+            "planet": "moon",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "mercury"
+          },
+          {
+            "heuristic": false,
+            "host_house": 12,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "mars",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "moon"
+          },
+          {
+            "heuristic": false,
+            "host_house": 12,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "mars",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "venus"
+          },
+          {
+            "heuristic": false,
+            "host_house": 9,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "mercury",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "venus"
+          },
+          {
+            "heuristic": false,
+            "host_house": 7,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "jupiter",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "lagna"
+          },
+          {
+            "heuristic": false,
+            "host_house": 7,
+            "kind": "same_sign",
+            "orb_degrees": 13.039995,
+            "planet": "jupiter",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "moon"
+          },
+          {
+            "heuristic": false,
+            "host_house": 7,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "jupiter",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "mars"
+          },
+          {
+            "heuristic": false,
+            "host_house": 7,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "jupiter",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "venus"
+          },
+          {
+            "heuristic": false,
+            "host_house": 1,
+            "kind": "same_sign",
+            "orb_degrees": 5.407576,
+            "planet": "saturn",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "lagna"
+          },
+          {
+            "heuristic": false,
+            "host_house": 1,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "saturn",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "moon"
+          },
+          {
+            "heuristic": false,
+            "host_house": 1,
+            "kind": "same_sign",
+            "orb_degrees": 25.344523,
+            "planet": "saturn",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "mars"
+          },
+          {
+            "heuristic": false,
+            "host_house": 1,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "saturn",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "venus"
+          },
+          {
+            "heuristic": false,
+            "host_house": 1,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "saturn",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "rahu"
+          },
+          {
+            "heuristic": false,
+            "host_house": 4,
+            "kind": "same_sign",
+            "orb_degrees": 17.588606,
+            "planet": "rahu",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "jupiter"
+          },
+          {
+            "heuristic": false,
+            "host_house": 4,
+            "kind": "same_sign",
+            "orb_degrees": 3.403523,
+            "planet": "rahu",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "saturn"
+          },
+          {
+            "heuristic": false,
+            "host_house": 4,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "rahu",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "rahu"
+          },
+          {
+            "heuristic": true,
+            "host_house": 4,
+            "kind": "close_conjunction",
+            "orb_degrees": 1.655997,
+            "planet": "rahu",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "ketu"
+          },
+          {
+            "heuristic": false,
+            "host_house": 10,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "ketu",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "jupiter"
+          },
+          {
+            "heuristic": false,
+            "host_house": 10,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "ketu",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "saturn"
+          },
+          {
+            "heuristic": true,
+            "host_house": 10,
+            "kind": "close_conjunction",
+            "orb_degrees": 1.655997,
+            "planet": "ketu",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "rahu"
+          },
+          {
+            "heuristic": false,
+            "host_house": 10,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "ketu",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "ketu"
+          }
+        ],
+        "convention": "Placements and drishti are whole-sign (classical); close_conjunction = same sign AND angular separation <= 3.0 deg \u2014 a modern orb convention, flagged heuristic on the contact.",
+        "host_lagna_sign": "Virgo",
+        "placements": [
+          {
+            "host_house": 10,
+            "planet": "sun",
+            "sign": "Gemini"
+          },
+          {
+            "host_house": 2,
+            "planet": "moon",
+            "sign": "Libra"
+          },
+          {
+            "host_house": 12,
+            "planet": "mars",
+            "sign": "Leo"
+          },
+          {
+            "host_house": 9,
+            "planet": "mercury",
+            "sign": "Taurus"
+          },
+          {
+            "host_house": 7,
+            "planet": "jupiter",
+            "sign": "Pisces"
+          },
+          {
+            "host_house": 11,
+            "planet": "venus",
+            "sign": "Cancer"
+          },
+          {
+            "host_house": 1,
+            "planet": "saturn",
+            "sign": "Virgo"
+          },
+          {
+            "host_house": 4,
+            "planet": "rahu",
+            "sign": "Sagittarius"
+          },
+          {
+            "host_house": 10,
+            "planet": "ketu",
+            "sign": "Gemini"
+          }
+        ]
+      },
+      "b_in_a": {
+        "conjunction_orb_degrees": 3.0,
+        "contacts": [
+          {
+            "heuristic": false,
+            "host_house": 7,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "sun",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "lagna"
+          },
+          {
+            "heuristic": false,
+            "host_house": 7,
+            "kind": "same_sign",
+            "orb_degrees": 13.623359,
+            "planet": "sun",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "moon"
+          },
+          {
+            "heuristic": false,
+            "host_house": 12,
+            "kind": "same_sign",
+            "orb_degrees": 13.039995,
+            "planet": "moon",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "jupiter"
+          },
+          {
+            "heuristic": false,
+            "host_house": 12,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "moon",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "saturn"
+          },
+          {
+            "heuristic": false,
+            "host_house": 6,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "mars",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "lagna"
+          },
+          {
+            "heuristic": false,
+            "host_house": 6,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "mars",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "jupiter"
+          },
+          {
+            "heuristic": false,
+            "host_house": 6,
+            "kind": "same_sign",
+            "orb_degrees": 25.344523,
+            "planet": "mars",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "saturn"
+          },
+          {
+            "heuristic": false,
+            "host_house": 6,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "mars",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "rahu"
+          },
+          {
+            "heuristic": false,
+            "host_house": 7,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "mercury",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "lagna"
+          },
+          {
+            "heuristic": false,
+            "host_house": 7,
+            "kind": "same_sign",
+            "orb_degrees": 18.03583,
+            "planet": "mercury",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "moon"
+          },
+          {
+            "heuristic": false,
+            "host_house": 9,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "jupiter",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "lagna"
+          },
+          {
+            "heuristic": false,
+            "host_house": 9,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "jupiter",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "sun"
+          },
+          {
+            "heuristic": false,
+            "host_house": 9,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "jupiter",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "mars"
+          },
+          {
+            "heuristic": false,
+            "host_house": 9,
+            "kind": "same_sign",
+            "orb_degrees": 17.588606,
+            "planet": "jupiter",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "rahu"
+          },
+          {
+            "heuristic": false,
+            "host_house": 9,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "jupiter",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "ketu"
+          },
+          {
+            "heuristic": false,
+            "host_house": 8,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "venus",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "mercury"
+          },
+          {
+            "heuristic": false,
+            "host_house": 9,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "saturn",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "sun"
+          },
+          {
+            "heuristic": false,
+            "host_house": 9,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "saturn",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "saturn"
+          },
+          {
+            "heuristic": false,
+            "host_house": 9,
+            "kind": "same_sign",
+            "orb_degrees": 3.403523,
+            "planet": "saturn",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "rahu"
+          },
+          {
+            "heuristic": false,
+            "host_house": 9,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "saturn",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "ketu"
+          },
+          {
+            "heuristic": false,
+            "host_house": 3,
+            "kind": "same_sign",
+            "orb_degrees": 10.620624,
+            "planet": "rahu",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "sun"
+          },
+          {
+            "heuristic": false,
+            "host_house": 3,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "rahu",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "rahu"
+          },
+          {
+            "heuristic": true,
+            "host_house": 3,
+            "kind": "close_conjunction",
+            "orb_degrees": 1.655997,
+            "planet": "rahu",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "ketu"
+          },
+          {
+            "heuristic": false,
+            "host_house": 9,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "ketu",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "sun"
+          },
+          {
+            "heuristic": true,
+            "host_house": 9,
+            "kind": "close_conjunction",
+            "orb_degrees": 1.655997,
+            "planet": "ketu",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "rahu"
+          },
+          {
+            "heuristic": false,
+            "host_house": 9,
+            "kind": "graha_drishti",
+            "orb_degrees": null,
+            "planet": "ketu",
+            "source": "Graha drishti per the Parashari whole-sign aspects (BPHS drishti adhyaya; offsets reused from almamesh.transits.aspects). Same-sign yuti is the classical conjunction; the 3.0 deg close-conjunction orb is a modern convention (heuristic).",
+            "target": "ketu"
+          }
+        ],
+        "convention": "Placements and drishti are whole-sign (classical); close_conjunction = same sign AND angular separation <= 3.0 deg \u2014 a modern orb convention, flagged heuristic on the contact.",
+        "host_lagna_sign": "Aries",
+        "placements": [
+          {
+            "host_house": 7,
+            "planet": "sun",
+            "sign": "Libra"
+          },
+          {
+            "host_house": 12,
+            "planet": "moon",
+            "sign": "Pisces"
+          },
+          {
+            "host_house": 6,
+            "planet": "mars",
+            "sign": "Virgo"
+          },
+          {
+            "host_house": 7,
+            "planet": "mercury",
+            "sign": "Libra"
+          },
+          {
+            "host_house": 9,
+            "planet": "jupiter",
+            "sign": "Sagittarius"
+          },
+          {
+            "host_house": 8,
+            "planet": "venus",
+            "sign": "Scorpio"
+          },
+          {
+            "host_house": 9,
+            "planet": "saturn",
+            "sign": "Sagittarius"
+          },
+          {
+            "host_house": 3,
+            "planet": "rahu",
+            "sign": "Gemini"
+          },
+          {
+            "host_house": 9,
+            "planet": "ketu",
+            "sign": "Sagittarius"
+          }
+        ]
+      }
+    },
+    "relationship": "friend",
+    "role_a": "bride",
+    "role_b": "groom",
+    "significators_a": {
+      "house_basis": "11th \u2014 labha bhava, gains and the circle of friends (BPHS house significations)",
+      "house_lord": "saturn",
+      "house_sign": "Aquarius",
+      "karaka_house": 11,
+      "karakas": [
+        {
+          "condition": {
+            "dignity": "own",
+            "house": 12,
+            "is_combust": false,
+            "is_retrograde": false,
+            "planet": "jupiter",
+            "sign": "Pisces"
+          },
+          "source": "Jupiter \u2014 karaka of the 11th house (labha/friends) per BPHS karakatva"
+        }
+      ],
+      "lord_condition": {
+        "dignity": "neutral",
+        "house": 6,
+        "is_combust": false,
+        "is_retrograde": false,
+        "planet": "saturn",
+        "sign": "Virgo"
+      },
+      "occupants": [],
+      "relationship": "friend"
+    },
+    "significators_b": {
+      "house_basis": "11th \u2014 labha bhava, gains and the circle of friends (BPHS house significations)",
+      "house_lord": "moon",
+      "house_sign": "Cancer",
+      "karaka_house": 11,
+      "karakas": [
+        {
+          "condition": {
+            "dignity": "own",
+            "house": 4,
+            "is_combust": false,
+            "is_retrograde": false,
+            "planet": "jupiter",
+            "sign": "Sagittarius"
+          },
+          "source": "Jupiter \u2014 karaka of the 11th house (labha/friends) per BPHS karakatva"
+        }
+      ],
+      "lord_condition": {
+        "dignity": "neutral",
+        "house": 7,
+        "is_combust": false,
+        "is_retrograde": false,
+        "planet": "moon",
+        "sign": "Pisces"
+      },
+      "occupants": [],
+      "relationship": "friend"
+    },
+    "synchrony": {
+      "basis": "Pure interval intersection over the engine-emitted maha+antar dates of both charts; segments exist only where both dated trees cover the window.",
+      "convention_a": "julian_365_25",
+      "convention_b": "julian_365_25",
+      "segments": [
+        {
+          "a_antar": "jupiter",
+          "a_maha": "jupiter",
+          "b_antar": "moon",
+          "b_maha": "mercury",
+          "end": "2025-09-09T14:30:34.302306Z",
+          "shared_lords": [],
+          "simultaneous_boundary": false,
+          "start": "2025-01-01T00:00:00Z"
+        },
+        {
+          "a_antar": "jupiter",
+          "a_maha": "jupiter",
+          "b_antar": "mars",
+          "b_maha": "mercury",
+          "end": "2026-05-16T04:55:53.304242Z",
+          "shared_lords": [],
+          "simultaneous_boundary": false,
+          "start": "2025-09-09T14:30:34.302306Z"
+        },
+        {
+          "a_antar": "jupiter",
+          "a_maha": "jupiter",
+          "b_antar": "rahu",
+          "b_maha": "mercury",
+          "end": "2027-01-01T00:00:00Z",
+          "shared_lords": [],
+          "simultaneous_boundary": false,
+          "start": "2026-05-16T04:55:53.304242Z"
+        }
+      ],
+      "window_end": "2027-01-01T00:00:00Z",
+      "window_start": "2025-01-01T00:00:00Z"
+    }
+  }
+}

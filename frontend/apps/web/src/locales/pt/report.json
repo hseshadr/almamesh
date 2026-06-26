@@ -1,0 +1,153 @@
+{
+  "_meta": {
+    "review": "machine-translated, pending native review"
+  },
+  "title": "Seu relatório védico",
+  "download_pdf": "Baixar PDF",
+  "narrative_hint": "Gere sua interpretação no painel para adicionar a leitura escrita a este relatório. O mapa, o kundli, o dasha e os yogas abaixo já estão prontos.",
+  "pdf_title": "Relatório védico da AlmaMesh — {{name}} ({{date}})",
+  "pdf": {
+    "subtitle": "Uma leitura de mapa natal sideral, calculada no seu dispositivo.",
+    "birth_details_eyebrow": "Seção I",
+    "birth_details_title": "Dados de Nascimento",
+    "birth_details_intro": "O momento e local exatos de nascimento dos quais cada posição deste relatório é derivada.",
+    "technical_note": "Calculado com o ayanamsa Lahiri e o sistema de casas de signo inteiro. Todos os valores são emitidos pelo motor do AlmaMesh no seu dispositivo.",
+    "footer_note": "AlmaMesh · Relatório de Mapa Natal Védico",
+    "planets_eyebrow": "Seção II",
+    "planets_intro": "A longitude sideral de cada graha no momento do nascimento — seu signo, grau exato, nakshatra, casa e dignidade. Planetas combustos aparecem esmaecidos; (R) indica movimento retrógrado.",
+    "charts_eyebrow": "Seção III",
+    "charts_intro": "O mapa natal (D1 Rāśi) e o navāṁśa (D9), o mapa divisional do casamento, do dharma e da força interior — ambos no diamante clássico do norte da Índia, casas fixas, signos rotacionando.",
+    "dasha_eyebrow": "Seção IV",
+    "dasha_intro": "O sistema de períodos planetários de 120 anos baseado no nakshatra da Lua ao nascer. Cada mahā-daśā colore um longo capítulo da vida; o período atual está marcado em latão.",
+    "dasha_current_label": "Em curso — Mahā · Antar · Pratyantar",
+    "dasha_sequence_label": "Sequência de Mahā-Daśā",
+    "dasha_antar_label": "Antar-Daśā dentro da Mahā atual",
+    "yogas_eyebrow": "Seção V",
+    "yogas_intro": "As combinações planetárias que o motor identifica neste mapa, com seu grau clássico. Um yoga é uma tendência, nunca um veredicto.",
+    "narrative_eyebrow": "Seção VI",
+    "narrative_intro": "Uma leitura tecida a partir das posições acima — forças, desafios, temas de vida e orientação nos principais domínios da vida.",
+    "lagna_row_name": "Ascendente",
+    "house_short": "Casa"
+  },
+  "section_eyebrow": "{{index}} · Seção",
+  "empty": {
+    "heading": "O relatório não está pronto",
+    "back": "Voltar ao painel",
+    "no_chart": "Ainda não há nenhum mapa neste dispositivo. Gere primeiro o seu mapa natal e depois volte a este relatório.",
+    "no_interpretation": "A sua interpretação ainda não terminou de ser gerada. Abra o painel, gere a sua interpretação e depois volte aqui para imprimir o seu relatório."
+  },
+  "cover": {
+    "kicker": "Relatório de astrologia védica",
+    "prepared_for": "Preparado para",
+    "date_of_birth": "Data de nascimento",
+    "time_of_birth": "Hora de nascimento",
+    "place_of_birth": "Local de nascimento",
+    "ascendant": "Ascendente (Lagna)",
+    "cusp_note": "≈{{degrees}}° da cúspide de {{sign}}. Alguns minutos de diferença no horário de nascimento registrado tornariam o signo ascendente {{sign}}, e todas as posições de casas deste relatório mudariam com ele. A interpretação baseada em casas depende do horário registrado; recomendamos ajustar o horário de nascimento no AlmaMesh antes de confiar nas posições de casas.",
+    "generated_on": "Gerado em {{date}}"
+  },
+  "audience": {
+    "you": "Para você",
+    "astrologer": "Para o astrólogo"
+  },
+  "charts": {
+    "heading": "Kundli e ascendente",
+    "rasi_caption": "D1 · Rāśi",
+    "navamsa_caption": "D9 · Navāṁśa",
+    "ascendant": "Ascendente (Lagna)",
+    "nakshatra": "Nakshatra",
+    "nakshatra_pada": "{{nakshatra}} · pada {{pada}}",
+    "sign_lord": "Regente do signo",
+    "nakshatra_lord": "Regente do nakshatra"
+  },
+  "planets": {
+    "heading": "Posições planetárias (Rāśi / D1)",
+    "col_planet": "Planeta",
+    "col_sign": "Signo",
+    "col_degree": "Grau",
+    "col_house": "Casa",
+    "col_nakshatra": "Nakshatra · Pada",
+    "col_dignity": "Dignidade",
+    "col_state": "Estado",
+    "retrograde": "Retro (R)",
+    "combust": "Combusto"
+  },
+  "yogas": {
+    "heading": "Yogas principais",
+    "grade": {
+      "strong": "forte",
+      "moderate": "moderado",
+      "weak": "fraco"
+    },
+    "grade_aria": "Grau do yoga: {{grade}}"
+  },
+  "dasha": {
+    "heading": "Daśā Vimshottari",
+    "maha": "Mahā-daśā",
+    "antar": "Antar-daśā",
+    "pratyantar": "Pratyantar-daśā",
+    "col_lord": "Regente",
+    "col_start": "Início",
+    "col_end": "Fim",
+    "col_duration": "Duração",
+    "years_short": "{{years}} anos",
+    "convention_note": "Todos os períodos foram calculados com o {{convention}}.",
+    "antar_heading": "Antar-daśās da Mahā-daśā de {{lord}}",
+    "pratyantar_heading": "Pratyantar-daśās do Antar-daśā de {{lord}}"
+  },
+  "transits": {
+    "heading": "Trânsitos e Tempos",
+    "as_of": "Posições siderais do céu para {{date}}",
+    "sade_sati_heading": "Sade Sati",
+    "fusion_heading": "Fusão Daśā × Trânsito",
+    "timeline_heading": "Linha do tempo de doze meses",
+    "col_date": "Data",
+    "col_event": "Evento",
+    "col_tone": "Tom"
+  },
+  "vargas_full": {
+    "heading": "Mapas divisionais (Shodaśavarga)",
+    "key_charts_note": "Os vargas principais aparecem como pranchas; o motor tabula as posições dos dezesseis.",
+    "vargottama_heading": "Vargottama",
+    "vimshopaka_heading": "Viṁśopaka Bala",
+    "col_graha": "Graha",
+    "col_score": "Pontuação / 20",
+    "col_own_charts": "Mapas em signo próprio (Ṣaḍvarga)"
+  },
+  "strength": {
+    "heading": "Força planetária",
+    "sav_heading": "Sarvāṣṭakavarga (SAV)",
+    "shadbala_heading": "Ṣaḍbala",
+    "col_graha": "Graha",
+    "col_rupas": "Rūpas",
+    "col_required": "Exigido",
+    "col_verdict": "Veredicto",
+    "meets": "Atinge o mínimo",
+    "below": "Abaixo do mínimo",
+    "sav_total": "Total {{total}}"
+  },
+  "domains": {
+    "heading": "Previsões por áreas da vida",
+    "windows_heading": "Janelas próximas",
+    "windows_empty": "Nenhuma janela datada nos próximos doze meses."
+  },
+  "predictive_pending": {
+    "title": "Seções de tempos e força",
+    "body": "Os trânsitos, os mapas divisionais, a força planetária e as previsões das sete áreas da vida podem ser adicionados a este relatório. Calcule-os primeiro — cerca de meio minuto, tudo neste dispositivo.",
+    "compute": "Calcular seções de tempos",
+    "computing": "Calculando neste dispositivo — {{elapsed}} decorrido.",
+    "engine_warming": "O motor de mapas ainda está iniciando; o cálculo ficará disponível quando ele estiver pronto.",
+    "error": "Não foi possível calcular as seções de tempos.",
+    "retry": "Tentar novamente"
+  },
+  "interpretation": {
+    "heading": "Interpretação",
+    "strengths": "Forças",
+    "challenges": "Desafios",
+    "life_themes": "Grandes temas de vida",
+    "road_ahead": "O caminho adiante"
+  },
+  "footer": {
+    "provenance": "Calculado com o ayanamsa Lahiri · AlmaMesh"
+  }
+}

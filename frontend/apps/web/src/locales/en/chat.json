@@ -1,0 +1,62 @@
+{
+  "title": "Ask About Your Chart",
+  "placeholder": "Ask anything about your chart or your life…",
+  "send": "Send",
+  "header": {
+    "layman_title": "Ask About Your Chart",
+    "layman_subtitle": "Chat with your personalized astrology assistant",
+    "technical_title": "Query Reference",
+    "technical_subtitle": "Technical astrological analysis and reference"
+  },
+  "empty": {
+    "title": "Ask {{name}}'s Chart",
+    "hint": "Ask any question about career, relationships, health, timing, or life path."
+  },
+  "input": {
+    "placeholder": "Ask a question about your chart..."
+  },
+  "status": {
+    "analyzing": "Analyzing..."
+  },
+  "tooltip": "Ask about your chart",
+  "controls": {
+    "open": "Open chat",
+    "close": "Close chat",
+    "minimize": "Minimize chat",
+    "maximize": "Maximize chat",
+    "restore": "Restore chat"
+  },
+  "search": {
+    "placeholder": "Search past conversations…",
+    "aria_label": "Search past conversations",
+    "searching": "Searching your conversations…",
+    "no_results": "No matching past messages.",
+    "thread_fallback": "Conversation",
+    "match": "{{percent}}% match"
+  },
+  "suggested": {
+    "label": "Suggested questions:",
+    "questions": {
+      "career": "What are my career strengths?",
+      "relationship": "How is my relationship outlook?",
+      "year": "What should I focus on this year?",
+      "health": "Tell me about my health tendencies",
+      "spiritual": "What are my spiritual gifts?",
+      "timing": "When is a good time for major decisions?",
+      "finance": "What are my financial prospects?",
+      "lifepath": "How can I improve my life path?"
+    }
+  },
+  "bubble": {
+    "show_simplified": "Show simplified",
+    "show_technical": "Show technical details",
+    "timing_guidance": "Timing Guidance",
+    "suggested_remedies": "Suggested Remedies"
+  },
+  "reference": {
+    "query": "Query",
+    "analysis": "Analysis",
+    "timing_analysis": "Timing Analysis",
+    "recommended_remedies": "Recommended Remedies"
+  }
+}

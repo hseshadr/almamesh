@@ -1,0 +1,121 @@
+domain: relationship
+rules:
+  - rule_id: R_7L_1H
+    category: relationship
+    pattern: "7th lord in 1st house"
+    interpretation: "Strong focus on partnerships; spouse influences personality and public image. Native's identity becomes intertwined with relationships. Early marriage likely."
+    strength_modifier: 1.15
+    classical_source: "BPHS 25.1"
+    tags: ["marriage", "partnership", "7H", "1H", "spouse_influence"]
+    priority: 60
+    enabled: true
+
+  - rule_id: R_7L_5H
+    category: relationship
+    pattern: "7th lord in 5th house"
+    interpretation: "Romantic approach to marriage; love marriage indicated. Creative partnership with spouse. Children may come through or influence marriage."
+    strength_modifier: 1.10
+    classical_source: "BPHS 25.5"
+    tags: ["marriage", "romance", "love_marriage", "7H", "5H"]
+    priority: 55
+    enabled: true
+
+  - rule_id: R_7L_11H
+    category: relationship
+    pattern: "7th lord in 11th house"
+    interpretation: "Financial gains and wish fulfillment through marriage. Spouse brings prosperity and social connections. Elder siblings may play role in marriage."
+    strength_modifier: 1.20
+    classical_source: "BPHS 25.11"
+    tags: ["marriage", "gains", "prosperity", "7H", "11H"]
+    priority: 58
+    enabled: true
+
+  - rule_id: R_VENUS_7H
+    category: relationship
+    pattern: "Venus in 7th house"
+    interpretation: "Beautiful and harmonious marriage indicated. Attractive spouse with artistic inclinations. Strong desire for partnership and companionship."
+    strength_modifier: 1.25
+    classical_source: "Jataka Parijata 8.45"
+    tags: ["marriage", "venus", "harmony", "beauty", "7H"]
+    priority: 65
+    enabled: true
+
+  - rule_id: R_VENUS_STRONG
+    category: relationship
+    pattern: "Venus dignified (own sign, exalted, or vargottama)"
+    interpretation: "Enhanced capacity for love and harmony. Blessed married life with mutual respect. Natural charm attracts suitable partners."
+    strength_modifier: 1.30
+    classical_source: "Brihat Jataka 2.14"
+    tags: ["marriage", "venus", "dignity", "exalted", "harmony"]
+    priority: 62
+    enabled: true
+
+  - rule_id: R_VENUS_WEAK
+    category: relationship
+    pattern: "Venus debilitated, combust, or heavily afflicted"
+    interpretation: "Challenges in relationships require conscious effort. Potential for disappointment in love. Need to cultivate realistic expectations in partnerships."
+    strength_modifier: 0.75
+    classical_source: "Phaladeepika 7.12"
+    tags: ["marriage", "venus", "debilitated", "combust", "challenges"]
+    priority: 63
+    enabled: true
+
+  - rule_id: R_7H_AFFLICTED
+    category: relationship
+    pattern: "7th house afflicted by malefics (Saturn, Mars, Rahu, Ketu)"
+    interpretation: "Delays or obstacles in marriage. Potential for conflicts in partnership. Need for patience and maturity in relationships."
+    strength_modifier: 0.80
+    classical_source: "BPHS 26.7"
+    tags: ["marriage", "affliction", "malefic", "7H", "obstacles"]
+    priority: 64
+    enabled: true
+
+  - rule_id: R_7L_DASHA
+    category: relationship
+    pattern: "7th lord mahadasha or antardasha active"
+    interpretation: "Marriage timing indicated during this period. Significant relationship developments and partnership opportunities. Spouse-related matters come to focus."
+    strength_modifier: 1.35
+    classical_source: "Vimshottari Dasha principles"
+    tags: ["marriage", "timing", "dasha", "7L", "prediction"]
+    priority: 70
+    enabled: true
+
+  - rule_id: R_JUPITER_TRANSIT_7H
+    category: relationship
+    pattern: "Jupiter transiting 7th house from Moon or Ascendant"
+    interpretation: "Auspicious period for marriage and partnership expansion. Grace and blessings in relationships. Good time for commitment and legal unions."
+    strength_modifier: 1.25
+    classical_source: "Gochar principles"
+    tags: ["marriage", "transit", "jupiter", "7H", "timing"]
+    priority: 55
+    enabled: true
+
+  - rule_id: R_RAHU_7H
+    category: relationship
+    pattern: "Rahu in 7th house"
+    interpretation: "Unconventional relationships or partner from different background. Intense desires in partnership. May indicate foreign spouse or unusual marriage circumstances."
+    strength_modifier: 0.90
+    classical_source: "BPHS 27.4"
+    tags: ["marriage", "rahu", "unconventional", "foreign", "7H"]
+    priority: 58
+    enabled: true
+
+  - rule_id: R_UPAPADA_STRONG
+    category: relationship
+    pattern: "Upapada Lagna lord strong and well-placed"
+    interpretation: "Stable and enduring marriage indicated. Spouse from good family background. Marriage brings social status and respect."
+    strength_modifier: 1.20
+    classical_source: "Jaimini Sutras 1.3.1"
+    tags: ["marriage", "jaimini", "upapada", "stability", "spouse"]
+    priority: 60
+    enabled: true
+
+  - rule_id: R_DARAKARAKA_DASHA
+    category: relationship
+    pattern: "Darakaraka planet dasha or antardasha active"
+    interpretation: "Spouse-related events highlighted during this period. Meeting of life partner possible. Marriage timing according to Jaimini system."
+    strength_modifier: 1.30
+    classical_source: "Jaimini Sutras 2.1.31"
+    tags: ["marriage", "jaimini", "darakaraka", "timing", "dasha"]
+    priority: 68
+    enabled: true

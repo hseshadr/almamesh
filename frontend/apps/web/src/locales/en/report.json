@@ -1,0 +1,150 @@
+{
+  "title": "Your Vedic Report",
+  "download_pdf": "Download PDF",
+  "narrative_hint": "Generate your interpretation on the dashboard to add the written reading to this report. The chart, kundli, dasha, and yogas below are ready now.",
+  "pdf_title": "AlmaMesh Vedic Report — {{name}} ({{date}})",
+  "pdf": {
+    "subtitle": "A sidereal birth-chart reading, computed on your device.",
+    "birth_details_eyebrow": "Section I",
+    "birth_details_title": "Birth Details",
+    "birth_details_intro": "The exact moment and place of birth from which every placement in this report is derived.",
+    "technical_note": "Computed with the Lahiri ayanamsa and the whole-sign house system. All values are emitted by the AlmaMesh engine on your device.",
+    "footer_note": "AlmaMesh · Vedic Birth-Chart Report",
+    "planets_eyebrow": "Section II",
+    "planets_intro": "The sidereal longitude of each graha at the moment of birth — its sign, exact degree, nakshatra, house, and dignity. Combust planets are shown dimmed; (R) marks retrograde motion.",
+    "charts_eyebrow": "Section III",
+    "charts_intro": "The birth chart (D1 Rāśi) and the navāṁśa (D9), the divisional chart of marriage, dharma, and inner strength — both in the classical North-Indian diamond, houses fixed, signs rotating.",
+    "dasha_eyebrow": "Section IV",
+    "dasha_intro": "The 120-year planetary period system keyed to the Moon’s nakshatra at birth. Each mahā-daśā colours a long chapter of life; the current period is marked in brass.",
+    "dasha_current_label": "Currently Running — Mahā · Antar · Pratyantar",
+    "dasha_sequence_label": "Mahā-Daśā Sequence",
+    "dasha_antar_label": "Antar-Daśā within the Current Mahā",
+    "yogas_eyebrow": "Section V",
+    "yogas_intro": "The named planetary combinations the engine identifies in this chart, with their classical grade. A yoga is a tendency, never a verdict.",
+    "narrative_eyebrow": "Section VI",
+    "narrative_intro": "A reading woven from the placements above — strengths, challenges, life themes, and guidance across the major life domains.",
+    "lagna_row_name": "Ascendant",
+    "house_short": "Hse"
+  },
+  "section_eyebrow": "{{index}} · Section",
+  "empty": {
+    "heading": "Report not ready",
+    "back": "Back to dashboard",
+    "no_chart": "No chart found on this device yet. Generate your birth chart first, then come back to this report.",
+    "no_interpretation": "Your interpretation hasn't finished generating yet. Open the dashboard, generate your interpretation, then return here to print your report."
+  },
+  "cover": {
+    "kicker": "Vedic Astrology Report",
+    "prepared_for": "Prepared for",
+    "date_of_birth": "Date of Birth",
+    "time_of_birth": "Time of Birth",
+    "place_of_birth": "Place of Birth",
+    "ascendant": "Ascendant (Lagna)",
+    "cusp_note": "≈{{degrees}}° from the {{sign}} cusp. A few minutes' difference in the recorded birth time would make the rising sign {{sign}}, and every house placement in this report would shift with it. House-based interpretation depends on the recorded time; we recommend refining the birth time in AlmaMesh before relying on house placements.",
+    "generated_on": "Generated on {{date}}"
+  },
+  "audience": {
+    "you": "For You",
+    "astrologer": "For Astrologer"
+  },
+  "charts": {
+    "heading": "Kundli & Ascendant",
+    "rasi_caption": "D1 · Rāśi",
+    "navamsa_caption": "D9 · Navāṁśa",
+    "ascendant": "Ascendant (Lagna)",
+    "nakshatra": "Nakshatra",
+    "nakshatra_pada": "{{nakshatra}} · pada {{pada}}",
+    "sign_lord": "Sign Lord",
+    "nakshatra_lord": "Nakshatra Lord"
+  },
+  "planets": {
+    "heading": "Planetary Positions (Rāśi / D1)",
+    "col_planet": "Planet",
+    "col_sign": "Sign",
+    "col_degree": "Degree",
+    "col_house": "House",
+    "col_nakshatra": "Nakshatra · Pada",
+    "col_dignity": "Dignity",
+    "col_state": "State",
+    "retrograde": "Retro (R)",
+    "combust": "Combust"
+  },
+  "yogas": {
+    "heading": "Key Yogas",
+    "grade": {
+      "strong": "strong",
+      "moderate": "moderate",
+      "weak": "weak"
+    },
+    "grade_aria": "Yoga grade: {{grade}}"
+  },
+  "dasha": {
+    "heading": "Vimshottari Daśā",
+    "maha": "Mahā-daśā",
+    "antar": "Antar-daśā",
+    "pratyantar": "Pratyantar-daśā",
+    "col_lord": "Lord",
+    "col_start": "Start",
+    "col_end": "End",
+    "col_duration": "Duration",
+    "years_short": "{{years}} yr",
+    "convention_note": "All periods computed with the {{convention}}.",
+    "antar_heading": "Antar-daśās of the {{lord}} Mahā-daśā",
+    "pratyantar_heading": "Pratyantar-daśās of the {{lord}} Antar-daśā"
+  },
+  "transits": {
+    "heading": "Transits & Timing",
+    "as_of": "Sidereal sky positions for {{date}}",
+    "sade_sati_heading": "Sade Sati",
+    "fusion_heading": "Daśā × Transit Fusion",
+    "timeline_heading": "Twelve-month Timeline",
+    "col_date": "Date",
+    "col_event": "Event",
+    "col_tone": "Tone"
+  },
+  "vargas_full": {
+    "heading": "Divisional Charts (Shodaśavarga)",
+    "key_charts_note": "Key vargas shown as plates; placements for all sixteen are tabulated by the engine.",
+    "vargottama_heading": "Vargottama",
+    "vimshopaka_heading": "Viṁśopaka Bala",
+    "col_graha": "Graha",
+    "col_score": "Score / 20",
+    "col_own_charts": "Own-sign charts (Ṣaḍvarga)"
+  },
+  "strength": {
+    "heading": "Planetary Strength",
+    "sav_heading": "Sarvāṣṭakavarga (SAV)",
+    "shadbala_heading": "Ṣaḍbala",
+    "col_graha": "Graha",
+    "col_rupas": "Rūpas",
+    "col_required": "Required",
+    "col_verdict": "Verdict",
+    "meets": "Meets minimum",
+    "below": "Below minimum",
+    "sav_total": "Total {{total}}"
+  },
+  "domains": {
+    "heading": "Life-Domain Forecasts",
+    "windows_heading": "Upcoming windows",
+    "windows_empty": "No dated windows inside the next twelve months."
+  },
+  "predictive_pending": {
+    "title": "Timing & strength sections",
+    "body": "Transits, divisional charts, planetary strength and the seven life-domain forecasts can be added to this report. Compute them first — about half a minute, entirely on this device.",
+    "compute": "Compute timing sections",
+    "computing": "Computing on this device — {{elapsed}} elapsed.",
+    "engine_warming": "The chart engine is still starting up; computing becomes available once it is ready.",
+    "error": "The timing sections could not be computed.",
+    "retry": "Try again"
+  },
+  "interpretation": {
+    "heading": "Interpretation",
+    "strengths": "Strengths",
+    "challenges": "Challenges",
+    "life_themes": "Major Life Themes",
+    "road_ahead": "The Road Ahead"
+  },
+  "footer": {
+    "provenance": "Calculated with the Lahiri Ayanamsa · AlmaMesh"
+  }
+}

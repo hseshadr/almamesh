@@ -1,0 +1,1206 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Observatory design tokens — font families + atmospheric primitives.
+ * The color palette is owned by @almamesh/constants -> tailwind.config.ts.
+ */
+:root {
+  /* Typography */
+  --font-display: 'Fraunces Variable', 'Fraunces', Georgia, serif;
+  --font-sans: 'Hanken Grotesk Variable', 'Hanken Grotesk', system-ui, sans-serif;
+  --font-mono: 'Spline Sans Mono Variable', 'Spline Sans Mono', ui-monospace, monospace;
+
+  /* Obsidian-indigo base + warm ivory text (mirrors constants palette). */
+  --color-bg: #0b0e17;
+  --color-bg-deep: #080a11;
+  --color-text: #ece6d8;
+  --color-brass: #c9a24b;
+
+  /* Measured, orbital easing. */
+  --ease-orbital: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Legacy vars kept for any consumer still referencing them. */
+  --foreground-rgb: 236, 230, 216;
+  --background-start-rgb: 11, 14, 23;
+  --background-end-rgb: 8, 10, 17;
+}
+
+body {
+  font-family: var(--font-sans);
+  color: var(--color-text);
+  background-color: var(--color-bg);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Display headings use the manuscript serif by default. */
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
+}
+
+/*
+ * Atmospheric background utilities — subtle starfield grain + faint concentric
+ * astrolabe rings. Decorative only (low opacity), never load-bearing for UI.
+ */
+@layer utilities {
+  /* Faint starfield: two layered radial-gradient "star" fields over obsidian. */
+  .bg-starfield {
+    background-color: var(--color-bg);
+    background-image:
+      radial-gradient(1px 1px at 20% 30%, rgba(244, 241, 232, 0.18), transparent 60%),
+      radial-gradient(1px 1px at 70% 60%, rgba(244, 241, 232, 0.12), transparent 60%),
+      radial-gradient(1px 1px at 40% 80%, rgba(201, 162, 75, 0.12), transparent 60%),
+      radial-gradient(1.5px 1.5px at 85% 20%, rgba(244, 241, 232, 0.1), transparent 60%);
+    background-size: 320px 320px, 260px 260px, 400px 400px, 220px 220px;
+    background-position: 0 0, 40px 80px, 120px 40px, 200px 160px;
+  }
+
+  /* Faint concentric astrolabe rings, centred and fading toward edges. */
+  .bg-astrolabe-rings {
+    position: relative;
+  }
+
+  .bg-astrolabe-rings::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      repeating-radial-gradient(
+        circle at 50% 38%,
+        transparent 0,
+        transparent 78px,
+        rgba(201, 162, 75, 0.05) 79px,
+        transparent 80px
+      );
+    mask-image: radial-gradient(circle at 50% 38%, #000 0%, transparent 70%);
+    -webkit-mask-image: radial-gradient(circle at 50% 38%, #000 0%, transparent 70%);
+  }
+
+  /* Combined observatory atmosphere for full-page shells. */
+  .bg-observatory {
+    background-color: var(--color-bg);
+    background-image:
+      radial-gradient(1px 1px at 20% 30%, rgba(244, 241, 232, 0.16), transparent 60%),
+      radial-gradient(1px 1px at 70% 60%, rgba(244, 241, 232, 0.1), transparent 60%),
+      radial-gradient(1.5px 1.5px at 85% 20%, rgba(201, 162, 75, 0.1), transparent 60%),
+      radial-gradient(circle at 50% -10%, rgba(58, 79, 176, 0.12), transparent 55%);
+    background-size: 320px 320px, 260px 260px, 220px 220px, 100% 100%;
+    background-attachment: fixed;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-ui-border;
+  }
+}
+
+/* Custom animations for splash page */
+@layer utilities {
+  .animate-fade-in {
+    animation: fadeIn 0.8s ease-out forwards;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* React DatePicker dark theme styling */
+.react-datepicker {
+  @apply bg-background-secondary border-ui-border font-sans rounded-lg shadow-xl;
+}
+
+.react-datepicker__header {
+  @apply bg-background-tertiary border-b border-ui-border rounded-t-lg;
+}
+
+.react-datepicker__current-month,
+.react-datepicker__day-name,
+.react-datepicker-time__header {
+  @apply text-text-primary;
+}
+
+.react-datepicker__day-name {
+  @apply text-text-secondary text-sm;
+}
+
+.react-datepicker__day {
+  @apply text-text-primary hover:bg-accent-gold/20 hover:text-accent-gold rounded-md transition-colors;
+}
+
+.react-datepicker__day--selected,
+.react-datepicker__day--keyboard-selected {
+  @apply bg-accent-gold text-background-primary hover:bg-accent-gold/90 font-semibold;
+}
+
+.react-datepicker__day--today {
+  @apply font-bold text-accent-gold;
+}
+
+.react-datepicker__day--outside-month {
+  @apply text-text-muted;
+}
+
+.react-datepicker__day--disabled {
+  @apply text-text-muted cursor-not-allowed hover:bg-transparent;
+}
+
+.react-datepicker__navigation-icon::before {
+  @apply border-text-secondary;
+}
+
+.react-datepicker__navigation:hover *::before {
+  @apply border-accent-gold;
+}
+
+.react-datepicker__triangle {
+  display: none;
+}
+
+/* Time picker dark theme */
+.react-datepicker__time-container {
+  @apply border-l border-ui-border;
+}
+
+.react-datepicker__time {
+  @apply bg-background-secondary;
+}
+
+.react-datepicker__time-box {
+  @apply text-text-primary;
+}
+
+.react-datepicker__time-list-item {
+  @apply text-text-primary hover:bg-accent-gold/20 transition-colors;
+}
+
+.react-datepicker__time-list-item--selected {
+  @apply bg-accent-gold text-background-primary font-semibold;
+}
+
+.react-datepicker__input-container input {
+  @apply w-full;
+}
+
+/**
+ * Reduced Motion Accessibility Fallback
+ *
+ * Disables all CSS animations and transitions for users who prefer reduced motion.
+ * This is a global fallback that ensures accessibility even if JavaScript-based
+ * reduced motion detection fails or hasn't loaded yet.
+ *
+ * Note: Framer Motion and GSAP animations are handled separately via the
+ * useReducedMotion hook, but this CSS ensures any CSS-only animations
+ * also respect the user preference.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Disable specific custom animations */
+  .animate-fade-in {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+/**
+ * Premium Print Styles for AlmaMesh Vedic Astrology Reports
+ *
+ * Creates a professional $50-100 quality printed report with:
+ * 1. Branded cover page with gold accents
+ * 2. Clean white backgrounds throughout
+ * 3. Professional typography hierarchy
+ * 4. Table integrity with repeating headers
+ * 5. Chart SVGs with print-optimized colors
+ * 6. Page break controls for section integrity
+ * 7. Branded footer on each page
+ *
+ * Print-safe gold: #B8860B (DarkGoldenrod) or #D4AF37
+ * Print-safe amber: #92400E (amber-800)
+ */
+@media print {
+  /* ============================================
+   * 1. PAGE SETUP & MARGINS
+   * ============================================ */
+
+  @page {
+    size: A4 portrait;
+    margin: 12mm 15mm 18mm 15mm;
+  }
+
+  /* First page (cover) - minimal margins */
+  @page :first {
+    margin: 0;
+  }
+
+  /* ============================================
+   * 2. GLOBAL RESET - WHITE BACKGROUNDS
+   * ============================================ */
+
+  :root {
+    --foreground-rgb: 0, 0, 0;
+    --background-start-rgb: 255, 255, 255;
+    --background-end-rgb: 255, 255, 255;
+    --print-gold: #B8860B;
+    --print-gold-light: #D4AF37;
+    --print-text-primary: #111827;
+    --print-text-secondary: #374151;
+    --print-text-muted: #6B7280;
+    --print-border: #D1D5DB;
+    --print-bg-subtle: #F9FAFB;
+  }
+
+  html {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  html,
+  body {
+    background: white !important;
+    color: #111827 !important;
+    font-family: 'Georgia', 'Times New Roman', serif !important;
+    font-size: 10pt !important;
+    line-height: 1.5 !important;
+  }
+
+  /* Force white backgrounds on ALL dark theme elements */
+  main,
+  .bg-\[\#0f1115\],
+  .bg-\[\#151821\],
+  .bg-\[\#1a1d28\],
+  .bg-\[\#1e2330\],
+  .bg-\[\#1f2332\],
+  .bg-\[\#232735\],
+  .bg-background-primary,
+  .bg-background-secondary,
+  .bg-background-tertiary,
+  .bg-background-darkest,
+  [class*="bg-gradient"] {
+    background: white !important;
+    background-color: white !important;
+    background-image: none !important;
+  }
+
+  /* Force dark text on all light backgrounds */
+  *:not(svg):not(svg *) {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  /* ============================================
+   * 3. HIDE NON-PRINTABLE ELEMENTS
+   * ============================================ */
+
+  .no-print,
+  header,
+  nav,
+  button,
+  .print-hide,
+  [role="menu"],
+  [aria-haspopup],
+  .sticky,
+  .animate-spin {
+    display: none !important;
+  }
+
+  /* ============================================
+   * 4. COVER PAGE STYLING
+   * ============================================ */
+
+  .print-cover-page {
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 100vh;
+    padding: 0;
+    page-break-after: always;
+    break-after: page;
+    background: white !important;
+    position: relative;
+  }
+
+  .print-cover-gold-border {
+    width: 100%;
+    height: 8px;
+    background: linear-gradient(90deg, #B8860B 0%, #D4AF37 50%, #B8860B 100%) !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .print-cover-gold-border-bottom {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+  }
+
+  .print-cover-header {
+    text-align: center;
+    margin-top: 60px;
+  }
+
+  .print-cover-logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+  }
+
+  .print-cover-logo-icon {
+    font-size: 36pt !important;
+    color: #B8860B !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .print-cover-logo-text {
+    font-family: 'Georgia', serif !important;
+    font-size: 32pt !important;
+    font-weight: 400 !important;
+    letter-spacing: 4px !important;
+    color: #111827 !important;
+  }
+
+  .print-cover-tagline {
+    font-family: 'Georgia', serif !important;
+    font-size: 11pt !important;
+    font-style: italic;
+    color: #6B7280 !important;
+    margin-top: 8px;
+    letter-spacing: 2px;
+  }
+
+  /* Report Type Badge - "For Astrologer" */
+  .print-cover-report-type {
+    text-align: center;
+    margin-top: 40px;
+  }
+
+  .print-cover-report-badge {
+    display: inline-block;
+    font-family: 'Georgia', serif !important;
+    font-size: 14pt !important;
+    font-weight: 600 !important;
+    color: #B8860B !important;
+    text-transform: uppercase;
+    letter-spacing: 4px;
+    padding: 8px 24px;
+    border: 2px solid #B8860B !important;
+    border-radius: 2px;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .print-cover-report-subtitle {
+    display: block;
+    font-family: 'Georgia', serif !important;
+    font-size: 10pt !important;
+    color: #6B7280 !important;
+    margin-top: 8px;
+    letter-spacing: 2px;
+  }
+
+  .print-cover-title-section {
+    text-align: center;
+    margin-top: 80px;
+  }
+
+  .print-cover-title {
+    font-family: 'Georgia', serif !important;
+    font-size: 24pt !important;
+    font-weight: 400 !important;
+    color: #111827 !important;
+    letter-spacing: 1px;
+    margin: 0 0 20px 0 !important;
+  }
+
+  .print-cover-divider {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin: 24px 0;
+  }
+
+  .print-cover-divider-line {
+    width: 80px;
+    height: 1px;
+    background: #B8860B !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .print-cover-divider-star {
+    font-size: 14pt;
+    color: #B8860B !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .print-cover-name-section {
+    text-align: center;
+    margin-top: 60px;
+  }
+
+  .print-cover-prepared-for {
+    font-family: 'Georgia', serif !important;
+    font-size: 10pt !important;
+    color: #6B7280 !important;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    margin-bottom: 12px;
+  }
+
+  .print-cover-person-name {
+    font-family: 'Georgia', serif !important;
+    font-size: 28pt !important;
+    font-weight: 400 !important;
+    color: #111827 !important;
+    margin: 0 !important;
+  }
+
+  .print-cover-birth-box {
+    margin-top: 60px;
+    padding: 24px 40px;
+    border: 1px solid #D1D5DB;
+    border-radius: 4px;
+    background: #F9FAFB !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    min-width: 400px;
+  }
+
+  .print-cover-birth-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .print-cover-birth-row:last-child {
+    margin-bottom: 0;
+  }
+
+  .print-cover-birth-item {
+    text-align: center;
+    flex: 1;
+  }
+
+  .print-cover-birth-item-full {
+    flex: 1;
+    text-align: center;
+  }
+
+  .print-cover-birth-label {
+    display: block;
+    font-family: 'Georgia', serif !important;
+    font-size: 8pt !important;
+    color: #6B7280 !important;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+
+  .print-cover-birth-value {
+    display: block;
+    font-family: 'Georgia', serif !important;
+    font-size: 11pt !important;
+    color: #111827 !important;
+    font-weight: 500;
+  }
+
+  .print-cover-lagna-row {
+    border-top: 1px solid #D1D5DB;
+    padding-top: 16px;
+    margin-top: 8px;
+  }
+
+  .print-cover-lagna-value {
+    color: #B8860B !important;
+    font-weight: 600 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .print-cover-footer {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+
+  .print-cover-generated {
+    margin-bottom: 16px;
+  }
+
+  .print-cover-generated-label {
+    display: block;
+    font-family: 'Georgia', serif !important;
+    font-size: 8pt !important;
+    color: #6B7280 !important;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+
+  .print-cover-generated-value {
+    display: block;
+    font-family: 'Georgia', serif !important;
+    font-size: 10pt !important;
+    color: #374151 !important;
+  }
+
+  .print-cover-disclaimer {
+    font-family: 'Georgia', serif !important;
+    font-size: 8pt !important;
+    font-style: italic;
+    color: #9CA3AF !important;
+    max-width: 400px;
+    margin: 0 auto;
+  }
+
+  /* ============================================
+   * 5. PAGE HEADER (Subsequent Pages)
+   * ============================================ */
+
+  .print-page-header {
+    text-align: center;
+    padding: 0 0 16px 0;
+    margin-bottom: 16px;
+    border-bottom: 2px solid #B8860B !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .print-header-badge {
+    display: inline-block;
+    font-family: 'Georgia', serif !important;
+    font-size: 9pt !important;
+    font-weight: 600 !important;
+    color: #B8860B !important;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    padding: 4px 12px;
+    border: 1px solid #B8860B !important;
+    border-radius: 2px;
+    margin-bottom: 8px;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .print-main-title {
+    font-family: 'Georgia', serif !important;
+    font-size: 16pt !important;
+    font-weight: 600 !important;
+    color: #111827 !important;
+    margin: 0 0 4px 0 !important;
+  }
+
+  .print-subtitle {
+    font-family: 'Georgia', serif !important;
+    font-size: 9pt !important;
+    color: #6B7280 !important;
+  }
+
+  /* ============================================
+   * 6. TYPOGRAPHY HIERARCHY
+   * ============================================ */
+
+  h1 {
+    font-family: 'Georgia', serif !important;
+    font-size: 18pt !important;
+    font-weight: 600 !important;
+    color: #111827 !important;
+    margin: 0 0 8px 0 !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+
+  h2 {
+    font-family: 'Georgia', serif !important;
+    font-size: 14pt !important;
+    font-weight: 600 !important;
+    color: #111827 !important;
+    margin: 0 0 12px 0 !important;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #B8860B !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+
+  h3 {
+    font-family: 'Georgia', serif !important;
+    font-size: 11pt !important;
+    font-weight: 600 !important;
+    color: #374151 !important;
+    margin: 0 0 8px 0 !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+
+  h4 {
+    font-family: 'Georgia', serif !important;
+    font-size: 10pt !important;
+    font-weight: 600 !important;
+    color: #374151 !important;
+    margin: 0 0 6px 0 !important;
+  }
+
+  p {
+    font-family: 'Georgia', serif !important;
+    font-size: 10pt !important;
+    line-height: 1.5 !important;
+    color: #374151 !important;
+    orphans: 3 !important;
+    widows: 3 !important;
+  }
+
+  /* ============================================
+   * 7. TABLE STYLING
+   * ============================================ */
+
+  table {
+    border-collapse: collapse !important;
+    width: 100% !important;
+    font-family: 'Georgia', serif !important;
+    font-size: 9pt !important;
+    page-break-inside: auto !important;
+  }
+
+  thead {
+    display: table-header-group !important;
+  }
+
+  thead tr {
+    background: #F3F4F6 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  th {
+    background: #F3F4F6 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color: #374151 !important;
+    font-weight: 600 !important;
+    padding: 8px 10px !important;
+    border-bottom: 2px solid #B8860B !important;
+    text-align: left !important;
+    font-size: 9pt !important;
+  }
+
+  tfoot {
+    display: table-footer-group !important;
+  }
+
+  tr {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  td {
+    padding: 6px 10px !important;
+    border-bottom: 1px solid #E5E7EB !important;
+    font-size: 9pt !important;
+    vertical-align: top !important;
+    color: #374151 !important;
+  }
+
+  tbody tr:last-child td {
+    border-bottom: none !important;
+  }
+
+  /* Alternating row colors for readability */
+  tbody tr:nth-child(even) {
+    background: #F9FAFB !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* ============================================
+   * 8. SECTION & CARD STYLING
+   * ============================================ */
+
+  /* All cards get white background with subtle border */
+  .rounded-xl,
+  .rounded-2xl,
+  [class*="border-"][class*="rounded"] {
+    background: white !important;
+    border: 1px solid #E5E7EB !important;
+    border-radius: 4px !important;
+    margin-bottom: 12px !important;
+    padding: 16px !important;
+  }
+
+  /* Part 1 & Part 2 main containers */
+  .bg-\[\#151821\].rounded-2xl,
+  .bg-\[\#151821\].border {
+    background: white !important;
+    border: 1px solid #D1D5DB !important;
+    page-break-inside: auto !important;
+    break-inside: auto !important;
+  }
+
+  /* Smaller nested cards */
+  .bg-\[\#0f1115\] {
+    background: #FAFAFA !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    border: 1px solid #E5E7EB !important;
+  }
+
+  /* Prevent small sections from breaking */
+  .print-no-break {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* ============================================
+   * 9. PAGE BREAK CONTROLS
+   * ============================================ */
+
+  .page-break-before,
+  .print-page-break-before {
+    page-break-before: always !important;
+    break-before: page !important;
+  }
+
+  .page-break-after,
+  .print-page-break-after {
+    page-break-after: always !important;
+    break-after: page !important;
+  }
+
+  /* ============================================
+   * 10. CHART SVG STYLING (CRITICAL)
+   * ============================================ */
+
+  /* Chart container */
+  .print-container {
+    background: white !important;
+    border: 1px solid #D1D5DB !important;
+    padding: 16px !important;
+    margin: 0 0 16px 0 !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* Dual chart grid */
+  .print-chart-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 16px !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .print-chart-box {
+    background: #FAFAFA !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    border: 1px solid #E5E7EB !important;
+    border-radius: 4px !important;
+    padding: 12px !important;
+  }
+
+  /* SVG Chart backgrounds - WHITE */
+  svg {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+
+  svg rect[fill="#0D0D1A"],
+  svg rect[fill="#1A1A2E"] {
+    fill: white !important;
+  }
+
+  /* Chart grid lines - dark gray */
+  svg line,
+  svg rect:not([fill="#FFD700"]):not([fill="#E0E0E0"]):not([fill="#FF4444"]):not([fill="#00AA00"]):not([fill="#FFAA00"]):not([fill="#FF69B4"]):not([fill="#4444FF"]):not([fill="#808080"]):not([fill="#606060"]):not([fill="#3B82F6"]) {
+    stroke: #4B5563 !important;
+  }
+
+  /* Chart cell borders */
+  svg rect[stroke="rgba(59, 130, 246, 0.5)"] {
+    stroke: #9CA3AF !important;
+    fill: white !important;
+  }
+
+  /* Ascendant cell highlight */
+  svg rect[fill="rgba(255, 215, 0, 0.15)"] {
+    fill: #FEF3C7 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Chart text - dark */
+  svg text {
+    fill: #111827 !important;
+  }
+
+  /* House numbers */
+  svg text[fill="#606070"] {
+    fill: #6B7280 !important;
+  }
+
+  /* Sign abbreviations */
+  svg text[fill="#8B5CF6"] {
+    fill: #5B21B6 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Lagna marker */
+  svg text[fill="#FFD700"] {
+    fill: #B8860B !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Planet pills - preserve colors for identification */
+  svg rect[fill="#FFD700"],
+  svg rect[fill="#E0E0E0"],
+  svg rect[fill="#FF4444"],
+  svg rect[fill="#00AA00"],
+  svg rect[fill="#FFAA00"],
+  svg rect[fill="#FF69B4"],
+  svg rect[fill="#4444FF"],
+  svg rect[fill="#808080"],
+  svg rect[fill="#606060"],
+  svg rect[fill="#3B82F6"] {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Planet text inside pills */
+  svg text[fill="#0D0D1A"] {
+    fill: #111827 !important;
+  }
+
+  /* Chart-specific print classes */
+  .print-chart-svg {
+    border: 1px solid #D1D5DB !important;
+    border-radius: 8px !important;
+  }
+
+  .print-chart-bg {
+    fill: white !important;
+    stroke: #9CA3AF !important;
+  }
+
+  .print-chart-empty-cell {
+    fill: white !important;
+  }
+
+  .print-chart-cell {
+    fill: white !important;
+    stroke: #9CA3AF !important;
+  }
+
+  .print-chart-ascendant-cell {
+    fill: #FEF3C7 !important;
+    stroke: #B8860B !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* ============================================
+   * 11. BIRTH INFO HEADER
+   * ============================================ */
+
+  .chart-birth-header {
+    display: block !important;
+    background: #F9FAFB !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    border: 1px solid #D1D5DB !important;
+    border-radius: 4px !important;
+    padding: 16px 20px !important;
+    margin-bottom: 16px !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .chart-birth-header h2 {
+    font-family: 'Georgia', serif !important;
+    color: #111827 !important;
+    font-size: 13pt !important;
+    font-weight: 600 !important;
+    margin-bottom: 12px !important;
+    border-bottom: none !important;
+    padding-bottom: 0 !important;
+  }
+
+  .birth-detail {
+    color: #374151 !important;
+  }
+
+  .birth-label {
+    color: #6B7280 !important;
+    font-size: 8pt !important;
+  }
+
+  .lagna-info-print {
+    background: #EFF6FF !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    border: 1px solid #BFDBFE !important;
+    padding: 10px 12px !important;
+    border-radius: 4px !important;
+    margin-top: 12px !important;
+  }
+
+  /* ============================================
+   * 12. ASCENDANT BANNER
+   * ============================================ */
+
+  [class*="bg-gradient"],
+  .bg-gradient-to-r {
+    background: #FFFBEB !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    border: 1px solid #FDE68A !important;
+  }
+
+  /* Gold text in banner */
+  .text-\[\#ffd166\] {
+    color: #B8860B !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* ============================================
+   * 13. TEXT COLOR UTILITIES
+   * ============================================ */
+
+  /* Primary text colors */
+  .text-\[\#e6e6eb\],
+  .text-text-primary,
+  .print-text-dark {
+    color: #111827 !important;
+  }
+
+  /* Secondary/muted text */
+  .text-\[\#9aa3b2\],
+  .text-text-secondary,
+  .print-text-muted {
+    color: #6B7280 !important;
+  }
+
+  /* Gold accent - print safe */
+  .text-accent-gold {
+    color: #B8860B !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Blue accent */
+  .text-\[\#6ea8fe\],
+  .text-accent-blue {
+    color: #1D4ED8 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Status colors */
+  .text-\[\#7bd88f\] {
+    color: #15803D !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* ============================================
+   * 14. INTERPRETATION CARDS
+   * ============================================ */
+
+  /* Border accents */
+  [class*="border-l-4"] {
+    border-left: 3px solid #9CA3AF !important;
+    padding-left: 12px !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .border-\[\#7bd88f\] {
+    border-left-color: #15803D !important;
+  }
+
+  .border-\[\#ffd166\] {
+    border-left-color: #B8860B !important;
+  }
+
+  .border-\[\#6ea8fe\] {
+    border-left-color: #1D4ED8 !important;
+  }
+
+  .border-\[\#9bebb5\] {
+    border-left-color: #059669 !important;
+  }
+
+  hr {
+    border-color: #E5E7EB !important;
+    margin: 12px 0 !important;
+  }
+
+  /* ============================================
+   * 15. GRID LAYOUTS
+   * ============================================ */
+
+  .grid-cols-2,
+  .lg\:grid-cols-2,
+  .md\:grid-cols-2 {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 12px !important;
+  }
+
+  .md\:grid-cols-4 {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  /* ============================================
+   * 16. REPORT FOOTER
+   * ============================================ */
+
+  .print-report-footer {
+    margin-top: 24px;
+    padding-top: 16px;
+  }
+
+  .print-footer-divider {
+    height: 2px;
+    background: linear-gradient(90deg, transparent 0%, #B8860B 20%, #B8860B 80%, transparent 100%) !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    margin-bottom: 12px;
+  }
+
+  .print-footer-content {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Georgia', serif !important;
+    font-size: 9pt !important;
+  }
+
+  .print-footer-brand {
+    color: #B8860B !important;
+    font-weight: 600;
+    letter-spacing: 1px;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .print-footer-separator {
+    color: #D1D5DB !important;
+  }
+
+  .print-footer-text {
+    color: #6B7280 !important;
+    font-style: italic;
+  }
+
+  .print-footer-url {
+    color: #6B7280 !important;
+  }
+
+  .print-footer-note {
+    text-align: center;
+    font-family: 'Georgia', serif !important;
+    font-size: 8pt !important;
+    font-style: italic;
+    color: #9CA3AF !important;
+    margin-top: 8px;
+  }
+
+  /* ============================================
+   * 17. LINKS
+   * ============================================ */
+
+  a {
+    color: #1D4ED8 !important;
+    text-decoration: none !important;
+  }
+
+  a[href]::after {
+    content: none !important;
+  }
+
+  /* ============================================
+   * 18. SPECIFIC OVERRIDES
+   * ============================================ */
+
+  /* Ensure ALL dark backgrounds are white */
+  [class*="bg-[#0"],
+  [class*="bg-[#1"],
+  [class*="bg-[#2"] {
+    background: white !important;
+  }
+
+  /* Markdown content */
+  .prose,
+  .prose * {
+    color: #374151 !important;
+  }
+
+  /* Ensure bordered elements have visible borders */
+  [class*="border-[#232735]"],
+  [class*="border-[#1e2330]"] {
+    border-color: #E5E7EB !important;
+  }
+
+  /* Zodiac symbol in banner */
+  .print\:text-amber-700 {
+    color: #B8860B !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .print\:bg-amber-50 {
+    background: #FFFBEB !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .print\:border-amber-300 {
+    border-color: #FCD34D !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}

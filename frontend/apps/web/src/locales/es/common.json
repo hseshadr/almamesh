@@ -1,0 +1,101 @@
+{
+  "_meta": {
+    "review": "machine-translated, pending native review"
+  },
+  "app_name": "AlmaMesh",
+  "accessibility": {
+    "reduced_motion": "Movimiento reducido"
+  },
+  "profiles": {
+    "add_person": "Añadir persona",
+    "add_a_person": "Añadir una persona",
+    "add": "Añadir",
+    "rename": "Renombrar",
+    "delete": "Eliminar",
+    "active_badge": "activa",
+    "dialog_title": "¿Quién está viendo?",
+    "dialog_description": "Cada persona en este dispositivo conserva sus propias cartas. Sin cuentas, sin contraseñas — todo se queda en este dispositivo.",
+    "empty_state": "Aún no hay personas — añade una abajo.",
+    "name_placeholder": "Nombre",
+    "last_person_hint": "Debe quedar al menos una persona",
+    "active_switch_aria": "Perfil activo: {{name}}. Cambiar de persona",
+    "people_list_aria": "Personas en este dispositivo",
+    "rename_aria": "Renombrar a {{name}}",
+    "delete_aria": "Eliminar a {{name}}",
+    "delete_confirm": "¿Eliminar a {{name}} y sus cartas? Esto no se puede deshacer.",
+    "new_person_name_aria": "Nombre de la nueva persona"
+  },
+  "actions": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "close": "Cerrar",
+    "back": "Atrás",
+    "continue": "Continuar",
+    "retry": "Reintentar"
+  },
+  "nav": {
+    "dashboard": "Panel",
+    "astrologer_view": "Vista de astrólogo",
+    "mesh": "Malla",
+    "report": "Informe",
+    "settings": "Ajustes",
+    "menu": "Menú de navegación",
+    "menu_aria": "Menú de navegación",
+    "home": "Inicio de AlmaMesh"
+  },
+  "loading": "Cargando",
+  "error_boundary": {
+    "title": "Algo salió mal",
+    "body": "Se produjo un error inesperado. Intenta actualizar la página.",
+    "try_again": "Intentar de nuevo",
+    "refresh": "Actualizar página",
+    "details": "Detalles del error (solo desarrollo)",
+    "warning_aria": "advertencia",
+    "reset_app_data": "Restablecer datos de la app",
+    "reset_hint": "¿Sigue sin funcionar tras una actualización? Esto borra los datos en caché y recarga una copia nueva. Tus cartas guardadas podrían eliminarse."
+  },
+  "update": {
+    "available": "¡Hay una nueva versión disponible!",
+    "reload_cta": "Recargar para actualizar",
+    "dismiss_aria": "Descartar aviso de actualización"
+  },
+  "footer": {
+    "privacy": "Política de privacidad",
+    "terms": "Términos del servicio",
+    "data_deletion": "Eliminación de datos"
+  },
+  "provenance": {
+    "aria": "Procedencia del cálculo"
+  },
+  "location": {
+    "search_placeholder": "Busca una ciudad...",
+    "no_results": "No se encontraron ciudades",
+    "offline_hint": "Base de datos de ciudades sin conexión · no requiere red",
+    "search_aria": "Buscar una ciudad",
+    "clear_aria": "Borrar búsqueda de ubicación"
+  },
+  "content_mode": {
+    "for_you": "Para ti",
+    "for_astrologer": "Para astrólogos",
+    "aria": "Modo de visualización de contenido"
+  },
+  "dialog": {
+    "close_aria": "Cerrar diálogo"
+  },
+  "time_picker": {
+    "placeholder": "Selecciona la hora"
+  },
+  "ai_badge": {
+    "setup": "Configurar IA",
+    "label": "IA: {{provider}}",
+    "title_ready": "Modelo de IA: {{provider}} — cambiar",
+    "title_setup": "Conecta un modelo de IA (p. ej. OpenRouter) para habilitar las interpretaciones",
+    "title_finish": "Modelo de IA: {{provider}} — completar configuración"
+  },
+  "language": {
+    "label": "Idioma",
+    "english": "English",
+    "spanish": "Español",
+    "portuguese": "Português"
+  }
+}

@@ -1,0 +1,194 @@
+# Deploy https://almamesh.com — Cloudflare Pages (static, local-first PWA).
+#
+# AUTO-DEPLOY: runs automatically after the "Test" workflow passes on `main`
+# (and on manual workflow_dispatch). It stays INERT until these repository
+# secrets exist — when they are absent the auto-run SKIPS cleanly (no red X);
+# a manual run fails fast at the guard step. Secrets required:
+#
+#   CLOUDFLARE_API_TOKEN      Pages:Edit-scoped API token
+#   CLOUDFLARE_ACCOUNT_ID     the Cloudflare account that owns the `almamesh`
+#                             Pages project + the almamesh.com zone
+#   BUNDLE_PRIVATE_KEY_B64    base64 of backend/keys-prod/private.key — the ONE
+#                             production ed25519 signing key installed clients
+#                             pin. NEVER rotate casually; see
+#                             docs/deploy/almamesh-com.md (key custody).
+#   BUNDLE_PUBLIC_KEY_B64     base64 of backend/keys-prod/public.key (the pin
+#                             shipped in the build as /public.key)
+#
+# A manual run without the secrets fails fast at the guard step with a clear
+# message — it cannot half-deploy. The auto-run skips instead of failing.
+#
+# One-time prerequisites (outside this workflow, done by a human with wrangler):
+#   npx wrangler pages project create almamesh --production-branch=main
+#   + attach the almamesh.com custom domain (docs/deploy/almamesh-com.md)
+name: Deploy almamesh.com
+
+on:
+  # Auto-deploy the commit that just passed CI on main.
+  workflow_run:
+    workflows: ["Test"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      bundle_version:
+        description: "Bundle version label (default: latest git tag)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+# Never let two deploys interleave their uploads.
+concurrency:
+  group: deploy-almamesh-com
+  cancel-in-progress: false
+
+jobs:
+  # Only auto-deploy when the triggering CI run succeeded on main. For a manual
+  # dispatch this gate is a pass-through (deploy runs regardless). When the
+  # deploy secrets are absent, configured=false makes the auto-run SKIP cleanly
+  # instead of red-X'ing every push to main.
+  preflight:
+    name: Gate auto-deploy
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'main')
+    outputs:
+      configured: ${{ steps.check.outputs.configured }}
+    steps:
+      - name: Detect whether deploy secrets are configured
+        id: check
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          KEY_PRIV: ${{ secrets.BUNDLE_PRIVATE_KEY_B64 }}
+          KEY_PUB: ${{ secrets.BUNDLE_PUBLIC_KEY_B64 }}
+        run: |
+          if [ -n "$CF_TOKEN" ] && [ -n "$CF_ACCOUNT" ] && [ -n "$KEY_PRIV" ] && [ -n "$KEY_PUB" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Deploy secrets not configured — skipping auto-deploy. See .github/workflows/deploy.yml header."
+          fi
+
+  deploy:
+    name: Build + deploy to Cloudflare Pages
+    needs: preflight
+    # Auto-runs only when configured; a manual dispatch always proceeds (and
+    # then fails loudly at the guard step if any secret is missing).
+    if: >-
+      needs.preflight.outputs.configured == 'true' ||
+      github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Guard — refuse to run until the deploy secrets are configured
+        # Runs BEFORE checkout, so it must NOT inherit the job's
+        # `working-directory: frontend` default (that dir doesn't exist yet —
+        # bash fails to start). Run from the always-present workspace root.
+        working-directory: ${{ github.workspace }}
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          KEY_PRIV: ${{ secrets.BUNDLE_PRIVATE_KEY_B64 }}
+          KEY_PUB: ${{ secrets.BUNDLE_PUBLIC_KEY_B64 }}
+        run: |
+          missing=0
+          for v in CF_TOKEN CF_ACCOUNT KEY_PRIV KEY_PUB; do
+            if [ -z "${!v}" ]; then
+              echo "::error::secret behind $v is not configured (see the header of .github/workflows/deploy.yml)"
+              missing=1
+            fi
+          done
+          exit "$missing"
+
+      # Full history so `git describe --tags` resolves the bundle version label.
+      - name: Checkout code (full history + tags)
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          # Deploy the exact commit that passed CI (auto-run); HEAD for manual.
+          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.bun/install/cache
+            frontend/node_modules
+            frontend/apps/*/node_modules
+            frontend/packages/*/node_modules
+          key: ${{ runner.os }}-bun-${{ hashFiles('frontend/bun.lock', 'frontend/**/package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # Same as test.yml: composite project references need the shared dists
+      # present before `tsc -b` in the app build (build-prod.sh runs `bun run
+      # build` = `tsc -b && vite build`).
+      - name: Build package declarations (forced, dependency order)
+        run: bunx tsc -b packages/shared-types packages/constants packages/store packages/llm --force
+
+      # Fetch the pinned Pyodide dist + self-hosted RAG model + skyfield data.
+      # This also signs a DEV bundle — build-prod.sh replaces it with the
+      # production-signed one below.
+      - name: Generate runtime assets (Pyodide dist + models)
+        run: bash apps/web/scripts/setup-dev-assets.sh
+
+      - name: Restore the production signing keypair (from secrets)
+        working-directory: backend
+        env:
+          KEY_PRIV: ${{ secrets.BUNDLE_PRIVATE_KEY_B64 }}
+          KEY_PUB: ${{ secrets.BUNDLE_PUBLIC_KEY_B64 }}
+        run: |
+          mkdir -p keys-prod
+          printf '%s' "$KEY_PRIV" | base64 -d > keys-prod/private.key
+          printf '%s' "$KEY_PUB" | base64 -d > keys-prod/public.key
+          chmod 600 keys-prod/private.key
+
+      - name: Build the production artifact (prod-signed bundle, hooks OFF)
+        env:
+          BUNDLE_VERSION: ${{ inputs.bundle_version }}
+        run: |
+          if [ -z "$BUNDLE_VERSION" ]; then unset BUNDLE_VERSION; fi
+          bash apps/web/scripts/build-prod.sh
+
+      - name: Deploy to Cloudflare Pages
+        # NOT cloudflare/wrangler-action@v3 — it runs `npm i wrangler` inside the
+        # working dir, and npm can't parse this Bun monorepo's `workspace:*`
+        # deps (EUNSUPPORTEDPROTOCOL). Invoke wrangler via bunx instead — the
+        # same toolchain the manual go-live deploy used (pinned 4.103.0).
+        # wrangler reads the API token + account id from the environment.
+        working-directory: frontend/apps/web
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: bunx wrangler@4.103.0 pages deploy dist --project-name=almamesh --branch=main
+
+      - name: Shred the restored private key
+        # `if: always()` means this can fire even when the job failed before
+        # checkout — so run from the workspace root (not `backend/`, which may
+        # not exist yet) and target the path. `rm -rf` is a no-op if absent.
+        if: always()
+        working-directory: ${{ github.workspace }}
+        run: rm -rf backend/keys-prod

@@ -1,0 +1,163 @@
+{
+  "page": {
+    "kicker": "The mesh",
+    "title": "A mesh of souls",
+    "subtitle": "The people woven into your sky — each a whole chart, read from your own.",
+    "people_count": "People in your mesh: {{count}}",
+    "manage": "Manage people",
+    "computed_note": "Every edge is computed on this device. Nothing leaves it."
+  },
+  "invitation": {
+    "kicker": "The mesh",
+    "title": "Weave your first thread",
+    "body": "AlmaMesh reads relationships between whole charts — yours and the people close to you. Mark your own profile as \"this is me\" and add at least one person to begin.",
+    "cta": "Add people",
+    "hint": "People live in Settings. Each gets a full chart of their own."
+  },
+  "graph": {
+    "you": "You",
+    "no_chart": "No chart yet",
+    "generate": "Generate chart",
+    "open_edge": "Open your edge with {{name}}",
+    "generate_for": "Generate {{name}}'s chart",
+    "rising": "{{sign}} rising"
+  },
+  "edge": {
+    "back": "The mesh",
+    "kicker": "Mesh edge · {{relationship}}",
+    "title": "{{anchor}} · {{member}}",
+    "frame": "Two finished charts, read side by side. Neither changes the other.",
+    "computing": "Weaving this edge on your device — {{elapsed}} so far.",
+    "error_title": "This edge could not be computed",
+    "retry": "Try again",
+    "needs_charts_title": "This edge needs both charts",
+    "needs_chart_member": "{{name}} doesn't have a generated chart yet. The edge reads two finished charts.",
+    "needs_chart_anchor": "Your own chart isn't generated yet. The edge reads two finished charts.",
+    "generate_for": "Generate {{name}}'s chart",
+    "generate_yours": "Generate your chart",
+    "discuss": "Discuss in chat",
+    "integrity_label": "Read-only promise"
+  },
+  "compat": {
+    "heading": "Compatibility",
+    "badge": "Guna Milan · marriage tables",
+    "roles_label": "The classical tables are role-asymmetric — choose whose chart the bride-table rules read for.",
+    "roles_read_for": "Bride-table reads for",
+    "role_you": "You",
+    "moon_you": "Your Moon",
+    "moon_member": "{{name}}'s Moon",
+    "moon_line": "{{nakshatra}} · pada {{pada}} · {{sign}}",
+    "of_max": "of {{max}}",
+    "total_note": "Classical convention — a label, not a verdict.",
+    "koota": {
+      "varna": "Varna",
+      "vashya": "Vashya",
+      "tara": "Tārā",
+      "yoni": "Yoni",
+      "graha_maitri": "Graha Maitri",
+      "gana": "Gaṇa",
+      "bhakoot": "Bhakoot",
+      "nadi": "Nāḍī"
+    },
+    "bands": {
+      "not_recommended": "Below the classical threshold",
+      "average": "Average",
+      "good": "Good",
+      "excellent": "Excellent"
+    },
+    "doshas_heading": "Dosha flags",
+    "dosha": {
+      "bhakoot_dosha": "Bhakoot dosha",
+      "nadi_dosha": "Nāḍī dosha"
+    },
+    "dosha_clear": "not present",
+    "dosha_cancelled": "present — cancelled",
+    "dosha_present": "present — not cancelled",
+    "cancelled_by": "Cancelled by",
+    "mangal_heading": "Mangal (Kuja) dosha",
+    "mangal_you": "You",
+    "mangal_ref": {
+      "lagna": "from the Lagna",
+      "moon": "from the Moon",
+      "venus": "from Venus"
+    },
+    "mangal_position": "Mars in {{sign}}, house {{house}}",
+    "mangal_clear": "clear",
+    "mangal_net": "dosha house",
+    "mangal_cancelled": "cancelled",
+    "mangal_summary_has": "Carries the dosha on at least one reference.",
+    "mangal_summary_clear": "Clear across the three references.",
+    "mangal_mutual": "Mutually cancelled — both charts carry it, which the tables read as compatible."
+  },
+  "maitri": {
+    "heading": "Graha Maitri",
+    "badge": "Moon-lords' friendship",
+    "note": "Of the classical match tables, the friendship of the two Moon-sign lords is the one that generalizes beyond marriage. The remaining tables are read only for spouse and partner edges."
+  },
+  "connection": {
+    "heading": "Connection",
+    "badge": "two-way overlay",
+    "theirs_in_yours": "{{name}}'s planets in your chart",
+    "yours_in_theirs": "Your planets in {{name}}'s chart",
+    "host_rising": "houses counted from {{sign}} rising",
+    "placements": "Placements",
+    "contacts": "Strongest contacts",
+    "house_n": "house {{n}}",
+    "kind": {
+      "close_conjunction": "close conjunction",
+      "same_sign": "same sign",
+      "graha_drishti": "graha dṛṣṭi"
+    },
+    "on_target": "on {{target}}",
+    "target_lagna": "the Lagna",
+    "orb": "{{degrees}}° orb",
+    "none": "No contacts in this convention's scope.",
+    "heuristic_note": "† follows the stated convention: {{convention}}"
+  },
+  "synchrony": {
+    "heading": "Together in time",
+    "badge": "daśā synchrony",
+    "window": "{{start}} → {{end}}",
+    "years_label": "Window",
+    "years": {
+      "1": "1 year",
+      "2": "2 years",
+      "5": "5 years"
+    },
+    "you": "You",
+    "shared_lords": "Shared lord: {{lords}}",
+    "boundary_note": "Both charts turn a period at this boundary.",
+    "empty": "No joint windows fall inside this range.",
+    "conventions": "Conventions — you: {{a}} · {{name}}: {{b}}"
+  },
+  "signif": {
+    "heading": "Corroboration",
+    "badge": "houses & kārakas",
+    "you_col": "Your chart",
+    "member_col": "{{name}}'s chart",
+    "house_title": "House {{n}} — {{sign}}",
+    "lord_line": "Lord {{lord}} — {{dignity}}, house {{house}}",
+    "retrograde": "retrograde",
+    "combust": "combust",
+    "occupants": "Occupants",
+    "occupants_none": "none",
+    "karakas": "Kārakas"
+  },
+  "reading": {
+    "heading": "AI reading",
+    "badge": "optional · narrates only",
+    "cta_title": "Connect a model to narrate this edge",
+    "cta_body": "Everything above is computed on your device and stands on its own. An optional AI model can narrate it in plain language — it never computes or changes a single number.",
+    "cta_link": "Open AI settings",
+    "generate": "Generate reading",
+    "regenerate": "Regenerate",
+    "generating": "Narrating this edge — {{elapsed}} so far.",
+    "failed": "The reading failed: {{message}}",
+    "retry": "Try again",
+    "sections": {
+      "connection": "Connection",
+      "timing_together": "Timing together",
+      "care": "Care"
+    }
+  }
+}

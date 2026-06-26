@@ -1,0 +1,89 @@
+{
+  "saving": "Saving progress...",
+  "steps": {
+    "name": "Name",
+    "birth_date": "Birth Date",
+    "location": "Location",
+    "birth_time": "Birth Time",
+    "life_events": "Life Events"
+  },
+  "name": {
+    "title": "What's your name?",
+    "subtitle": "This will be used to personalize your readings",
+    "placeholder": "Enter your full name"
+  },
+  "birth_date": {
+    "title": "When were you born?",
+    "subtitle": "Your birth date determines your Sun sign and more"
+  },
+  "location": {
+    "title": "Where were you born?",
+    "subtitle": "Your birth location affects house calculations",
+    "placeholder": "Search for your birth city...",
+    "timezone_auto_title": "Timezone auto-detected",
+    "timezone_auto_body": "Your timezone will be automatically determined from your birth city's coordinates for accurate planetary calculations.",
+    "hint": "Start typing to search for cities worldwide"
+  },
+  "birth_time": {
+    "title": "What time were you born?",
+    "subtitle": "This determines your Ascendant and house placements",
+    "location_label": "Birth Location",
+    "timezone_label": "Timezone",
+    "placeholder": "Select your birth time",
+    "clock_hint": "Enter the time as shown on the clock at your birthplace.",
+    "timezone_hint": " We'll use the {{timezone}} timezone for calculations.",
+    "estimate_hint": "Don't know your exact birth time? Enter your best estimate."
+  },
+  "life_events": {
+    "title": "Share Your Life Story",
+    "subtitle": "Describe significant life events in your own words. This helps us refine your birth time for more accurate readings.",
+    "why_title": "Why does this help?",
+    "why_body": "Major life events (marriage, career changes, children) correlate with planetary periods. By matching your events to astrological timing, we can validate and refine your birth time.",
+    "textarea_label": "Tell us about your life events:",
+    "textarea_placeholder": "For example: I got married in 2015, had my first child in 2018, changed careers in 2020...",
+    "char_count": "{{count}}/5000 characters",
+    "min_length_error": "Please describe at least one significant life event.",
+    "saved_feedback": "Thanks! Your story is saved on this device and will help refine your birth time in a future update.",
+    "saved_label": "Saved on this device:",
+    "inspiration_label": "Need inspiration? Try an example:",
+    "helpful_title": "Events that help most:",
+    "analyzing": "Analyzing...",
+    "analyze_continue": "Analyze & Continue",
+    "skip": "Skip - I'll use approximate birth time",
+    "examples": [
+      "I got married in June 2015, had my first child in 2018, and changed careers from engineering to teaching in 2020.",
+      "My father passed away when I was 23, I bought my first house at 30, and I relocated from New York to California in 2019.",
+      "I've had a stable life - same job for 15 years, married my college sweetheart in 2010, two kids born in 2012 and 2015."
+    ],
+    "event_types": {
+      "marriage": "Marriage",
+      "children": "Children",
+      "career_changes": "Career changes",
+      "relocations": "Relocations",
+      "graduations": "Graduations",
+      "property_purchases": "Property purchases"
+    }
+  },
+  "generating": {
+    "title": "Generating Your Chart",
+    "subtitle": "This may take a minute...",
+    "step_counter": "Step {{current}} of {{total}}",
+    "steps": {
+      "positions": "Calculating planetary positions",
+      "houses": "Computing house placements",
+      "yogas": "Analyzing planetary yogas",
+      "dashas": "Computing dasha periods",
+      "interpretation": "Generating personalized insights"
+    }
+  },
+  "error": {
+    "title": "Connection Issue",
+    "default_body": "Unable to check chart generation status. Your chart may already be ready.",
+    "go_to_dashboard": "Go to Dashboard",
+    "retry_generation": "Retry Generation",
+    "reset_and_reload": "Reset & reload",
+    "reset_hint": "Still stuck? Clear the cached engine data and reload for a clean start.",
+    "still_warming": "The on-device engine is still preparing — hang tight, your chart will generate as soon as it's ready.",
+    "help": "If your chart was already generated, you'll see it on the dashboard. Otherwise, try generating again."
+  }
+}

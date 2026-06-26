@@ -1,0 +1,59 @@
+{
+  "_meta": { "review": "machine-translated, pending native review" },
+  "identity": {
+    "kicker": "Mapa natal",
+    "lagna": "Lagna · Ascendente",
+    "moon": "Lua",
+    "dasha": "Daśā em curso",
+    "until": "até {{date}}",
+    "next_label": "A seguir:",
+    "next_leg": "{{lord}} {{level}} a partir de {{date}}",
+    "all_periods": "Todos os períodos",
+    "pada": "pada {{pada}}",
+    "unavailable": "Não disponível"
+  },
+  "atlas": {
+    "heading": "Atlas da Vida",
+    "subtitle": "Sete domínios da sua vida — força, ênfase atual e janelas datadas, calculados de forma determinística neste dispositivo.",
+    "as_of": "Em {{date}}",
+    "pending_hint": "Carregando previsão…",
+    "next_window": "Próxima janela",
+    "no_window": "Sem janelas datadas nos próximos doze meses",
+    "emphasis_active": "Ativado pela daśā em curso ({{levels}})",
+    "emphasis_quiet": "Sem ênfase da daśā em curso",
+    "tone_label": "Tom de trânsito: {{severity}}",
+    "sade_sati": "Sob Sade Sati",
+    "open_domain": "Abrir {{domain}}",
+    "computing_body": "Calculando neste dispositivo — {{elapsed}} decorridos. Costuma levar cerca de meio minuto.",
+    "error_title": "Não foi possível calcular o Atlas da Vida",
+    "retry": "Tentar novamente",
+    "engine_warming": "O motor de mapas ainda está iniciando. O cálculo começa assim que estiver pronto.",
+    "about_title": "Sobre estas previsões",
+    "about_body": "Uma síntese determinística da sua linha de daśā, trânsitos, mapas divisionais e força planetária. Nenhuma IA está envolvida.",
+    "about_link": "Abrir Céu e Tempos"
+  },
+  "domain": {
+    "kicker": "Atlas da Vida",
+    "back": "Voltar ao painel",
+    "engine_heading": "Previsão do motor",
+    "engine_badge": "Determinístico · no dispositivo",
+    "ai_heading": "Da sua leitura",
+    "ai_badge": "Narração por IA",
+    "ai_missing": "Sua leitura gerada ainda não tem uma seção para este domínio. Gere ou atualize a leitura no painel.",
+    "engine_only": "Este domínio é lido apenas do motor — a leitura estruturada não tem uma seção para ele.",
+    "chat": "Discutir no chat",
+    "open_timing": "Abrir Céu e Tempos"
+  },
+  "reading": {
+    "heading": "A leitura",
+    "this_period": "Este período",
+    "themes": "Temas-chave"
+  },
+  "continue": {
+    "report_title": "Relatório para impressão",
+    "report_body": "Um documento de arquivo em papel com o mapa, a camada de tempos e a leitura.",
+    "report_locked": "Disponível quando sua leitura for gerada.",
+    "timing_body": "Trânsitos, os dezesseis mapas divisionais, Ashtakavarga e Shadbala — o painel de instrumentos completo.",
+    "open": "Abrir"
+  }
+}

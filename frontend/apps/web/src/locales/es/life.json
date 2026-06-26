@@ -1,0 +1,59 @@
+{
+  "_meta": { "review": "machine-translated, pending native review" },
+  "identity": {
+    "kicker": "Carta natal",
+    "lagna": "Lagna · Ascendente",
+    "moon": "Luna",
+    "dasha": "Daśā en curso",
+    "until": "hasta {{date}}",
+    "next_label": "Próximo:",
+    "next_leg": "{{lord}} {{level}} desde {{date}}",
+    "all_periods": "Todos los períodos",
+    "pada": "pada {{pada}}",
+    "unavailable": "No disponible"
+  },
+  "atlas": {
+    "heading": "Atlas de Vida",
+    "subtitle": "Siete dominios de tu vida — fuerza, énfasis actual y ventanas con fecha, calculados de forma determinista en este dispositivo.",
+    "as_of": "Al {{date}}",
+    "pending_hint": "Cargando pronóstico…",
+    "next_window": "Próxima ventana",
+    "no_window": "Sin ventanas con fecha en los próximos doce meses",
+    "emphasis_active": "Activado por la daśā en curso ({{levels}})",
+    "emphasis_quiet": "Sin énfasis de la daśā en curso",
+    "tone_label": "Tono de tránsito: {{severity}}",
+    "sade_sati": "Bajo Sade Sati",
+    "open_domain": "Abrir {{domain}}",
+    "computing_body": "Calculando en este dispositivo — {{elapsed}} transcurridos. Suele tardar alrededor de medio minuto.",
+    "error_title": "No se pudo calcular el Atlas de Vida",
+    "retry": "Intentar de nuevo",
+    "engine_warming": "El motor de cartas aún se está iniciando. El cálculo comenzará en cuanto esté listo.",
+    "about_title": "Sobre estos pronósticos",
+    "about_body": "Una síntesis determinista de tu línea de daśā, tránsitos, cartas divisionales y fuerza planetaria. No interviene ninguna IA.",
+    "about_link": "Abrir Cielo y Tiempos"
+  },
+  "domain": {
+    "kicker": "Atlas de Vida",
+    "back": "Volver al panel",
+    "engine_heading": "Pronóstico del motor",
+    "engine_badge": "Determinista · en el dispositivo",
+    "ai_heading": "De tu lectura",
+    "ai_badge": "Narración por IA",
+    "ai_missing": "Tu lectura generada aún no tiene una sección para este dominio. Genera o actualiza la lectura desde el panel.",
+    "engine_only": "Este dominio se lee solo desde el motor — la lectura estructurada no tiene una sección para él.",
+    "chat": "Comentar en el chat",
+    "open_timing": "Abrir Cielo y Tiempos"
+  },
+  "reading": {
+    "heading": "La lectura",
+    "this_period": "Este período",
+    "themes": "Temas clave"
+  },
+  "continue": {
+    "report_title": "Informe para imprimir",
+    "report_body": "Un documento de archivo en papel con la carta, la capa de tiempos y la lectura.",
+    "report_locked": "Disponible cuando tu lectura esté generada.",
+    "timing_body": "Tránsitos, las dieciséis cartas divisionales, Ashtakavarga y Shadbala — el panel de instrumentos completo.",
+    "open": "Abrir"
+  }
+}
