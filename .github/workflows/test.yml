@@ -5,6 +5,10 @@ on:
     branches: [main, p2-browser-engine]
   pull_request:
     branches: [main]
+  # Manual trigger: lets you re-run the full suite without a commit — e.g. to
+  # recover a green run after a transient flake, or after a repo recreate (the
+  # gitleaks push-diff scan has no valid base commit on the very first push).
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
