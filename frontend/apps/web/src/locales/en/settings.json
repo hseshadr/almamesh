@@ -119,6 +119,15 @@
     "save_model_settings": "Save model settings",
     "saved": "Saved"
   },
+  "aiModels": {
+    "recommended_title": "Recommended setup",
+    "recommended_description": "One click sets both models to AlmaMesh's recommended pair: a strong model for the chart reading, a fast one for chat.",
+    "recommended_button": "Use recommended models",
+    "interpretation_label": "Interpretation / chart-reading model",
+    "interpretation_advice": "A strong, frontier model is advised here. The chart reading is generated once and is the deepest analysis AlmaMesh produces.",
+    "chat_label": "Chat model",
+    "chat_advice": "A smaller, faster model is advised. Chat already reuses the chart facts and the generated reading, so it doesn't need a heavy model — a quick one (e.g. minimax-2.7) keeps answers snappy."
+  },
   "model": {
     "no_webgpu_badge": "No WebGPU",
     "unsupported_title": "On-device AI isn't available here",

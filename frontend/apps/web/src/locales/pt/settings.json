@@ -1,5 +1,7 @@
 {
-  "_meta": { "review": "machine-translated, pending native review" },
+  "_meta": {
+    "review": "machine-translated, pending native review"
+  },
   "language": {
     "title": "Idioma",
     "description": "Escolha o idioma da interface e das suas leituras com IA.",
@@ -119,6 +121,15 @@
     "privacy_warning": "O modo de privacidade é apenas local, mas o endpoint não é local — a interpretação será recusada até que você use um endpoint local ou permita um endpoint na nuvem acima.",
     "save_model_settings": "Salvar configurações do modelo",
     "saved": "Salvo"
+  },
+  "aiModels": {
+    "recommended_title": "Configuração recomendada",
+    "recommended_description": "Um clique define ambos os modelos para o par recomendado do AlmaMesh: um modelo forte para a leitura do mapa e um rápido para o chat.",
+    "recommended_button": "Usar modelos recomendados",
+    "interpretation_label": "Modelo de interpretação / leitura do mapa",
+    "interpretation_advice": "Aqui recomenda-se um modelo forte e de ponta. A leitura do mapa é gerada uma única vez e é a análise mais profunda que o AlmaMesh produz.",
+    "chat_label": "Modelo de chat",
+    "chat_advice": "Recomenda-se um modelo menor e mais rápido. O chat já reutiliza os dados do mapa e a leitura gerada, então não precisa de um modelo pesado — um rápido (ex.: minimax-2.7) mantém as respostas ágeis."
   },
   "model": {
     "no_webgpu_badge": "Sem WebGPU",

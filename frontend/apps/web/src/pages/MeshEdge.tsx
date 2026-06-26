@@ -30,8 +30,7 @@ import {
 } from '@almamesh/store';
 import type { MemberRelationship, MeshEdgeCtx } from '@almamesh/shared-types';
 import {
-  applyChatModelPreference,
-  applyLlmSettings,
+  applyChatSettings,
   resolveProviderConfig,
   streamChartChat,
   type ChatTurn,
@@ -66,18 +65,17 @@ import { predictiveReferenceInstant } from '../lib/predictive';
 import type { SSEMetaData } from '../lib/streaming';
 import type { ViewMode } from '../lib/types';
 
-/** The chat-tuned provider env (mirrors the dashboard's chat wiring). */
+/** The chat-tuned provider env (mirrors the dashboard's chat wiring): the
+ * EXPLICIT chat model via applyChatSettings (replaces the silent swap). */
 function readMeshChatEnv(): LlmEnv {
   const env = import.meta.env as unknown as Record<string, string | undefined>;
-  return applyChatModelPreference(
-    applyLlmSettings({
-      VITE_LLM_API_BASE: env.VITE_LLM_API_BASE,
-      VITE_LLM_API_KEY: env.VITE_LLM_API_KEY,
-      VITE_LLM_MODEL: env.VITE_LLM_MODEL,
-      VITE_LLM_PRIVACY_MODE: env.VITE_LLM_PRIVACY_MODE,
-      VITE_LLM_ENGINE: env.VITE_LLM_ENGINE,
-    }),
-  );
+  return applyChatSettings({
+    VITE_LLM_API_BASE: env.VITE_LLM_API_BASE,
+    VITE_LLM_API_KEY: env.VITE_LLM_API_KEY,
+    VITE_LLM_MODEL: env.VITE_LLM_MODEL,
+    VITE_LLM_PRIVACY_MODE: env.VITE_LLM_PRIVACY_MODE,
+    VITE_LLM_ENGINE: env.VITE_LLM_ENGINE,
+  });
 }
 
 /** One or both people have no generated chart — the honest gate, with exits. */

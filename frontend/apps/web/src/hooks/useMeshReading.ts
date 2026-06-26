@@ -3,10 +3,11 @@
  * (connection / timing together / care) from the edge view.
  *
  * Mirrors the dashboard's interpretation wiring: the model env comes from the
- * persisted LLM settings (`applyLlmSettings`, deep-model default — chat keeps
- * its own fast-model preference elsewhere), the narration language follows the
- * UI language store, and the voice mode follows the global content mode. The
- * generation NEVER auto-starts; `generate()` is an explicit human action.
+ * persisted LLM settings via `applyInterpretationSettings` (the explicit
+ * interpretation tier — a strong/frontier model; chat keeps its own fast-model
+ * tier elsewhere), the narration language follows the UI language store, and the
+ * voice mode follows the global content mode. The generation NEVER auto-starts;
+ * `generate()` is an explicit human action.
  *
  * The reading is page-local state (not persisted): edges re-derive in seconds
  * and the narration is regenerable on demand.
@@ -16,7 +17,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useContentModeStore, useLanguageStore } from '@almamesh/store';
 import type { MeshEdgeCtx } from '@almamesh/shared-types';
 import {
-  applyLlmSettings,
+  applyInterpretationSettings,
   resolveProviderConfig,
   streamMeshReading,
   type LlmEnv,
@@ -40,7 +41,7 @@ export interface MeshReadingLayer {
 /** The persisted LLM settings as a provider env (interpretation-grade model). */
 function readMeshLlmEnv(): LlmEnv {
   const env = import.meta.env as unknown as Record<string, string | undefined>;
-  return applyLlmSettings({
+  return applyInterpretationSettings({
     VITE_LLM_API_BASE: env.VITE_LLM_API_BASE,
     VITE_LLM_API_KEY: env.VITE_LLM_API_KEY,
     VITE_LLM_MODEL: env.VITE_LLM_MODEL,

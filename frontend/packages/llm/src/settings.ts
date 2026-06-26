@@ -8,6 +8,7 @@
 // no-op (returns the env unchanged) in SSR / tests where localStorage is absent.
 
 import {
+  CHAT_CLOUD_MODEL,
   isLocalEndpoint,
   OPENROUTER_API_BASE,
   RECOMMENDED_CLOUD_MODEL,
@@ -22,7 +23,25 @@ export const LLM_SETTINGS_KEY = "almamesh-llm-settings";
 export interface LlmSettings {
   readonly apiBase?: string;
   readonly apiKey?: string;
+  /**
+   * Legacy single model field. Kept for back-compat: a blob written before the
+   * tiered split still carries it, and {@link readLlmSettings} migrates it into
+   * {@link interpretationModel}. New writes use the two per-tier fields below.
+   */
   readonly model?: string;
+  /**
+   * The model for the one-time, in-depth chart interpretation. A strong/frontier
+   * model is advised here. Resolved by {@link resolveInterpretationModel}
+   * (default {@link RECOMMENDED_CLOUD_MODEL}).
+   */
+  readonly interpretationModel?: string;
+  /**
+   * The model for multi-turn chat. A smaller/faster model is advised — chat
+   * already reuses the chart facts + the generated reading, so it does not need a
+   * heavy model. Resolved by {@link resolveChatModel} (default
+   * {@link CHAT_CLOUD_MODEL}).
+   */
+  readonly chatModel?: string;
   readonly privacyMode?: string;
   /** Legacy engine selector; the only supported value is "openai-http". */
   readonly engine?: string;
@@ -80,6 +99,20 @@ function healRetiredModel(settings: LlmSettings): { settings: LlmSettings; chang
   return { settings, changed: false };
 }
 
+/**
+ * Migrate a pre-tiered blob (one shared `model` for both interpretation and chat)
+ * to the explicit two-tier shape by seeding {@link LlmSettings.interpretationModel}
+ * from the legacy `model`. Non-destructive: the legacy `model` is preserved (other
+ * back-compat readers still see it), and an interpretationModel the user already
+ * has is never clobbered. Pure.
+ */
+function migrateLegacyModel(settings: LlmSettings): { settings: LlmSettings; changed: boolean } {
+  if (settings.model && !settings.interpretationModel) {
+    return { settings: { ...settings, interpretationModel: settings.model }, changed: true };
+  }
+  return { settings, changed: false };
+}
+
 /** Read the stored override settings, or `{}` if none / unavailable / corrupt. */
 export function readLlmSettings(): LlmSettings {
   if (!hasLocalStorage()) {
@@ -95,12 +128,14 @@ export function readLlmSettings(): LlmSettings {
   } catch {
     return {};
   }
-  const { settings, changed } = healRetiredModel(parsed);
-  if (changed) {
+  const healed = healRetiredModel(parsed);
+  const migrated = migrateLegacyModel(healed.settings);
+  const settings = migrated.settings;
+  if (healed.changed || migrated.changed) {
     try {
       localStorage.setItem(LLM_SETTINGS_KEY, JSON.stringify(settings));
     } catch {
-      // Best-effort persistence; the healed value is still returned this call.
+      // Best-effort persistence; the healed/migrated value is still returned this call.
     }
   }
   return settings;
@@ -127,4 +162,59 @@ export function applyLlmSettings(env: LlmEnv, settings: LlmSettings = readLlmSet
     VITE_LLM_PRIVACY_MODE: settings.privacyMode || env.VITE_LLM_PRIVACY_MODE,
     VITE_LLM_ENGINE: settings.engine || env.VITE_LLM_ENGINE,
   };
+}
+
+/**
+ * The model for the one-time, in-depth chart interpretation. Precedence:
+ * explicit `interpretationModel` > legacy single `model` > the recommended
+ * frontier default. A strong/frontier model is advised here. Pure.
+ */
+export function resolveInterpretationModel(settings: LlmSettings = readLlmSettings()): string {
+  return settings.interpretationModel || settings.model || RECOMMENDED_CLOUD_MODEL;
+}
+
+/**
+ * The model for multi-turn chat. Precedence: explicit `chatModel` > legacy single
+ * `model` (so a pre-tiered user's deliberate choice keeps serving chat) > the
+ * fast chat default. A smaller/faster model is advised — chat already reuses the
+ * chart facts + the generated reading. Pure.
+ */
+export function resolveChatModel(settings: LlmSettings = readLlmSettings()): string {
+  return settings.chatModel || settings.model || CHAT_CLOUD_MODEL;
+}
+
+/**
+ * Resolve the env for the INTERPRETATION path: stored overrides over env, with
+ * `VITE_LLM_MODEL` set EXPLICITLY to the resolved interpretation model. Replaces
+ * the old implicit "use whatever `model` is" so the per-tier choice is visible.
+ * A per-tier/legacy settings model (or env model) wins; the cloud frontier
+ * default applies only when no model is configured anywhere.
+ */
+export function applyInterpretationSettings(
+  env: LlmEnv,
+  settings: LlmSettings = readLlmSettings(),
+): LlmEnv {
+  const base = applyLlmSettings(env, settings);
+  const model = settings.interpretationModel || settings.model || base.VITE_LLM_MODEL || RECOMMENDED_CLOUD_MODEL;
+  return { ...base, VITE_LLM_MODEL: model };
+}
+
+/**
+ * Resolve the env for the CHAT path: stored overrides over env, with
+ * `VITE_LLM_MODEL` set EXPLICITLY to the resolved chat model. Replaces the silent
+ * `applyChatModelPreference` swap — the chat model is now a first-class setting,
+ * so selection is configurable and visible rather than auto-magic. A per-tier
+ * `chatModel` wins; otherwise the fast chat default is used on a cloud preset,
+ * and a local/env model is preserved (never overridden with a cloud slug).
+ */
+export function applyChatSettings(env: LlmEnv, settings: LlmSettings = readLlmSettings()): LlmEnv {
+  const base = applyLlmSettings(env, settings);
+  const onOpenRouter = (base.VITE_LLM_API_BASE ?? "").startsWith(OPENROUTER_API_BASE);
+  // Explicit chat model always wins. Otherwise: on the OpenRouter cloud preset
+  // pick the fast chat default (the old applyChatModelPreference behavior); on a
+  // local / custom endpoint keep the env/settings model so we never push a cloud
+  // slug at a local server.
+  const fallback = onOpenRouter ? CHAT_CLOUD_MODEL : base.VITE_LLM_MODEL || CHAT_CLOUD_MODEL;
+  const model = settings.chatModel || fallback;
+  return { ...base, VITE_LLM_MODEL: model };
 }

@@ -32,7 +32,13 @@ describe("llm settings — localStorage override layer", () => {
   it("round-trips written settings (merging over existing)", () => {
     writeLlmSettings({ apiBase: "http://localhost:1234/v1" });
     writeLlmSettings({ model: "phi3" });
-    expect(readLlmSettings()).toEqual({ apiBase: "http://localhost:1234/v1", model: "phi3" });
+    // A legacy single `model` is preserved AND migrated into the per-tier
+    // `interpretationModel` on read (see migrateLegacyModel) — back-compat.
+    expect(readLlmSettings()).toEqual({
+      apiBase: "http://localhost:1234/v1",
+      model: "phi3",
+      interpretationModel: "phi3",
+    });
   });
 
   it("tolerates corrupt JSON", () => {

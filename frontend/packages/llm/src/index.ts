@@ -121,6 +121,10 @@ export {
   readLlmSettings,
   writeLlmSettings,
   applyLlmSettings,
+  applyInterpretationSettings,
+  applyChatSettings,
+  resolveInterpretationModel,
+  resolveChatModel,
   describeLlmStatus,
   LLM_SETTINGS_KEY,
 } from "./settings";

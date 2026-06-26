@@ -9,8 +9,7 @@ import type {
 } from "@almamesh/shared-types";
 import { readLocalPrimaryChart } from "../lib/localChartRead";
 import {
-  applyLlmSettings,
-  applyChatModelPreference,
+  applyChatSettings,
   describeLlmStatus,
   resolveProviderConfig,
   streamChartChat,
@@ -59,20 +58,20 @@ function isModelUnavailableError(message: string): boolean {
 // Resolve the LLM env: build-time Vite env with any browser-local Settings
 // overrides taking precedence — mirrors useStreamingInterpretation so the
 // privacy default (local_only) is the single source of truth for chat too.
-// Chat then prefers a fast-streaming cloud model (applyChatModelPreference)
-// when — and only when — the user is on our default OpenRouter preset; the
-// longer structured interpretation path keeps the recommended deep model.
+// Chat resolves the EXPLICIT chat model (settings.chatModel, default the fast
+// CHAT_CLOUD_MODEL) via applyChatSettings — a visible, configurable per-tier
+// choice that replaces the old silent applyChatModelPreference swap. The longer
+// structured interpretation path uses applyInterpretationSettings (the frontier
+// default), so the two tiers stay independent.
 function readChatLlmEnv(): LlmEnv {
   const env = import.meta.env as unknown as Record<string, string | undefined>;
-  return applyChatModelPreference(
-    applyLlmSettings({
-      VITE_LLM_API_BASE: env.VITE_LLM_API_BASE,
-      VITE_LLM_API_KEY: env.VITE_LLM_API_KEY,
-      VITE_LLM_MODEL: env.VITE_LLM_MODEL,
-      VITE_LLM_PRIVACY_MODE: env.VITE_LLM_PRIVACY_MODE,
-      VITE_LLM_ENGINE: env.VITE_LLM_ENGINE,
-    }),
-  );
+  return applyChatSettings({
+    VITE_LLM_API_BASE: env.VITE_LLM_API_BASE,
+    VITE_LLM_API_KEY: env.VITE_LLM_API_KEY,
+    VITE_LLM_MODEL: env.VITE_LLM_MODEL,
+    VITE_LLM_PRIVACY_MODE: env.VITE_LLM_PRIVACY_MODE,
+    VITE_LLM_ENGINE: env.VITE_LLM_ENGINE,
+  });
 }
 
 export default function DashboardPage() {

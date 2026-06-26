@@ -20,7 +20,7 @@
 
 import { useCallback, useRef } from 'react';
 import {
-  applyLlmSettings,
+  applyInterpretationSettings,
   LlmRequestError,
   PrivacyViolationError,
   resolveProviderConfig,
@@ -82,13 +82,16 @@ const NOT_CONFIGURED_NOTICE =
   'Set VITE_LLM_API_BASE / VITE_LLM_MODEL (and, for cloud, VITE_LLM_API_KEY + VITE_LLM_PRIVACY_MODE=cloud_premium).';
 
 /**
- * Resolve the LLM env: build-time Vite env, with any browser-local Settings
- * overrides (localStorage) taking precedence. Centralized so the privacy default
- * (local_only) is explicit and the override layer is the single source of truth.
+ * Resolve the LLM env for the INTERPRETATION path: build-time Vite env, with any
+ * browser-local Settings overrides (localStorage) taking precedence, and the
+ * EXPLICIT interpretation model resolved via applyInterpretationSettings (the
+ * frontier default, distinct from the chat tier). Centralized so the privacy
+ * default (local_only) is explicit and the override layer is the single source
+ * of truth.
  */
 function readLlmEnv(): LlmEnv {
   const env = import.meta.env as unknown as Record<string, string | undefined>;
-  return applyLlmSettings({
+  return applyInterpretationSettings({
     VITE_LLM_API_BASE: env.VITE_LLM_API_BASE,
     VITE_LLM_API_KEY: env.VITE_LLM_API_KEY,
     VITE_LLM_MODEL: env.VITE_LLM_MODEL,

@@ -168,12 +168,24 @@ export function applyChatModelPreference(env: LlmEnv): LlmEnv {
  * `cloud_premium` is REQUIRED — the fail-closed `ensurePrivacy` gate refuses a
  * cloud host under `local_only`. Returns an `LlmSettings` ready for
  * `writeLlmSettings`; the key lives only in the browser, never bundled.
+ *
+ * `model` seeds the INTERPRETATION tier (and the legacy `model` field for
+ * back-compat); `chatModel` (default the fast {@link CHAT_CLOUD_MODEL}) seeds the
+ * chat tier, so the one-click preset lands the recommended frontier/fast pair.
  */
-export function openRouterPreset(apiKey: string, model: string): LlmSettings {
+export function openRouterPreset(
+  apiKey: string,
+  model: string,
+  chatModel: string = CHAT_CLOUD_MODEL,
+): LlmSettings {
   return {
     apiBase: OPENROUTER_API_BASE,
     apiKey,
+    // Legacy single field kept so back-compat readers (and the e2e contract) see
+    // the chosen interpretation model; the per-tier fields are the new source.
     model,
+    interpretationModel: model,
+    chatModel,
     privacyMode: "cloud_premium",
     engine: "openai-http",
   };
