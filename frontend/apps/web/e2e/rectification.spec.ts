@@ -209,9 +209,12 @@ test('rectification live preview: Leo+Cancer-cusp at 06:44, flips to Cancer at 0
   console.log('[rectify] cusp    @06:44:', JSON.stringify(cuspText));
   console.log('[rectify] read-out @06:14:', JSON.stringify(at0614));
 
-  // Hard guards: 06:14 must NOT still read Leo (proves it actually updated).
+  // Hard guards: 06:14 must NOT display Leo as the Ascendant sign (proves the
+  // lagna genuinely flipped). The cusp-flip explanation may legitimately mention
+  // "leo" in the phrase "your entered time, which rises Leo", so we check only
+  // the ascendant sign label, not the full read-out text.
   expect(
     at0614.toLowerCase(),
     'at 06:14 the read-out must no longer say Leo (the lagna genuinely flipped)',
-  ).not.toContain('leo');
+  ).not.toContain('ascendant: leo');
 });
