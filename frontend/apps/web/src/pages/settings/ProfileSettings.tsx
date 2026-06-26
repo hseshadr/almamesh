@@ -28,7 +28,7 @@ import { useChartEngine } from '../../providers/AlmaMeshRuntimeProvider';
 import { useLagnaPreview } from '../../hooks/useLagnaPreview';
 import { readLocalPrimaryChart } from '../../lib/localChartRead';
 import { formatDegree } from '../../lib/reportData';
-import { formatBirthTimeForDisplay } from '../../lib/dates';
+import { rectificationDeltaFromClocks } from '../../lib/rectification';
 import { cuspInfo } from '../../lib/lagnaCusp';
 import { getUserFriendlyError } from '../../lib/errors';
 
@@ -179,28 +179,10 @@ export default function ProfileSettings() {
   // The display-only adjustment summary ("entered 5:45 AM → using 6:00 AM
   // (+15 min)") for the rectification panel. Pure: it compares the two `HH:MM`
   // form clocks and formats them in the active locale — no astrology, no engine.
+  // Same derivation the stored-data `rectificationDelta` uses (shared helper).
   const adjustmentInEffect =
     rectificationActive && currentDetails.birth_time && currentDetails.rectified_time
-      ? (() => {
-          const minutesOf = (clock: string): number | null => {
-            const [h, m] = clock.split(':').map(Number);
-            return Number.isFinite(h) && Number.isFinite(m) ? h * 60 + m : null;
-          };
-          const entered = minutesOf(currentDetails.birth_time);
-          const rectified = minutesOf(currentDetails.rectified_time);
-          if (entered === null || rectified === null) {
-            return null;
-          }
-          return {
-            deltaMinutes: rectified - entered,
-            enteredLabel: formatBirthTimeForDisplay(
-              `2000-01-01T${currentDetails.birth_time}:00`,
-            ),
-            rectifiedLabel: formatBirthTimeForDisplay(
-              `2000-01-01T${currentDetails.rectified_time}:00`,
-            ),
-          };
-        })()
+      ? rectificationDeltaFromClocks(currentDetails.birth_time, currentDetails.rectified_time)
       : null;
 
   // The entered-time lagna preview: identical input EXCEPT the effective clock is

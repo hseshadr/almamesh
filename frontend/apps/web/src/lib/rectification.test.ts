@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { useLanguageStore } from '@almamesh/store';
 import type { ProcessedBirthData } from '@almamesh/shared-types';
 
-import { rectificationDelta } from './rectification';
+import { rectificationDelta, rectificationDeltaFromClocks } from './rectification';
 
 // The display formatters read the active UI locale from the store; restore 'en'
 // after every test so the en-US 12-hour assertions below hold.
@@ -66,5 +66,30 @@ describe('rectificationDelta', () => {
   it('reads only the HH:MM of the effective clock (ignores seconds)', () => {
     const result = rectificationDelta(birth('1990-01-15T06:00:30', '05:45'));
     expect(result?.deltaMinutes).toBe(15);
+  });
+});
+
+// The shared core: compares two raw `HH:MM` form clocks (entered → rectified)
+// directly, so the ProfileSettings form panel and `rectificationDelta` produce
+// the SAME minutes + locale-formatted labels from one implementation.
+describe('rectificationDeltaFromClocks', () => {
+  it('computes a forward (+15 min) delta for 05:45 -> 06:00', () => {
+    const result = rectificationDeltaFromClocks('05:45', '06:00');
+    expect(result).not.toBeNull();
+    expect(result?.deltaMinutes).toBe(15);
+    // en-US renders a 12-hour clock for these.
+    expect(result?.enteredLabel).toBe('5:45 AM');
+    expect(result?.rectifiedLabel).toBe('6:00 AM');
+  });
+
+  it('returns null when the two clocks are equal (no adjustment to show)', () => {
+    expect(rectificationDeltaFromClocks('05:45', '05:45')).toBeNull();
+  });
+
+  it('computes a delta across an hour boundary (05:50 -> 06:10 = +20 min)', () => {
+    const result = rectificationDeltaFromClocks('05:50', '06:10');
+    expect(result?.deltaMinutes).toBe(20);
+    expect(result?.enteredLabel).toBe('5:50 AM');
+    expect(result?.rectifiedLabel).toBe('6:10 AM');
   });
 });

@@ -40,9 +40,38 @@ function minutesOfClock(clock: string): number | null {
 }
 
 /**
+ * The shared core: derive the adjustment from two raw `HH:MM` wall clocks
+ * (entered → rectified), or `null` when either cannot be parsed or the two clocks
+ * are equal (no adjustment to show). Both labels are formatted in the active UI
+ * locale from a fixed date, since only the time-of-day is displayed. This is the
+ * single source of the "minutes + entered/rectified labels" shape — the stored-
+ * data `rectificationDelta` below and the ProfileSettings form panel both call it.
+ */
+export function rectificationDeltaFromClocks(
+  enteredHHMM: string,
+  rectifiedHHMM: string,
+): RectificationDelta | null {
+  const enteredMinutes = minutesOfClock(enteredHHMM);
+  const rectifiedMinutes = minutesOfClock(rectifiedHHMM);
+  if (enteredMinutes === null || rectifiedMinutes === null) {
+    return null;
+  }
+  const deltaMinutes = rectifiedMinutes - enteredMinutes;
+  if (deltaMinutes === 0) {
+    return null;
+  }
+  return {
+    deltaMinutes,
+    enteredLabel: formatBirthTimeForDisplay(`2000-01-01T${enteredHHMM}:00`),
+    rectifiedLabel: formatBirthTimeForDisplay(`2000-01-01T${rectifiedHHMM}:00`),
+  };
+}
+
+/**
  * Derive the rectification adjustment from stored birth data, or `null` when no
  * rectification is in effect. The entered clock is `birth_time_original`; the
- * effective clock is the `HH:MM` of `birth_datetime_local`.
+ * effective clock is the `HH:MM` of `birth_datetime_local`. Delegates the minutes
+ * + label derivation to `rectificationDeltaFromClocks`.
  */
 export function rectificationDelta(
   birth: ProcessedBirthData,
@@ -53,18 +82,5 @@ export function rectificationDelta(
     return null;
   }
   const effectiveClock = (local.split('T')[1] ?? '').slice(0, 5);
-  const enteredMinutes = minutesOfClock(enteredClock);
-  const effectiveMinutes = minutesOfClock(effectiveClock);
-  if (enteredMinutes === null || effectiveMinutes === null) {
-    return null;
-  }
-  const deltaMinutes = effectiveMinutes - enteredMinutes;
-  if (deltaMinutes === 0) {
-    return null;
-  }
-  return {
-    deltaMinutes,
-    enteredLabel: formatBirthTimeForDisplay(`2000-01-01T${enteredClock}:00`),
-    rectifiedLabel: formatBirthTimeForDisplay(local),
-  };
+  return rectificationDeltaFromClocks(enteredClock, effectiveClock);
 }

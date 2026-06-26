@@ -81,7 +81,6 @@ export {
   RECOMMENDED_CLOUD_MODEL,
   RETIRED_CLOUD_MODELS,
   CHAT_CLOUD_MODEL,
-  applyChatModelPreference,
   PrivacyViolationError,
 } from "./config";
 export type { PrivacyMode, ProviderConfig, LlmEnv } from "./config";
@@ -123,8 +122,6 @@ export {
   applyLlmSettings,
   applyInterpretationSettings,
   applyChatSettings,
-  resolveInterpretationModel,
-  resolveChatModel,
   describeLlmStatus,
   LLM_SETTINGS_KEY,
 } from "./settings";

@@ -31,15 +31,15 @@ export interface LlmSettings {
   readonly model?: string;
   /**
    * The model for the one-time, in-depth chart interpretation. A strong/frontier
-   * model is advised here. Resolved by {@link resolveInterpretationModel}
-   * (default {@link RECOMMENDED_CLOUD_MODEL}).
+   * model is advised here. Resolved onto `VITE_LLM_MODEL` by
+   * {@link applyInterpretationSettings} (default {@link RECOMMENDED_CLOUD_MODEL}).
    */
   readonly interpretationModel?: string;
   /**
    * The model for multi-turn chat. A smaller/faster model is advised — chat
    * already reuses the chart facts + the generated reading, so it does not need a
-   * heavy model. Resolved by {@link resolveChatModel} (default
-   * {@link CHAT_CLOUD_MODEL}).
+   * heavy model. Resolved onto `VITE_LLM_MODEL` by {@link applyChatSettings}
+   * (default {@link CHAT_CLOUD_MODEL}).
    */
   readonly chatModel?: string;
   readonly privacyMode?: string;
@@ -162,25 +162,6 @@ export function applyLlmSettings(env: LlmEnv, settings: LlmSettings = readLlmSet
     VITE_LLM_PRIVACY_MODE: settings.privacyMode || env.VITE_LLM_PRIVACY_MODE,
     VITE_LLM_ENGINE: settings.engine || env.VITE_LLM_ENGINE,
   };
-}
-
-/**
- * The model for the one-time, in-depth chart interpretation. Precedence:
- * explicit `interpretationModel` > legacy single `model` > the recommended
- * frontier default. A strong/frontier model is advised here. Pure.
- */
-export function resolveInterpretationModel(settings: LlmSettings = readLlmSettings()): string {
-  return settings.interpretationModel || settings.model || RECOMMENDED_CLOUD_MODEL;
-}
-
-/**
- * The model for multi-turn chat. Precedence: explicit `chatModel` > legacy single
- * `model` (so a pre-tiered user's deliberate choice keeps serving chat) > the
- * fast chat default. A smaller/faster model is advised — chat already reuses the
- * chart facts + the generated reading. Pure.
- */
-export function resolveChatModel(settings: LlmSettings = readLlmSettings()): string {
-  return settings.chatModel || settings.model || CHAT_CLOUD_MODEL;
 }
 
 /**

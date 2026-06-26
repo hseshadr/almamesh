@@ -129,12 +129,15 @@ export const OPENROUTER_API_BASE = "https://openrouter.ai/api/v1";
 export const RECOMMENDED_CLOUD_MODEL = "deepseek/deepseek-v4-pro";
 
 /**
- * The cloud model the CHAT panel prefers: a fast-streaming OpenAI-compatible
- * OpenRouter slug (verified against the live models catalog). Chat trades the
- * deeper structured-interpretation model ({@link RECOMMENDED_CLOUD_MODEL}) for
- * snappier first-token latency in the conversational flow. Applied only via
- * {@link applyChatModelPreference}, and only when the user is on our default
- * cloud preset — a deliberately-chosen model is never overridden.
+ * The default cloud model the CHAT panel prefers: a fast-streaming
+ * OpenAI-compatible OpenRouter slug (verified against the live models catalog).
+ * Chat trades the deeper structured-interpretation model
+ * ({@link RECOMMENDED_CLOUD_MODEL}) for snappier first-token latency in the
+ * conversational flow. Used as the chat-tier default by `applyChatSettings`
+ * (applied on the OpenRouter cloud preset only when the user has set no explicit
+ * `chatModel`) and as the `chatModel` default in {@link openRouterPreset}. A
+ * deliberately-chosen `chatModel`, or a local/custom endpoint's own model, is
+ * never overridden.
  */
 export const CHAT_CLOUD_MODEL = "minimax/minimax-m2.7";
 
@@ -146,22 +149,6 @@ export const CHAT_CLOUD_MODEL = "minimax/minimax-m2.7";
  * never a model the user deliberately chose.
  */
 export const RETIRED_CLOUD_MODELS: readonly string[] = ["anthropic/claude-3.5-sonnet"];
-
-/**
- * Swap the resolved model to {@link CHAT_CLOUD_MODEL} for the chat path, but ONLY
- * when the endpoint is our default OpenRouter cloud preset (base starts with
- * {@link OPENROUTER_API_BASE}) AND the model is still the recommended default
- * ({@link RECOMMENDED_CLOUD_MODEL}). Anything else — a local endpoint, a custom
- * base, or a model the user deliberately chose — is returned unchanged. Narrow on
- * purpose, mirroring `healRetiredModel` in settings.ts. Pure; no globals.
- */
-export function applyChatModelPreference(env: LlmEnv): LlmEnv {
-  const onOpenRouter = (env.VITE_LLM_API_BASE ?? "").startsWith(OPENROUTER_API_BASE);
-  if (onOpenRouter && env.VITE_LLM_MODEL === RECOMMENDED_CLOUD_MODEL) {
-    return { ...env, VITE_LLM_MODEL: CHAT_CLOUD_MODEL };
-  }
-  return env;
-}
 
 /**
  * One-click OpenRouter settings: a cloud OpenAI-compatible endpoint + key.

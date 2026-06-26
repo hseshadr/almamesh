@@ -6,8 +6,6 @@ import {
   applyInterpretationSettings,
   LLM_SETTINGS_KEY,
   readLlmSettings,
-  resolveChatModel,
-  resolveInterpretationModel,
   writeLlmSettings,
 } from "../settings";
 
@@ -71,41 +69,6 @@ describe("tiered model settings — interpretationModel + chatModel", () => {
     writeLlmSettings({ apiBase: "http://localhost:11434/v1", chatModel: "phi3" });
     const out = readLlmSettings();
     expect(out.interpretationModel).toBeUndefined();
-  });
-});
-
-describe("resolveInterpretationModel / resolveChatModel — defaults", () => {
-  it("interpretation defaults to the recommended frontier model", () => {
-    expect(resolveInterpretationModel({})).toBe(RECOMMENDED_CLOUD_MODEL);
-  });
-
-  it("chat defaults to the fast chat model", () => {
-    expect(resolveChatModel({})).toBe(CHAT_CLOUD_MODEL);
-  });
-
-  it("interpretation honors an explicit interpretationModel", () => {
-    expect(resolveInterpretationModel({ interpretationModel: "openai/gpt-4o" })).toBe("openai/gpt-4o");
-  });
-
-  it("chat honors an explicit chatModel", () => {
-    expect(resolveChatModel({ chatModel: "groq/llama-fast" })).toBe("groq/llama-fast");
-  });
-
-  it("interpretation falls back to the legacy `model` before the default", () => {
-    expect(resolveInterpretationModel({ model: "legacy/old" })).toBe("legacy/old");
-  });
-
-  it("chat falls back to the legacy `model` before the default", () => {
-    // Existing single-field users had ONE model serving both paths; preserve that
-    // so a chat-model-less legacy blob keeps the user's deliberate choice for chat.
-    expect(resolveChatModel({ model: "legacy/old" })).toBe("legacy/old");
-  });
-
-  it("explicit per-tier model wins over the legacy model", () => {
-    expect(resolveInterpretationModel({ model: "legacy/old", interpretationModel: "new/interp" })).toBe(
-      "new/interp",
-    );
-    expect(resolveChatModel({ model: "legacy/old", chatModel: "new/chat" })).toBe("new/chat");
   });
 });
 
