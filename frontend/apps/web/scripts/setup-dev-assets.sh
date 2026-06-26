@@ -63,17 +63,31 @@ else
   done
 fi
 
-# Ensure the ephemeris + IERS data the publisher bundles exist in skyfield's data
-# dir (the publisher's --offline default, ~/.skyfield-data). Skyfield downloads
-# them on demand if missing — a no-op on a dev box that already has them, but
-# essential on a clean machine / CI runner. (de421.bsp ~16MB, finals2000A.all ~3.5MB.)
-echo "==> Ensuring de421.bsp + finals2000A.all (skyfield downloads if missing)"
+# Ephemeris + IERS earth-orientation data the publisher bundles into ~/.skyfield-data
+# (the publisher's --offline default). VENDORED-FIRST / OFFLINE: seed the Loader's data
+# home from the tracked backend/de421.bsp + backend/finals2000A.all (same dir convention
+# and same bytes the golden fixtures use) so a clean machine / CI deploy runner performs
+# ZERO network fetches. Without this, Skyfield downloads de421.bsp (NASA) and
+# finals2000A.all (iers.org) on demand — and the iers.org fetch TIMES OUT on GitHub
+# Actions runners, which is what broke the Cloudflare deploy. (de421.bsp ~16MB,
+# finals2000A.all ~3.5MB; both are git-tracked under backend/, like the vendored DE421.)
+SKYFIELD_DATA_DIR="${HOME}/.skyfield-data"
+echo "==> Seeding ${SKYFIELD_DATA_DIR} from vendored backend assets (offline, zero-download)"
+mkdir -p "${SKYFIELD_DATA_DIR}"
+for asset in de421.bsp finals2000A.all; do
+  if [[ ! -f "${SKYFIELD_DATA_DIR}/${asset}" ]]; then
+    echo "    - ${asset} (from vendored backend/${asset})"
+    cp "${BACKEND_DIR}/${asset}" "${SKYFIELD_DATA_DIR}/${asset}"
+  fi
+done
+# Safety net only: with both files now seeded this is a pure no-op and makes NO network
+# request; it would fetch solely if a vendored copy were somehow missing.
 ( cd "${BACKEND_DIR}" && uv run python -c "
 from pathlib import Path
 from skyfield.api import Loader
 L = Loader(str(Path.home() / '.skyfield-data'))
 L('de421.bsp')
-L.timescale(builtin=False)  # fetches finals2000A.all
+L.timescale(builtin=False)  # no-op when finals2000A.all is already seeded
 " )
 
 # The self-hosted RAG embedding model: Transformers.js loads it same-origin from
