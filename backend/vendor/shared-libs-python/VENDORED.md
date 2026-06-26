@@ -11,23 +11,24 @@ upstream (policy below).
 | Commit vendored | `0533ea0aa97f18d7db06b69efd2e5e0c5883bdb9` |
 | Vendored on | 2026-06-11 |
 | Upstream tree state | clean at that commit |
-| License | **MIT — Copyright (c) 2025 Vector Management Team** (`LICENSE`, copied verbatim) |
+| License | **MIT — Copyright (c) 2025 Harish Seshadri** (`LICENSE`; holder normalized from upstream's "Vector Management Team" — same owner) |
 
-## Legal / attribution (standing item)
+## Legal / attribution (resolved)
 
-The MIT license requires the copyright notice to be preserved. The upstream
-`LICENSE` names **"Vector Management Team"** as the copyright holder (the
-`pyproject.toml` author field names Harish Seshadri). The notice is preserved
-verbatim here and MUST survive any re-vendor; clarifying/normalizing the
-rights situation with upstream remains an open item to settle before this repo
-goes public — do NOT alter the notice in this copy.
+The MIT license requires the copyright notice to be preserved. Upstream's
+"Vector Management Team" is the maintainer's own entity, so the rights are the
+same owner's — this is no longer an open item. The copyright holder in the
+copied `LICENSE` is therefore **normalized to "Harish Seshadri"** (matching the
+root `LICENSE`); the MIT terms and year are otherwise intact. Keep the
+normalized holder on any re-vendor.
 
 ## What was copied
 
 `shared_libs_python/` (the package, incl. the `vector_mgmt` subpackage),
 `tests/` (its own 60-test suite), `pyproject.toml`, `uv.lock`, `LICENSE`,
-`README.md`, `CHANGELOG.md` — byte-identical to upstream
-(`__pycache__`/`.DS_Store` excluded). NOT copied (upstream repo meta, not
+`README.md`, `CHANGELOG.md` — byte-identical to upstream (the `LICENSE`
+copyright holder is normalized — see Legal / attribution above;
+`__pycache__`/`.DS_Store` excluded). NOT copied (upstream repo meta, not
 package source): `docs/`, `examples/`, `.github/`, `.claude/`, `CLAUDE.md`,
 `CONTRIBUTING.md`, `SECURITY.md`, `.pre-commit-config.yaml`, `.gitattributes`,
 `.gitignore`, coverage artifacts, caches, `.venv`.
@@ -58,7 +59,7 @@ cd backend/vendor/shared-libs-python && uv run pytest -q
 Manual re-vendor only — no submodule, no subtree, no automation:
 
 1. Land the change upstream in `hseshadr/shared-libs-python`.
-2. Re-copy the files listed above verbatim from the new upstream commit
-   (LICENSE notice intact).
+2. Re-copy the files listed above verbatim from the new upstream commit, then
+   normalize the `LICENSE` copyright holder to "Harish Seshadri" (as here).
 3. Update the commit SHA + date in this file.
 4. Re-run the backend gates and the Pyodide byte-parity gate.

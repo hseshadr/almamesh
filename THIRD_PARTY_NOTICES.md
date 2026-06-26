@@ -141,6 +141,44 @@ the authoritative terms. In particular:
   relicensed to **MIT** for this release — see
   [`frontend/packages/edgeproc-browser/LICENSE`](./frontend/packages/edgeproc-browser/LICENSE).
 
+## 6. Offline city / location data (`frontend/apps/web/src/data/cities.min.json`)
+
+- **What:** The bundled, offline city database that powers birth-location search.
+  `frontend/scripts/generate-cities.mjs` pre-bakes a pruned, browser-ready
+  `cities.min.json` (city names, coordinates, country, population) that is
+  **committed to the repository as a static data asset**, so location entry
+  resolves to latitude/longitude with zero network calls (no geocoding API).
+- **Data origin & required attribution:** The city data is derived from
+  **GeoNames** via the `all-the-cities` package (which in turn derives from the
+  `cities-with-1000` GeoNames export). The GeoNames geographical database is
+  licensed under **Creative Commons Attribution 4.0 International (CC BY 4.0)**
+  and **requires attribution**. Please credit *GeoNames
+  (https://www.geonames.org/), CC BY 4.0* when redistributing this data.
+
+| Source | Role | License | Link |
+|--------|------|---------|------|
+| GeoNames | Geographical data (city names, coordinates, population) baked into `cities.min.json` | **CC BY 4.0 — attribution required** | https://www.geonames.org/ · https://creativecommons.org/licenses/by/4.0/ |
+| `all-the-cities` 3.1.0 | Build-time npm package supplying the GeoNames-derived dataset | MIT | https://github.com/zeke/all-the-cities |
+| `countries-list` 3.3.0 | Build-time npm package resolving ISO-3166 alpha-2 codes to country display names baked into the data | MIT | https://github.com/annexare/Countries |
+| `tz-lookup` 6.1.25 | Runtime library mapping latitude/longitude → IANA timezone offline | CC0-1.0 (public domain; no attribution required) | https://github.com/darkskyapp/tz-lookup |
+
+## 7. Planet textures (`frontend/apps/web/public/planets/planet-*.jpg`)
+
+- **What:** Equirectangular planet surface textures for the dashboard's 3D
+  "force-field" hero, loaded at runtime by `PlanetMesh.tsx`. Committed under
+  `frontend/apps/web/public/planets/` as
+  `planet-{sun,moon,mercury,venus,mars,jupiter,saturn}.jpg`.
+- **Origin & required attribution:** **Solar System Scope** planet textures
+  (https://www.solarsystemscope.com/textures/), licensed under **Creative Commons
+  Attribution 4.0 International (CC BY 4.0)**
+  (https://creativecommons.org/licenses/by/4.0/) — free for any purpose,
+  including commercial use, **with attribution**. Please credit *"Planet textures
+  from Solar System Scope (CC BY 4.0)."*
+- **Note:** The Rahu/Ketu lunar-node icons (`planet-rahu.png`, `planet-ketu.png`)
+  are simple placeholder symbols generated locally by the repo's own
+  `frontend/apps/web/public/planets/create-placeholders.sh` (ImageMagick); they
+  are not third-party assets and carry no external attribution requirement.
+
 ---
 
 The npm/PyPI dependencies pulled at install time (React, Vite, Tailwind, Zustand,

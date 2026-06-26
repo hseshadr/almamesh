@@ -249,6 +249,17 @@ reference_date=...)`) is the *same* one the CLI calls. The fixed `reference_date
 pins the "current" dasha, which is what makes a chart reproducible byte-for-byte
 across CPython and Pyodide.
 
+You can check the sub-arcsecond accuracy claim yourself. It runs **fully
+offline**: the engine uses the vendored `backend/de421.bsp`, and the independent
+astropy + JPL Horizons oracle values are committed as fixtures (no live download
+or API call at test time).
+
+```bash
+# Engine longitudes vs an independent astropy oracle (with a committed JPL
+# Horizons cross-check), agreeing to sub-arcsecond — natal + transits:
+cd backend && uv run pytest tests/validation/test_ground_truth.py tests/test_transit_reference.py -q
+```
+
 See [`frontend/README.md`](frontend/README.md) for the monorepo layout and the
 full set of dev/build/test commands.
 
