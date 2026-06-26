@@ -49,7 +49,7 @@ if [[ ! -d "${PUBLIC_DIR}/models" ]]; then
   exit 1
 fi
 
-BUNDLE_VERSION="${BUNDLE_VERSION:-$(git -C "${REPO_ROOT}" describe --tags --abbrev=0)}"
+BUNDLE_VERSION="${BUNDLE_VERSION:-$(git -C "${REPO_ROOT}" describe --tags --abbrev=0 2>/dev/null || echo "0.0.0+$(git -C "${REPO_ROOT}" rev-parse --short HEAD)")}"
 echo "==> Production build for almamesh.com — bundle version ${BUNDLE_VERSION}"
 
 # --- 1. Fresh wheel from this checkout -----------------------------------------
