@@ -41,6 +41,10 @@
     "place_of_birth": "Place of Birth",
     "ascendant": "Ascendant (Lagna)",
     "cusp_note": "≈{{degrees}}° from the {{sign}} cusp. A few minutes' difference in the recorded birth time would make the rising sign {{sign}}, and every house placement in this report would shift with it. House-based interpretation depends on the recorded time; we recommend refining the birth time in AlmaMesh before relying on house placements.",
+    "cusp_callout_title": "Ascendant on a sign boundary",
+    "time_badge_recorded": "As recorded",
+    "time_badge_rectified": "Rectified {{sign}}{{minutes}} min",
+    "time_rectified_detail": "Entered {{entered}} → chart computed for {{rectified}}",
     "generated_on": "Generated on {{date}}",
     "rectified_note": "Birth time rectified by hand: entered {{entered}}, chart computed for {{rectified}} ({{sign}}{{minutes}} min)."
   },

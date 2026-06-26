@@ -80,3 +80,51 @@ describe('cuspInfo', () => {
     expect(cuspInfo('NotASign', 1)).toBeNull();
   });
 });
+
+// --- engine cusp fields (single source of truth) ----------------------------
+// When the engine supplies its own cusp measurement, these helpers CONSUME it
+// verbatim (the engine is authoritative) and only fall back to the local TS
+// computation when those fields are absent (older bundles / stored charts).
+describe('cuspInfo with engine cusp fields', () => {
+  it('uses the engine adjacent sign + distance verbatim, not the local recompute', () => {
+    // signDegrees (0.04) would locally give 0.04; the engine distance (0.043) wins.
+    const info = cuspInfo('Leo', 0.04, 3, {
+      lagna_adjacent_sign: 'Cancer',
+      lagna_cusp_distance_deg: 0.043,
+      is_near_cusp: true,
+    });
+    expect(info).not.toBeNull();
+    expect(info?.neighbourSign).toBe('Cancer');
+    expect(info?.degrees).toBeCloseTo(0.043, 6);
+  });
+
+  it('returns null when the engine distance is outside the threshold (mid-sign)', () => {
+    expect(
+      cuspInfo('Cancer', 16.121, 3, {
+        lagna_adjacent_sign: 'Leo',
+        lagna_cusp_distance_deg: 13.879,
+        is_near_cusp: false,
+      }),
+    ).toBeNull();
+  });
+
+  it('still honours a custom threshold against the engine distance', () => {
+    const engine = { lagna_adjacent_sign: 'Aries', lagna_cusp_distance_deg: 4 };
+    expect(cuspInfo('Taurus', 4, 3, engine)).toBeNull();
+    expect(cuspInfo('Taurus', 4, 5, engine)?.neighbourSign).toBe('Aries');
+  });
+
+  it('falls back to the local TS computation when engine fields are absent', () => {
+    expect(cuspInfo('Aquarius', 27, 3, {})?.neighbourSign).toBe('Pisces');
+  });
+});
+
+describe('degreesToNearestCusp with the engine distance', () => {
+  it('returns the engine distance verbatim when provided', () => {
+    expect(degreesToNearestCusp(0.04, 0.043)).toBeCloseTo(0.043, 6);
+  });
+
+  it('falls back to the local measurement when the engine distance is absent', () => {
+    expect(degreesToNearestCusp(27)).toBe(3);
+  });
+});

@@ -52,7 +52,11 @@
     "ascendant_unavailable": "Vista previa del Ascendente no disponible — el motor aún se está iniciando.",
     "ascendant_prompt": "Indica una fecha y un lugar de nacimiento para previsualizar el Ascendente.",
     "cusp_warning": "⚠ ~{{degrees}}° de {{sign}} — tu signo ascendente está en una cúspide; pequeños cambios en la hora de nacimiento lo cambian.",
-    "cusp_flip": "A esta hora el Ascendente es {{sign}} — un cambio respecto a la hora que introdujiste, que asciende {{enteredSign}}. Es una posibilidad para contrastar con los eventos de tu vida, no un veredicto.",
+    "comparison_label": "Mismo nacimiento · dos horas candidatas",
+    "comparison_as_recorded": "Según lo registrado",
+    "comparison_rectified": "Rectificada",
+    "comparison_near": "{{sign}} asciende a solo ~{{degrees}}° de la cúspide de {{neighbour}}. Una diferencia de unos minutos en la hora que registraste lo convertiría en {{neighbour}} y desplazaría todas las casas en un signo — la misma persona en dos horas candidatas.",
+    "comparison_flip": "La misma persona, dos horas candidatas: el signo ascendente cambia de {{recorded}} → {{rectified}}, por lo que cada casa se desplaza en un signo. Contrasta esto con los eventos de tu vida — es una posibilidad, no un veredicto.",
     "adjustment_in_effect": "Rectificada: introducida {{entered}} → usando {{rectified}} ({{sign}}{{minutes}} min).",
     "confidence_hint": "Tu hora de nacimiento es {{confidence}}. No hay rectificación automática — la afinas aquí a mano: ajusta la hora rectificada, observa el Ascendente de arriba y contrástalo con los eventos reales de tu vida. Esto importa más cuando el lagna está en una cúspide, donde unos minutos cambian el signo ascendente.",
     "location_label": "Lugar de nacimiento",
@@ -189,6 +193,7 @@
     "tokens": "{{n}} tokens",
     "insufficient": "Tokens insuficientes para esta operación. Mejora tu plan o espera al reinicio mensual.",
     "processing": "Procesando...",
-    "confirm": "Confirmar y regenerar"
+    "confirm": "Confirmar y regenerar",
+    "flip_ack": "Esto cambia tu signo ascendente de {{from}} → {{to}} y desplaza todas las casas de tu carta. Lo entiendo y quiero continuar."
   }
 }

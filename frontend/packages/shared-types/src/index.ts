@@ -1122,6 +1122,33 @@ export interface SiderealPlanet {
 }
 
 /**
+ * The Lagna (Ascendant) as carried on `SiderealContext`. Historically an
+ * untyped `Record<string, unknown>`; the named fields below document what the
+ * engine actually emits while the `[key: string]: unknown` index signature
+ * keeps it permissive (partial test fixtures like `lagna: {}` still type-check).
+ *
+ * The three `lagna_*` / `is_near_cusp` fields are the engine's CUSP-PROXIMITY
+ * single-source-of-truth — additive, so older stored charts/bundles omit them
+ * (the UI's lib/lagnaCusp.ts then falls back to its own measurement).
+ */
+export interface SiderealLagna {
+  readonly sign?: string;
+  readonly sign_degrees?: number;
+  readonly longitude?: number;
+  readonly sign_lord?: string;
+  readonly nakshatra?: string;
+  readonly nakshatra_pada?: number;
+  readonly nakshatra_lord?: string;
+  /** Degrees from the Lagna to the NEAREST sign boundary (engine cusp SoT). */
+  readonly lagna_cusp_distance_deg?: number;
+  /** The sign across that nearest boundary (engine Title-Case). */
+  readonly lagna_adjacent_sign?: string | null;
+  /** True when within the engine's near-cusp threshold (~3°). */
+  readonly is_near_cusp?: boolean;
+  readonly [key: string]: unknown;
+}
+
+/**
  * Sidereal context containing all planet positions
  * Matches backend SiderealContext class
  */
@@ -1131,7 +1158,7 @@ export interface SiderealContext {
   ayanamsa_type: string;
   house_system: string;
   sidereal_time: number;
-  lagna: Record<string, unknown>;
+  lagna: SiderealLagna;
   planets: Record<string, SiderealPlanet>;
 }
 

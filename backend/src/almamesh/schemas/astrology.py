@@ -76,6 +76,17 @@ class LagnaData(BaseModel):
     nakshatra: str
     nakshatra_pada: int
     nakshatra_lord: PlanetName
+    # --- Cusp proximity: the single source of truth for the UI's near-cusp
+    # "Birth-time sensitivity" banner (mirrors apps/web/src/lib/lagnaCusp.ts).
+    # The engine ALWAYS populates these; the additive defaults exist only so
+    # partial test constructions still validate (cf. ``navamsa: ... = None``). ---
+    # Degrees from the Lagna to the NEAREST 0/30 deg sign boundary.
+    lagna_cusp_distance_deg: float = 0.0
+    # The sign across that nearest boundary (previous at the lower edge, next at
+    # the upper). None only on a partial construction that omitted it.
+    lagna_adjacent_sign: ZodiacSign | None = None
+    # True when ``lagna_cusp_distance_deg`` is within the near-cusp threshold (~3 deg).
+    is_near_cusp: bool = False
 
 
 class HouseCuspData(BaseModel):

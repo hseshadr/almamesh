@@ -33,7 +33,17 @@
     "placeholder": "Selecciona tu hora de nacimiento",
     "clock_hint": "Introduce la hora tal como aparecía en el reloj de tu lugar de nacimiento.",
     "timezone_hint": " Usaremos la zona horaria {{timezone}} para los cálculos.",
-    "estimate_hint": "¿No sabes tu hora exacta de nacimiento? Indica tu mejor estimación."
+    "estimate_hint": "¿No sabes tu hora exacta de nacimiento? Indica tu mejor estimación.",
+    "confidence_label": "¿Qué tan segura estás de esta hora?",
+    "confidence": {
+      "exact": "Exacta",
+      "approximate": "Aproximada",
+      "rough": "Estimada",
+      "unknown": "No la sé"
+    },
+    "confidence_margin": "La trataremos como precisa con un margen de ±{{minutes}} min.",
+    "confidence_exact_note": "La trataremos como una hora exacta.",
+    "confidence_unknown_note": "Usaremos el mediodía como valor provisional; podrás ajustarla a mano más tarde en Ajustes."
   },
   "life_events": {
     "title": "Comparte la historia de tu vida",
@@ -48,8 +58,8 @@
     "saved_label": "Guardado en este dispositivo:",
     "inspiration_label": "¿Necesitas inspiración? Prueba un ejemplo:",
     "helpful_title": "Los eventos que más ayudan:",
-    "analyzing": "Analizando...",
-    "analyze_continue": "Analizar y continuar",
+    "analyzing": "Guardando...",
+    "analyze_continue": "Guardar y continuar",
     "skip": "Omitir: usaré una hora de nacimiento aproximada",
     "examples": [
       "Me casé en junio de 2015, tuve mi primer hijo en 2018 y cambié de la ingeniería a la docencia en 2020.",

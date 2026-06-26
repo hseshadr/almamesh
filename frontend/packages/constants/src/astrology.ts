@@ -97,3 +97,26 @@ export const TIME_CONFIDENCE = {
 export type PlanetName = keyof typeof PLANETS;
 export type SignName = keyof typeof SIGNS;
 export type TimeConfidence = keyof typeof TIME_CONFIDENCE;
+
+/**
+ * Birth-time confidence keys in the order they should be offered in the UI
+ * (most → least certain). Drives the onboarding + settings selectors without
+ * each call site re-deriving (and re-ordering) `Object.keys(TIME_CONFIDENCE)`.
+ */
+export const TIME_CONFIDENCE_ORDER = [
+  'exact',
+  'approximate',
+  'rough',
+  'unknown',
+] as const satisfies readonly TimeConfidence[];
+
+/**
+ * The uncertainty margin (in minutes) the engine should treat a birth time as
+ * accurate within, for a given confidence — the real consumer path for
+ * `TIME_CONFIDENCE[...].margin`. `0` means an exact time; `null` means the time
+ * is unknown (no usable margin → manual rectification). Honest cusp/confidence
+ * displays read this to say "± N min" instead of implying false precision.
+ */
+export function timeConfidenceMargin(confidence: TimeConfidence): number | null {
+  return TIME_CONFIDENCE[confidence].margin;
+}

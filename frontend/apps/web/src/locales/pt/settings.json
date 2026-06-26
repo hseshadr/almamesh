@@ -52,7 +52,11 @@
     "ascendant_unavailable": "Pré-visualização do Ascendente indisponível — o motor ainda está iniciando.",
     "ascendant_prompt": "Defina uma data e um local de nascimento para pré-visualizar o Ascendente.",
     "cusp_warning": "⚠ ~{{degrees}}° de {{sign}} — o seu signo ascendente está numa cúspide; pequenas mudanças na hora de nascimento o alteram.",
-    "cusp_flip": "A esta hora o Ascendente é {{sign}} — uma mudança em relação à hora que você inseriu, que ascende {{enteredSign}}. É uma possibilidade para confrontar com os eventos da sua vida, não um veredito.",
+    "comparison_label": "Mesmo nascimento · duas horas candidatas",
+    "comparison_as_recorded": "Conforme registrado",
+    "comparison_rectified": "Retificada",
+    "comparison_near": "{{sign}} ascende a apenas ~{{degrees}}° da cúspide de {{neighbour}}. Uma diferença de alguns minutos na hora que você registrou o tornaria {{neighbour}} e deslocaria todas as casas em um signo — a mesma pessoa em duas horas candidatas.",
+    "comparison_flip": "A mesma pessoa, duas horas candidatas: o signo ascendente muda de {{recorded}} → {{rectified}}, então cada casa se desloca em um signo. Confronte isto com os eventos da sua vida — é uma possibilidade, não um veredito.",
     "adjustment_in_effect": "Retificada: inserida {{entered}} → usando {{rectified}} ({{sign}}{{minutes}} min).",
     "confidence_hint": "A sua hora de nascimento é {{confidence}}. Não há retificação automática — você a refina aqui manualmente: ajuste a hora retificada, observe o Ascendente acima e confronte-o com os eventos reais da sua vida. Isto importa mais quando o lagna está numa cúspide, onde alguns minutos mudam o signo ascendente.",
     "location_label": "Local de nascimento",
@@ -189,6 +193,7 @@
     "tokens": "{{n}} tokens",
     "insufficient": "Tokens insuficientes para esta operação. Atualize o seu plano ou aguarde a renovação mensal.",
     "processing": "Processando...",
-    "confirm": "Confirmar e regenerar"
+    "confirm": "Confirmar e regenerar",
+    "flip_ack": "Isto muda o seu signo ascendente de {{from}} → {{to}} e desloca todas as casas do seu mapa. Eu entendo e quero continuar."
   }
 }

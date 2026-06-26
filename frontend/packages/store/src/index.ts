@@ -24,6 +24,7 @@
 export * from './onboarding';
 export * from './chart';
 export * from './chartLibrary';
+export * from './lifeEvents';
 export * from './chat';
 export * from './profiles';
 export * from './adapters/chart';

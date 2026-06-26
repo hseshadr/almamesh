@@ -4,8 +4,14 @@ import { useTranslation } from "react-i18next";
 import {
   appEvents,
   type BirthMeta,
+  useLifeEventsStore,
   useProfilesStore,
 } from "@almamesh/store";
+import {
+  TIME_CONFIDENCE_ORDER,
+  timeConfidenceMargin,
+  type TimeConfidence,
+} from "@almamesh/constants";
 import { useChartEngine } from "../providers/AlmaMeshRuntimeProvider";
 import { LocationSearch, type LocationResult } from "../components/shared/LocationSearch";
 
@@ -126,6 +132,10 @@ export default function OnboardingPage() {
   const [generationStep, setGenerationStep] = React.useState(0);
   const [narrative, setNarrative] = React.useState("");
   const [extractedEvents, setExtractedEvents] = React.useState<ExtractedEvent[]>([]);
+  // The captured events as a ref so the (possibly stale) generation closure
+  // reached via setTimeout always persists the LATEST notes, not the empty set
+  // present when the "Save & Continue" button was first clicked.
+  const capturedEventsRef = React.useRef<ExtractedEvent[]>([]);
   const [isExtracting, setIsExtracting] = React.useState(false);
   const [extractionFeedback, setExtractionFeedback] = React.useState("");
   // i18n-correctness: drive the feedback styling off a language-independent
@@ -205,8 +215,13 @@ export default function OnboardingPage() {
   };
 
   const handleBirthTimeChange = (value: string) => {
-    // Assume exact confidence for web - could add confidence selector
-    setBirthTime(value, 'exact');
+    // Preserve the user's chosen confidence (defaults to 'exact') — the time
+    // and its confidence are captured separately in this step.
+    setBirthTime(value, data.timeConfidence);
+  };
+
+  const handleConfidenceChange = (confidence: TimeConfidence) => {
+    setBirthTime(data.birthTime, confidence);
   };
 
   const handleLocationChange = (location: LocationResult | null) => {
@@ -242,7 +257,9 @@ export default function OnboardingPage() {
     setIsExtracting(true);
     setFeedback("", null);
 
-    setExtractedEvents([{ description: narrative.trim() }]);
+    const captured: ExtractedEvent[] = [{ description: narrative.trim() }];
+    capturedEventsRef.current = captured;
+    setExtractedEvents(captured);
     setFeedback(t("life_events.saved_feedback"), "success");
     setIsExtracting(false);
     // Navigate to next step after brief delay to show feedback
@@ -254,6 +271,7 @@ export default function OnboardingPage() {
   // Skip life events step
   const handleSkipLifeEvents = () => {
     setNarrative("");
+    capturedEventsRef.current = [];
     setExtractedEvents([]);
     setFeedback("", null);
     handleNext();
@@ -263,6 +281,7 @@ export default function OnboardingPage() {
   const handleUseExample = (example: string) => {
     setNarrative(example);
     setFeedback("", null);
+    capturedEventsRef.current = [];
     setExtractedEvents([]);
   };
 
@@ -324,6 +343,10 @@ export default function OnboardingPage() {
           longitude: birthData.longitude,
           timezone: birthData.timezone,
           location_name: birthData.location_name ?? "",
+          // Honest uncertainty: carry the user's birth-time confidence onto the
+          // stored chart's birth details (birth_time_confidence) so cusp/
+          // confidence displays and manual rectification know how exact it is.
+          timeConfidence: data.timeConfidence,
         };
 
         // Tag the chart with the active profile so it belongs to the right
@@ -332,6 +355,14 @@ export default function OnboardingPage() {
         const profilesState = useProfilesStore.getState();
         const profileId =
           profilesState.activeProfileId ?? profilesState.createProfile(birth.name || "Me");
+
+        // Persist the captured life-event notes for this profile so they survive
+        // and can seed the future manual birth-time rectification (the app never
+        // auto-matches them — they are the user's own reference points).
+        const capturedEvents = capturedEventsRef.current;
+        if (capturedEvents.length > 0) {
+          useLifeEventsStore.getState().setEvents(profileId, capturedEvents);
+        }
 
         // Single source of regeneration: the one subscriber in App.tsx computes
         // on-device, saves the primary (with profile_id), and re-streams.
@@ -641,6 +672,44 @@ export default function OnboardingPage() {
                 placeholder={t("birth_time.placeholder")}
               />
             </div>
+
+            {/* Birth-time confidence — honest about how exact this time is.
+                Feeds the chart's birth_time_confidence and manual rectification. */}
+            <div data-testid="confidence-selector">
+              <p className="block text-text-primary font-medium mb-2">
+                {t("birth_time.confidence_label")}
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                {TIME_CONFIDENCE_ORDER.map((key) => {
+                  const selected = data.timeConfidence === key;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => handleConfidenceChange(key)}
+                      aria-pressed={selected}
+                      data-testid={`confidence-option-${key}`}
+                      className={`py-2.5 px-3 rounded-lg border text-sm transition-colors ${
+                        selected
+                          ? "border-accent-gold bg-accent-gold/15 text-accent-gold font-medium"
+                          : "border-ui-border text-text-secondary hover:border-accent-gold/50"
+                      }`}
+                    >
+                      {t(`birth_time.confidence.${key}`)}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-text-muted text-xs mt-2" data-testid="confidence-margin-note">
+                {(() => {
+                  const margin = timeConfidenceMargin(data.timeConfidence);
+                  if (margin === null) return t("birth_time.confidence_unknown_note");
+                  if (margin === 0) return t("birth_time.confidence_exact_note");
+                  return t("birth_time.confidence_margin", { minutes: margin });
+                })()}
+              </p>
+            </div>
+
             <div className="bg-background-tertiary/50 border border-ui-border/50 rounded-lg p-4">
               <div className="flex items-start gap-3">
                 <span className="text-accent-gold text-lg">i</span>
