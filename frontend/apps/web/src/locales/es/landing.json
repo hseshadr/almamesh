@@ -7,7 +7,7 @@
   },
   "hero": {
     "headline": "Tu cielo real. Calculado en tu dispositivo. Gratis, para siempre.",
-    "subhead": "Una carta védica (sideral) fiel — planetas, nakshatras, dashas — calculada en tu navegador. Un experimento honesto, no un adivino. Sin cuenta. Sin correo. Nada sale de tu pestaña.",
+    "subhead": "Una carta védica (sideral) fiel — planetas, nakshatras, dashas — calculada en tu navegador. Un experimento honesto, no un adivino. Sin cuenta. Sin correo. Nada sale de tu navegador.",
     "cta": "Crear mi carta — gratis",
     "microcopy": "Funciona sin conexión · 3 idiomas · motor abierto."
   },
@@ -69,7 +69,7 @@
         "b": "Requiere registro y correo electrónico"
       },
       {
-        "a": "Tus datos de nacimiento nunca salen de tu pestaña",
+        "a": "Tus datos de nacimiento nunca salen de tu navegador",
         "b": "Datos de nacimiento almacenados, perfilados, monetizados"
       },
       {
@@ -141,7 +141,7 @@
     "viewSource": "Ver el código en GitHub"
   },
   "footer": {
-    "tagline": "Astrología védica gratis y en tu dispositivo. Un experimento honesto — tus datos nunca salen de tu pestaña.",
+    "tagline": "Astrología védica gratis y en tu dispositivo. Un experimento honesto — tus datos nunca salen de tu navegador.",
     "privacy": "Política de privacidad",
     "terms": "Términos del servicio",
     "dataDeletion": "Eliminación de datos",

@@ -6,7 +6,7 @@
   },
   "hero": {
     "headline": "Your real sky. Computed on your device. Free, forever.",
-    "subhead": "A faithful Vedic (sidereal) chart — planets, nakshatras, dashas — calculated in your browser. An honest experiment, not a fortune-teller. No account. No email. Nothing leaves your tab.",
+    "subhead": "A faithful Vedic (sidereal) chart — planets, nakshatras, dashas — calculated in your browser. An honest experiment, not a fortune-teller. No account. No email. Nothing leaves your browser.",
     "cta": "Draw my chart — free",
     "microcopy": "Works offline · 3 languages · open engine."
   },
@@ -68,7 +68,7 @@
         "b": "Sign-up + email required"
       },
       {
-        "a": "Your birth data never leaves your tab",
+        "a": "Your birth data never leaves your browser",
         "b": "Birth data stored, profiled, monetized"
       },
       {
@@ -140,7 +140,7 @@
     "viewSource": "View source on GitHub"
   },
   "footer": {
-    "tagline": "Free, on-device Vedic astrology. An honest experiment — your data never leaves your tab.",
+    "tagline": "Free, on-device Vedic astrology. An honest experiment — your data never leaves your browser.",
     "privacy": "Privacy Policy",
     "terms": "Terms of Service",
     "dataDeletion": "Data Deletion",
