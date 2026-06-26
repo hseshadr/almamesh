@@ -44,7 +44,8 @@
     "place_of_birth": "Local de nascimento",
     "ascendant": "Ascendente (Lagna)",
     "cusp_note": "≈{{degrees}}° da cúspide de {{sign}}. Alguns minutos de diferença no horário de nascimento registrado tornariam o signo ascendente {{sign}}, e todas as posições de casas deste relatório mudariam com ele. A interpretação baseada em casas depende do horário registrado; recomendamos ajustar o horário de nascimento no AlmaMesh antes de confiar nas posições de casas.",
-    "generated_on": "Gerado em {{date}}"
+    "generated_on": "Gerado em {{date}}",
+    "rectified_note": "Hora de nascimento retificada à mão: inserida {{entered}}, mapa calculado para {{rectified}} ({{sign}}{{minutes}} min)."
   },
   "audience": {
     "you": "Para você",

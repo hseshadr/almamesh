@@ -41,6 +41,7 @@ import { useStreamingInterpretation } from "../hooks/useStreamingInterpretation"
 import { useElapsedSeconds, formatElapsed } from "../hooks/useElapsedSeconds";
 import { canExportPdf, isPlaceholderContent } from "./exportGate";
 import { personaText, resolveReportAudience } from "../lib/reportSelectors";
+import { rectificationDelta } from "../lib/rectification";
 
 // A model-not-found failure from an OpenAI-compatible endpoint — e.g. OpenRouter
 // returns HTTP 404 "No endpoints found for <model>" when the configured model id
@@ -355,6 +356,13 @@ export default function DashboardPage() {
       }
     : null;
 
+  // Manual birth-time rectification (if any) in effect for this chart: a pure,
+  // display-only comparison of the entered vs. effective clock the engine path
+  // already produced. Null when no rectification was applied — then the strip
+  // renders no rectification line.
+  const birthData = chartData?.chart_data?.birth_data ?? null;
+  const rectification = birthData ? rectificationDelta(birthData) : null;
+
   // "This period" — timely guidance attached to the reading (plain strings).
   const periodGuidance = interpretation?.current_period_guidance ?? null;
   const periodBody = periodGuidance?.period_summary || periodGuidance?.guidance || null;
@@ -416,6 +424,7 @@ export default function DashboardPage() {
           lagna={lagna}
           moon={moon}
           dasha={astronomicalData?.dasha_ctx}
+          rectification={rectification}
           actions={
             <>
               <ContentModeToggle />

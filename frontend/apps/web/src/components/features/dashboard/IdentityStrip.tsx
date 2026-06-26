@@ -24,6 +24,7 @@ import { cuspInfo } from '../../../lib/lagnaCusp';
 import { nextAntar, nextPratyantar, type DashaTreeRow } from '../../../lib/dashaPeriods';
 import { formatPredictiveDate } from '../../../lib/predictive';
 import { grahaName, signName } from '../../../lib/predictiveEventCopy';
+import type { RectificationDelta } from '../../../lib/rectification';
 
 export interface IdentityLagna {
   readonly sign?: string;
@@ -43,6 +44,13 @@ export interface IdentityStripProps {
   readonly lagna: IdentityLagna | null;
   readonly moon: IdentityMoon | null;
   readonly dasha?: VimshottariDashaData;
+  /**
+   * The manual birth-time rectification in effect, or null when none was
+   * applied (entered time == effective time). When present, a quiet line names
+   * the entered → rectified clocks + signed minutes, so the dashboard is honest
+   * about which time produced this chart. Display only — never recomputed here.
+   */
+  readonly rectification?: RectificationDelta | null;
   /** Right-aligned action cluster (mode toggle, quiet page actions). */
   readonly actions?: ReactNode;
 }
@@ -157,6 +165,37 @@ function BirthTimeSensitivity({ lagna }: { lagna: IdentityLagna | null }): React
         </Link>
       </p>
     </div>
+  );
+}
+
+/**
+ * A quiet one-line note that this chart was computed from a *rectified* birth
+ * time, naming the entered → rectified clocks and the signed minute adjustment.
+ * Renders nothing when no rectification is in effect. Display only — the signed
+ * label is built from the engine path's two clocks, never recomputed astrology.
+ */
+function RectificationNote({
+  rectification,
+}: {
+  rectification?: RectificationDelta | null;
+}): ReactElement | null {
+  const { t } = useTranslation('life');
+  if (!rectification) {
+    return null;
+  }
+  const { deltaMinutes, enteredLabel, rectifiedLabel } = rectification;
+  return (
+    <p
+      className="mt-4 text-xs leading-relaxed text-text-tertiary"
+      data-testid="identity-rectification"
+    >
+      {t('identity.rectified', {
+        entered: enteredLabel,
+        rectified: rectifiedLabel,
+        sign: deltaMinutes > 0 ? '+' : '−',
+        minutes: Math.abs(deltaMinutes),
+      })}
+    </p>
   );
 }
 
@@ -283,6 +322,7 @@ export function IdentityStrip({
   lagna,
   moon,
   dasha,
+  rectification,
   actions,
 }: IdentityStripProps): ReactElement {
   const { t } = useTranslation('life');
@@ -303,6 +343,8 @@ export function IdentityStrip({
         <MoonFact moon={moon} />
         <DashaFact dasha={dasha} />
       </dl>
+
+      <RectificationNote rectification={rectification} />
 
       <BirthTimeSensitivity lagna={lagna} />
     </section>

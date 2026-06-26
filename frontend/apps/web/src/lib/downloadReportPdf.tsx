@@ -11,6 +11,7 @@ import type { ProcessedBirthData, VedicInterpretation } from '@almamesh/shared-t
 import type { BirthDetailLabels, ReportPdfLabels } from '../components/report-pdf';
 import type { ReportAudience } from './reportSelectors';
 import type { ReportChartFields } from './reportData';
+import type { RectificationDelta } from './rectification';
 
 /** All localized chrome strings the document needs (passed from React/i18n). */
 export interface ReportPdfChrome {
@@ -19,6 +20,12 @@ export interface ReportPdfChrome {
   readonly subtitle: string;
   readonly kicker: string;
   readonly ascendantNote?: string;
+  /**
+   * Binds the localized `report:cover.rectified_note` template to a derived
+   * rectification delta. The builder calls it only when a rectification is in
+   * effect, so i18n stays in React while the cover stays honest.
+   */
+  readonly formatRectifiedNote?: (delta: RectificationDelta) => string;
   /** Localized kundli plate captions ("Rāśi · D1" / "Navāṁśa · D9"). */
   readonly chartCaptions: { readonly rasi: string; readonly navamsa: string };
   readonly detailLabels: BirthDetailLabels;
@@ -65,6 +72,7 @@ export async function downloadReportPdf(input: DownloadReportPdfInput): Promise<
     audience: input.audience,
     chartCaptions: input.chrome.chartCaptions,
     ascendantNote: input.chrome.ascendantNote,
+    formatRectifiedNote: input.chrome.formatRectifiedNote,
     detailLabels: input.chrome.detailLabels,
     chromeLabels: input.chrome.chromeLabels,
   });

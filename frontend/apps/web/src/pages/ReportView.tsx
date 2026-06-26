@@ -194,6 +194,13 @@ export default function ReportView(): ReactElement {
       ascendantNote: cusp
         ? t('cover.cusp_note', { degrees: cusp.degrees.toFixed(1), sign: cusp.neighbourSign })
         : undefined,
+      formatRectifiedNote: (delta) =>
+        t('cover.rectified_note', {
+          entered: delta.enteredLabel,
+          rectified: delta.rectifiedLabel,
+          sign: delta.deltaMinutes > 0 ? '+' : '−',
+          minutes: Math.abs(delta.deltaMinutes),
+        }),
       chartCaptions: {
         rasi: t('charts.rasi_caption'),
         navamsa: t('charts.navamsa_caption'),

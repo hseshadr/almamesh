@@ -132,6 +132,12 @@ export interface ReportPdfData {
    * caveat). Already localized; omitted when not applicable.
    */
   readonly ascendantNote?: string;
+  /**
+   * An optional note on the cover stating that this chart was computed from a
+   * *rectified* birth time — names the entered → rectified clocks + signed
+   * minutes. Already localized; omitted when no rectification is in effect.
+   */
+  readonly rectifiedNote?: string;
   /** Technical engine readouts (ayanamsa, house system). */
   readonly technical: ReadonlyArray<ReportPdfTechnical>;
 

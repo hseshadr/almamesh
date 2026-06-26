@@ -198,6 +198,18 @@ export const styles = StyleSheet.create({
     maxWidth: 360,
   },
 
+  /* A quiet honesty caption under the title: this chart used a rectified time. */
+  coverRectifiedNote: {
+    marginTop: space.md,
+    fontFamily: FONT_DISPLAY,
+    fontStyle: 'italic',
+    fontSize: type.small,
+    color: palette.muted,
+    lineHeight: 1.5,
+    maxWidth: 360,
+    textAlign: 'center',
+  },
+
   /* The decorative star ornament rule under the title. */
   ornamentRow: {
     flexDirection: 'row',

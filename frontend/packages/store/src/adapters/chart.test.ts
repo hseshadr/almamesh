@@ -8,6 +8,7 @@ import transitGolden from "../../../../../backend/tests/fixtures/transit_golden_
 import vargaGolden from "../../../../../backend/tests/fixtures/varga_golden_de421.json";
 import {
   type BirthMeta,
+  chartId,
   siderealChartToChartData,
   toBirthData,
   toBirthInput,
@@ -141,6 +142,35 @@ describe("birth-time rectification", () => {
     expect(stored.birth_datetime_utc).toBe("1990-01-15T12:00:00.000Z");
     expect(stored.birth_time_original).toBeUndefined();
     expect(stored.birth_time_confidence).toBeUndefined();
+  });
+
+  it("rectifying 05:45 -> 06:00 forces a regenerate: new UTC instant + new chartId", () => {
+    // A synthetic Asia/Kolkata (UTC+5:30) native. Rectifying 05:45 -> 06:00 must
+    // move the EFFECTIVE instant the engine consumes (which is how a near-cusp
+    // lagna can cross a sign boundary) AND change the chartId, since Phase-5
+    // change-detection regenerates only when the id differs.
+    const entered: BirthMeta = {
+      name: "Reference Native",
+      date: "1990-01-15",
+      time: "05:45",
+      latitude: 12.9716,
+      longitude: 77.5946,
+      timezone: "Asia/Kolkata",
+      location_name: "Bengaluru, India",
+    };
+    const rectified: BirthMeta = { ...entered, rectifiedTime: "06:00" };
+
+    // 05:45 IST == 00:15 UTC; 06:00 IST == 00:30 UTC — a real 15-min move.
+    expect(toBirthInput(entered).datetimeUtc).toBe("1990-01-15T00:15:00.000Z");
+    expect(toBirthInput(rectified).datetimeUtc).toBe("1990-01-15T00:30:00.000Z");
+
+    // The id the change-detector keys on must differ so the chart regenerates.
+    expect(chartId(rectified)).not.toBe(chartId(entered));
+
+    // The stored chart keeps the entered time AND carries the rectified clock.
+    const stored = toBirthData(rectified);
+    expect(stored.birth_datetime_local).toBe("1990-01-15T06:00:00");
+    expect(stored.birth_time_original).toBe("05:45");
   });
 });
 

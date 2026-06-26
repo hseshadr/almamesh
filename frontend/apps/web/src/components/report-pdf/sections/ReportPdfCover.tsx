@@ -111,6 +111,9 @@ export function ReportPdfCover({ data }: ReportPdfCoverProps): ReactElement {
         <Text style={styles.coverName}>{data.personName}</Text>
         <StarOrnament />
         <Text style={styles.coverSubtitle}>{data.subtitle}</Text>
+        {data.rectifiedNote ? (
+          <Text style={styles.coverRectifiedNote}>{data.rectifiedNote}</Text>
+        ) : null}
       </View>
 
       <View style={styles.coverMeta}>

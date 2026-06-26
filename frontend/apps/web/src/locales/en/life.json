@@ -9,7 +9,8 @@
     "next_leg": "{{lord}} {{level}} from {{date}}",
     "all_periods": "All periods",
     "pada": "pada {{pada}}",
-    "unavailable": "Not available"
+    "unavailable": "Not available",
+    "rectified": "Birth time rectified: entered {{entered}} → using {{rectified}} ({{sign}}{{minutes}} min)"
   },
   "atlas": {
     "heading": "Life Atlas",

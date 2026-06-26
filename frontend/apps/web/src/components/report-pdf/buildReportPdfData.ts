@@ -17,6 +17,7 @@ import {
   type ReportChartFields,
 } from '../../lib/reportData';
 import type { ReportAudience } from '../../lib/reportSelectors';
+import { rectificationDelta, type RectificationDelta } from '../../lib/rectification';
 import type { ReportPdfData, ReportPdfDetail, ReportPdfLabels, ReportPdfTechnical } from './types';
 import { glyphSafe } from './glyphSafe';
 import {
@@ -58,8 +59,32 @@ export interface BuildReportPdfDataInput {
   readonly chartCaptions: { readonly rasi: string; readonly navamsa: string };
   /** Optional, already-localized near-cusp caveat. */
   readonly ascendantNote?: string;
+  /**
+   * Binds the localized `report:cover.rectified_note` template to a derived
+   * rectification delta. The builder calls `rectificationDelta(birth)` and, when
+   * a rectification is in effect, invokes this to produce the finished string —
+   * so the "only when in effect" logic lives here while i18n stays in React.
+   * Omit it (or return no delta) to render no rectification note.
+   */
+  readonly formatRectifiedNote?: (delta: RectificationDelta) => string;
   readonly detailLabels: BirthDetailLabels;
   readonly chromeLabels: ReportPdfLabels;
+}
+
+/**
+ * The cover's rectification note, or undefined when no rectification is in
+ * effect (or no formatter supplied). Pure: it reads the two clocks the engine
+ * path already produced via `rectificationDelta` — it recomputes no astrology.
+ */
+function buildRectifiedNote(input: BuildReportPdfDataInput): string | undefined {
+  if (!input.formatRectifiedNote) {
+    return undefined;
+  }
+  const delta = rectificationDelta(input.birth);
+  if (!delta) {
+    return undefined;
+  }
+  return glyphSafe(input.formatRectifiedNote(delta));
 }
 
 function titleCase(value: string): string {
@@ -107,6 +132,7 @@ export function buildReportPdfData(input: BuildReportPdfDataInput): ReportPdfDat
     generatedOn: glyphSafe(formatReportDate(new Date())),
     birthDetails: buildBirthDetails(input),
     ascendantNote: input.ascendantNote ? glyphSafe(input.ascendantNote) : undefined,
+    rectifiedNote: buildRectifiedNote(input),
     technical,
     planets: buildPlanetRows(d1Geometry),
     charts: buildCharts(input.sidereal, d1Geometry, input.chartCaptions),

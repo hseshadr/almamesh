@@ -10,7 +10,8 @@
     "next_leg": "{{lord}} {{level}} a partir de {{date}}",
     "all_periods": "Todos os períodos",
     "pada": "pada {{pada}}",
-    "unavailable": "Não disponível"
+    "unavailable": "Não disponível",
+    "rectified": "Hora de nascimento retificada: inserida {{entered}} → usando {{rectified}} ({{sign}}{{minutes}} min)"
   },
   "atlas": {
     "heading": "Atlas da Vida",

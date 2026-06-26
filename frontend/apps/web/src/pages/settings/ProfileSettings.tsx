@@ -28,6 +28,7 @@ import { useChartEngine } from '../../providers/AlmaMeshRuntimeProvider';
 import { useLagnaPreview } from '../../hooks/useLagnaPreview';
 import { readLocalPrimaryChart } from '../../lib/localChartRead';
 import { formatDegree } from '../../lib/reportData';
+import { formatBirthTimeForDisplay } from '../../lib/dates';
 import { cuspInfo } from '../../lib/lagnaCusp';
 import { getUserFriendlyError } from '../../lib/errors';
 
@@ -165,6 +166,65 @@ export default function ProfileSettings() {
   const previewCusp =
     lagnaPreview.status === 'ready'
       ? cuspInfo(lagnaPreview.lagna.sign, lagnaPreview.lagna.signDegrees)
+      : null;
+
+  // Is a rectification actually in effect? Only then do we compute the
+  // entered-time lagna (a SECOND, sequential engine read on the shared thread)
+  // and compare rising signs — so we can honestly say "minutes flip your sign".
+  const rectificationActive = Boolean(
+    currentDetails.rectified_time &&
+      currentDetails.rectified_time !== currentDetails.birth_time,
+  );
+
+  // The display-only adjustment summary ("entered 5:45 AM → using 6:00 AM
+  // (+15 min)") for the rectification panel. Pure: it compares the two `HH:MM`
+  // form clocks and formats them in the active locale — no astrology, no engine.
+  const adjustmentInEffect =
+    rectificationActive && currentDetails.birth_time && currentDetails.rectified_time
+      ? (() => {
+          const minutesOf = (clock: string): number | null => {
+            const [h, m] = clock.split(':').map(Number);
+            return Number.isFinite(h) && Number.isFinite(m) ? h * 60 + m : null;
+          };
+          const entered = minutesOf(currentDetails.birth_time);
+          const rectified = minutesOf(currentDetails.rectified_time);
+          if (entered === null || rectified === null) {
+            return null;
+          }
+          return {
+            deltaMinutes: rectified - entered,
+            enteredLabel: formatBirthTimeForDisplay(
+              `2000-01-01T${currentDetails.birth_time}:00`,
+            ),
+            rectifiedLabel: formatBirthTimeForDisplay(
+              `2000-01-01T${currentDetails.rectified_time}:00`,
+            ),
+          };
+        })()
+      : null;
+
+  // The entered-time lagna preview: identical input EXCEPT the effective clock is
+  // the ENTERED birth time. Null (idle) unless a rectification is in effect, so
+  // the unrectified path costs no extra engine call.
+  const enteredPreviewInput: LocalBirthInput | null =
+    rectificationActive && previewInput
+      ? { ...previewInput, rectifiedTime: currentDetails.birth_time }
+      : null;
+  const enteredLagnaPreview = useLagnaPreview(engine, engineError, enteredPreviewInput);
+
+  // The rising sign FLIPS when the rectified and entered lagnas land in different
+  // signs. Both must be computed; when they match (or either is pending) no flip
+  // is shown. Engine signs are Title-Case; compare case-insensitively.
+  const enteredLagnaSign =
+    enteredLagnaPreview.status === 'ready' ? enteredLagnaPreview.lagna.sign : null;
+  const cuspFlip =
+    lagnaPreview.status === 'ready' &&
+    enteredLagnaSign !== null &&
+    enteredLagnaSign.toLowerCase() !== lagnaPreview.lagna.sign.toLowerCase()
+      ? {
+          sign: titleCaseSign(lagnaPreview.lagna.sign),
+          enteredSign: titleCaseSign(enteredLagnaSign),
+        }
       : null;
 
   /** Nudge the rectified time by `delta` minutes (drives the debounced preview). */
@@ -425,7 +485,30 @@ export default function ProfileSettings() {
                 })}
               </p>
             )}
+
+            {cuspFlip && (
+              <p className="mt-1.5 text-xs text-status-warning" data-testid="cusp-flip">
+                {t('settings:profile.cusp_flip', {
+                  sign: cuspFlip.sign,
+                  enteredSign: cuspFlip.enteredSign,
+                })}
+              </p>
+            )}
           </div>
+
+          {adjustmentInEffect && (
+            <p
+              className="mt-3 text-xs font-medium text-text-secondary"
+              data-testid="adjustment-in-effect"
+            >
+              {t('settings:profile.adjustment_in_effect', {
+                entered: adjustmentInEffect.enteredLabel,
+                rectified: adjustmentInEffect.rectifiedLabel,
+                sign: adjustmentInEffect.deltaMinutes > 0 ? '+' : '−',
+                minutes: Math.abs(adjustmentInEffect.deltaMinutes),
+              })}
+            </p>
+          )}
 
           {currentDetails.time_confidence !== 'exact' && (
             <p className="mt-3 text-xs text-text-muted">
