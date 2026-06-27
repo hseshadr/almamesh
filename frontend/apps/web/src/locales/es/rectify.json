@@ -84,11 +84,12 @@
   },
   "accelerator": {
     "title": "Pega Tu Historia",
-    "warning": "El texto que pegues se enviará a tu endpoint de IA configurado.",
+    "warning": "Lo que escribas aquí — incluidos nombres o lugares — se envía a tu endpoint de IA configurado. Solo las fechas y tipos de evento extraídos permanecen en tu dispositivo.",
     "textarea_placeholder": "Describe los eventos clave de tu vida en texto simple — fechas y qué ocurrió…",
     "submit": "Extraer Eventos",
     "gated_note": "Configura un endpoint de IA en la nube en Ajustes para usar esta función.",
     "empty_result": "No se pudieron extraer eventos — agrégalos manualmente con el botón de abajo.",
+    "error": "Algo salió mal — la llamada a la IA falló. Verifica tu conexión o configuración del endpoint e inténtalo de nuevo.",
     "loading": "Extrayendo eventos…"
   },
   "back": "Atrás"

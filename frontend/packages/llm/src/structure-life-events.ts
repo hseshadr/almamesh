@@ -7,8 +7,8 @@
 // Privacy boundary: the output is typed { date, category } only — no names, no
 // places, no PII can survive the validation filter even if the model emits them.
 //
-// Safe-default contract: any parse error, network error, or malformed shape
-// returns [] and never propagates a throw to the caller (mirrors mesh-reading.ts).
+// Safe-default contract: real failures (network/LLM/JSON-parse) return { status: 'error' };
+// a well-formed but empty or filtered response returns { status: 'ok', events: [] }. Never throws.
 
 import { LIFE_EVENT_CATEGORIES, type LifeEventCategory, type RectificationEventInput } from "@almamesh/shared-types";
 
@@ -77,19 +77,25 @@ function isValidCategory(value: unknown): value is LifeEventCategory {
 // Public API
 // =============================================================================
 
+export type StructureLifeEventsResult =
+  | { status: 'ok'; events: RectificationEventInput[] }
+  | { status: 'error' };
+
 /**
  * Ask the configured LLM to extract life events from free-form prose and return
  * them as typed `RectificationEventInput` rows.
  *
  * - Each row is validated: only YYYY-MM-DD dates and the 16 known categories survive.
- * - On any error (network, parse, malformed shape) returns `[]` and never throws.
+ * - On a real call/parse failure (network error, LLM rejection, malformed JSON) returns
+ *   `{ status: 'error' }`. On a genuine empty or filtered response returns
+ *   `{ status: 'ok', events: [] }`. Never throws.
  * - The output carries only `{ date, category }` — PII cannot pass through.
  */
 export async function structureLifeEvents(
   text: string,
   config: ProviderConfig,
   language: PromptLanguage = "en",
-): Promise<RectificationEventInput[]> {
+): Promise<StructureLifeEventsResult> {
   const options: ChatCompletionJsonOptions = {
     config,
     messages: [
@@ -103,24 +109,27 @@ export async function structureLifeEvents(
     const parsed: unknown = JSON.parse(raw);
 
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-      return [];
+      return { status: 'ok', events: [] };
     }
 
     const rec = parsed as Record<string, unknown>;
     const events = rec.events;
     if (!Array.isArray(events)) {
-      return [];
+      return { status: 'ok', events: [] };
     }
 
-    return events.flatMap((item: unknown): RectificationEventInput[] => {
-      if (!item || typeof item !== "object" || Array.isArray(item)) return [];
-      const row = item as Record<string, unknown>;
-      const { date, category } = row;
-      if (typeof date !== "string" || !isValidYMD(date)) return [];
-      if (!isValidCategory(category)) return [];
-      return [{ date, category }];
-    });
+    return {
+      status: 'ok',
+      events: events.flatMap((item: unknown): RectificationEventInput[] => {
+        if (!item || typeof item !== "object" || Array.isArray(item)) return [];
+        const row = item as Record<string, unknown>;
+        const { date, category } = row;
+        if (typeof date !== "string" || !isValidYMD(date)) return [];
+        if (!isValidCategory(category)) return [];
+        return [{ date, category }];
+      }),
+    };
   } catch {
-    return [];
+    return { status: 'error' };
   }
 }

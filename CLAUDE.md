@@ -155,7 +155,7 @@ edges lead with Graha Maitri — `scripts/verify-mesh.mjs` asserts both paths li
 Rectification layer (the birth-time authority surface, computed on-device, off the natal
 chart path): a lazy engine entry `edge/chart_runtime.py::compute_rectification` ->
 `rectification/` package -> `compute_rectification_result` emits `RectificationResult`
-(ranked `RectificationCandidate` list, qualitative `RectificationBand` per candidate,
+(ranked `RectificationCandidate` list, qualitative `RectificationBand` per result,
 per-event `EventEvidence` table). Two modes: `cusp` (2 adjacent signs near a cusp,
 ~sub-second) and `window` (unknown/rough time, full-day scan with warm-astronomy reuse,
 ~0.6s). Ascendant-dependent signals: dasha-lord↔house-lordship match + transit-to-house

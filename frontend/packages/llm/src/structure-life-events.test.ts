@@ -57,10 +57,10 @@ describe("structureLifeEvents — happy path", () => {
       "Got married in March 2015 and had a child in July 2018.",
       LOCAL_CFG,
     );
-    expect(result).toEqual([
+    expect(result).toEqual({ status: 'ok', events: [
       { date: "2015-03-10", category: "marriage" },
       { date: "2018-07-22", category: "childbirth" },
-    ]);
+    ] });
   });
 
   it("accepts all 16 valid categories without dropping any", async () => {
@@ -70,14 +70,16 @@ describe("structureLifeEvents — happy path", () => {
     }));
     mockChat.mockResolvedValue(JSON.stringify({ events }));
     const result = await structureLifeEvents("...", LOCAL_CFG);
-    expect(result).toHaveLength(LIFE_EVENT_CATEGORIES.length);
-    expect(result.map((r) => r.category)).toEqual(LIFE_EVENT_CATEGORIES);
+    expect(result.status).toBe('ok');
+    if (result.status !== 'ok') return;
+    expect(result.events).toHaveLength(LIFE_EVENT_CATEGORIES.length);
+    expect(result.events.map((r) => r.category)).toEqual(LIFE_EVENT_CATEGORIES);
   });
 
   it("returns [] for an empty events array", async () => {
     mockChat.mockResolvedValue(JSON.stringify({ events: [] }));
     const result = await structureLifeEvents("nothing to extract", LOCAL_CFG);
-    expect(result).toEqual([]);
+    expect(result).toEqual({ status: 'ok', events: [] });
   });
 });
 
@@ -96,7 +98,7 @@ describe("structureLifeEvents — validation and filtering", () => {
       }),
     );
     const result = await structureLifeEvents("...", LOCAL_CFG);
-    expect(result).toEqual([{ date: "2018-07-22", category: "marriage" }]);
+    expect(result).toEqual({ status: 'ok', events: [{ date: "2018-07-22", category: "marriage" }] });
   });
 
   it("drops an item with a year-only date like '2020'", async () => {
@@ -109,7 +111,7 @@ describe("structureLifeEvents — validation and filtering", () => {
       }),
     );
     const result = await structureLifeEvents("...", LOCAL_CFG);
-    expect(result).toEqual([{ date: "2021-05-15", category: "promotion" }]);
+    expect(result).toEqual({ status: 'ok', events: [{ date: "2021-05-15", category: "promotion" }] });
   });
 
   it("drops an item with a natural-language date like 'tomorrow'", async () => {
@@ -117,7 +119,7 @@ describe("structureLifeEvents — validation and filtering", () => {
       JSON.stringify({ events: [{ date: "tomorrow", category: "marriage" }] }),
     );
     const result = await structureLifeEvents("...", LOCAL_CFG);
-    expect(result).toEqual([]);
+    expect(result).toEqual({ status: 'ok', events: [] });
   });
 
   it("drops an item with a partial date like '2021-05' (no day)", async () => {
@@ -130,7 +132,7 @@ describe("structureLifeEvents — validation and filtering", () => {
       }),
     );
     const result = await structureLifeEvents("...", LOCAL_CFG);
-    expect(result).toEqual([{ date: "2022-03-14", category: "career_change" }]);
+    expect(result).toEqual({ status: 'ok', events: [{ date: "2022-03-14", category: "career_change" }] });
   });
 
   it("drops an item with an impossible calendar date like '2021-13-45' (month > 12, day > 31)", async () => {
@@ -144,7 +146,7 @@ describe("structureLifeEvents — validation and filtering", () => {
     );
     const result = await structureLifeEvents("...", LOCAL_CFG);
     // The impossible date must be dropped, only the valid one remains
-    expect(result).toEqual([{ date: "2022-03-14", category: "career_change" }]);
+    expect(result).toEqual({ status: 'ok', events: [{ date: "2022-03-14", category: "career_change" }] });
   });
 
   it("drops items that are not objects", async () => {
@@ -152,7 +154,7 @@ describe("structureLifeEvents — validation and filtering", () => {
       JSON.stringify({ events: [null, 42, "string", { date: "2022-01-01", category: "surgery" }] }),
     );
     const result = await structureLifeEvents("...", LOCAL_CFG);
-    expect(result).toEqual([{ date: "2022-01-01", category: "surgery" }]);
+    expect(result).toEqual({ status: 'ok', events: [{ date: "2022-01-01", category: "surgery" }] });
   });
 
   it("strips extra PII fields like name, place, notes — only date and category survive", async () => {
@@ -171,9 +173,11 @@ describe("structureLifeEvents — validation and filtering", () => {
     );
     const result = await structureLifeEvents("...", LOCAL_CFG);
     // Only date and category must exist; no PII fields
-    expect(result).toHaveLength(1);
-    expect(Object.keys(result[0])).toEqual(["date", "category"]);
-    expect(result[0]).toEqual({ date: "2020-01-01", category: "marriage" });
+    expect(result.status).toBe('ok');
+    if (result.status !== 'ok') return;
+    expect(result.events).toHaveLength(1);
+    expect(Object.keys(result.events[0]!)).toEqual(["date", "category"]);
+    expect(result.events[0]).toEqual({ date: "2020-01-01", category: "marriage" });
   });
 });
 
@@ -182,34 +186,34 @@ describe("structureLifeEvents — validation and filtering", () => {
 // =============================================================================
 
 describe("structureLifeEvents — safe-default (never throws)", () => {
-  it("returns [] for malformed JSON — no throw", async () => {
+  it("returns { status: 'error' } for malformed JSON — no throw", async () => {
     mockChat.mockResolvedValue("not json at all {{{");
-    await expect(structureLifeEvents("...", LOCAL_CFG)).resolves.toEqual([]);
+    await expect(structureLifeEvents("...", LOCAL_CFG)).resolves.toEqual({ status: 'error' });
   });
 
-  it("returns [] when top-level JSON is not an object — no throw", async () => {
+  it("returns { status: 'ok', events: [] } when top-level JSON is not an object — no throw", async () => {
     mockChat.mockResolvedValue(JSON.stringify([1, 2, 3]));
-    await expect(structureLifeEvents("...", LOCAL_CFG)).resolves.toEqual([]);
+    await expect(structureLifeEvents("...", LOCAL_CFG)).resolves.toEqual({ status: 'ok', events: [] });
   });
 
-  it("returns [] when .events is missing — no throw", async () => {
+  it("returns { status: 'ok', events: [] } when .events is missing — no throw", async () => {
     mockChat.mockResolvedValue(JSON.stringify({ other: "field" }));
-    await expect(structureLifeEvents("...", LOCAL_CFG)).resolves.toEqual([]);
+    await expect(structureLifeEvents("...", LOCAL_CFG)).resolves.toEqual({ status: 'ok', events: [] });
   });
 
-  it("returns [] when .events is not an array (e.g. string or number) — no throw", async () => {
+  it("returns { status: 'ok', events: [] } when .events is not an array (e.g. string or number) — no throw", async () => {
     mockChat.mockResolvedValue(JSON.stringify({ events: "not-an-array" }));
-    await expect(structureLifeEvents("...", LOCAL_CFG)).resolves.toEqual([]);
+    await expect(structureLifeEvents("...", LOCAL_CFG)).resolves.toEqual({ status: 'ok', events: [] });
   });
 
-  it("returns [] when .events is a number instead of array — no throw", async () => {
+  it("returns { status: 'ok', events: [] } when .events is a number instead of array — no throw", async () => {
     mockChat.mockResolvedValue(JSON.stringify({ events: 42 }));
-    await expect(structureLifeEvents("...", LOCAL_CFG)).resolves.toEqual([]);
+    await expect(structureLifeEvents("...", LOCAL_CFG)).resolves.toEqual({ status: 'ok', events: [] });
   });
 
-  it("returns [] when the LLM call itself rejects — no throw", async () => {
+  it("returns { status: 'error' } when the LLM call itself rejects — no throw", async () => {
     mockChat.mockRejectedValue(new Error("network error"));
-    await expect(structureLifeEvents("...", LOCAL_CFG)).resolves.toEqual([]);
+    await expect(structureLifeEvents("...", LOCAL_CFG)).resolves.toEqual({ status: 'error' });
   });
 });
 

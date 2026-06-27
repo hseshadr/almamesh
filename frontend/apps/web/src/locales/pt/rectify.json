@@ -84,11 +84,12 @@
   },
   "accelerator": {
     "title": "Cole Sua História",
-    "warning": "O texto que você colar será enviado para o seu endpoint de IA configurado.",
+    "warning": "O que você escrever aqui — incluindo nomes ou lugares — é enviado para o seu endpoint de IA configurado. Apenas as datas e tipos de evento extraídos ficam no seu dispositivo.",
     "textarea_placeholder": "Descreva eventos importantes da sua vida em texto simples — datas e o que aconteceu…",
     "submit": "Extrair Eventos",
     "gated_note": "Configure um endpoint de IA na nuvem nas Configurações para usar este recurso.",
     "empty_result": "Não foi possível extrair eventos — adicione-os manualmente com o botão abaixo.",
+    "error": "Algo deu errado — a chamada à IA falhou. Verifique sua conexão ou configurações do endpoint e tente novamente.",
     "loading": "Extraindo eventos…"
   },
   "back": "Voltar"

@@ -56,7 +56,7 @@ describe('StoryAccelerator', () => {
     useLifeEventsStore.setState({ eventsByProfile: {} });
     // Safe default: no AI configured
     vi.mocked(describeLlmStatus).mockReturnValue(NONE_STATUS);
-    vi.mocked(structureLifeEvents).mockResolvedValue([]);
+    vi.mocked(structureLifeEvents).mockResolvedValue({ status: 'ok', events: [] });
   });
 
   // ── Gated state ──────────────────────────────────────────────────────────
@@ -124,7 +124,7 @@ describe('StoryAccelerator', () => {
         { date: '2020-01-15', category: 'marriage' },
         { date: '2018-03-10', category: 'career_change' },
       ];
-      vi.mocked(structureLifeEvents).mockResolvedValue(results);
+      vi.mocked(structureLifeEvents).mockResolvedValue({ status: 'ok', events: results });
 
       render(<StoryAccelerator profileId={PROFILE_ID} />);
       openAndEnterText('Married in Jan 2020, career change in 2018');
@@ -149,9 +149,9 @@ describe('StoryAccelerator', () => {
           ],
         },
       });
-      vi.mocked(structureLifeEvents).mockResolvedValue([
+      vi.mocked(structureLifeEvents).mockResolvedValue({ status: 'ok', events: [
         { date: '2020-01-15', category: 'marriage' },
-      ]);
+      ] });
 
       render(<StoryAccelerator profileId={PROFILE_ID} />);
       openAndEnterText('I got married in 2020');
@@ -167,9 +167,9 @@ describe('StoryAccelerator', () => {
     });
 
     it('does NOT auto-fit or navigate: the component has no navigation side-effects', async () => {
-      vi.mocked(structureLifeEvents).mockResolvedValue([
+      vi.mocked(structureLifeEvents).mockResolvedValue({ status: 'ok', events: [
         { date: '2020-01-15', category: 'marriage' },
-      ]);
+      ] });
 
       // The component intentionally takes no onContinue / navigation prop —
       // verify that submitting never triggers window.location changes.
@@ -187,7 +187,7 @@ describe('StoryAccelerator', () => {
     });
 
     it('shows the empty-result message when no events are extracted', async () => {
-      vi.mocked(structureLifeEvents).mockResolvedValue([]);
+      vi.mocked(structureLifeEvents).mockResolvedValue({ status: 'ok', events: [] });
 
       render(<StoryAccelerator profileId={PROFILE_ID} />);
       openAndEnterText('some text with no extractable events');
@@ -199,7 +199,7 @@ describe('StoryAccelerator', () => {
     });
 
     it('does NOT add events to the store when result is empty', async () => {
-      vi.mocked(structureLifeEvents).mockResolvedValue([]);
+      vi.mocked(structureLifeEvents).mockResolvedValue({ status: 'ok', events: [] });
 
       render(<StoryAccelerator profileId={PROFILE_ID} />);
       openAndEnterText('no events here');
@@ -212,9 +212,9 @@ describe('StoryAccelerator', () => {
     });
 
     it('shows a loading indicator while extraction is in flight', async () => {
-      let resolveExtraction!: (v: RectificationEventInput[]) => void;
+      let resolveExtraction!: (v: { status: 'ok'; events: RectificationEventInput[] }) => void;
       vi.mocked(structureLifeEvents).mockImplementation(
-        () => new Promise<RectificationEventInput[]>((r) => { resolveExtraction = r; }),
+        () => new Promise<{ status: 'ok'; events: RectificationEventInput[] }>((r) => { resolveExtraction = r; }),
       );
 
       render(<StoryAccelerator profileId={PROFILE_ID} />);
@@ -223,8 +223,24 @@ describe('StoryAccelerator', () => {
 
       await waitFor(() => expect(screen.getByText(/extracting events/i)).toBeTruthy());
 
-      resolveExtraction([]);
+      resolveExtraction({ status: 'ok', events: [] });
       await waitFor(() => expect(screen.queryByText(/extracting events/i)).toBeNull());
+    });
+
+    it('shows the error message when the LLM call fails', async () => {
+      vi.mocked(structureLifeEvents).mockResolvedValue({ status: 'error' });
+
+      render(<StoryAccelerator profileId={PROFILE_ID} />);
+      openAndEnterText('some text');
+      fireEvent.click(screen.getByRole('button', { name: /extract events/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText(/went wrong|failed/i)).toBeTruthy();
+      });
+      // The empty-result message must NOT appear
+      expect(screen.queryByText(/add them manually/i)).toBeNull();
+      // Store must be unchanged
+      expect(useLifeEventsStore.getState().getEvents(PROFILE_ID).length).toBe(0);
     });
   });
 

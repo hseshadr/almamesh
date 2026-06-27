@@ -54,10 +54,11 @@ def _count_discriminating(cands: list[RectificationCandidate]) -> int:
         return 0
     for c in cands:
         for i, ev in enumerate(c.supporting_events):
-            assert ev.event_index == i, (  # noqa: S101
-                f"Event index mismatch at position {i}: "
-                f"got event_index={ev.event_index} for {c.ascendant_sign!r}"
-            )
+            if ev.event_index != i:
+                raise RuntimeError(
+                    f"Event index mismatch at position {i}: "
+                    f"got event_index={ev.event_index} for {c.ascendant_sign!r}"
+                )
     ref = cands[0].supporting_events
     return sum(
         any(set(c.supporting_events[i].signals) != set(ref[i].signals) for c in cands[1:])

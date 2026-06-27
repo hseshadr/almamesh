@@ -9,7 +9,7 @@
  * Local-only and unconfigured states render a static "configure cloud AI" note.
  *
  * EGRESS — an explicit warning is shown before every submission so the user
- * knows their text is sent to their configured AI endpoint.
+ * knows their text — including names/places — is sent to their configured AI endpoint.
  *
  * OUTPUT — extracted events are PRE-FILLED as reviewable draft rows in the
  * store (date + category set). The user reviews and may edit them; no auto-fit
@@ -53,6 +53,7 @@ export function StoryAccelerator({ profileId }: StoryAcceleratorProps): ReactEle
   const [text, setText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showEmpty, setShowEmpty] = useState(false);
+  const [showError, setShowError] = useState(false);
 
   const addEvent = useLifeEventsStore((s) => s.addEvent);
   const editEvent = useLifeEventsStore((s) => s.editEvent);
@@ -75,6 +76,7 @@ export function StoryAccelerator({ profileId }: StoryAcceleratorProps): ReactEle
 
     setIsLoading(true);
     setShowEmpty(false);
+    setShowError(false);
 
     try {
       const settings = readLlmSettings();
@@ -82,10 +84,15 @@ export function StoryAccelerator({ profileId }: StoryAcceleratorProps): ReactEle
       const config = resolveProviderConfig(env);
       const language = toPromptLanguage(i18n.language);
 
-      // structureLifeEvents returns [] on any error; never throws.
-      const results = await structureLifeEvents(trimmed, config, language);
+      const result = await structureLifeEvents(trimmed, config, language);
 
-      if (results.length === 0) {
+      if (result.status === 'error') {
+        setShowError(true);
+        return;
+      }
+
+      const { events } = result;
+      if (events.length === 0) {
         setShowEmpty(true);
         return;
       }
@@ -95,16 +102,16 @@ export function StoryAccelerator({ profileId }: StoryAcceleratorProps): ReactEle
       const store = useLifeEventsStore.getState();
       const beforeCount = store.getEvents(profileId).length;
 
-      for (const result of results) {
+      for (const event of events) {
         // description is required by LifeEventInput; category is a readable fallback.
-        addEvent(profileId, { description: result.category, date: result.date });
+        addEvent(profileId, { description: event.category, date: event.date });
       }
 
       // Patch category onto each newly added event (LifeEventInput has no category field).
       const after = useLifeEventsStore.getState().getEvents(profileId);
-      for (let i = 0; i < results.length; i++) {
+      for (let i = 0; i < events.length; i++) {
         const evt = after[beforeCount + i];
-        const cat = results[i]?.category;
+        const cat = events[i]?.category;
         if (evt && cat) {
           editEvent(profileId, evt.id, { category: cat });
         }
@@ -150,6 +157,7 @@ export function StoryAccelerator({ profileId }: StoryAcceleratorProps): ReactEle
             onChange={(e) => {
               setText(e.target.value);
               setShowEmpty(false);
+              setShowError(false);
             }}
             className="w-full rounded border border-border-subtle bg-surface-primary p-2 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-1 focus:ring-accent-primary disabled:opacity-60"
           />
@@ -157,6 +165,9 @@ export function StoryAccelerator({ profileId }: StoryAcceleratorProps): ReactEle
           {/* Status feedback */}
           {isLoading && (
             <p className="text-xs text-text-tertiary">{t('accelerator.loading')}</p>
+          )}
+          {showError && !isLoading && (
+            <p className="text-xs text-red-600">{t('accelerator.error')}</p>
           )}
           {showEmpty && !isLoading && (
             <p className="text-xs text-text-secondary">{t('accelerator.empty_result')}</p>
