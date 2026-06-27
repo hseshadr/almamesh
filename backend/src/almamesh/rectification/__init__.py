@@ -148,7 +148,7 @@ def compute_rectification_result(
     CUSP mode.
     """
     astro = make_astronomy()
-    transit_signs = compute_transit_signs(events)
+    transit_signs = compute_transit_signs(events, astronomy=astro)
     cands = _score_all_candidates(
         _candidate_times(mode, dt_utc, latitude, longitude, astro, span_minutes),
         latitude,

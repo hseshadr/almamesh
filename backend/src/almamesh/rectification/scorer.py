@@ -151,6 +151,8 @@ def _slow_signs_at(astro: SkyfieldAstronomy, when: datetime) -> dict[PlanetName,
 
 def compute_transit_signs(
     events: Sequence[RectificationEventInput],
+    *,
+    astronomy: SkyfieldAstronomy | None = None,
 ) -> dict[date, dict[PlanetName, ZodiacSign]]:
     """Slow-graha signs per DISTINCT event date — computed ONCE (candidate-invariant).
 
@@ -159,8 +161,10 @@ def compute_transit_signs(
     orchestrator calls this once and passes the result to every ``score_candidate``,
     collapsing the old O(events x candidates) ephemeris work to O(distinct dates).
     Deterministic: one ``SkyfieldAstronomy``, each instant pinned to 12:00 UTC.
+    Pass a warm ``astronomy`` instance to skip an extra de421 load (callers that
+    already hold one, e.g. ``compute_rectification_result``).
     """
-    astro = SkyfieldAstronomy()
+    astro = astronomy if astronomy is not None else SkyfieldAstronomy()
     return {d: _slow_signs_at(astro, _event_instant(d)) for d in {event.date for event in events}}
 
 
