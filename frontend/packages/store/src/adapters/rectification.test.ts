@@ -63,8 +63,12 @@ describe('adaptRectification', () => {
 
   it('maps all event evidence camelCase fields', () => {
     const result = adaptRectification(RAW);
-    const ev = result.candidates[0]?.supportingEvents[0];
 
+    // Explicit runtime check: nested array is populated and mapped
+    expect(result.candidates[0]?.supportingEvents).toHaveLength(1);
+
+    const ev = result.candidates[0]?.supportingEvents[0];
+    expect(ev).toBeDefined();
     expect(ev?.eventIndex).toBe(0);
     expect(ev?.category).toBe('marriage');
     expect(ev?.date).toBe('2010-05-15');
