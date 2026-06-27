@@ -43,7 +43,8 @@
   "signals": {
     "dasha_lord_rules": "O senhor da dasa rege a casa {{house}}",
     "dasha_lord_in": "O senhor da dasa está na casa {{house}}",
-    "slow_transit": "Planeta lento em trânsito pela casa {{house}}"
+    "slow_transit": "Planeta lento em trânsito pela casa {{house}}",
+    "unknown": "Um sinal de temporização"
   },
   "results": {
     "title": "Resultados de Retificação",
@@ -53,6 +54,7 @@
     "keep_recorded": "Manter meu horário registrado",
     "near_tie_settle_note": "Apenas um registro de nascimento pode resolver um empate próximo. Ambos os candidatos são plausíveis — avalie-os com base na sua experiência vivida.",
     "recorded_reference_label": "Seu horário registrado",
-    "candidate_label": "Candidato {{rank}}"
+    "candidate_label": "Candidato {{rank}}",
+    "evidence_table_label": "Eventos de vida de apoio"
   }
 }

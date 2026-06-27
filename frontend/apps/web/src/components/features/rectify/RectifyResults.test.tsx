@@ -102,7 +102,7 @@ describe('RectifyResults — consistent band', () => {
     expect(screen.getByTestId('band-label').textContent).toBeTruthy();
   });
 
-  it('renders the honesty note', () => {
+  it('renders the honesty note with meaningful content', () => {
     render(
       <RectifyResults
         result={CONSISTENT_RESULT}
@@ -111,7 +111,9 @@ describe('RectifyResults — consistent band', () => {
         onKeepRecorded={vi.fn()}
       />,
     );
-    expect(screen.getByTestId('honesty-note')).toBeTruthy();
+    expect(screen.getByTestId('honesty-note').textContent).toMatch(
+      /recorded|starting point|certainty/i,
+    );
   });
 
   it('renders evidence rows with localized signal phrases — not raw machine keys', () => {
@@ -127,9 +129,42 @@ describe('RectifyResults — consistent band', () => {
     expect(container.textContent).not.toContain('dasha_lord_rules_h7');
     expect(container.textContent).not.toContain('slow_transit_h7');
     expect(container.textContent).not.toContain('dasha_lord_in_h10');
-    // Localized forms: house numbers should appear
-    expect(container.textContent).toContain('7');
-    expect(container.textContent).toContain('10');
+    // Localized forms: signal phrases should appear (not coincidental digit matches)
+    expect(container.textContent).toMatch(/dasha lord|slow planet/i);
+  });
+
+  it('gracefully degrades garbled signal keys — no crash, no raw key dump', () => {
+    const resultWithGarbledSignals: RectificationResult = {
+      ...CONSISTENT_RESULT,
+      candidates: [
+        {
+          ...CANDIDATE_A,
+          supportingEvents: [
+            {
+              eventIndex: 0,
+              category: 'marriage',
+              date: '1998-12-05',
+              signals: ['weird_signal_h99', 'garbage'],
+              contribution: 5.0,
+            },
+          ],
+        },
+        CANDIDATE_B,
+      ],
+    };
+    const { container } = render(
+      <RectifyResults
+        result={resultWithGarbledSignals}
+        recordedReading={RECORDED_READING}
+        onConfirm={vi.fn()}
+        onKeepRecorded={vi.fn()}
+      />,
+    );
+    // Must not crash, must not leak raw machine keys (no underscores from signal names)
+    expect(container.textContent).not.toContain('weird_signal_h99');
+    expect(container.textContent).not.toContain('garbage');
+    // Must show a human-readable fallback phrase
+    expect(container.textContent).toMatch(/a timing signal/i);
   });
 
   it('renders the recorded-time reference section', () => {
@@ -205,7 +240,7 @@ describe('RectifyResults — near_tie band', () => {
     expect(cards.length).toBeGreaterThanOrEqual(2);
   });
 
-  it('renders the "only recorded time settles this" copy', () => {
+  it('renders the "only recorded time settles this" copy with meaningful content', () => {
     render(
       <RectifyResults
         result={NEAR_TIE_RESULT}
@@ -214,7 +249,9 @@ describe('RectifyResults — near_tie band', () => {
         onKeepRecorded={vi.fn()}
       />,
     );
-    expect(screen.getByTestId('near-tie-settle-note')).toBeTruthy();
+    expect(screen.getByTestId('near-tie-settle-note').textContent).toMatch(
+      /recorded|settle|certificate/i,
+    );
   });
 
   it('contains NO "%" character anywhere in the near_tie output', () => {

@@ -42,7 +42,8 @@
   "signals": {
     "dasha_lord_rules": "Dasha lord rules the {{houseOrdinal}} house",
     "dasha_lord_in": "Dasha lord is placed in the {{houseOrdinal}} house",
-    "slow_transit": "Slow planet transiting the {{houseOrdinal}} house"
+    "slow_transit": "Slow planet transiting the {{houseOrdinal}} house",
+    "unknown": "A timing signal"
   },
   "results": {
     "title": "Rectification Results",
@@ -52,6 +53,7 @@
     "keep_recorded": "Keep my recorded time",
     "near_tie_settle_note": "Only a recorded birth certificate can settle a near-tie. Both candidates below are plausible — weigh them against your lived experience.",
     "recorded_reference_label": "Your recorded time",
-    "candidate_label": "Candidate {{rank}}"
+    "candidate_label": "Candidate {{rank}}",
+    "evidence_table_label": "Supporting life events"
   }
 }

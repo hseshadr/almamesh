@@ -48,14 +48,14 @@ export function EvidenceTable({ events }: EvidenceTableProps): ReactElement | nu
 
   function localizeSignal(key: string): string {
     const parsed = parseSignalKey(key);
-    if (!parsed) return key;
+    if (!parsed) return t('signals.unknown');
     return t(parsed.tKey, { house: parsed.house, houseOrdinal: ordinalEn(parsed.house) });
   }
 
   return (
     <table
       className="w-full border-collapse text-xs"
-      aria-label={t('entry.date_label')}
+      aria-label={t('results.evidence_table_label')}
       data-testid="evidence-table"
     >
       <tbody>
