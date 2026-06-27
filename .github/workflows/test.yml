@@ -182,7 +182,7 @@ jobs:
   exit-gate:
     name: In-Browser Engine Exit Gate (e2e)
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     defaults:
       run:
         working-directory: frontend
@@ -336,3 +336,15 @@ jobs:
           bun run test:e2e:interp
           bun run test:e2e:chat:grounding
           bun run test:e2e:rectification
+
+      # Phase-2 rectification wizard e2e: drives the REAL /rectify/:profileId
+      # wizard (cusp + unknown-time window cases) with a synthetic Bengaluru cusp
+      # native — zero owner PII. No LLM stub needed (rectification is pure engine).
+      # The config self-builds with VITE_EXIT_GATE_HOOKS=1 on its own strict port
+      # (4195, distinct from all other preview ports). Pyodide dist + signed bundle
+      # are already present from the Generate dev assets step above.
+      - name: Run Phase-2 wizard e2e (cusp + unknown-time)
+        working-directory: frontend/apps/web
+        env:
+          VITE_API_URL: ""
+        run: bun run test:e2e:wizard

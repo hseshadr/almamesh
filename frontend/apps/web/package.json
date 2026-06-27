@@ -22,6 +22,7 @@
     "test:e2e:chat:rag:real": "playwright test --config=playwright.chat.rag.real.config.ts",
     "test:e2e:chat:grounding": "playwright test --config=playwright.chat.grounding.config.ts",
     "test:e2e:rectification": "playwright test --config=playwright.rectification.config.ts",
+    "test:e2e:wizard": "playwright test --config=playwright.wizard-phase2.config.ts",
     "test:e2e:report:pdf": "playwright test --config=playwright.report-pdf.config.ts",
     "test:e2e:dual-voice": "playwright test --config=playwright.dual-voice-life-atlas.config.ts",
     "test:unit": "vitest run",
