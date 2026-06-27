@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import datetime
 from dataclasses import dataclass
+from typing import Literal
 
 from almamesh.calculations import DEFAULT_EPHEMERIS_FILE, SkyfieldAstronomy, get_ayanamsa
 from almamesh.constants.astrology import ZODIAC_SIGNS, ZodiacSign
@@ -21,6 +22,12 @@ _BRACKET = datetime.timedelta(minutes=90)
 _TOLERANCE_SECS = 1.0
 # Representative time for the adjacent sign: 4 min ≈ 1° safely inside the sign.
 _REPR_OFFSET = datetime.timedelta(minutes=4)
+
+# ── Window sweep constants ─────────────────────────────────────────────────────
+# 15-min step ≤ half a sign arc (~2 h/sign ÷ 8 = 15 min); no sign can be skipped.
+_SAMPLE_STEP_MINUTES = 15
+# Evenly-spaced fine samples within a single sign's arc.
+FINE_N = 12
 
 
 @dataclass(frozen=True)
@@ -118,6 +125,101 @@ def _adj_candidate(
     """Build the adjacent-sign CandidateTime from the boundary crossing instant."""
     adj_dt = crossing + _REPR_OFFSET if forward else crossing - _REPR_OFFSET
     return _make_candidate(adj_idx, adj_dt, _asc_longitude(astronomy, adj_dt, geo))
+
+
+def _window_bounds(
+    birth_dt: datetime.datetime,
+    span_minutes: int | None,
+) -> tuple[datetime.datetime, datetime.datetime]:
+    """(start, end) UTC for the search window, clamped to the birth day."""
+    day_start = birth_dt.replace(hour=0, minute=0, second=0, microsecond=0)
+    day_end = day_start + datetime.timedelta(days=1)
+    if span_minutes is None:
+        return day_start, day_end
+    half = datetime.timedelta(minutes=span_minutes / 2)
+    return max(birth_dt - half, day_start), min(birth_dt + half, day_end)
+
+
+def _dt_range(start: datetime.datetime, end: datetime.datetime) -> list[datetime.datetime]:
+    """Step-aligned datetimes from start to end, appending end if not aligned."""
+    step = datetime.timedelta(minutes=_SAMPLE_STEP_MINUTES)
+    times: list[datetime.datetime] = []
+    dt = start
+    while dt <= end:
+        times.append(dt)
+        dt += step
+    if times and times[-1] < end:
+        times.append(end)
+    return times
+
+
+def _sample_signs(
+    astronomy: SkyfieldAstronomy,
+    start: datetime.datetime,
+    end: datetime.datetime,
+    geo: GeoPoint,
+) -> list[tuple[datetime.datetime, int]]:
+    """(dt, sign_index) pairs at coarse step across [start, end]."""
+    return [(dt, _sign_index(_asc_longitude(astronomy, dt, geo))) for dt in _dt_range(start, end)]
+
+
+def _collect_sign_times(
+    samples: list[tuple[datetime.datetime, int]],
+) -> dict[int, list[datetime.datetime]]:
+    """Map sign_idx -> list of sample dts where that sign was observed (in order)."""
+    sign_times: dict[int, list[datetime.datetime]] = {}
+    for dt, idx in samples:
+        sign_times.setdefault(idx, []).append(dt)
+    return sign_times
+
+
+def _dedupe_by_sign(
+    samples: list[tuple[datetime.datetime, int]],
+    astronomy: SkyfieldAstronomy,
+    geo: GeoPoint,
+) -> list[CandidateTime]:
+    """One CandidateTime per distinct sign; representative = median sample in its arc."""
+    sign_times = _collect_sign_times(samples)
+    result: list[CandidateTime] = []
+    for idx, times in sign_times.items():
+        mid_dt = times[len(times) // 2]
+        lon = _asc_longitude(astronomy, mid_dt, geo)
+        result.append(_make_candidate(idx, mid_dt, lon))
+    return result
+
+
+def _fine_samples(
+    astronomy: SkyfieldAstronomy,
+    start: datetime.datetime,
+    end: datetime.datetime,
+    geo: GeoPoint,
+) -> list[CandidateTime]:
+    """FINE_N evenly-spaced CandidateTimes across [start, end]."""
+    total_secs = (end - start).total_seconds()
+    step_secs = total_secs / (FINE_N - 1) if FINE_N > 1 else 0.0
+    result: list[CandidateTime] = []
+    for i in range(FINE_N):
+        dt = start + datetime.timedelta(seconds=step_secs * i)
+        lon = _asc_longitude(astronomy, dt, geo)
+        result.append(_make_candidate(_sign_index(lon), dt, lon))
+    return result
+
+
+def window_candidate_times(
+    birth_dt: datetime.datetime,
+    latitude: float,
+    longitude: float,
+    *,
+    astronomy: SkyfieldAstronomy,
+    span_minutes: int | None = None,
+    resolution: Literal["coarse", "fine"] = "coarse",
+) -> list[CandidateTime]:
+    """Coarse: one CandidateTime per rising sign in window. Fine: FINE_N samples."""
+    geo = GeoPoint(latitude, longitude)
+    start, end = _window_bounds(birth_dt, span_minutes)
+    if resolution == "fine":
+        return _fine_samples(astronomy, start, end, geo)
+    return _dedupe_by_sign(_sample_signs(astronomy, start, end, geo), astronomy, geo)
 
 
 def cusp_candidate_times(

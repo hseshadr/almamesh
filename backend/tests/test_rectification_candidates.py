@@ -13,6 +13,7 @@ import pytest
 from almamesh.calculations import get_ayanamsa
 from almamesh.constants.astrology import ZODIAC_SIGNS, ZodiacSign
 from almamesh.rectification.candidates import (
+    FINE_N,
     CandidateTime,
     GeoPoint,
     _asc_longitude,
@@ -20,6 +21,7 @@ from almamesh.rectification.candidates import (
     _sign_index,
     cusp_candidate_times,
     make_astronomy,
+    window_candidate_times,
 )
 
 # Synthetic cusp native — NEVER real owner data.
@@ -157,3 +159,103 @@ def test_mid_sign_both_representatives_yield_stated_sign(astronomy) -> None:
             f"Mid-sign candidate {c.sign.value}: dt {c.dt_utc} yields "
             f"{ZODIAC_SIGNS[sign_idx]}, expected {c.sign.value}"
         )
+
+
+# ── window_candidate_times tests (Task 17) ────────────────────────────────────
+
+
+def test_whole_day_coarse_signs_are_distinct(astronomy) -> None:
+    """Whole-day coarse must dedupe: all returned signs are unique."""
+    candidates = window_candidate_times(_BIRTH_DT, _LAT, _LON, astronomy=astronomy)
+    signs = [c.sign for c in candidates]
+    assert len(signs) == len(set(signs)), f"Duplicate signs: {signs}"
+
+
+def test_whole_day_coarse_plausible_count(astronomy) -> None:
+    """Whole day should yield 8-12 distinct rising signs."""
+    candidates = window_candidate_times(_BIRTH_DT, _LAT, _LON, astronomy=astronomy)
+    assert 8 <= len(candidates) <= 12, f"Expected 8-12 signs, got {len(candidates)}"
+
+
+def test_whole_day_coarse_each_representative_yields_stated_sign(astronomy) -> None:
+    """Each representative time must recompute to its declared sign."""
+    candidates = window_candidate_times(_BIRTH_DT, _LAT, _LON, astronomy=astronomy)
+    geo = GeoPoint(_LAT, _LON)
+    for c in candidates:
+        lon = _asc_longitude(astronomy, c.dt_utc, geo)
+        actual_idx = _sign_index(lon)
+        expected_idx = ZODIAC_SIGNS.index(c.sign.value)
+        assert actual_idx == expected_idx, (
+            f"{c.sign.value}: representative {c.dt_utc} yields {ZODIAC_SIGNS[actual_idx]}"
+        )
+
+
+def test_span_120_coarse_signs_are_distinct(astronomy) -> None:
+    """±60-min span (span_minutes=120) must dedupe signs."""
+    candidates = window_candidate_times(
+        _BIRTH_DT, _LAT, _LON, astronomy=astronomy, span_minutes=120
+    )
+    signs = [c.sign for c in candidates]
+    assert len(signs) == len(set(signs)), f"Duplicate signs in span: {signs}"
+
+
+def test_span_120_coarse_count_within_range(astronomy) -> None:
+    """A 2-hour window spans 1-3 rising signs."""
+    candidates = window_candidate_times(
+        _BIRTH_DT, _LAT, _LON, astronomy=astronomy, span_minutes=120
+    )
+    assert 1 <= len(candidates) <= 3, f"Expected 1-3 signs in 2h window, got {len(candidates)}"
+
+
+def test_span_120_coarse_each_representative_yields_stated_sign(astronomy) -> None:
+    """Each ±60-min representative must recompute to its declared sign."""
+    candidates = window_candidate_times(
+        _BIRTH_DT, _LAT, _LON, astronomy=astronomy, span_minutes=120
+    )
+    geo = GeoPoint(_LAT, _LON)
+    for c in candidates:
+        lon = _asc_longitude(astronomy, c.dt_utc, geo)
+        actual_idx = _sign_index(lon)
+        expected_idx = ZODIAC_SIGNS.index(c.sign.value)
+        assert actual_idx == expected_idx, (
+            f"Span candidate {c.sign.value}: representative yields {ZODIAC_SIGNS[actual_idx]}"
+        )
+
+
+def test_span_120_coarse_signs_subset_of_whole_day(astronomy) -> None:
+    """Signs in a ±60-min span must be a subset of the whole-day signs."""
+    day_candidates = window_candidate_times(_BIRTH_DT, _LAT, _LON, astronomy=astronomy)
+    span_candidates = window_candidate_times(
+        _BIRTH_DT, _LAT, _LON, astronomy=astronomy, span_minutes=120
+    )
+    day_signs = {c.sign for c in day_candidates}
+    span_signs = {c.sign for c in span_candidates}
+    assert span_signs <= day_signs, f"Span signs {span_signs} not subset of day {day_signs}"
+
+
+def test_fine_resolution_returns_fine_n_samples(astronomy) -> None:
+    """Fine resolution must return exactly FINE_N samples."""
+    candidates = window_candidate_times(
+        _MID_SIGN_DT, _LAT, _LON, astronomy=astronomy, span_minutes=20, resolution="fine"
+    )
+    assert len(candidates) == FINE_N, f"Expected {FINE_N} fine samples, got {len(candidates)}"
+
+
+def test_fine_resolution_all_same_sign_in_mid_sign_span(astronomy) -> None:
+    """Fine samples within a mid-sign span must all share the same sign."""
+    candidates = window_candidate_times(
+        _MID_SIGN_DT, _LAT, _LON, astronomy=astronomy, span_minutes=20, resolution="fine"
+    )
+    signs = {c.sign for c in candidates}
+    assert len(signs) == 1, f"Fine samples span multiple signs: {signs}"
+
+
+def test_window_candidate_times_is_deterministic(astronomy) -> None:
+    """Two identical calls must return byte-identical results."""
+    first = window_candidate_times(_BIRTH_DT, _LAT, _LON, astronomy=astronomy)
+    second = window_candidate_times(_BIRTH_DT, _LAT, _LON, astronomy=astronomy)
+    assert len(first) == len(second)
+    for a, b in zip(first, second):
+        assert a.sign == b.sign
+        assert a.dt_utc == b.dt_utc
+        assert abs(a.lagna_longitude_deg - b.lagna_longitude_deg) < 1e-10
