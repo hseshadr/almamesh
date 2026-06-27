@@ -1,0 +1,161 @@
+{
+  "main": {
+    "band": "consistent",
+    "candidates": [
+      {
+        "ascendant_sign": "Leo",
+        "fit_score": 6.5,
+        "is_near_cusp": true,
+        "lagna_cusp_distance_deg": 0.042964,
+        "lagna_longitude_deg": 120.042964,
+        "representative_time_local": "06:44",
+        "supporting_events": [
+          {
+            "category": "marriage",
+            "contribution": 1.0,
+            "date": "2012-06-15",
+            "event_index": 0,
+            "signals": [
+              "dasha_lord_rules_h7"
+            ]
+          },
+          {
+            "category": "childbirth",
+            "contribution": 1.0,
+            "date": "2014-03-20",
+            "event_index": 1,
+            "signals": [
+              "dasha_lord_rules_h5"
+            ]
+          },
+          {
+            "category": "career_change",
+            "contribution": 1.0,
+            "date": "2016-09-10",
+            "event_index": 2,
+            "signals": [
+              "dasha_lord_in_h10"
+            ]
+          },
+          {
+            "category": "promotion",
+            "contribution": 2.0,
+            "date": "2018-05-05",
+            "event_index": 3,
+            "signals": [
+              "dasha_lord_rules_h10",
+              "dasha_lord_in_h10"
+            ]
+          },
+          {
+            "category": "health_issue",
+            "contribution": 0.5,
+            "date": "2020-11-30",
+            "event_index": 4,
+            "signals": [
+              "slow_transit_h6"
+            ]
+          },
+          {
+            "category": "relocation",
+            "contribution": 1.0,
+            "date": "2022-04-12",
+            "event_index": 5,
+            "signals": [
+              "dasha_lord_rules_h4"
+            ]
+          }
+        ]
+      },
+      {
+        "ascendant_sign": "Cancer",
+        "fit_score": 2.0,
+        "is_near_cusp": true,
+        "lagna_cusp_distance_deg": 0.95391,
+        "lagna_longitude_deg": 119.04609,
+        "representative_time_local": "06:39",
+        "supporting_events": [
+          {
+            "category": "marriage",
+            "contribution": 1.0,
+            "date": "2012-06-15",
+            "event_index": 0,
+            "signals": [
+              "dasha_lord_rules_h7"
+            ]
+          },
+          {
+            "category": "childbirth",
+            "contribution": 0.0,
+            "date": "2014-03-20",
+            "event_index": 1,
+            "signals": []
+          },
+          {
+            "category": "career_change",
+            "contribution": 0.0,
+            "date": "2016-09-10",
+            "event_index": 2,
+            "signals": []
+          },
+          {
+            "category": "promotion",
+            "contribution": 0.0,
+            "date": "2018-05-05",
+            "event_index": 3,
+            "signals": []
+          },
+          {
+            "category": "health_issue",
+            "contribution": 1.0,
+            "date": "2020-11-30",
+            "event_index": 4,
+            "signals": [
+              "dasha_lord_rules_h6"
+            ]
+          },
+          {
+            "category": "relocation",
+            "contribution": 0.0,
+            "date": "2022-04-12",
+            "event_index": 5,
+            "signals": []
+          }
+        ]
+      }
+    ],
+    "discriminating_event_count": 5,
+    "honesty_note_key": "rectify.honesty.consistent",
+    "margin": 0.529412,
+    "mode": "cusp",
+    "recorded_time_sign": "Leo"
+  },
+  "near_tie": {
+    "band": "near_tie",
+    "candidates": [
+      {
+        "ascendant_sign": "Leo",
+        "fit_score": 0.0,
+        "is_near_cusp": true,
+        "lagna_cusp_distance_deg": 0.042964,
+        "lagna_longitude_deg": 120.042964,
+        "representative_time_local": "06:44",
+        "supporting_events": []
+      },
+      {
+        "ascendant_sign": "Cancer",
+        "fit_score": 0.0,
+        "is_near_cusp": true,
+        "lagna_cusp_distance_deg": 0.95391,
+        "lagna_longitude_deg": 119.04609,
+        "representative_time_local": "06:39",
+        "supporting_events": []
+      }
+    ],
+    "discriminating_event_count": 0,
+    "honesty_note_key": "rectify.honesty.near_tie",
+    "margin": 0.0,
+    "mode": "cusp",
+    "recorded_time_sign": "Leo"
+  }
+}
