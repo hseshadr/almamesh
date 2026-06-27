@@ -673,6 +673,7 @@ def calculate_sidereal_context(
     ayanamsa_type: AyanamsaType = AyanamsaType.LAHIRI,
     node_type: NodeType = NodeType.MEAN,
     reference_date: datetime | None = None,
+    astronomy: SkyfieldAstronomy | None = None,
 ) -> SiderealContext:
     """
     Orchestrate full sidereal context calculation.
@@ -683,12 +684,14 @@ def calculate_sidereal_context(
     lunar node. `reference_date` selects which Vimshottari maha dasha is
     "current"; when None it defaults to the wall clock, but callers that need
     reproducible output (browser parity, content-addressed bundles) must pass
-    it explicitly.
+    it explicitly. `astronomy` is an optional pre-warmed SkyfieldAstronomy
+    instance; when provided it is reused (avoids repeated de421 loads for
+    multi-candidate scoring). Default None = unchanged single-call behavior.
     """
     # Normalize to a true UTC instant (CONVERT aware datetimes; never relabel).
     dt_utc = _to_utc(dt_utc)
 
-    astro = SkyfieldAstronomy()
+    astro = astronomy if astronomy is not None else SkyfieldAstronomy()
     ayanamsa = _resolve_ayanamsa(astro, dt_utc, ayanamsa_type)
 
     # Stages
