@@ -51,12 +51,17 @@ vi.mock('../components/features/rectify/RectifyResults', () => ({
     onConfirm,
     onKeepRecorded,
     result,
+    recordedReading,
   }: {
     onConfirm: (c: unknown) => void;
     onKeepRecorded: () => void;
     result: { candidates: unknown[] };
+    recordedReading: unknown | null;
   }) => (
-    <div data-testid="rectify-results">
+    <div
+      data-testid="rectify-results"
+      data-has-recorded={recordedReading != null ? 'true' : 'false'}
+    >
       <button onClick={() => onConfirm(result.candidates[0])} data-testid="confirm-candidate-btn">
         Use this time
       </button>
@@ -138,6 +143,15 @@ const MOCK_CHART = {
       location_name: 'Pune, India',
     },
     birth_time_original: '07:30',
+  },
+};
+
+/** Chart with birth_time_confidence: 'unknown' — user never entered a time. */
+const MOCK_CHART_UNKNOWN = {
+  ...MOCK_CHART,
+  birth_data: {
+    ...MOCK_CHART.birth_data,
+    birth_time_confidence: 'unknown',
   },
 };
 
@@ -359,5 +373,163 @@ describe('RectifyPage', () => {
     fireEvent.click(await screen.findByTestId('intro-start-btn'));
     fireEvent.click(await screen.findByTestId('events-continue-btn'));
     expect(mockRun).toHaveBeenCalledWith('window');
+  });
+
+  // ---------------------------------------------------------------------------
+  // Unknown birth time — no placeholder comparison, no flip-ack gate
+  // ---------------------------------------------------------------------------
+
+  describe('unknown birth time (timeConfidence: unknown)', () => {
+    /** Navigate to results with MOCK_CHART_UNKNOWN in the store. */
+    async function navigateToResultsUnknown(
+      rerender: ReturnType<typeof renderRectify>['rerender'],
+    ) {
+      vi.mocked(useRectification).mockReturnValue({
+        state: { status: 'ready', result: MOCK_RESULT as never, error: null },
+        engineReady: true,
+        hasEnoughEvents: true,
+        detectedMode: 'window' as const,
+        run: mockRun as never,
+        reset: mockReset as never,
+        retry: vi.fn() as never,
+      });
+      rerender(
+        <MemoryRouter initialEntries={['/rectify/profile-abc']}>
+          <Routes>
+            <Route path="/rectify/:profileId" element={<RectifyPage />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+      await screen.findByTestId('rectify-results');
+    }
+
+    beforeEach(() => {
+      // Override the chart store with an unknown-time chart
+      useChartLibraryStore.setState({ charts: { 'chart-1': MOCK_CHART_UNKNOWN as never } });
+    });
+
+    it('passes recordedReading={null} to RectifyResults (no placeholder comparison)', async () => {
+      const { rerender } = renderRectify();
+      fireEvent.click(await screen.findByTestId('intro-start-btn'));
+      fireEvent.click(await screen.findByTestId('events-continue-btn'));
+      await navigateToResultsUnknown(rerender);
+
+      // The mock surfaces recordedReading via data-has-recorded attribute
+      const resultsEl = screen.getByTestId('rectify-results');
+      expect(resultsEl.getAttribute('data-has-recorded')).toBe('false');
+    });
+
+    it('confirm candidate does NOT require flip-ack (signFlip is null for unknown time)', async () => {
+      const { rerender } = renderRectify();
+      fireEvent.click(await screen.findByTestId('intro-start-btn'));
+      fireEvent.click(await screen.findByTestId('events-continue-btn'));
+      await navigateToResultsUnknown(rerender);
+
+      // Confirm the sign-flip candidate (pisces vs recorded aquarius)
+      fireEvent.click(screen.getByTestId('confirm-candidate-btn'));
+      await screen.findByTestId('regen-modal');
+
+      // No flip-ack checkbox — signFlip must be null
+      expect(screen.queryByTestId('regen-flip-ack')).toBeNull();
+      // Confirm button is immediately enabled (no ack required)
+      expect((screen.getByTestId('regen-confirm-btn') as HTMLButtonElement).disabled).toBe(false);
+    });
+
+    it('confirm with unknown time emits birth-info-changed and navigates', async () => {
+      const { rerender } = renderRectify();
+      fireEvent.click(await screen.findByTestId('intro-start-btn'));
+      fireEvent.click(await screen.findByTestId('events-continue-btn'));
+      await navigateToResultsUnknown(rerender);
+
+      fireEvent.click(screen.getByTestId('confirm-candidate-btn'));
+      await screen.findByTestId('regen-modal');
+
+      // Confirm fires immediately without needing an ack
+      fireEvent.click(screen.getByTestId('regen-confirm-btn'));
+
+      expect(appEvents.emit).toHaveBeenCalledWith(
+        'birth-info-changed',
+        expect.objectContaining({
+          birth: expect.objectContaining({ rectifiedTime: '07:45' }),
+          profileId: PROFILE_ID,
+        }),
+      );
+      expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // rough birth time — comparison + flip-ack still required (existing behavior)
+  // ---------------------------------------------------------------------------
+
+  describe('rough birth time (timeConfidence: rough) — known behavior preserved', () => {
+    const MOCK_CHART_ROUGH = {
+      ...MOCK_CHART,
+      birth_data: {
+        ...MOCK_CHART.birth_data,
+        birth_time_confidence: 'rough',
+      },
+    };
+
+    beforeEach(() => {
+      useChartLibraryStore.setState({ charts: { 'chart-1': MOCK_CHART_ROUGH as never } });
+    });
+
+    it('passes non-null recordedReading (rough time still has a recorded comparison)', async () => {
+      const { rerender } = renderRectify();
+      fireEvent.click(await screen.findByTestId('intro-start-btn'));
+      fireEvent.click(await screen.findByTestId('events-continue-btn'));
+      // Rerender in ready/cusp state
+      vi.mocked(useRectification).mockReturnValue({
+        state: { status: 'ready', result: MOCK_RESULT as never, error: null },
+        engineReady: true,
+        hasEnoughEvents: true,
+        detectedMode: 'cusp' as const,
+        run: mockRun as never,
+        reset: mockReset as never,
+        retry: vi.fn() as never,
+      });
+      rerender(
+        <MemoryRouter initialEntries={['/rectify/profile-abc']}>
+          <Routes>
+            <Route path="/rectify/:profileId" element={<RectifyPage />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+      await screen.findByTestId('rectify-results');
+
+      const resultsEl = screen.getByTestId('rectify-results');
+      expect(resultsEl.getAttribute('data-has-recorded')).toBe('true');
+    });
+
+    it('rough time: flip-ack is required when ascendant sign changes', async () => {
+      const { rerender } = renderRectify();
+      fireEvent.click(await screen.findByTestId('intro-start-btn'));
+      fireEvent.click(await screen.findByTestId('events-continue-btn'));
+      vi.mocked(useRectification).mockReturnValue({
+        state: { status: 'ready', result: MOCK_RESULT as never, error: null },
+        engineReady: true,
+        hasEnoughEvents: true,
+        detectedMode: 'cusp' as const,
+        run: mockRun as never,
+        reset: mockReset as never,
+        retry: vi.fn() as never,
+      });
+      rerender(
+        <MemoryRouter initialEntries={['/rectify/profile-abc']}>
+          <Routes>
+            <Route path="/rectify/:profileId" element={<RectifyPage />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+      await screen.findByTestId('rectify-results');
+
+      fireEvent.click(screen.getByTestId('confirm-candidate-btn'));
+      await screen.findByTestId('regen-modal');
+
+      // flip-ack IS shown for rough time (user entered a time, sign differs)
+      expect(screen.getByTestId('regen-flip-ack')).toBeTruthy();
+      expect((screen.getByTestId('regen-confirm-btn') as HTMLButtonElement).disabled).toBe(true);
+    });
   });
 });

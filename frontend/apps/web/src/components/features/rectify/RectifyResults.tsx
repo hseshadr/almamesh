@@ -152,18 +152,21 @@ export function RectifyResults({
       )}
 
       {/* ── Recorded-time reference ─────────────────────────────────────── */}
-      <div data-testid="recorded-reference">
-        <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-text-tertiary">
-          {t('results.recorded_reference_label')}
-        </p>
-        {recordedReading != null && rectifiedReading != null && (
-          <BirthTimeComparison
-            recorded={recordedReading}
-            rectified={rectifiedReading}
-            cusp={cusp}
-          />
-        )}
-      </div>
+      {/* Omit the entire section when no time was ever entered (unknown confidence). */}
+      {recordedReading != null && (
+        <div data-testid="recorded-reference">
+          <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-text-tertiary">
+            {t('results.recorded_reference_label')}
+          </p>
+          {rectifiedReading != null && (
+            <BirthTimeComparison
+              recorded={recordedReading}
+              rectified={rectifiedReading}
+              cusp={cusp}
+            />
+          )}
+        </div>
+      )}
 
       {/* ── Keep recorded action ─────────────────────────────────────────── */}
       <button

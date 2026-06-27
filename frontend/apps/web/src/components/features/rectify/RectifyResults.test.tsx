@@ -335,3 +335,52 @@ describe('RectifyResults — window mode caveat', () => {
     expect(container.textContent).not.toContain('%');
   });
 });
+
+// ---------------------------------------------------------------------------
+// Unknown birth time — recorded-reference section must be suppressed
+// ---------------------------------------------------------------------------
+
+describe('RectifyResults — unknown birth time (recordedReading: null)', () => {
+  beforeEach(() => {
+    useLanguageStore.setState({ language: 'en' });
+  });
+
+  it('does NOT render the recorded-reference section when recordedReading is null', () => {
+    render(
+      <RectifyResults
+        result={CONSISTENT_RESULT}
+        recordedReading={null}
+        onConfirm={vi.fn()}
+        onKeepRecorded={vi.fn()}
+      />,
+    );
+    // No recorded time was ever entered — the whole comparison block must be absent
+    expect(screen.queryByTestId('recorded-reference')).toBeNull();
+  });
+
+  it('still renders candidate cards and keep-recorded button with null recordedReading', () => {
+    render(
+      <RectifyResults
+        result={CONSISTENT_RESULT}
+        recordedReading={null}
+        onConfirm={vi.fn()}
+        onKeepRecorded={vi.fn()}
+      />,
+    );
+    // Candidate cards and the keep-recorded button must still be present
+    expect(screen.getAllByTestId('candidate-card').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByTestId('keep-recorded-button')).toBeTruthy();
+  });
+
+  it('contains no "%" with null recordedReading', () => {
+    const { container } = render(
+      <RectifyResults
+        result={CONSISTENT_RESULT}
+        recordedReading={null}
+        onConfirm={vi.fn()}
+        onKeepRecorded={vi.fn()}
+      />,
+    );
+    expect(container.textContent).not.toContain('%');
+  });
+});

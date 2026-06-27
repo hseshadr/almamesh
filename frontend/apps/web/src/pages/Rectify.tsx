@@ -12,6 +12,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { appEvents, type BirthMeta, useChartLibraryStore, useProfilesStore } from '@almamesh/store';
 import type { ProcessedBirthData, RectificationCandidate } from '@almamesh/shared-types';
+import type { TimeConfidence } from '@almamesh/constants';
 import { useRectification } from '../hooks/useRectification';
 import { EventEntryStep } from '../components/features/rectify/EventEntryStep';
 import { FitProgress } from '../components/features/rectify/FitProgress';
@@ -52,17 +53,32 @@ export function RectifyPage(): ReactElement {
   // Derived values
   // ---------------------------------------------------------------------------
 
+  const charts = useChartLibraryStore((s) => s.charts);
+
+  /** True when the profile's stored chart has birth_time_confidence === 'unknown'.
+   *  In that case the chart was computed from a noon placeholder — there is no
+   *  real recorded time to compare against and no prior sign to flip from. */
+  const isUnknownTime = useMemo(() => {
+    const chart =
+      Object.values(charts).find((c) => c.profile_id === profileId && c.is_primary) ??
+      Object.values(charts).find((c) => c.profile_id === profileId);
+    const birthData = chart?.birth_data as ProcessedBirthData | undefined;
+    return (birthData?.birth_time_confidence as TimeConfidence | undefined) === 'unknown';
+  }, [charts, profileId]);
+
   const signFlip = useMemo(() => {
+    // No sign to flip from when the user never entered a time.
+    if (isUnknownTime) return null;
     if (pendingCandidate == null || state.result == null) return null;
     const { recordedTimeSign } = state.result;
     if (recordedTimeSign == null) return null;
     if (pendingCandidate.ascendantSign === recordedTimeSign) return null;
     return { from: recordedTimeSign, to: pendingCandidate.ascendantSign };
-  }, [pendingCandidate, state.result]);
-
-  const charts = useChartLibraryStore((s) => s.charts);
+  }, [isUnknownTime, pendingCandidate, state.result]);
 
   const recordedReading = useMemo(() => {
+    // Suppress the comparison entirely when there was never a recorded time.
+    if (isUnknownTime) return null;
     if (state.result?.recordedTimeSign == null) return null;
     const chart =
       Object.values(charts).find((c) => c.profile_id === profileId && c.is_primary) ??
@@ -76,7 +92,7 @@ export function RectifyPage(): ReactElement {
       sign: state.result.recordedTimeSign,
       signDegrees: 0,
     };
-  }, [state.result, profileId, charts]);
+  }, [isUnknownTime, state.result, profileId, charts]);
 
   // ---------------------------------------------------------------------------
   // Handlers
