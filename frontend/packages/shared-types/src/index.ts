@@ -1347,130 +1347,12 @@ export interface RectificationResult {
   readonly honestyNoteKey: string;
 }
 
-export type ConsentLevel = 'basic' | 'standard' | 'detailed';
-
 export type LifeEventType =
   | 'marriage' | 'child_birth' | 'parent_death'
   | 'career_start' | 'career_promotion' | 'business_start'
   | 'education_start' | 'graduation'
   | 'property_acquisition' | 'relocation'
   | 'major_surgery' | 'accident' | 'relationship_end';
-
-export type EventReliability = 'gold_standard' | 'high' | 'moderate';
-
-export type RectificationPhase =
-  | 'collecting_events' | 'analyzing' | 'completed' | 'failed';
-
-export interface LifeEvent {
-  event_type: LifeEventType;
-  event_date: string;
-  description: string;
-  reliability: EventReliability;
-  is_date_uncertain?: boolean;
-}
-
-export interface RectificationSessionCreateRequest {
-  person_name: string;
-  birth_datetime_utc: string;
-  birth_city: string;
-  birth_state: string;
-  birth_country: string;
-  birth_latitude: number;
-  birth_longitude: number;
-  birth_timezone: string;
-  time_range_minutes?: number;
-}
-
-/**
- * Rectification step enum
- * Matches backend RectificationStep enum
- */
-export type RectificationStep =
-  | 'collecting_events'
-  | 'analyzing'
-  | 'validating'
-  | 'reviewing'
-  | 'finalized'
-  | 'cancelled';
-
-/**
- * Rectification session response
- * Matches backend RectificationSession class structure
- */
-export interface RectificationSessionResponse {
-  session_id: string;
-  user_id: string;
-  person_name: string;
-  original_birth_data?: ProcessedBirthData;
-  collected_events?: LifeEvent[];
-  current_step: RectificationStep;
-  completed_steps?: RectificationStep[];
-  time_range_minutes?: number;
-  confidence_threshold?: number;
-  time_candidates?: BirthTimeCandidate[];
-  recommended_time?: BirthTimeCandidate | null;
-  created_at: string;
-  updated_at?: string;
-  completed_at?: string | null;
-  data_retention_days?: number;
-  user_consent_level?: ConsentLevel;
-  expires_at?: string | null;
-}
-
-export interface SessionProgress {
-  session_id: string;
-  phase: RectificationPhase;
-  current_step: string;
-  events_collected: number;
-  events_required: number;
-  can_proceed: boolean;
-  progress_percent: number;
-  next_action: string;
-  consent_level: ConsentLevel;
-  available_event_types: LifeEventType[];
-  is_complete: boolean;
-  is_cancelled: boolean;
-}
-
-export interface BirthTimeCandidate {
-  candidate_id: string;
-  original_time: string;
-  candidate_time: string;
-  time_adjustment_minutes: number;
-  overall_confidence: number;
-  dasha_alignment_score: number;
-  divisional_accuracy_score: number;
-  transit_validation_score: number;
-  house_activation_score: number;
-  events_validated: number;
-  events_failed: number;
-  confidence_level: 'professional' | 'high' | 'moderate' | 'low';
-}
-
-// ============================================================================
-// Question Flow Types
-// ============================================================================
-
-export interface QuestionOption {
-  value: string;
-  label: string;
-}
-
-export interface RectificationQuestion {
-  question_id: string;
-  question_text: string;
-  event_type: LifeEventType;
-  options: QuestionOption[];
-  is_required: boolean;
-}
-
-export interface QuestionFlowState {
-  session_id: string;
-  current_tier: number;
-  questions_answered: number;
-  total_questions: number;
-  is_complete: boolean;
-}
 
 // ============================================================================
 // Token Usage Types
@@ -1542,33 +1424,6 @@ export interface UsageResponse {
   by_call_type: Record<string, CallTypeBreakdown>;
   recent_calls: RecentCall[];
 }
-
-// ============================================================================
-// Birth Time Uncertainty Types
-// ============================================================================
-
-/**
- * Birth time uncertainty levels for rectification
- */
-export type BirthTimeUncertainty =
-  | 'exact'           // Known to the minute
-  | 'within_15_min'   // Within 15 minutes
-  | 'within_1_hour'   // Within 1 hour
-  | 'within_2_hours'  // Within 2 hours
-  | 'approximate'     // General time of day (morning/afternoon/evening)
-  | 'unknown';        // Birth time unknown
-
-/**
- * Labels for birth time uncertainty levels
- */
-export const BIRTH_TIME_UNCERTAINTY_LABELS: Record<BirthTimeUncertainty, string> = {
-  exact: 'Exact (to the minute)',
-  within_15_min: 'Within 15 minutes',
-  within_1_hour: 'Within 1 hour',
-  within_2_hours: 'Within 2 hours',
-  approximate: 'Approximate (morning/afternoon/evening)',
-  unknown: 'Unknown',
-};
 
 /**
  * Life event type labels for display
@@ -1673,38 +1528,6 @@ export interface StartOnboardingRequest {
   options?: {
     generate_interpretation?: boolean;
   };
-}
-
-/**
- * Rectification life event for display
- */
-export interface RectificationLifeEvent {
-  id: string;
-  event_type: LifeEventType;
-  event_date: string;      // YYYY-MM-DD format
-  description?: string;
-  reliability?: EventReliability;
-}
-
-/**
- * User rectification data stored in preferences
- */
-export interface UserRectificationData {
-  uncertainty_level: BirthTimeUncertainty;
-  life_events: RectificationLifeEvent[];
-  original_birth_time?: string;   // HH:MM format
-  rectified_birth_time?: string;  // HH:MM format
-  rectification_confidence?: number;  // 0-1 score
-  last_updated?: string;          // ISO datetime
-}
-
-/**
- * Request to update user rectification data
- */
-export interface UpdateRectificationRequest {
-  uncertainty_level?: BirthTimeUncertainty;
-  life_events?: RectificationLifeEvent[];
-  trigger_regeneration?: boolean;  // If true, regenerate chart with new rectified time
 }
 
 // ============================================================================
