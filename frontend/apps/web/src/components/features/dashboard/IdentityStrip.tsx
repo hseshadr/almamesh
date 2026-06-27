@@ -25,6 +25,7 @@ import { nextAntar, nextPratyantar, type DashaTreeRow } from '../../../lib/dasha
 import { formatPredictiveDate } from '../../../lib/predictive';
 import { grahaName, signName } from '../../../lib/predictiveEventCopy';
 import type { RectificationDelta } from '../../../lib/rectification';
+import { useProfilesStore } from '@almamesh/store';
 
 export interface IdentityLagna {
   readonly sign?: string;
@@ -179,6 +180,7 @@ function nearCusp(lagna: IdentityLagna): CuspInfo | null {
 
 function BirthTimeSensitivity({ lagna }: { lagna: IdentityLagna | null }): ReactElement | null {
   const { t } = useTranslation(['astrology', 'predictive']);
+  const profileId = useProfilesStore((s) => s.activeProfileId);
   if (!lagna?.sign || lagna.longitude === undefined || lagna.longitude === null) {
     return null;
   }
@@ -209,6 +211,15 @@ function BirthTimeSensitivity({ lagna }: { lagna: IdentityLagna | null }): React
         >
           {t('astrology:cusp.refine_link')}
         </Link>
+        {' '}·{' '}
+        {profileId != null && (
+          <Link
+            to={`/rectify/${profileId}`}
+            className="font-medium text-text-primary underline underline-offset-2 hover:text-accent-gold-bright"
+          >
+            {t('astrology:cusp.resolve_link')}
+          </Link>
+        )}
       </p>
     </div>
   );

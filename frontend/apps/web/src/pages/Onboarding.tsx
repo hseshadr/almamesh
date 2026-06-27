@@ -371,7 +371,8 @@ export default function OnboardingPage() {
         clearInterval(progressInterval);
 
         reset();
-        navigate("/dashboard");
+        const destination = data.timeConfidence === 'unknown' ? `/rectify/${profileId}` : '/dashboard';
+        navigate(destination);
       } catch (err) {
         clearInterval(progressInterval);
         throw err;

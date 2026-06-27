@@ -59,6 +59,7 @@
     "comparison_flip": "A mesma pessoa, duas horas candidatas: o signo ascendente muda de {{recorded}} → {{rectified}}, então cada casa se desloca em um signo. Confronte isto com os eventos da sua vida — é uma possibilidade, não um veredito.",
     "adjustment_in_effect": "Retificada: inserida {{entered}} → usando {{rectified}} ({{sign}}{{minutes}} min).",
     "confidence_hint": "A sua hora de nascimento é {{confidence}}. Não há retificação automática — você a refina aqui manualmente: ajuste a hora retificada, observe o Ascendente acima e confronte-o com os eventos reais da sua vida. Isto importa mais quando o lagna está numa cúspide, onde alguns minutos mudam o signo ascendente.",
+    "life_events_refine_link": "Refinar com eventos de vida →",
     "location_label": "Local de nascimento",
     "location_placeholder": "Cidade, País",
     "location_hint": "O fuso horário será determinado automaticamente a partir da sua localização.",

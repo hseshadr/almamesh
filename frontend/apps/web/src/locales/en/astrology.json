@@ -36,7 +36,8 @@
     "label": "Birth-time sensitivity",
     "proximity": "{{sign}} rises only ~{{degrees}}° from the {{neighbour}} cusp.",
     "flip": "A few minutes' difference in your recorded birth time would make it {{neighbour}} — and every house in this chart would shift.",
-    "refine_link": "Refine your birth time"
+    "refine_link": "Refine your birth time",
+    "resolve_link": "Resolve with life events"
   },
   "birth_details": {
     "heading": "Birth Details",

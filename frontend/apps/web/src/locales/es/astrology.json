@@ -37,7 +37,8 @@
     "label": "Sensibilidad a la hora de nacimiento",
     "proximity": "{{sign}} asciende a solo ~{{degrees}}° de la cúspide de {{neighbour}}.",
     "flip": "Unos minutos de diferencia en tu hora de nacimiento registrada lo convertirían en {{neighbour}}, y todas las casas de esta carta cambiarían.",
-    "refine_link": "Ajusta tu hora de nacimiento"
+    "refine_link": "Ajusta tu hora de nacimiento",
+    "resolve_link": "Resolver con eventos de vida"
   },
   "birth_details": {
     "heading": "Datos de nacimiento",

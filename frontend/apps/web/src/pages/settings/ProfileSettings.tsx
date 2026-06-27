@@ -7,7 +7,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   appEvents,
@@ -75,6 +75,7 @@ export default function ProfileSettings() {
   const navigate = useNavigate();
   const { t } = useTranslation(['settings', 'common']);
   const { engine, error: engineError } = useChartEngine();
+  const activeProfileId = useProfilesStore((s) => s.activeProfileId);
 
   // Stores
   const {
@@ -535,6 +536,17 @@ export default function ProfileSettings() {
                   `settings:time_confidence.${currentDetails.time_confidence}`,
                 ).toLowerCase(),
               })}
+            </p>
+          )}
+
+          {activeProfileId != null && (
+            <p className="mt-3 text-xs">
+              <Link
+                to={`/rectify/${activeProfileId}`}
+                className="font-medium text-accent-primary underline underline-offset-2 hover:text-accent-gold-bright"
+              >
+                {t('settings:profile.life_events_refine_link')}
+              </Link>
             </p>
           )}
         </div>

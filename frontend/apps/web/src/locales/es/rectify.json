@@ -56,5 +56,28 @@
     "recorded_reference_label": "Tu horario registrado",
     "candidate_label": "Candidato {{rank}}",
     "evidence_table_label": "Eventos de vida de apoyo"
-  }
+  },
+  "wizard": {
+    "title": "Refinar tu hora de nacimiento"
+  },
+  "intro": {
+    "heading": "Precisar tu signo ascendente",
+    "body": "Si tu hora de nacimiento es incierta, los eventos de vida pueden ayudar a delimitar la ventana. El motor comprobará si tu hora registrada —o una candidata cercana— se ajusta mejor al patrón de eventos que ingreses.",
+    "honesty": "Esto es un motor de hipótesis, no una máquina de veredictos. Un certificado de nacimiento registrado siempre prevalece. Obtienes una lista corta clasificada y una etiqueta de confianza honesta.",
+    "start": "Agregar eventos de vida"
+  },
+  "fit": {
+    "heading": "Analizando tus eventos…",
+    "body": "El motor en el dispositivo está comparando ventanas de nacimiento candidatas con tus eventos de vida. Esto suele tardar unos segundos.",
+    "engine_warming": "El motor de gráfico todavía se está iniciando. El análisis comenzará automáticamente una vez que esté listo.",
+    "error_heading": "El análisis falló",
+    "retry": "Reintentar"
+  },
+  "steps": {
+    "intro": "Introducción",
+    "events": "Eventos de vida",
+    "fit": "Analizando",
+    "results": "Resultados"
+  },
+  "back": "Atrás"
 }

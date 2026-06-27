@@ -25,6 +25,7 @@ const PredictivePage = lazy(() => import('./pages/Predictive'))
 const LifeDomainPage = lazy(() => import('./pages/LifeDomain'))
 const MeshPage = lazy(() => import('./pages/Mesh'))
 const MeshEdgePage = lazy(() => import('./pages/MeshEdge'))
+const RectifyPage = lazy(() => import('./pages/Rectify'))
 const ReportViewPage = lazy(() => import('./pages/ReportView'))
 const PrivacyPolicy = lazy(() => import('./pages/legal/PrivacyPolicy'))
 const TermsOfService = lazy(() => import('./pages/legal/TermsOfService'))
@@ -100,6 +101,7 @@ function AppRoutes() {
         <Route path="/life/:domain" element={page(<LifeDomainPage />)} />
         <Route path="/mesh" element={page(<MeshPage />)} />
         <Route path="/mesh/:memberId" element={page(<MeshEdgePage />)} />
+        <Route path="/rectify/:profileId" element={page(<RectifyPage />)} />
         <Route path="/report" element={page(<ReportViewPage />)} />
 
         {/* Legacy route redirect */}

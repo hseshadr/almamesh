@@ -56,6 +56,7 @@
     "comparison_flip": "Same person, two candidate times: the rising sign changes {{recorded}} → {{rectified}}, so every house shifts by one sign. Weigh this against your life events — it is a possibility, not a verdict.",
     "adjustment_in_effect": "Rectified: entered {{entered}} → using {{rectified}} ({{sign}}{{minutes}} min).",
     "confidence_hint": "Your birth time is {{confidence}}. There is no automatic rectification — you refine it here by hand: nudge the rectified time, watch the Ascendant above, and weigh it against your real life events. This matters most when the lagna sits on a cusp, where minutes flip the rising sign.",
+    "life_events_refine_link": "Refine with life events →",
     "location_label": "Birth Location",
     "location_placeholder": "City, Country",
     "location_hint": "Timezone will be automatically determined from your location.",
