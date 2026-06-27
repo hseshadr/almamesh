@@ -24,10 +24,13 @@ _TOLERANCE_SECS = 1.0
 _REPR_OFFSET = datetime.timedelta(minutes=4)
 
 # ── Window sweep constants ─────────────────────────────────────────────────────
-# 15-min step ≤ half a sign arc (~2 h/sign ÷ 8 = 15 min); no sign can be skipped.
+# 15-min step ≈ half a sign arc (~2 h/sign ÷ 8 = 15 min); no sign is skipped for births
+# below the Arctic Circle (~66.5°N). Above it, signs that do not rise simply don't
+# appear in the sweep (correct). At moderate latitudes (≥10 min margin through ~65°N).
 _SAMPLE_STEP_MINUTES = 15
 # Evenly-spaced fine samples within a single sign's arc.
 FINE_N = 12
+assert FINE_N > 1, "FINE_N must be > 1 to avoid silent duplication in _fine_samples"
 
 
 @dataclass(frozen=True)
@@ -131,7 +134,12 @@ def _window_bounds(
     birth_dt: datetime.datetime,
     span_minutes: int | None,
 ) -> tuple[datetime.datetime, datetime.datetime]:
-    """(start, end) UTC for the search window, clamped to the birth day."""
+    """(start, end) UTC for the search window, clamped to the birth day.
+
+    Args:
+        birth_dt: Birth datetime (must be UTC: naive-UTC or tz-aware UTC).
+        span_minutes: Window span in minutes. If None, searches the entire day.
+    """
     day_start = birth_dt.replace(hour=0, minute=0, second=0, microsecond=0)
     day_end = day_start + datetime.timedelta(days=1)
     if span_minutes is None:
@@ -214,7 +222,16 @@ def window_candidate_times(
     span_minutes: int | None = None,
     resolution: Literal["coarse", "fine"] = "coarse",
 ) -> list[CandidateTime]:
-    """Coarse: one CandidateTime per rising sign in window. Fine: FINE_N samples."""
+    """Coarse: one CandidateTime per rising sign in window. Fine: FINE_N samples.
+
+    Args:
+        birth_dt: Birth datetime (must be UTC: naive-UTC or tz-aware UTC).
+        latitude: Geographic latitude in decimal degrees.
+        longitude: Geographic longitude in decimal degrees.
+        astronomy: Warm SkyfieldAstronomy instance (reused across calls).
+        span_minutes: Window span in minutes. If None, searches the entire day.
+        resolution: "coarse" (one per rising sign) or "fine" (FINE_N evenly spaced).
+    """
     geo = GeoPoint(latitude, longitude)
     start, end = _window_bounds(birth_dt, span_minutes)
     if resolution == "fine":
