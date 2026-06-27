@@ -14,6 +14,7 @@ import { useLifeEventsStore, isStructuredLifeEvent } from '@almamesh/store';
 import type { LifeEvent } from '@almamesh/store';
 import type { LifeEventCategory } from '@almamesh/shared-types';
 import { EventRow } from './EventRow';
+import { StoryAccelerator } from './StoryAccelerator';
 
 /** Stable empty array so the Zustand selector returns the same reference when
  * the profile has no events yet (avoids spurious re-renders). */
@@ -51,6 +52,10 @@ export function EventEntryStep({ profileId, onContinue }: EventEntryStepProps): 
         <h2 className="text-xl font-semibold text-text-primary">{t('entry.title')}</h2>
         <p className="mt-1 text-sm text-text-secondary">{t('entry.subtitle')}</p>
       </div>
+
+      {/* Optional LLM accelerator — pre-fills reviewable rows from free-form prose.
+          Only actionable when the user has opted into a cloud AI endpoint. */}
+      <StoryAccelerator profileId={profileId} />
 
       {/* Event rows */}
       <div className="flex flex-col gap-3">

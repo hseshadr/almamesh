@@ -82,5 +82,14 @@
     "fit": "Analisando",
     "results": "Resultados"
   },
+  "accelerator": {
+    "title": "Cole Sua História",
+    "warning": "O texto que você colar será enviado para o seu endpoint de IA configurado.",
+    "textarea_placeholder": "Descreva eventos importantes da sua vida em texto simples — datas e o que aconteceu…",
+    "submit": "Extrair Eventos",
+    "gated_note": "Configure um endpoint de IA na nuvem nas Configurações para usar este recurso.",
+    "empty_result": "Não foi possível extrair eventos — adicione-os manualmente com o botão abaixo.",
+    "loading": "Extraindo eventos…"
+  },
   "back": "Voltar"
 }

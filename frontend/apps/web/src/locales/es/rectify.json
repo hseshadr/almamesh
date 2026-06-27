@@ -82,5 +82,14 @@
     "fit": "Analizando",
     "results": "Resultados"
   },
+  "accelerator": {
+    "title": "Pega Tu Historia",
+    "warning": "El texto que pegues se enviará a tu endpoint de IA configurado.",
+    "textarea_placeholder": "Describe los eventos clave de tu vida en texto simple — fechas y qué ocurrió…",
+    "submit": "Extraer Eventos",
+    "gated_note": "Configura un endpoint de IA en la nube en Ajustes para usar esta función.",
+    "empty_result": "No se pudieron extraer eventos — agrégalos manualmente con el botón de abajo.",
+    "loading": "Extrayendo eventos…"
+  },
   "back": "Atrás"
 }

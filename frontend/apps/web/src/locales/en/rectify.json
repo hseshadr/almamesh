@@ -81,5 +81,14 @@
     "fit": "Analysing",
     "results": "Results"
   },
+  "accelerator": {
+    "title": "Paste Your Story",
+    "warning": "The text you paste will be sent to your configured AI endpoint.",
+    "textarea_placeholder": "Describe key life events in plain text — dates and what happened…",
+    "submit": "Extract Events",
+    "gated_note": "Configure an AI cloud endpoint in Settings to use this feature.",
+    "empty_result": "Couldn't extract any events — add them manually using the button below.",
+    "loading": "Extracting events…"
+  },
   "back": "Back"
 }
