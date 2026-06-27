@@ -38,6 +38,7 @@ from almamesh.rectification.scorer import (
     _active_lords_at,
     _decorrelated_total,
     _event_instant,
+    _transit_houses,
     compute_transit_signs,
     extract_event_signals,
     rank_candidates,
@@ -368,3 +369,38 @@ def test_precomputed_transit_signs_match_internal_path(ctx_a: SiderealContext) -
     )
     assert slow_in_7
     assert ("slow_transit_h7" in ev_precomp.signals) == slow_in_7
+
+
+# --------------------------------------------------------------------------- #
+# Finding 1 regression: slow-graha filter in _transit_houses
+# --------------------------------------------------------------------------- #
+
+
+def test_fast_graha_transit_is_ignored_by_transit_houses(ctx_a: SiderealContext) -> None:
+    """Fast grahas in the transit map must not fire spurious slow_transit_hN signals.
+
+    Regression (Finding 1): the old implementation iterated transit_signs.values()
+    for ALL entries, so a caller passing a wider transit map (e.g. all grahas) would
+    have fast planets fire spurious slow_transit_hN signals, inflating fit scores and
+    potentially pushing a NEAR_TIE result to CONSISTENT — the anti-scam failure this
+    module is designed to prevent.
+
+    Test is RED before the filter fix: with_fast produces a strictly larger house-set
+    than slow_only because Sun's sign (Scorpio) maps to a distinct house.
+    """
+    slow_only: dict[PlanetName, ZodiacSign] = {
+        PlanetName.JUPITER: ZodiacSign.GEMINI,
+        PlanetName.SATURN: ZodiacSign.VIRGO,
+    }
+    # Sun is a fast graha in Scorpio — a third distinct sign/house from Jupiter/Saturn.
+    # Before the fix, its house leaks into the result; after the fix it is filtered out.
+    with_fast: dict[PlanetName, ZodiacSign] = {
+        **slow_only,
+        PlanetName.SUN: ZodiacSign.SCORPIO,  # fast graha — must be silently filtered
+    }
+    houses_slow = _transit_houses(ctx_a, slow_only)
+    houses_wide = _transit_houses(ctx_a, with_fast)
+    assert houses_slow == houses_wide, (
+        "Fast graha (Sun in Scorpio) must not contribute a slow_transit house; "
+        f"got {houses_wide!r}, expected {houses_slow!r}"
+    )

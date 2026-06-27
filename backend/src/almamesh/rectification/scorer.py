@@ -87,6 +87,7 @@ _SLOW_GRAHAS = (PlanetName.JUPITER, PlanetName.SATURN)
 
 # ZodiacSign -> 0..11 index, matching ``sign_index`` (Aries = 0) so a precomputed
 # sign rotates into a house-from-lagna by pure arithmetic.
+# ZodiacSign is defined in zodiac order; enumerate → Aries=0..Pisces=11.
 _SIGN_INDEX: dict[ZodiacSign, int] = {sign: i for i, sign in enumerate(ZodiacSign)}
 
 _PeriodT = TypeVar("_PeriodT", bound=DashaPeriod)
@@ -174,7 +175,9 @@ def _transit_houses(
     """Whole-sign houses-from-lagna holding a slow graha — pure per-candidate rotation."""
     lagna_idx = natal_lagna_index(context)
     return frozenset(
-        whole_sign_house(_SIGN_INDEX[sign], lagna_idx) for sign in transit_signs.values()
+        whole_sign_house(_SIGN_INDEX[sign], lagna_idx)
+        for graha, sign in transit_signs.items()
+        if graha in _SLOW_GRAHAS
     )
 
 
