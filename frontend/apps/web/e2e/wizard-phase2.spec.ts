@@ -371,9 +371,11 @@ test.describe('Phase-2 Rectification Wizard', () => {
   //   7. [data-testid="window-sign-caveat"] visible (events resolve SIGN, not minute)
   //   8. NO "%" anywhere on the results page
   //   9. ≥1 candidate card
-  //  10. Wall-clock time recorded (CONCERN logged if > 60s)
-  //  11. Confirm first candidate → /dashboard
-  //  12. Clean console (LLM 404s ignored as non-fatal)
+  //  10. NO recorded-time reference section (unknown-time → no placeholder comparison)
+  //  11. Confirm modal appears but has NO sign-flip ack checkbox (confirm not gated)
+  //  12. Confirm first candidate → /dashboard
+  //  13. Wall-clock time recorded (CONCERN logged if > 60s)
+  //  14. Clean console (LLM 404s ignored as non-fatal)
   // ---------------------------------------------------------------------------
 
   const WINDOW_NATIVE_ID = 'wizard-phase2-mumbai-unknown-1990';
@@ -601,28 +603,46 @@ test.describe('Phase-2 Rectification Wizard', () => {
     await expect(wCandidateCards.first().locator('[data-testid="confirm-button"]')).toBeVisible();
     console.log(`[wizard-window] candidateCount=${wCandidateCount}`);
 
-    // ── 14. Confirm first candidate ───────────────────────────────────────
+    // ── 13b. No recorded-time reference section (unknown-time → no placeholder) ──
+    // The fix (8b54b5d) suppresses the entire recorded-reference section when
+    // birth_time_confidence === 'unknown'. Assert it is absent.
+    await expect(
+      page.locator('[data-testid="recorded-reference"]'),
+      'recorded-reference must be ABSENT for unknown-time (no placeholder comparison)',
+    ).not.toBeVisible();
+    console.log('[wizard-window] no recorded-reference section (unknown-time) ✓');
+
+    // ── 14. Confirm first candidate (unknown-time: modal has NO flip-ack gate) ──
+    // handleConfirm always opens RegenerationConfirmModal (the regen warning).
+    // For unknown-time, isUnknownTime=true → signFlip=null in Rectify.tsx, so the
+    // modal renders WITHOUT the sign-flip ack checkbox and confirm is NOT gated:
+    // the user confirms the chosen candidate directly. (The cusp case, with a real
+    // recorded sign that flips, DOES show the checkbox + requires the ack.)
     await wCandidateCards.first().locator('[data-testid="confirm-button"]').click();
     await page.waitForTimeout(600);
 
-    // Handle RegenerationConfirmModal if it appears (sign-flip gate)
     const wModal = page.locator('[role="dialog"]');
-    if (await wModal.isVisible({ timeout: 3_000 }).catch(() => false)) {
-      console.log('[wizard-window] RegenerationConfirmModal appeared (sign-flip gate)');
-      const flipAck = page.locator('[data-testid="regen-flip-ack"] input[type="checkbox"]');
-      if (await flipAck.isVisible({ timeout: 2_000 }).catch(() => false)) {
-        await flipAck.check();
-        await page.waitForTimeout(250);
-      }
-      const wFooterBtns = wModal.locator('[class*="px-6"][class*="py-4"] button');
-      const wBtnCount = await wFooterBtns.count();
-      if (wBtnCount > 0) {
-        await wFooterBtns.last().click();
-      } else {
-        await wModal.locator('button').filter({ hasText: /confirm|yes|use/i }).first().click();
-      }
-      await page.waitForTimeout(600);
+    await expect(wModal, 'regeneration modal must appear on confirm').toBeVisible({
+      timeout: 5_000,
+    });
+
+    // The sign-flip ack checkbox must be ABSENT for unknown-time — there is no
+    // recorded sign to flip away from, so no acknowledgement is required.
+    await expect(
+      page.locator('[data-testid="regen-flip-ack"]'),
+      'flip-ack checkbox must be ABSENT for unknown-time (no recorded sign to flip from)',
+    ).toHaveCount(0);
+    console.log('[wizard-window] modal present, NO flip-ack checkbox (unknown-time direct confirm) ✓');
+
+    // Confirm directly — the gold Confirm button is enabled without any ack tick.
+    const wFooterBtns = wModal.locator('[class*="px-6"][class*="py-4"] button');
+    const wBtnCount = await wFooterBtns.count();
+    if (wBtnCount > 0) {
+      await wFooterBtns.last().click();
+    } else {
+      await wModal.locator('button').filter({ hasText: /confirm|yes|use/i }).first().click();
     }
+    await page.waitForTimeout(600);
     await page.screenshot({ path: `${SCRATCHPAD}/window-07-post-confirm.png`, fullPage: true });
 
     // ── 15. Verify /dashboard reached ─────────────────────────────────────
