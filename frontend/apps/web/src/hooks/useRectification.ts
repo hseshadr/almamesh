@@ -39,6 +39,7 @@ import type {
   RectificationMode,
   RectificationResult,
 } from '@almamesh/shared-types';
+import type { TimeConfidence } from '@almamesh/constants';
 import type { RectificationInput } from '@almamesh/browser/types';
 import { useOptionalChartEngine } from '../providers/chartEngineContext';
 import { predictiveReferenceInstant } from '../lib/predictive';
@@ -106,6 +107,35 @@ function buildWireInput(
   };
 }
 
+/**
+ * Pick the rectification mode that best matches what the engine can do for
+ * this profile's birth time:
+ *
+ *  - `'window'`  when time is unknown or a rough estimate — the engine ranks
+ *                all 12 rising signs across the whole day (no sub-minute claim).
+ *  - `'cusp'`    when time is reasonably known (exact / approximate), including
+ *                the near-cusp case where comparing the two adjacent candidates
+ *                is still meaningful.
+ *
+ * Falls back to `'cusp'` when confidence is absent (no stored chart, older
+ * bundle without the field, etc.) — cusp mode is the safer default because it
+ * makes no day-span assumption.
+ */
+function detectRectificationMode(
+  charts: Readonly<Record<string, StoredChart>>,
+  profileId: string,
+): RectificationMode {
+  const candidates = Object.values(charts).filter((c) => c.profile_id === profileId);
+  const primary = candidates.find((c) => c.is_primary) ?? candidates[0];
+  if (primary == null) return 'cusp';
+
+  const birth = primary.birth_data as ProcessedBirthData | undefined;
+  const timeConf = birth?.birth_time_confidence as TimeConfidence | undefined;
+
+  if (timeConf === 'unknown' || timeConf === 'rough') return 'window';
+  return 'cusp';
+}
+
 // ---------------------------------------------------------------------------
 // Public types
 // ---------------------------------------------------------------------------
@@ -122,6 +152,13 @@ export interface UseRectificationResult {
   readonly engineReady: boolean;
   /** True when the profile has ≥ 1 life event with both a date and a category. */
   readonly hasEnoughEvents: boolean;
+  /**
+   * The mode the wizard should use for this profile, derived from
+   * `birth_time_confidence`:
+   *  - `'window'` for unknown / rough birth times (whole-day sign ranking)
+   *  - `'cusp'`   for exact / approximate times (two-candidate comparison)
+   */
+  readonly detectedMode: RectificationMode;
   /** Kick off a rectification run with the given mode. No-op if not ready. */
   readonly run: (mode: RectificationMode) => Promise<void>;
   /** Reset the store to idle (clears any previous result or error). */
@@ -145,6 +182,12 @@ export function useRectification(profileId: string): UseRectificationResult {
   // Birth description from the chart library (reactive: re-derives if charts update).
   const charts = useChartLibraryStore((s) => s.charts);
   const birth = useMemo(() => birthDescForProfile(charts, profileId), [charts, profileId]);
+
+  // Mode auto-detection: derived from birth_time_confidence in the stored chart.
+  const detectedMode = useMemo(
+    () => detectRectificationMode(charts, profileId),
+    [charts, profileId],
+  );
 
   // Rectification store state (reactive selectors).
   const status = useRectificationStore((s) => s.status);
@@ -237,6 +280,7 @@ export function useRectification(profileId: string): UseRectificationResult {
     state: { status, result, error: storeError },
     engineReady: engine !== null,
     hasEnoughEvents,
+    detectedMode,
     run,
     reset,
     retry,

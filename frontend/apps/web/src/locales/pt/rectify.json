@@ -55,7 +55,8 @@
     "near_tie_settle_note": "Apenas um registro de nascimento pode resolver um empate próximo. Ambos os candidatos são plausíveis — avalie-os com base na sua experiência vivida.",
     "recorded_reference_label": "Seu horário registrado",
     "candidate_label": "Candidato {{rank}}",
-    "evidence_table_label": "Eventos de vida de apoio"
+    "evidence_table_label": "Eventos de vida de apoio",
+    "window_caveat": "Os eventos determinam apenas o signo ascendente, não o minuto exato. O horário representativo mostrado é ilustrativo — ele o posiciona dentro do signo, não em um momento de nascimento preciso."
   },
   "wizard": {
     "title": "Refinar seu horário de nascimento"
@@ -71,7 +72,9 @@
     "body": "O motor no dispositivo está comparando janelas de nascimento candidatas com seus eventos de vida. Isso geralmente leva alguns segundos.",
     "engine_warming": "O motor de gráfico ainda está aquecendo. A análise começará automaticamente quando estiver pronto.",
     "error_heading": "Análise falhou",
-    "retry": "Tentar novamente"
+    "retry": "Tentar novamente",
+    "elapsed": "{{seconds}}s decorridos",
+    "device_note": "Ajustando seus eventos com os gráficos candidatos. Isso é executado inteiramente no seu dispositivo."
   },
   "steps": {
     "intro": "Introdução",

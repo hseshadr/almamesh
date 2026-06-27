@@ -201,6 +201,7 @@ describe('RectifyPage', () => {
       state: { status: 'idle', result: null, error: null },
       engineReady: true,
       hasEnoughEvents: true,
+      detectedMode: 'cusp' as const,
       run: mockRun as never,
       reset: mockReset as never,
       retry: vi.fn() as never,
@@ -233,6 +234,7 @@ describe('RectifyPage', () => {
       state: { status: 'ready', result: MOCK_RESULT as never, error: null },
       engineReady: true,
       hasEnoughEvents: true,
+      detectedMode: 'cusp' as const,
       run: mockRun as never,
       reset: mockReset as never,
       retry: vi.fn() as never,
@@ -340,5 +342,22 @@ describe('RectifyPage', () => {
 
     expect(appEvents.emit).not.toHaveBeenCalled();
     expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
+  });
+
+  it('window mode: run is called with "window" when detectedMode is window', async () => {
+    vi.mocked(useRectification).mockReturnValue({
+      state: { status: 'idle', result: null, error: null },
+      engineReady: true,
+      hasEnoughEvents: true,
+      detectedMode: 'window' as const,
+      run: mockRun as never,
+      reset: mockReset as never,
+      retry: vi.fn() as never,
+    });
+
+    renderRectify();
+    fireEvent.click(await screen.findByTestId('intro-start-btn'));
+    fireEvent.click(await screen.findByTestId('events-continue-btn'));
+    expect(mockRun).toHaveBeenCalledWith('window');
   });
 });

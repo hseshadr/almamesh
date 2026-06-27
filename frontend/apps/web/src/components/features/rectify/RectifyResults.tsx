@@ -78,9 +78,23 @@ export function RectifyResults({
       : null;
 
   const isNearTie = band === 'near_tie';
+  const isWindowMode = result.mode === 'window';
 
   return (
     <div className="flex flex-col gap-6">
+      {/* ── Window mode: sign-level caveat (not minute-level) ───────────── */}
+      {isWindowMode && (
+        <div
+          data-testid="window-sign-caveat"
+          className="rounded-md border border-accent-blue/30 bg-accent-blue/5 px-4 py-3"
+          role="note"
+        >
+          <p className="text-sm leading-relaxed text-accent-blue">
+            {t('results.window_caveat')}
+          </p>
+        </div>
+      )}
+
       {/* ── Header: band label + honesty note ──────────────────────────── */}
       <div>
         <p

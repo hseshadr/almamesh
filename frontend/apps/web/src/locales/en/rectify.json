@@ -54,7 +54,8 @@
     "near_tie_settle_note": "Only a recorded birth certificate can settle a near-tie. Both candidates below are plausible — weigh them against your lived experience.",
     "recorded_reference_label": "Your recorded time",
     "candidate_label": "Candidate {{rank}}",
-    "evidence_table_label": "Supporting life events"
+    "evidence_table_label": "Supporting life events",
+    "window_caveat": "Events narrow the rising sign only, not the exact minute. The representative time shown is illustrative — it places you within the sign, not at a precise birth moment."
   },
   "wizard": {
     "title": "Refine Your Birth Time"
@@ -70,7 +71,9 @@
     "body": "The on-device engine is comparing candidate birth windows against your life events. This usually takes a few seconds.",
     "engine_warming": "The chart engine is still warming up. The analysis will start automatically once it is ready.",
     "error_heading": "Analysis failed",
-    "retry": "Retry"
+    "retry": "Retry",
+    "elapsed": "{{seconds}}s elapsed",
+    "device_note": "Fitting your events against candidate charts. This runs entirely on your device."
   },
   "steps": {
     "intro": "Introduction",

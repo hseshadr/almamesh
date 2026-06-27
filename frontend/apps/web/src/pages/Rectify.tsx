@@ -14,6 +14,7 @@ import { appEvents, type BirthMeta, useChartLibraryStore, useProfilesStore } fro
 import type { ProcessedBirthData, RectificationCandidate } from '@almamesh/shared-types';
 import { useRectification } from '../hooks/useRectification';
 import { EventEntryStep } from '../components/features/rectify/EventEntryStep';
+import { FitProgress } from '../components/features/rectify/FitProgress';
 import { RectifyResults } from '../components/features/rectify/RectifyResults';
 import { RegenerationConfirmModal } from '../components/features/settings/RegenerationConfirmModal';
 
@@ -24,18 +25,21 @@ export function RectifyPage(): ReactElement {
   const navigate = useNavigate();
   const { t } = useTranslation('rectify');
 
-  const { state, engineReady, run, retry } = useRectification(profileId);
+  const { state, engineReady, detectedMode, run, retry } = useRectification(profileId);
 
   const [step, setStep] = useState<WizardStep>('intro');
   const [pendingCandidate, setPendingCandidate] = useState<RectificationCandidate | null>(null);
   const [showModal, setShowModal] = useState(false);
 
-  // Kick off cusp analysis when the fit step becomes active.
+  // Kick off the rectification when the fit step becomes active.
+  // Mode is auto-detected from the profile's birth_time_confidence:
+  //   'unknown'/'rough' → 'window' (whole-day sign ranking)
+  //   'exact'/'approximate' → 'cusp' (two-candidate comparison)
   useEffect(() => {
     if (step === 'fit' && state.status === 'idle') {
-      void run('cusp');
+      void run(detectedMode);
     }
-  }, [step, state.status, run]);
+  }, [step, state.status, run, detectedMode]);
 
   // Transition fit → results once the engine finishes.
   useEffect(() => {
@@ -167,7 +171,7 @@ export function RectifyPage(): ReactElement {
           ) : !engineReady ? (
             <p className="text-sm text-text-secondary">{t('fit.engine_warming')}</p>
           ) : (
-            <p className="text-sm text-text-secondary">{t('fit.body')}</p>
+            <FitProgress />
           )}
         </div>
       )}

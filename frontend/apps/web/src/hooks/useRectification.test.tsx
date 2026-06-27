@@ -296,3 +296,91 @@ describe('useRectification', () => {
     expect(result.current.state.status).toBe('idle');
   });
 });
+
+// ---------------------------------------------------------------------------
+// detectedMode — auto-selects 'window' for unknown/rough, 'cusp' otherwise
+// ---------------------------------------------------------------------------
+
+describe('detectedMode', () => {
+  it('is "window" when birth_time_confidence is "unknown"', () => {
+    const chart = {
+      ...syntheticChart(),
+      birth_data: {
+        ...syntheticChart().birth_data,
+        birth_time_confidence: 'unknown',
+      },
+    } as StoredChart;
+    useChartLibraryStore.setState({ charts: { [CHART_ID]: chart }, hydrated: true });
+
+    const ctx = makeEngineCtx();
+    const { result } = renderHook(() => useRectification(PROFILE_ID), {
+      wrapper: makeWrapper(ctx),
+    });
+
+    expect(result.current.detectedMode).toBe('window');
+  });
+
+  it('is "window" when birth_time_confidence is "rough"', () => {
+    const chart = {
+      ...syntheticChart(),
+      birth_data: {
+        ...syntheticChart().birth_data,
+        birth_time_confidence: 'rough',
+      },
+    } as StoredChart;
+    useChartLibraryStore.setState({ charts: { [CHART_ID]: chart }, hydrated: true });
+
+    const ctx = makeEngineCtx();
+    const { result } = renderHook(() => useRectification(PROFILE_ID), {
+      wrapper: makeWrapper(ctx),
+    });
+
+    expect(result.current.detectedMode).toBe('window');
+  });
+
+  it('is "cusp" when birth_time_confidence is "exact"', () => {
+    const chart = {
+      ...syntheticChart(),
+      birth_data: {
+        ...syntheticChart().birth_data,
+        birth_time_confidence: 'exact',
+      },
+    } as StoredChart;
+    useChartLibraryStore.setState({ charts: { [CHART_ID]: chart }, hydrated: true });
+
+    const ctx = makeEngineCtx();
+    const { result } = renderHook(() => useRectification(PROFILE_ID), {
+      wrapper: makeWrapper(ctx),
+    });
+
+    expect(result.current.detectedMode).toBe('cusp');
+  });
+
+  it('is "cusp" when birth_time_confidence is "approximate"', () => {
+    const chart = {
+      ...syntheticChart(),
+      birth_data: {
+        ...syntheticChart().birth_data,
+        birth_time_confidence: 'approximate',
+      },
+    } as StoredChart;
+    useChartLibraryStore.setState({ charts: { [CHART_ID]: chart }, hydrated: true });
+
+    const ctx = makeEngineCtx();
+    const { result } = renderHook(() => useRectification(PROFILE_ID), {
+      wrapper: makeWrapper(ctx),
+    });
+
+    expect(result.current.detectedMode).toBe('cusp');
+  });
+
+  it('defaults to "cusp" when birth_time_confidence is absent', () => {
+    // syntheticChart() has no birth_time_confidence — default should be 'cusp'
+    const ctx = makeEngineCtx();
+    const { result } = renderHook(() => useRectification(PROFILE_ID), {
+      wrapper: makeWrapper(ctx),
+    });
+
+    expect(result.current.detectedMode).toBe('cusp');
+  });
+});

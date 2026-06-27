@@ -266,3 +266,72 @@ describe('RectifyResults — near_tie band', () => {
     expect(container.textContent).not.toContain('%');
   });
 });
+
+// ---------------------------------------------------------------------------
+// Window mode caveat (sign-level, not minute-level)
+// ---------------------------------------------------------------------------
+
+const WINDOW_RESULT: RectificationResult = {
+  mode: 'window',
+  band: 'leans',
+  margin: 0.25,
+  discriminatingEventCount: 2,
+  recordedTimeSign: null,
+  honestyNoteKey: 'rectify.honesty.leans',
+  candidates: [CANDIDATE_A, CANDIDATE_B],
+};
+
+describe('RectifyResults — window mode caveat', () => {
+  beforeEach(() => {
+    useLanguageStore.setState({ language: 'en' });
+  });
+
+  it('renders the sign-level caveat when mode is "window"', () => {
+    render(
+      <RectifyResults
+        result={WINDOW_RESULT}
+        recordedReading={null}
+        onConfirm={vi.fn()}
+        onKeepRecorded={vi.fn()}
+      />,
+    );
+    expect(screen.getByTestId('window-sign-caveat')).toBeTruthy();
+  });
+
+  it('window caveat text explains sign-level resolution (not minute-level)', () => {
+    render(
+      <RectifyResults
+        result={WINDOW_RESULT}
+        recordedReading={null}
+        onConfirm={vi.fn()}
+        onKeepRecorded={vi.fn()}
+      />,
+    );
+    const caveat = screen.getByTestId('window-sign-caveat');
+    expect(caveat.textContent).toMatch(/sign|minute|illustrative/i);
+  });
+
+  it('does NOT render the window caveat for cusp mode', () => {
+    render(
+      <RectifyResults
+        result={CONSISTENT_RESULT}
+        recordedReading={RECORDED_READING}
+        onConfirm={vi.fn()}
+        onKeepRecorded={vi.fn()}
+      />,
+    );
+    expect(screen.queryByTestId('window-sign-caveat')).toBeNull();
+  });
+
+  it('contains NO "%" in the window mode output', () => {
+    const { container } = render(
+      <RectifyResults
+        result={WINDOW_RESULT}
+        recordedReading={null}
+        onConfirm={vi.fn()}
+        onKeepRecorded={vi.fn()}
+      />,
+    );
+    expect(container.textContent).not.toContain('%');
+  });
+});
