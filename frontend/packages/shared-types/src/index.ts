@@ -1265,6 +1265,88 @@ export interface AstrologicalQuestionResponse extends BaseResponse {
 // Rectification Types
 // ============================================================================
 
+// Life event category vocabulary for birth-time rectification (Phase 2)
+export type LifeEventCategory =
+  | 'marriage'
+  | 'engagement'
+  | 'breakup'
+  | 'childbirth'
+  | 'career_change'
+  | 'promotion'
+  | 'job_loss'
+  | 'business_start'
+  | 'relocation'
+  | 'property_purchase'
+  | 'windfall'
+  | 'expense_shock'
+  | 'health_issue'
+  | 'surgery'
+  | 'higher_studies'
+  | 'litigation';
+
+/** All 16 life-event categories for rectification. */
+export const LIFE_EVENT_CATEGORIES: readonly LifeEventCategory[] = [
+  'marriage',
+  'engagement',
+  'breakup',
+  'childbirth',
+  'career_change',
+  'promotion',
+  'job_loss',
+  'business_start',
+  'relocation',
+  'property_purchase',
+  'windfall',
+  'expense_shock',
+  'health_issue',
+  'surgery',
+  'higher_studies',
+  'litigation',
+];
+
+// Rectification result mode (cusp-based or window-based time-fitting)
+export type RectificationMode = 'cusp' | 'window';
+
+// Confidence band for a rectification result (how near the tie between candidates)
+export type RectificationBand = 'near_tie' | 'leans' | 'consistent';
+
+/** Life event input for rectification analysis. */
+export interface RectificationEventInput {
+  readonly date: string;
+  readonly category: LifeEventCategory;
+}
+
+/** Supporting evidence for a life event in the rectification result. */
+export interface EventEvidence {
+  readonly eventIndex: number;
+  readonly category: LifeEventCategory;
+  readonly date: string;
+  readonly signals: readonly string[];
+  readonly contribution: number;
+}
+
+/** One candidate rectified time with supporting event evidence. */
+export interface RectificationCandidate {
+  readonly ascendantSign: string;
+  readonly representativeTimeLocal: string;
+  readonly lagnaLongitudeDeg: number;
+  readonly lagnaCuspDistanceDeg: number;
+  readonly isNearCusp: boolean;
+  readonly fitScore: number;
+  readonly supportingEvents: readonly EventEvidence[];
+}
+
+/** The complete rectification result: mode, candidates, margin, band, honesty note. */
+export interface RectificationResult {
+  readonly mode: RectificationMode;
+  readonly candidates: readonly RectificationCandidate[];
+  readonly margin: number;
+  readonly band: RectificationBand;
+  readonly discriminatingEventCount: number;
+  readonly recordedTimeSign: string | null;
+  readonly honestyNoteKey: string;
+}
+
 export type ConsentLevel = 'basic' | 'standard' | 'detailed';
 
 export type LifeEventType =
