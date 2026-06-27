@@ -22,7 +22,7 @@ import { RectifyResults } from './RectifyResults';
 
 const CANDIDATE_A: RectificationCandidate = {
   ascendantSign: 'Pisces',
-  representativeTimeLocal: '06:00',
+  representativeTimeLocal: '07:45',
   lagnaLongitudeDeg: 333.8,
   lagnaCuspDistanceDeg: 3.8,
   isNearCusp: false,
@@ -47,7 +47,7 @@ const CANDIDATE_A: RectificationCandidate = {
 
 const CANDIDATE_B: RectificationCandidate = {
   ascendantSign: 'Aquarius',
-  representativeTimeLocal: '05:45',
+  representativeTimeLocal: '07:30',
   lagnaLongitudeDeg: 328.82,
   lagnaCuspDistanceDeg: 1.18,
   isNearCusp: true,
@@ -76,7 +76,7 @@ const NEAR_TIE_RESULT: RectificationResult = {
 };
 
 const RECORDED_READING: CandidateReading = {
-  time: '05:45',
+  time: '07:30',
   sign: 'Aquarius',
   signDegrees: 28.82,
 };

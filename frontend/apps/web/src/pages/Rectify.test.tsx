@@ -129,15 +129,15 @@ const MOCK_CHART = {
   is_primary: true,
   person_name: 'Test User',
   birth_data: {
-    birth_datetime_utc: '1990-05-15T00:30:00Z',
-    birth_datetime_local: '1990-05-15T06:00',
+    birth_datetime_utc: '1990-05-15T02:00:00Z',
+    birth_datetime_local: '1990-05-15T07:30',
     birth_location_details: {
       latitude: 18.5,
       longitude: 73.8,
       timezone: 'Asia/Kolkata',
       location_name: 'Pune, India',
     },
-    birth_time_original: '05:45',
+    birth_time_original: '07:30',
   },
 };
 
@@ -146,7 +146,7 @@ const MOCK_RESULT = {
   candidates: [
     {
       ascendantSign: 'pisces',
-      representativeTimeLocal: '06:00',
+      representativeTimeLocal: '07:45',
       lagnaLongitudeDeg: 333.8,
       lagnaCuspDistanceDeg: 3.8,
       isNearCusp: true,
@@ -155,7 +155,7 @@ const MOCK_RESULT = {
     },
     {
       ascendantSign: 'aquarius',
-      representativeTimeLocal: '05:45',
+      representativeTimeLocal: '07:30',
       lagnaLongitudeDeg: 328.8,
       lagnaCuspDistanceDeg: 1.2,
       isNearCusp: true,
@@ -319,8 +319,8 @@ describe('RectifyPage', () => {
       'birth-info-changed',
       expect.objectContaining({
         birth: expect.objectContaining({
-          time: '05:45',
-          rectifiedTime: '06:00',
+          time: '07:30',
+          rectifiedTime: '07:45',
           latitude: 18.5,
           longitude: 73.8,
         }),

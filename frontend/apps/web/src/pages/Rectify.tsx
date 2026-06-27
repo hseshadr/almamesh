@@ -56,9 +56,10 @@ export function RectifyPage(): ReactElement {
     return { from: recordedTimeSign, to: pendingCandidate.ascendantSign };
   }, [pendingCandidate, state.result]);
 
+  const charts = useChartLibraryStore((s) => s.charts);
+
   const recordedReading = useMemo(() => {
     if (state.result?.recordedTimeSign == null) return null;
-    const charts = useChartLibraryStore.getState().charts;
     const chart =
       Object.values(charts).find((c) => c.profile_id === profileId && c.is_primary) ??
       Object.values(charts).find((c) => c.profile_id === profileId);
@@ -71,7 +72,7 @@ export function RectifyPage(): ReactElement {
       sign: state.result.recordedTimeSign,
       signDegrees: 0,
     };
-  }, [state.result, profileId]);
+  }, [state.result, profileId, charts]);
 
   // ---------------------------------------------------------------------------
   // Handlers
