@@ -4,6 +4,14 @@
 rectification-as-authority. Phase 1 (engine cusp fields + honest as-recorded/rectified UX) already
 shipped at `0fdc3d9`.
 
+**Shipped:** 2026-06-27. All 4 slices landed: contract+store+entry UI; cusp engine+results+confirm;
+window/unknown-time mode; optional LLM accelerator (`structureLifeEvents` + `RECTIFICATION_FENCE`).
+Gates green: backend pytest, parity 14/14, frontend typecheck + Vitest. Live-validated end-to-end
+for both cusp and unknown-time modes on synthetic natives. The `/rectify/:profileId` wizard is
+reachable from 3 CTAs (onboarding, ProfileSettings, dashboard cusp callout); confirm routes through
+the existing birth-info-changed→regenerate pipeline. The e2e spec (`wizard-phase2.spec.ts`) is a
+manually-run live gate (same pattern as `verify-*.mjs`), not wired to CI.
+
 ## TL;DR
 
 A `/rectify` wizard. The user enters **dated, categorized** life events. The **Python engine** scores
