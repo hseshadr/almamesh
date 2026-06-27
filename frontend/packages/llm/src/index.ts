@@ -70,7 +70,9 @@ export type {
   MeshReadingSectionKey,
   MeshReadingParams,
 } from "./mesh-reading";
-export { ANTI_SCAM_RELATIONSHIP_FENCE } from "./prompt";
+export { ANTI_SCAM_RELATIONSHIP_FENCE, RECTIFICATION_FENCE } from "./prompt";
+
+export { structureLifeEvents } from "./structure-life-events";
 
 export {
   isLocalEndpoint,
