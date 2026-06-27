@@ -29,5 +29,30 @@
     "delete": "Excluir",
     "continue": "Continuar",
     "min_events_hint": "Adicione pelo menos um evento com data e categoria para continuar."
+  },
+  "band": {
+    "near_tie": "Empate próximo",
+    "leans": "Tende para",
+    "consistent": "Consistente"
+  },
+  "honesty": {
+    "near_tie": "Os eventos que você forneceu não favorecem claramente um candidato em relação ao outro. Ambos são plausíveis. Apenas um registro de nascimento pode resolver um empate próximo — este resultado é uma hipótese, não um veredicto.",
+    "leans": "As evidências tendem para um candidato, mas a margem é modesta. Trate isso como uma hipótese de trabalho para contrastar com sua experiência vivida, não como uma conclusão definitiva.",
+    "consistent": "Os eventos apoiam consistentemente o candidato principal. Mesmo assim, nenhum algoritmo substitui um registro de nascimento. Use este horário como ponto de partida, não como uma certeza."
+  },
+  "signals": {
+    "dasha_lord_rules": "O senhor da dasa rege a casa {{house}}",
+    "dasha_lord_in": "O senhor da dasa está na casa {{house}}",
+    "slow_transit": "Planeta lento em trânsito pela casa {{house}}"
+  },
+  "results": {
+    "title": "Resultados de Retificação",
+    "representative_time_label": "Horário representativo",
+    "representative_caveat": "Este é um horário representativo para esta janela — não uma afirmação ao minuto exato.",
+    "confirm": "Usar este horário",
+    "keep_recorded": "Manter meu horário registrado",
+    "near_tie_settle_note": "Apenas um registro de nascimento pode resolver um empate próximo. Ambos os candidatos são plausíveis — avalie-os com base na sua experiência vivida.",
+    "recorded_reference_label": "Seu horário registrado",
+    "candidate_label": "Candidato {{rank}}"
   }
 }

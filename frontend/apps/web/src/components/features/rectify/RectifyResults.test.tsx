@@ -1,0 +1,231 @@
+/**
+ * RectifyResults — honest results UI (bands, evidence, no false precision).
+ *
+ * Anti-scam invariants enforced at the render boundary:
+ *  - NEVER a headline percentage anywhere in the output
+ *  - near_tie: BOTH top candidates shown + explicit "only recorded time settles this" copy
+ *  - signal machine keys translated to localized phrases before display
+ *  - representative time is clearly labelled as such (not an exact claim)
+ */
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { useLanguageStore } from '@almamesh/store';
+import type { RectificationResult, RectificationCandidate } from '@almamesh/shared-types';
+
+import '../../../i18n/config';
+import type { CandidateReading } from '../settings/BirthTimeComparison';
+import { RectifyResults } from './RectifyResults';
+
+// ---------------------------------------------------------------------------
+// Fixtures — synthetic birth data only; no real PII
+// ---------------------------------------------------------------------------
+
+const CANDIDATE_A: RectificationCandidate = {
+  ascendantSign: 'Pisces',
+  representativeTimeLocal: '06:00',
+  lagnaLongitudeDeg: 333.8,
+  lagnaCuspDistanceDeg: 3.8,
+  isNearCusp: false,
+  fitScore: 12.5,
+  supportingEvents: [
+    {
+      eventIndex: 0,
+      category: 'marriage',
+      date: '1998-12-05',
+      signals: ['dasha_lord_rules_h7', 'slow_transit_h7'],
+      contribution: 5.0,
+    },
+    {
+      eventIndex: 1,
+      category: 'career_change',
+      date: '2005-03-15',
+      signals: ['dasha_lord_in_h10'],
+      contribution: 4.5,
+    },
+  ],
+};
+
+const CANDIDATE_B: RectificationCandidate = {
+  ascendantSign: 'Aquarius',
+  representativeTimeLocal: '05:45',
+  lagnaLongitudeDeg: 328.82,
+  lagnaCuspDistanceDeg: 1.18,
+  isNearCusp: true,
+  fitScore: 4.0,
+  supportingEvents: [],
+};
+
+const CONSISTENT_RESULT: RectificationResult = {
+  mode: 'cusp',
+  band: 'consistent',
+  margin: 8.5,
+  discriminatingEventCount: 3,
+  recordedTimeSign: 'Aquarius',
+  honestyNoteKey: 'rectify.honesty.consistent',
+  candidates: [CANDIDATE_A, CANDIDATE_B],
+};
+
+const NEAR_TIE_RESULT: RectificationResult = {
+  mode: 'cusp',
+  band: 'near_tie',
+  margin: 0.5,
+  discriminatingEventCount: 1,
+  recordedTimeSign: 'Aquarius',
+  honestyNoteKey: 'rectify.honesty.near_tie',
+  candidates: [CANDIDATE_A, CANDIDATE_B],
+};
+
+const RECORDED_READING: CandidateReading = {
+  time: '05:45',
+  sign: 'Aquarius',
+  signDegrees: 28.82,
+};
+
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
+
+describe('RectifyResults — consistent band', () => {
+  beforeEach(() => {
+    useLanguageStore.setState({ language: 'en' });
+  });
+
+  it('renders the band label', () => {
+    render(
+      <RectifyResults
+        result={CONSISTENT_RESULT}
+        recordedReading={RECORDED_READING}
+        onConfirm={vi.fn()}
+        onKeepRecorded={vi.fn()}
+      />,
+    );
+    expect(screen.getByTestId('band-label').textContent).toBeTruthy();
+  });
+
+  it('renders the honesty note', () => {
+    render(
+      <RectifyResults
+        result={CONSISTENT_RESULT}
+        recordedReading={RECORDED_READING}
+        onConfirm={vi.fn()}
+        onKeepRecorded={vi.fn()}
+      />,
+    );
+    expect(screen.getByTestId('honesty-note')).toBeTruthy();
+  });
+
+  it('renders evidence rows with localized signal phrases — not raw machine keys', () => {
+    const { container } = render(
+      <RectifyResults
+        result={CONSISTENT_RESULT}
+        recordedReading={RECORDED_READING}
+        onConfirm={vi.fn()}
+        onKeepRecorded={vi.fn()}
+      />,
+    );
+    // Raw signal machine keys must NOT appear in the output
+    expect(container.textContent).not.toContain('dasha_lord_rules_h7');
+    expect(container.textContent).not.toContain('slow_transit_h7');
+    expect(container.textContent).not.toContain('dasha_lord_in_h10');
+    // Localized forms: house numbers should appear
+    expect(container.textContent).toContain('7');
+    expect(container.textContent).toContain('10');
+  });
+
+  it('renders the recorded-time reference section', () => {
+    render(
+      <RectifyResults
+        result={CONSISTENT_RESULT}
+        recordedReading={RECORDED_READING}
+        onConfirm={vi.fn()}
+        onKeepRecorded={vi.fn()}
+      />,
+    );
+    expect(screen.getByTestId('recorded-reference')).toBeTruthy();
+  });
+
+  it('contains NO "%" character anywhere in the rendered output', () => {
+    const { container } = render(
+      <RectifyResults
+        result={CONSISTENT_RESULT}
+        recordedReading={RECORDED_READING}
+        onConfirm={vi.fn()}
+        onKeepRecorded={vi.fn()}
+      />,
+    );
+    expect(container.textContent).not.toContain('%');
+  });
+
+  it('confirm button calls onConfirm with the top candidate', () => {
+    const onConfirm = vi.fn();
+    render(
+      <RectifyResults
+        result={CONSISTENT_RESULT}
+        recordedReading={RECORDED_READING}
+        onConfirm={onConfirm}
+        onKeepRecorded={vi.fn()}
+      />,
+    );
+    // First confirm button = top candidate (index 0)
+    const confirmButtons = screen.getAllByTestId('confirm-button');
+    fireEvent.click(confirmButtons[0]);
+    expect(onConfirm).toHaveBeenCalledWith(CANDIDATE_A);
+  });
+
+  it('keep-recorded button calls onKeepRecorded', () => {
+    const onKeepRecorded = vi.fn();
+    render(
+      <RectifyResults
+        result={CONSISTENT_RESULT}
+        recordedReading={RECORDED_READING}
+        onConfirm={vi.fn()}
+        onKeepRecorded={onKeepRecorded}
+      />,
+    );
+    fireEvent.click(screen.getByTestId('keep-recorded-button'));
+    expect(onKeepRecorded).toHaveBeenCalled();
+  });
+});
+
+describe('RectifyResults — near_tie band', () => {
+  beforeEach(() => {
+    useLanguageStore.setState({ language: 'en' });
+  });
+
+  it('renders BOTH top candidate cards', () => {
+    render(
+      <RectifyResults
+        result={NEAR_TIE_RESULT}
+        recordedReading={RECORDED_READING}
+        onConfirm={vi.fn()}
+        onKeepRecorded={vi.fn()}
+      />,
+    );
+    const cards = screen.getAllByTestId('candidate-card');
+    expect(cards.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('renders the "only recorded time settles this" copy', () => {
+    render(
+      <RectifyResults
+        result={NEAR_TIE_RESULT}
+        recordedReading={RECORDED_READING}
+        onConfirm={vi.fn()}
+        onKeepRecorded={vi.fn()}
+      />,
+    );
+    expect(screen.getByTestId('near-tie-settle-note')).toBeTruthy();
+  });
+
+  it('contains NO "%" character anywhere in the near_tie output', () => {
+    const { container } = render(
+      <RectifyResults
+        result={NEAR_TIE_RESULT}
+        recordedReading={RECORDED_READING}
+        onConfirm={vi.fn()}
+        onKeepRecorded={vi.fn()}
+      />,
+    );
+    expect(container.textContent).not.toContain('%');
+  });
+});

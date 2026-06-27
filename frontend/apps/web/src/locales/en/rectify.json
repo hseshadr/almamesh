@@ -28,5 +28,30 @@
     "delete": "Delete",
     "continue": "Continue",
     "min_events_hint": "Add at least one event with a date and category to continue."
+  },
+  "band": {
+    "near_tie": "Near Tie",
+    "leans": "Leans Toward",
+    "consistent": "Consistent"
+  },
+  "honesty": {
+    "near_tie": "The events you provided do not clearly favour one candidate time over the other. Both are plausible. Only a recorded birth certificate can settle a near-tie — this result is a hypothesis, not a verdict.",
+    "leans": "The evidence leans toward one candidate, but the margin is modest. Treat this as a working hypothesis to weigh against your lived experience — not a definitive finding.",
+    "consistent": "The events consistently support the leading candidate. Even so, no algorithm replaces a recorded birth certificate. Use this time as a starting point, not a certainty."
+  },
+  "signals": {
+    "dasha_lord_rules": "Dasha lord rules the {{houseOrdinal}} house",
+    "dasha_lord_in": "Dasha lord is placed in the {{houseOrdinal}} house",
+    "slow_transit": "Slow planet transiting the {{houseOrdinal}} house"
+  },
+  "results": {
+    "title": "Rectification Results",
+    "representative_time_label": "Representative time",
+    "representative_caveat": "This is a representative time for this window — not a claim to the exact minute.",
+    "confirm": "Use this time",
+    "keep_recorded": "Keep my recorded time",
+    "near_tie_settle_note": "Only a recorded birth certificate can settle a near-tie. Both candidates below are plausible — weigh them against your lived experience.",
+    "recorded_reference_label": "Your recorded time",
+    "candidate_label": "Candidate {{rank}}"
   }
 }

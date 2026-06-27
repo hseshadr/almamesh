@@ -29,5 +29,30 @@
     "delete": "Eliminar",
     "continue": "Continuar",
     "min_events_hint": "Agrega al menos un evento con fecha y categoría para continuar."
+  },
+  "band": {
+    "near_tie": "Empate cercano",
+    "leans": "Se inclina hacia",
+    "consistent": "Consistente"
+  },
+  "honesty": {
+    "near_tie": "Los eventos que proporcionaste no favorecen claramente a un candidato sobre el otro. Ambos son plausibles. Solo un certificado de nacimiento registrado puede resolver un empate cercano: este resultado es una hipótesis, no un veredicto.",
+    "leans": "La evidencia se inclina hacia un candidato, pero el margen es modesto. Trata esto como una hipótesis de trabajo para contrastar con tu experiencia vivida, no como un hallazgo definitivo.",
+    "consistent": "Los eventos apoyan consistentemente al candidato principal. Aun así, ningún algoritmo reemplaza un certificado de nacimiento registrado. Usa este horario como punto de partida, no como una certeza."
+  },
+  "signals": {
+    "dasha_lord_rules": "El señor de la dasa rige la casa {{house}}",
+    "dasha_lord_in": "El señor de la dasa está en la casa {{house}}",
+    "slow_transit": "Planeta lento en tránsito por la casa {{house}}"
+  },
+  "results": {
+    "title": "Resultados de rectificación",
+    "representative_time_label": "Tiempo representativo",
+    "representative_caveat": "Este es un tiempo representativo para esta ventana, no una afirmación al minuto exacto.",
+    "confirm": "Usar este horario",
+    "keep_recorded": "Mantener mi horario registrado",
+    "near_tie_settle_note": "Solo un certificado de nacimiento registrado puede resolver un empate cercano. Ambos candidatos son plausibles: sopésalos con tu experiencia vivida.",
+    "recorded_reference_label": "Tu horario registrado",
+    "candidate_label": "Candidato {{rank}}"
   }
 }
