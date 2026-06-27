@@ -6,6 +6,7 @@ import type { SiderealChart } from "../chart";
 import type { MeshEdgeContext } from "../mesh";
 import type { PredictiveContexts } from "../predictive";
 import type { BirthInput, BootConfig, MeshEdgeInput, PredictiveInput } from "../protocol";
+import type { RectificationInput, RectificationResultRaw } from "../rectification";
 import type { SyncResult } from "@edgeproc/browser/engine";
 
 const CONFIG: RuntimeConfig = {
@@ -80,6 +81,18 @@ class FakeChartEngine implements ChartEnginePort {
       role_b: input.roleB,
       synchrony: { window_start: input.windowStart, window_end: input.windowEnd },
     } as unknown as MeshEdgeContext;
+  }
+
+  public async computeRectification(input: RectificationInput): Promise<RectificationResultRaw> {
+    return {
+      mode: input.mode,
+      candidates: [],
+      margin: 0,
+      band: "leans",
+      discriminating_event_count: 0,
+      recorded_time_sign: null,
+      honesty_note_key: "rectify.honesty.leans",
+    } as RectificationResultRaw;
   }
 }
 

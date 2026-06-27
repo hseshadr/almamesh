@@ -5,6 +5,7 @@
 import type { SiderealChart } from "./chart";
 import type { MatchRole, MeshEdgeContext, MeshRelationship } from "./mesh";
 import type { PredictiveContexts } from "./predictive";
+import type { RectificationInput, RectificationResultRaw } from "./rectification";
 
 /** Birth data for a chart. `referenceDate` pins the "current" dasha for reproducibility. */
 export interface BirthInput {
@@ -100,11 +101,18 @@ export interface ComputeMeshEdgeRequest {
   readonly input: MeshEdgeInput;
 }
 
+export interface ComputeRectificationRequest {
+  readonly kind: "computeRectification";
+  readonly id: number;
+  readonly input: RectificationInput;
+}
+
 export type ChartWorkerRequest =
   | BootRequest
   | GenerateChartRequest
   | ComputePredictiveRequest
-  | ComputeMeshEdgeRequest;
+  | ComputeMeshEdgeRequest
+  | ComputeRectificationRequest;
 
 export interface BootOk {
   readonly ok: true;
@@ -133,13 +141,26 @@ export interface MeshEdgeOk {
   readonly meshEdge: MeshEdgeContext;
 }
 
+export interface RectificationOk {
+  readonly ok: true;
+  readonly kind: "computeRectification";
+  readonly id: number;
+  readonly rectification: RectificationResultRaw;
+}
+
 export interface WorkerErr {
   readonly ok: false;
   readonly id: number;
   readonly error: string;
 }
 
-export type ChartWorkerResponse = BootOk | ChartOk | PredictiveOk | MeshEdgeOk | WorkerErr;
+export type ChartWorkerResponse =
+  | BootOk
+  | ChartOk
+  | PredictiveOk
+  | MeshEdgeOk
+  | RectificationOk
+  | WorkerErr;
 
 /**
  * The minimal Worker surface the client depends on, so tests can inject a fake
@@ -153,3 +174,6 @@ export interface WorkerLike {
   ): void;
   terminate(): void;
 }
+
+// Re-export so callers can import RectificationInput alongside other protocol types.
+export type { RectificationInput, RectificationResultRaw, RectificationCandidateRaw, EventEvidenceRaw } from "./rectification";

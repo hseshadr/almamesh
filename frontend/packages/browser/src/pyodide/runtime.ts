@@ -25,6 +25,7 @@ import type {
   PredictiveInput,
   PyodideAsset,
 } from "./protocol";
+import type { RectificationInput, RectificationResultRaw } from "./rectification";
 
 /** A bootstrap stage, surfaced to the UI for a real progress story. */
 export type BootStage =
@@ -60,6 +61,7 @@ export interface ChartEnginePort {
   generateChart(birth: BirthInput): Promise<SiderealChart>;
   computePredictive(input: PredictiveInput): Promise<PredictiveContexts>;
   computeMeshEdge(input: MeshEdgeInput): Promise<MeshEdgeContext>;
+  computeRectification(input: RectificationInput): Promise<RectificationResultRaw>;
 }
 
 /**
@@ -90,6 +92,11 @@ export interface ChartEngine {
    * (both natal contexts recomputed internally; explicit instants only).
    */
   computeMeshEdge(input: MeshEdgeInput): Promise<MeshEdgeContext>;
+  /**
+   * Birth-time rectification: score user life events against adjacent-sign
+   * candidates and rank them with an honest confidence band.
+   */
+  computeRectification(input: RectificationInput): Promise<RectificationResultRaw>;
   /** Bundle provenance read from the synced `almamesh_meta.json`, if present. */
   meta(): BundleMeta | null;
 }
@@ -179,6 +186,7 @@ export class AlmaMeshRuntime {
       generateChart: (birth) => chartEngine.generateChart(birth),
       computePredictive: (input) => chartEngine.computePredictive(input),
       computeMeshEdge: (input) => chartEngine.computeMeshEdge(input),
+      computeRectification: (input) => chartEngine.computeRectification(input),
       meta: () => meta,
     };
     this.#ready = engine;

@@ -1447,19 +1447,6 @@ export interface BirthTimeCandidate {
   confidence_level: 'professional' | 'high' | 'moderate' | 'low';
 }
 
-export interface RectificationResult {
-  success: boolean;
-  original_time: string;
-  rectified_time: string;
-  confidence_level: string;
-  time_adjustment_minutes: number;
-  events_analyzed: number;
-  events_validated: number;
-  validation_rate: number;
-  accuracy_assessment: string;
-  notable_changes: string[];
-}
-
 // ============================================================================
 // Question Flow Types
 // ============================================================================

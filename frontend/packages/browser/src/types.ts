@@ -103,11 +103,20 @@ export type {
   RelationSignificators,
   SynchronySegment,
 } from "./pyodide/mesh";
+// Rectification wire shapes: the camelCase input and the snake_case raw result
+// emitted by `model_dump(mode="json")` on the backend Pydantic models.
+export type {
+  EventEvidenceRaw,
+  RectificationCandidateRaw,
+  RectificationInput,
+  RectificationResultRaw,
+} from "./pyodide/rectification";
 
 import type { BirthInput, MeshEdgeInput, PredictiveInput } from "./pyodide/protocol";
 import type { SiderealChart } from "./pyodide/chart";
 import type { MeshEdgeContext } from "./pyodide/mesh";
 import type { PredictiveContexts } from "./pyodide/predictive";
+import type { RectificationInput, RectificationResultRaw } from "./pyodide/rectification";
 
 /**
  * The ready-engine surface a consumer calls. Declared here (not re-exported from
@@ -121,4 +130,6 @@ export interface ChartEngine {
   computePredictive(input: PredictiveInput): Promise<PredictiveContexts>;
   /** Relational MESH edge between two birth inputs (explicit instants only). */
   computeMeshEdge(input: MeshEdgeInput): Promise<MeshEdgeContext>;
+  /** Birth-time rectification: score life events against candidate times. */
+  computeRectification(input: RectificationInput): Promise<RectificationResultRaw>;
 }

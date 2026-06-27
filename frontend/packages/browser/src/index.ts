@@ -64,3 +64,9 @@ export type {
 } from "./pyodide/protocol";
 export type { PredictiveContexts } from "./pyodide/predictive";
 export type { MeshEdgeContext } from "./pyodide/mesh";
+export type {
+  EventEvidenceRaw,
+  RectificationCandidateRaw,
+  RectificationInput,
+  RectificationResultRaw,
+} from "./pyodide/rectification";
