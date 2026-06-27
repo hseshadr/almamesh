@@ -353,4 +353,321 @@ test.describe('Phase-2 Rectification Wizard', () => {
     console.log(`[wizard-phase2] screenshots: ${SCRATCHPAD}/`);
     console.log(`[wizard-phase2] parity data: ${SCRATCHPAD}/parity-browser-data.json`);
   });
+
+  // ---------------------------------------------------------------------------
+  // Task 20: Slice-3 — window / unknown-time sweep
+  // ---------------------------------------------------------------------------
+  //
+  // Synthetic Mumbai native, birth time UNKNOWN (noon IST placeholder).
+  // 1990-05-15 12:00 IST == 06:30 UTC. No owner PII.
+  //
+  // Checks (window-mode specific):
+  //   1. Engine boot + chart seed with timeConfidence='unknown'
+  //   2. IDB patched to wire profile_id → detectRectificationMode returns 'window'
+  //   3. Wizard reaches /rectify/:profileId, intro step renders
+  //   4. ≥3 structured events added, Continue enabled
+  //   5. Fit step: FitProgress shows elapsed timer, NO "%"
+  //   6. Results: band-label qualitative (no %)
+  //   7. [data-testid="window-sign-caveat"] visible (events resolve SIGN, not minute)
+  //   8. NO "%" anywhere on the results page
+  //   9. ≥1 candidate card
+  //  10. Wall-clock time recorded (CONCERN logged if > 60s)
+  //  11. Confirm first candidate → /dashboard
+  //  12. Clean console (LLM 404s ignored as non-fatal)
+  // ---------------------------------------------------------------------------
+
+  const WINDOW_NATIVE_ID = 'wizard-phase2-mumbai-unknown-1990';
+  const WINDOW_PROFILE_ID = 'wizard-phase2-mumbai-unknown-profile'; // stable synthetic ID
+
+  const MUMBAI_UNKNOWN_SEED: SeedBirthSpec = {
+    name: 'Unknown Native',
+    datetimeUtc: '1990-05-15T06:30:00.000Z', // noon IST = 06:30 UTC (unknown-time placeholder)
+    latitude: 18.9667,
+    longitude: 72.8333,
+    referenceDate: '2025-01-01T00:00:00+00:00',
+    chartId: WINDOW_NATIVE_ID,
+    birthDatetimeLocal: '1990-05-15T12:00:00',
+    timezone: 'Asia/Kolkata',
+    city: 'Mumbai',
+    state: 'Maharashtra',
+    country: 'India',
+    locationName: 'Mumbai, Maharashtra, India',
+    timeConfidence: 'unknown',
+  };
+
+  /**
+   * After seedChart stores the chart in almamesh-chart-library (no profile_id),
+   * patch it to add profile_id + create an almamesh-profiles entry so that
+   * detectRectificationMode(charts, WINDOW_PROFILE_ID) finds the chart and
+   * returns 'window' (birth_time_confidence === 'unknown').
+   */
+  async function setupWindowProfile(
+    pw: import('@playwright/test').Page,
+    profileId: string,
+    chartId: string,
+  ): Promise<void> {
+    await pw.evaluate(
+      async (args: { profileId: string; chartId: string }) => {
+        const { profileId: pId, chartId: cId } = args;
+        const db = await new Promise<IDBDatabase>((resolve, reject) => {
+          const req = indexedDB.open('keyval-store');
+          req.onupgradeneeded = () => req.result.createObjectStore('keyval');
+          req.onsuccess = () => resolve(req.result);
+          req.onerror = () => reject(req.error);
+        });
+
+        const idbGet = (key: string): Promise<string | null> =>
+          new Promise((res, rej) => {
+            const tx = db.transaction('keyval', 'readonly');
+            const r = tx.objectStore('keyval').get(key);
+            r.onsuccess = () => res(r.result as string | null);
+            r.onerror = () => rej(r.error);
+          });
+
+        const idbPut = (key: string, val: string): Promise<void> =>
+          new Promise((res, rej) => {
+            const tx = db.transaction('keyval', 'readwrite');
+            tx.objectStore('keyval').put(val, key);
+            tx.oncomplete = () => res();
+            tx.onerror = () => rej(tx.error);
+          });
+
+        // Patch chart library: add profile_id to the Mumbai chart
+        const libRaw = await idbGet('almamesh-chart-library');
+        if (libRaw) {
+          const lib = JSON.parse(libRaw) as {
+            state: { charts: Record<string, Record<string, unknown>> };
+            version: number;
+          };
+          if (lib.state?.charts?.[cId]) {
+            lib.state.charts[cId]['profile_id'] = pId;
+            await idbPut('almamesh-chart-library', JSON.stringify(lib));
+          }
+        }
+
+        // Create profiles entry — almamesh-profiles key (zustand-persist envelope).
+        const profilesEnv = JSON.stringify({
+          state: {
+            profiles: { [pId]: { id: pId, name: 'Unknown Native' } },
+            activeProfileId: pId,
+          },
+          version: 0,
+        });
+        await idbPut('almamesh-profiles', profilesEnv);
+      },
+      { profileId, chartId },
+    );
+  }
+
+  test('window-mode wizard: unknown-time → window sign-fit → sign-caveat → confirm', async ({
+    page,
+  }) => {
+    mkdirSync(SCRATCHPAD, { recursive: true });
+    const winConsole: string[] = [];
+    const winErrors: string[] = [];
+
+    page.on('console', (m) => winConsole.push(`[${m.type()}] ${m.text()}`));
+    page.on('pageerror', (e) => {
+      const s = `[pageerror] ${String(e)}`;
+      winErrors.push(s);
+      winConsole.push(s);
+    });
+
+    // ── 1. Boot engine + seed Mumbai unknown-time chart ───────────────────
+    await bootEngine(page);
+    const seeded = await seedChart(page, { birth: MUMBAI_UNKNOWN_SEED });
+    console.log(`[wizard-window] seeded lagna=${String(seeded.lagna)}`);
+    await page.screenshot({ path: `${SCRATCHPAD}/window-00-engine-seeded.png`, fullPage: true });
+
+    // ── 2. Patch IDB: profile_id → chart + profiles entry ────────────────
+    await setupWindowProfile(page, WINDOW_PROFILE_ID, WINDOW_NATIVE_ID);
+    console.log('[wizard-window] IDB patched — detectRectificationMode will return window');
+
+    // ── 3. Hard navigate to /dashboard (stores re-hydrate from patched IDB) ─
+    await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
+    await waitForEngineReady(page);
+    await page.waitForTimeout(1500);
+    await page.screenshot({ path: `${SCRATCHPAD}/window-01-dashboard.png`, fullPage: true });
+
+    // ── 4. SPA-navigate to /rectify/:profileId ────────────────────────────
+    await spaNav(page, `/rectify/${WINDOW_PROFILE_ID}`);
+    await expect(page, 'must be on rectify URL').toHaveURL(
+      new RegExp(`/rectify/${WINDOW_PROFILE_ID}`),
+      { timeout: 10_000 },
+    );
+    await page.screenshot({
+      path: `${SCRATCHPAD}/window-02-rectify-navigated.png`,
+      fullPage: true,
+    });
+
+    // ── 5. Intro step ─────────────────────────────────────────────────────
+    await expect(
+      page.locator('[data-testid="intro-step"]'),
+      'intro step must render',
+    ).toBeVisible({ timeout: 10_000 });
+    await page.screenshot({ path: `${SCRATCHPAD}/window-03-intro.png`, fullPage: true });
+
+    // ── 6. Click Start ────────────────────────────────────────────────────
+    await page.locator('[data-testid="intro-start-btn"]').click();
+    await page.waitForTimeout(500);
+
+    // ── 7. Add ≥3 structured events ───────────────────────────────────────
+    const windowEvents = [
+      { date: '2008-07-10', category: 'higher_studies', note: 'Started college' },
+      { date: '2015-02-14', category: 'marriage',       note: 'Wedding' },
+      { date: '2019-11-20', category: 'relocation',     note: 'Moved abroad' },
+    ];
+
+    for (let i = 0; i < windowEvents.length; i++) {
+      const ev = windowEvents[i];
+      await page.locator('button').filter({ hasText: /add event/i }).click();
+      await page.waitForTimeout(350);
+      const lastRow = page.locator('[data-testid="event-row"]').last();
+      await lastRow.locator('input[type="date"]').fill(ev.date);
+      await page.waitForTimeout(120);
+      await lastRow.locator('select').selectOption({ value: ev.category });
+      await page.waitForTimeout(120);
+      await lastRow.locator('input[type="text"]').fill(ev.note);
+      await page.waitForTimeout(120);
+      console.log(`[wizard-window] event ${i + 1}: ${ev.date} / ${ev.category}`);
+    }
+
+    await page.screenshot({ path: `${SCRATCHPAD}/window-04-events.png`, fullPage: true });
+    const wContinueBtn = page.locator('button').filter({ hasText: /continue/i });
+    await expect(wContinueBtn, 'Continue must be enabled after ≥1 event').toBeEnabled({
+      timeout: 5_000,
+    });
+
+    // ── 8. Continue → Fit ─────────────────────────────────────────────────
+    const fitStart = Date.now();
+    await wContinueBtn.click();
+    await page.waitForTimeout(600);
+
+    // FitProgress: elapsed timer visible, NO "%"
+    const wFitStep = page.locator('[data-testid="fit-step"]');
+    if (await wFitStep.isVisible({ timeout: 4_000 }).catch(() => false)) {
+      console.log('[wizard-window] fit step active — whole-day window sweep computing…');
+      const fitProgress = page.locator('[data-testid="fit-progress"]');
+      if (await fitProgress.isVisible({ timeout: 3_000 }).catch(() => false)) {
+        const fitStepText = (await wFitStep.textContent()) ?? '';
+        expect(fitStepText, 'FitProgress must NOT contain %').not.toContain('%');
+        const elapsedEl = page.locator('[data-testid="fit-elapsed"]');
+        await expect(elapsedEl, 'elapsed timer must render').toBeVisible({ timeout: 3_000 });
+        console.log('[wizard-window] FitProgress: elapsed timer visible, no % ✓');
+      }
+      await page.screenshot({ path: `${SCRATCHPAD}/window-05-fit-loading.png`, fullPage: true });
+    }
+
+    // ── 9. Wait for results (up to 180s — 12-sign window sweep) ──────────
+    const wBandLabel = page.locator('[data-testid="band-label"]');
+    await expect(wBandLabel, 'band-label must appear when results render').toBeVisible({
+      timeout: 180_000,
+    });
+    const fitElapsedMs = Date.now() - fitStart;
+    console.log(
+      `[wizard-window] window fit wall-clock: ${fitElapsedMs}ms (${Math.round(fitElapsedMs / 1000)}s)`,
+    );
+    await page.screenshot({ path: `${SCRATCHPAD}/window-06-results.png`, fullPage: true });
+
+    // ── 10. Assert window-sign-caveat present ─────────────────────────────
+    const windowCaveat = page.locator('[data-testid="window-sign-caveat"]');
+    await expect(
+      windowCaveat,
+      'window-sign-caveat must be visible when mode=window',
+    ).toBeVisible({ timeout: 5_000 });
+    const caveatText = (await windowCaveat.textContent()) ?? '';
+    expect(caveatText, 'caveat must mention "sign"').toMatch(/sign/i);
+    console.log(`[wizard-window] window-sign-caveat: "${caveatText.slice(0, 100)}"`);
+
+    // ── 11. Assert no % in results region ────────────────────────────────
+    const wPageText = (await page.evaluate(() => document.body.innerText ?? '')) ?? '';
+    expect(wPageText, 'NO "%" may appear on window results page').not.toContain('%');
+
+    // ── 12. Band qualitative ──────────────────────────────────────────────
+    const wBandText = (await wBandLabel.textContent()) ?? '';
+    expect(wBandText.length, 'band must be non-empty').toBeGreaterThan(0);
+    expect(wBandText, 'band must NOT contain %').not.toContain('%');
+    const validBands = ['near tie', 'leans toward', 'leans', 'consistent'];
+    expect(
+      validBands.some((b) => wBandText.toLowerCase().includes(b)),
+      `band "${wBandText}" must be a qualitative label`,
+    ).toBe(true);
+    console.log(`[wizard-window] band="${wBandText}"`);
+
+    // ── 13. ≥1 candidate card ─────────────────────────────────────────────
+    const wCandidateCards = page.locator('[data-testid="candidate-card"]');
+    const wCandidateCount = await wCandidateCards.count();
+    expect(wCandidateCount, 'at least 1 candidate card').toBeGreaterThan(0);
+    await expect(wCandidateCards.first().locator('[data-testid="confirm-button"]')).toBeVisible();
+    console.log(`[wizard-window] candidateCount=${wCandidateCount}`);
+
+    // ── 14. Confirm first candidate ───────────────────────────────────────
+    await wCandidateCards.first().locator('[data-testid="confirm-button"]').click();
+    await page.waitForTimeout(600);
+
+    // Handle RegenerationConfirmModal if it appears (sign-flip gate)
+    const wModal = page.locator('[role="dialog"]');
+    if (await wModal.isVisible({ timeout: 3_000 }).catch(() => false)) {
+      console.log('[wizard-window] RegenerationConfirmModal appeared (sign-flip gate)');
+      const flipAck = page.locator('[data-testid="regen-flip-ack"] input[type="checkbox"]');
+      if (await flipAck.isVisible({ timeout: 2_000 }).catch(() => false)) {
+        await flipAck.check();
+        await page.waitForTimeout(250);
+      }
+      const wFooterBtns = wModal.locator('[class*="px-6"][class*="py-4"] button');
+      const wBtnCount = await wFooterBtns.count();
+      if (wBtnCount > 0) {
+        await wFooterBtns.last().click();
+      } else {
+        await wModal.locator('button').filter({ hasText: /confirm|yes|use/i }).first().click();
+      }
+      await page.waitForTimeout(600);
+    }
+    await page.screenshot({ path: `${SCRATCHPAD}/window-07-post-confirm.png`, fullPage: true });
+
+    // ── 15. Verify /dashboard reached ─────────────────────────────────────
+    await expect(page, 'must navigate to /dashboard after confirm').toHaveURL(/\/dashboard/, {
+      timeout: 30_000,
+    });
+    await page.waitForTimeout(3_000);
+    await page.screenshot({
+      path: `${SCRATCHPAD}/window-08-dashboard-post-confirm.png`,
+      fullPage: true,
+    });
+    console.log('[wizard-window] /dashboard reached after window-mode confirm ✓');
+
+    // ── 16. Clean console ─────────────────────────────────────────────────
+    const wJsErrors = winConsole.filter((l) => {
+      if (l.startsWith('[pageerror]')) return true;
+      if (!l.startsWith('[error]')) return false;
+      if (
+        l.includes('404') ||
+        l.includes('Failed to load resource') ||
+        l.includes('net::ERR_')
+      ) {
+        console.log(`[wizard-window] [ignored 404/net error] ${l}`);
+        return false;
+      }
+      return true;
+    });
+    if (wJsErrors.length > 0) console.log('[wizard-window] JS errors:', wJsErrors.join('\n'));
+    expect(wJsErrors.length, `must have 0 JS runtime errors; got: ${wJsErrors.join('; ')}`).toBe(
+      0,
+    );
+
+    // ── 17. Wall-clock concern ────────────────────────────────────────────
+    if (fitElapsedMs > 60_000) {
+      console.warn(
+        `[wizard-window] CONCERN: window fit took ${Math.round(fitElapsedMs / 1000)}s > 60s threshold — consider capping signs by plausibility`,
+      );
+    }
+
+    console.log('[wizard-window] console tail (last 10):');
+    for (const l of winConsole.slice(-10)) console.log(`  ${l}`);
+
+    console.log(
+      `\n[wizard-window] DONE — wall-clock ${Math.round(fitElapsedMs / 1000)}s, ` +
+        `candidates=${wCandidateCount}, band="${wBandText}", caveat=present`,
+    );
+  });
 });
