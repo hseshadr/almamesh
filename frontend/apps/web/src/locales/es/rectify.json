@@ -1,0 +1,33 @@
+{
+  "_meta": "machine-translated from en; native review pending",
+  "categories": {
+    "marriage": "Matrimonio",
+    "engagement": "Compromiso",
+    "breakup": "Ruptura / Divorcio",
+    "childbirth": "Nacimiento de un hijo",
+    "career_change": "Cambio de carrera",
+    "promotion": "Ascenso",
+    "job_loss": "Pérdida de empleo",
+    "business_start": "Inicio de negocio",
+    "relocation": "Mudanza",
+    "property_purchase": "Compra de propiedad",
+    "windfall": "Ganancia inesperada",
+    "expense_shock": "Gasto mayor / Pérdida financiera",
+    "health_issue": "Problema de salud",
+    "surgery": "Cirugía",
+    "higher_studies": "Estudios superiores",
+    "litigation": "Litigio / Acción legal"
+  },
+  "entry": {
+    "title": "Tus eventos de vida",
+    "subtitle": "Agrega fechas de eventos clave. Cuanto más específico, mejor.",
+    "add": "Agregar evento",
+    "date_label": "Fecha",
+    "category_label": "Categoría",
+    "category_placeholder": "Selecciona una categoría",
+    "note_label": "Nota (opcional)",
+    "delete": "Eliminar",
+    "continue": "Continuar",
+    "min_events_hint": "Agrega al menos un evento con fecha y categoría para continuar."
+  }
+}

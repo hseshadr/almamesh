@@ -1,0 +1,32 @@
+{
+  "categories": {
+    "marriage": "Marriage",
+    "engagement": "Engagement",
+    "breakup": "Breakup / Divorce",
+    "childbirth": "Birth of a Child",
+    "career_change": "Career Change",
+    "promotion": "Promotion",
+    "job_loss": "Job Loss",
+    "business_start": "Business Started",
+    "relocation": "Relocation",
+    "property_purchase": "Property Purchase",
+    "windfall": "Financial Windfall",
+    "expense_shock": "Major Expense / Financial Loss",
+    "health_issue": "Health Issue",
+    "surgery": "Surgery",
+    "higher_studies": "Higher Studies",
+    "litigation": "Litigation / Legal Action"
+  },
+  "entry": {
+    "title": "Your Life Events",
+    "subtitle": "Add dates of key events. The more specific, the better.",
+    "add": "Add Event",
+    "date_label": "Date",
+    "category_label": "Category",
+    "category_placeholder": "Select a category",
+    "note_label": "Note (optional)",
+    "delete": "Delete",
+    "continue": "Continue",
+    "min_events_hint": "Add at least one event with a date and category to continue."
+  }
+}

@@ -31,6 +31,7 @@ import enPredictive from '../locales/en/predictive.json';
 import enLife from '../locales/en/life.json';
 import enMesh from '../locales/en/mesh.json';
 import enLanding from '../locales/en/landing.json';
+import enRectify from '../locales/en/rectify.json';
 
 // --- Spanish ---
 import esCommon from '../locales/es/common.json';
@@ -46,6 +47,7 @@ import esPredictive from '../locales/es/predictive.json';
 import esLife from '../locales/es/life.json';
 import esMesh from '../locales/es/mesh.json';
 import esLanding from '../locales/es/landing.json';
+import esRectify from '../locales/es/rectify.json';
 
 // --- Portuguese ---
 import ptCommon from '../locales/pt/common.json';
@@ -61,6 +63,7 @@ import ptPredictive from '../locales/pt/predictive.json';
 import ptLife from '../locales/pt/life.json';
 import ptMesh from '../locales/pt/mesh.json';
 import ptLanding from '../locales/pt/landing.json';
+import ptRectify from '../locales/pt/rectify.json';
 
 /** The namespaces registered now (later agents fill the per-screen strings). */
 export const I18N_NAMESPACES = [
@@ -77,6 +80,7 @@ export const I18N_NAMESPACES = [
   'life',
   'mesh',
   'landing',
+  'rectify',
 ] as const;
 
 const resources = {
@@ -94,6 +98,7 @@ const resources = {
     life: enLife,
     mesh: enMesh,
     landing: enLanding,
+    rectify: enRectify,
   },
   es: {
     common: esCommon,
@@ -109,6 +114,7 @@ const resources = {
     life: esLife,
     mesh: esMesh,
     landing: esLanding,
+    rectify: esRectify,
   },
   pt: {
     common: ptCommon,
@@ -124,6 +130,7 @@ const resources = {
     life: ptLife,
     mesh: ptMesh,
     landing: ptLanding,
+    rectify: ptRectify,
   },
 } as const;
 
