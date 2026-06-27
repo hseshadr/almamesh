@@ -88,11 +88,11 @@ function migrateEventToV2(e: unknown): LifeEvent {
   if (!isPlainRecord(e)) {
     return { id: nextEventId(), date: '', createdAt: new Date().toISOString(), needsStructuring: true };
   }
-  // Already v2 — has fields that only exist in the new shape.
-  if ('needsStructuring' in e || 'note' in e) {
-    return e as unknown as LifeEvent;
-  }
-  // Legacy v1/v0 event: { id?, description?, date?, createdAt? }
+  // This function is only called when fromVersion < 2 (v0/v1 blobs).
+  // Every event is treated as a legacy free-text note: promote to a
+  // needsStructuring draft so the user re-enters a structured date + category
+  // in the wizard. Do NOT content-sniff for v2 fields — the version gate in
+  // migrateLifeEventsPersistedState is the authoritative guard.
   return {
     id: typeof e.id === 'string' ? e.id : nextEventId(),
     note: typeof e.description === 'string' && e.description.length > 0 ? e.description : undefined,

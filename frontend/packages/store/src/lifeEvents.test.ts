@@ -79,7 +79,27 @@ describe('migrateLifeEventsPersistedState (defensive hydration)', () => {
     expect(event.needsStructuring).toBe(true);
   });
 
-  it('v2 blobs (fromVersion >= 2) pass through without re-migration', () => {
+  it('v1→v2: a v1 event that had a date loses the date on migration (date becomes "", needsStructuring: true, description preserved in note)', () => {
+    // Documents the intentional date-loss behavior: v1 events have unverified
+    // free-text dates so they become drafts requiring the user to re-enter a
+    // structured date in the wizard.
+    const blob = {
+      eventsByProfile: {
+        p1: [{ id: 'e4', description: 'Got married', date: '2015-06-01', createdAt: '2015-06-02T00:00:00.000Z' }],
+      },
+    };
+    const result = migrateLifeEventsPersistedState(blob, 1);
+    const event = result.eventsByProfile['p1']?.[0] as LifeEvent;
+    expect(event.note).toBe('Got married');
+    expect(event.date).toBe('');
+    expect(event.needsStructuring).toBe(true);
+    expect(event.id).toBe('e4');
+    expect(event.createdAt).toBe('2015-06-02T00:00:00.000Z');
+    // category must NOT be copied from the old record
+    expect(event.category).toBeUndefined();
+  });
+
+  it('v2 blobs (fromVersion >= 2) pass through without re-migration (event with note)', () => {
     const v2event: LifeEvent = {
       id: 'e3',
       note: 'Already structured',
@@ -90,6 +110,20 @@ describe('migrateLifeEventsPersistedState (defensive hydration)', () => {
     const blob = { eventsByProfile: { p1: [v2event] } };
     const result = migrateLifeEventsPersistedState(blob, 2);
     expect(result.eventsByProfile['p1']?.[0]).toEqual(v2event);
+  });
+
+  it('v2 clean structured event (no note, no needsStructuring) passes through unchanged when fromVersion >= 2', () => {
+    // Guards against regression where the migration would wrongly demote a
+    // fully-structured v2 event that has neither `note` nor `needsStructuring`.
+    const cleanV2: LifeEvent = {
+      id: 'e5',
+      date: '2022-06-15',
+      category: 'marriage',
+      createdAt: '2022-06-15T10:00:00.000Z',
+    };
+    const blob = { eventsByProfile: { p1: [cleanV2] } };
+    const result = migrateLifeEventsPersistedState(blob, 2);
+    expect(result.eventsByProfile['p1']?.[0]).toEqual(cleanV2);
   });
 });
 
