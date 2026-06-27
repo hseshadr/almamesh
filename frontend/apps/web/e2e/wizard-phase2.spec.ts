@@ -1,5 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { writeFileSync, mkdirSync } from 'fs';
+import { tmpdir } from 'os';
+import { join } from 'path';
 import { bootEngine, seedChart, waitForEngineReady, type SeedBirthSpec } from './interpretation.helpers';
 
 /**
@@ -34,8 +36,8 @@ import { bootEngine, seedChart, waitForEngineReady, type SeedBirthSpec } from '.
  *   is fragile in headless Chromium. The chart seeded IS real engine output.
  */
 
-const SCRATCHPAD =
-  '/private/tmp/claude-501/-Users-harish-dev-private-almamesh/858dba16-61eb-4dd1-8390-1037189e26ec/scratchpad';
+// Cross-platform temp dir — works on both macOS (local) and Linux (CI).
+const SCRATCHPAD = join(tmpdir(), 'almamesh-wizard-e2e');
 
 // Synthetic Bengaluru cusp native (ZERO owner PII).
 // 1988-08-08 06:44 IST == 01:14 UTC. Cancer/Leo cusp (lagna ~Leo 0°).
