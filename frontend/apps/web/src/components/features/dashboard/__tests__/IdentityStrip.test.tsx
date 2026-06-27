@@ -152,3 +152,46 @@ describe('IdentityStrip', () => {
     expect(screen.getByRole('button', { name: 'Mode' })).toBeTruthy();
   });
 });
+
+describe('IdentityStrip — engine-authoritative cusp signal', () => {
+  beforeEach(() => {
+    useLanguageStore.setState({ language: 'en' });
+  });
+
+  it('fires the callout off the ENGINE near-cusp signal even when the TS degree is mid-sign', () => {
+    // longitude 315 -> 15° into Aquarius, which the local 3° rule would treat as
+    // safely mid-sign (no callout). The engine's own cusp block, however, reports
+    // a 0.4° distance to Pisces and is_near_cusp = true. The strip must defer to
+    // the engine and render the callout verbatim — proving the engine, not the
+    // local TS recompute, is the source of truth.
+    renderStrip({
+      lagna: {
+        sign: 'Aquarius',
+        longitude: 315,
+        cuspDistanceDeg: 0.4,
+        adjacentSign: 'Pisces',
+        isNearCusp: true,
+      },
+    });
+    const callout = screen.getByTestId('birth-time-sensitivity');
+    expect(callout.textContent).toMatch(/Aquarius rises only ~0\.4° from the Pisces cusp/);
+    expect(callout.textContent).toMatch(/would make it Pisces/);
+    expect(callout.textContent).toMatch(/every house in this chart would shift/);
+  });
+
+  it('suppresses the callout when the engine says NOT near-cusp, even if the TS degree is within 3°', () => {
+    // longitude 328.84 -> 28.84° -> 1.16° from the Pisces boundary by the local
+    // rule (which alone would fire). The engine (authoritative) reports this is
+    // NOT a near-cusp chart, so the strip stays silent.
+    renderStrip({
+      lagna: {
+        sign: 'Aquarius',
+        longitude: 328.84,
+        cuspDistanceDeg: 6.0,
+        adjacentSign: 'Pisces',
+        isNearCusp: false,
+      },
+    });
+    expect(screen.queryByTestId('birth-time-sensitivity')).toBeNull();
+  });
+});

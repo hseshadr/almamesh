@@ -7,7 +7,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   appEvents,
@@ -22,6 +22,10 @@ import { TIME_CONFIDENCE, type TimeConfidence } from '@almamesh/constants';
 import { LocationSearch } from '../../components/shared/LocationSearch';
 import { type BirthDetails, birthDetailsFromBirthData } from './birthDetailsFromBirthData';
 import { RegenerationConfirmModal } from '../../components/features/settings/RegenerationConfirmModal';
+import {
+  BirthTimeComparison,
+  type CandidateReading,
+} from '../../components/features/settings/BirthTimeComparison';
 import { Button } from '../../components/ui';
 import { useSettingsStore } from '../../stores/settings';
 import { useChartEngine } from '../../providers/AlmaMeshRuntimeProvider';
@@ -71,6 +75,7 @@ export default function ProfileSettings() {
   const navigate = useNavigate();
   const { t } = useTranslation(['settings', 'common']);
   const { engine, error: engineError } = useChartEngine();
+  const activeProfileId = useProfilesStore((s) => s.activeProfileId);
 
   // Stores
   const {
@@ -206,6 +211,36 @@ export default function ProfileSettings() {
       ? {
           sign: titleCaseSign(lagnaPreview.lagna.sign),
           enteredSign: titleCaseSign(enteredLagnaSign),
+        }
+      : null;
+
+  // The two candidate rising-sign readings for the AS-RECORDED vs RECTIFIED
+  // comparison. Before any rectification the entered and rectified clocks are
+  // identical, so the always-computed rectified preview doubles as the recorded
+  // reading; once a rectification is in effect the dedicated entered-time preview
+  // supplies the as-recorded sign. Both are the engine's own output (no
+  // fabrication) — the same person at two candidate birth times.
+  const recordedReading: CandidateReading | null = rectificationActive
+    ? enteredLagnaPreview.status === 'ready'
+      ? {
+          time: currentDetails.birth_time,
+          sign: enteredLagnaPreview.lagna.sign,
+          signDegrees: enteredLagnaPreview.lagna.signDegrees,
+        }
+      : null
+    : lagnaPreview.status === 'ready'
+      ? {
+          time: currentDetails.birth_time,
+          sign: lagnaPreview.lagna.sign,
+          signDegrees: lagnaPreview.lagna.signDegrees,
+        }
+      : null;
+  const rectifiedReading: CandidateReading | null =
+    lagnaPreview.status === 'ready'
+      ? {
+          time: currentDetails.rectified_time || currentDetails.birth_time,
+          sign: lagnaPreview.lagna.sign,
+          signDegrees: lagnaPreview.lagna.signDegrees,
         }
       : null;
 
@@ -468,15 +503,17 @@ export default function ProfileSettings() {
               </p>
             )}
 
-            {cuspFlip && (
-              <p className="mt-1.5 text-xs text-status-warning" data-testid="cusp-flip">
-                {t('settings:profile.cusp_flip', {
-                  sign: cuspFlip.sign,
-                  enteredSign: cuspFlip.enteredSign,
-                })}
-              </p>
-            )}
           </div>
+
+          {/* The same chart at two candidate birth times — AS-RECORDED vs
+              RECTIFIED rising signs, with the "every house shifts by one sign"
+              stakes spelled out. Engine-grounded; renders only near a boundary
+              or once a rectification crosses one. */}
+          <BirthTimeComparison
+            recorded={recordedReading}
+            rectified={rectifiedReading}
+            cusp={previewCusp}
+          />
 
           {adjustmentInEffect && (
             <p
@@ -499,6 +536,17 @@ export default function ProfileSettings() {
                   `settings:time_confidence.${currentDetails.time_confidence}`,
                 ).toLowerCase(),
               })}
+            </p>
+          )}
+
+          {activeProfileId != null && (
+            <p className="mt-3 text-xs">
+              <Link
+                to={`/rectify/${activeProfileId}`}
+                className="font-medium text-accent-primary underline underline-offset-2 hover:text-accent-gold-bright"
+              >
+                {t('settings:profile.life_events_refine_link')}
+              </Link>
             </p>
           )}
         </div>
@@ -561,6 +609,7 @@ export default function ProfileSettings() {
         estimatedCost={estimatedCost}
         currentBalance={0}
         isProcessing={isSaving}
+        signFlip={cuspFlip ? { from: cuspFlip.enteredSign, to: cuspFlip.sign } : null}
       />
     </div>
   );

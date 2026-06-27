@@ -152,6 +152,29 @@ BETWEEN charts, never mutations of either natal chart. It flows through
 Mangal are marriage tables (spouse/partner edges only); friend/family/business
 edges lead with Graha Maitri — `scripts/verify-mesh.mjs` asserts both paths live.
 
+Rectification layer (the birth-time authority surface, computed on-device, off the natal
+chart path): a lazy engine entry `edge/chart_runtime.py::compute_rectification` ->
+`rectification/` package -> `compute_rectification_result` emits `RectificationResult`
+(ranked `RectificationCandidate` list, qualitative `RectificationBand` per result,
+per-event `EventEvidence` table). Two modes: `cusp` (2 adjacent signs near a cusp,
+~sub-second) and `window` (unknown/rough time, full-day scan with warm-astronomy reuse,
+~0.6s). Ascendant-dependent signals: dasha-lord↔house-lordship match + transit-to-house
+at event dates. Honest confidence: margin→band, min-evidence gate forces `near_tie`,
+de-correlation caps stacked same-category events; no headline %. Engine computes; the
+LLM only optionally structures. It flows through `@almamesh/browser`
+(pyodide/rectification.ts, `ChartEngine.computeRectification`) -> `@almamesh/store`
+(adapters/rectification.ts reshape + transient `useRectificationStore`; extended
+`lifeEvents` store with date+category+persist-v1 migration) -> shared-types
+(`RectificationResult`/`RectificationCandidate`/`EventEvidence`/`LifeEventCategory`/
+`RectificationMode`/`RectificationBand`) -> the `/rectify/:profileId` wizard (3 entry
+CTAs: onboarding unknown-time, ProfileSettings panel, dashboard cusp callout). Confirm
+routes through the existing birth-info-changed→regenerate pipeline so the rectified time
+becomes the working authority. Optional `@almamesh/llm` `structureLifeEvents` +
+`RECTIFICATION_FENCE` (structure-only, typed `{date, category}` output = privacy
+boundary; LLM never sees event narrative). Same determinism + byte-parity rules: pin
+`reference_date`; Pyodide==CPython parity gate covers the new entry; golden fixtures use
+synthetic natives only (no real birth data).
+
 Optional interpretation + chat (off the chart path): @almamesh/llm — OpenRouter /
 BYO OpenAI-compatible endpoint by default (one-click preset, one shared model;
 WebLLM dormant/hidden). PII-redacted, fail-closed local_only for local endpoints.

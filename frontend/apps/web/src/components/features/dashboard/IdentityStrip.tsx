@@ -20,17 +20,28 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import type { DashaData, VimshottariDashaData } from '@almamesh/shared-types';
 
-import { cuspInfo } from '../../../lib/lagnaCusp';
+import { cuspInfo, type CuspInfo, type EngineCuspFields } from '../../../lib/lagnaCusp';
 import { nextAntar, nextPratyantar, type DashaTreeRow } from '../../../lib/dashaPeriods';
 import { formatPredictiveDate } from '../../../lib/predictive';
 import { grahaName, signName } from '../../../lib/predictiveEventCopy';
 import type { RectificationDelta } from '../../../lib/rectification';
+import { useProfilesStore } from '@almamesh/store';
 
 export interface IdentityLagna {
   readonly sign?: string;
   readonly longitude?: number;
   readonly nakshatra?: string;
   readonly nakshatraPada?: number;
+  /**
+   * The engine's own cusp-proximity block (`SiderealLagna.lagna_*` /
+   * `is_near_cusp`), threaded straight from the chart. When present it is
+   * AUTHORITATIVE: the near-cusp verdict and the measured distance + adjacent
+   * sign come from the engine, not a local recompute. Absent on older charts —
+   * the callout then falls back to the local 3° measurement.
+   */
+  readonly cuspDistanceDeg?: number;
+  readonly adjacentSign?: string | null;
+  readonly isNearCusp?: boolean;
 }
 
 export interface IdentityMoon {
@@ -131,12 +142,49 @@ function LagnaFact({ lagna }: { lagna: IdentityLagna | null }): ReactElement {
  * to birth-time rectification. Outside the threshold it renders nothing.
  * Quiet dashboard grammar: a hairline left rule and small caps, not an alarm box.
  */
+/** The chart's engine cusp block, or undefined when the chart predates it. */
+function engineCuspFields(lagna: IdentityLagna): EngineCuspFields | undefined {
+  if (typeof lagna.cuspDistanceDeg !== 'number' || lagna.adjacentSign == null) {
+    return undefined;
+  }
+  return {
+    lagna_cusp_distance_deg: lagna.cuspDistanceDeg,
+    lagna_adjacent_sign: lagna.adjacentSign,
+    is_near_cusp: lagna.isNearCusp,
+  };
+}
+
+/**
+ * Resolve the near-cusp descriptor, engine-first. When the chart carries the
+ * engine's cusp block we honour its `is_near_cusp` verdict and surface its
+ * measured distance + adjacent sign verbatim — a permissive threshold lets
+ * `cuspInfo` pass the engine's own numbers through rather than re-deciding with
+ * the local 3° rule. Only older charts without that block fall back to the
+ * local measurement.
+ */
+function nearCusp(lagna: IdentityLagna): CuspInfo | null {
+  if (!lagna.sign || lagna.longitude === undefined || lagna.longitude === null) {
+    return null;
+  }
+  const inSign = ((lagna.longitude % 30) + 30) % 30;
+  const engine = engineCuspFields(lagna);
+  if (engine) {
+    if (engine.is_near_cusp === false) {
+      return null;
+    }
+    const threshold = engine.is_near_cusp === true ? Number.POSITIVE_INFINITY : 3;
+    return cuspInfo(lagna.sign, inSign, threshold, engine);
+  }
+  return cuspInfo(lagna.sign, inSign);
+}
+
 function BirthTimeSensitivity({ lagna }: { lagna: IdentityLagna | null }): ReactElement | null {
   const { t } = useTranslation(['astrology', 'predictive']);
+  const profileId = useProfilesStore((s) => s.activeProfileId);
   if (!lagna?.sign || lagna.longitude === undefined || lagna.longitude === null) {
     return null;
   }
-  const cusp = cuspInfo(lagna.sign, ((lagna.longitude % 30) + 30) % 30);
+  const cusp = nearCusp(lagna);
   if (!cusp) {
     return null;
   }
@@ -163,6 +211,15 @@ function BirthTimeSensitivity({ lagna }: { lagna: IdentityLagna | null }): React
         >
           {t('astrology:cusp.refine_link')}
         </Link>
+        {' '}·{' '}
+        {profileId != null && (
+          <Link
+            to={`/rectify/${profileId}`}
+            className="font-medium text-text-primary underline underline-offset-2 hover:text-accent-gold-bright"
+          >
+            {t('astrology:cusp.resolve_link')}
+          </Link>
+        )}
       </p>
     </div>
   );

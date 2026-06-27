@@ -21,6 +21,7 @@ import type {
   MeshEdgeInput,
   PredictiveInput,
 } from "./protocol";
+import type { RectificationInput, RectificationResultRaw } from "./rectification";
 
 const SKYFIELD_DATA_DIR = "/home/pyodide/.skyfield-data";
 
@@ -100,6 +101,36 @@ def _almamesh_compute_mesh(input_json):
         window_end=datetime.fromisoformat(data["windowEnd"]),
     )
     return json.dumps(edge.model_dump(mode="json"))
+
+def _almamesh_compute_rectification(input_json):
+    # Birth-time rectification: score user life events against Ascendant-sign
+    # candidates and rank them honestly (band = 'near_tie' | 'leans' | 'consistent').
+    # referenceDate is OPTIONAL — omit for live non-deterministic use; pass it
+    # for reproducible test fixtures. A KeyError here is a caller bug.
+    # Imported lazily so an OLDER bundled wheel (without the rectification module)
+    # still serves natal charts.
+    from almamesh.rectification import compute_rectification_result
+    from almamesh.rectification.models import RectificationEventInput, RectificationMode
+    data = json.loads(input_json)
+    dt = datetime.fromisoformat(data["datetimeUtc"])
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=UTC)
+    raw_ref = data.get("referenceDate")
+    reference_date = datetime.fromisoformat(raw_ref) if raw_ref else datetime.now(UTC)
+    events = [
+        RectificationEventInput(date=e["date"], category=e["category"])
+        for e in data["events"]
+    ]
+    result = compute_rectification_result(
+        dt_utc=dt,
+        latitude=data["latitude"],
+        longitude=data["longitude"],
+        utc_offset_minutes=data["utcOffsetMinutes"],
+        events=events,
+        mode=RectificationMode(data["mode"]),
+        reference_date=reference_date,
+    )
+    return json.dumps(result.model_dump(mode="json"))
 `;
 
 // micropip's install is a Python callable; callKwargs forwards keyword args.
@@ -119,6 +150,10 @@ interface PyPredictiveFn {
   destroy(): void;
 }
 interface PyMeshFn {
+  (inputJson: string): string;
+  destroy(): void;
+}
+interface PyRectificationFn {
   (inputJson: string): string;
   destroy(): void;
 }
@@ -188,6 +223,18 @@ function computeMeshEdge(input: MeshEdgeInput): MeshEdgeContext {
   }
 }
 
+function computeRectification(input: RectificationInput): RectificationResultRaw {
+  if (enginePyodide === undefined) {
+    throw new Error("chart worker not booted");
+  }
+  const fn = enginePyodide.globals.get("_almamesh_compute_rectification") as unknown as PyRectificationFn;
+  try {
+    return JSON.parse(fn(JSON.stringify(input))) as RectificationResultRaw;
+  } finally {
+    fn.destroy();
+  }
+}
+
 async function handle(request: ChartWorkerRequest): Promise<ChartWorkerResponse> {
   try {
     if (request.kind === "boot") {
@@ -208,6 +255,14 @@ async function handle(request: ChartWorkerRequest): Promise<ChartWorkerResponse>
         kind: "computeMeshEdge",
         id: request.id,
         meshEdge: computeMeshEdge(request.input),
+      };
+    }
+    if (request.kind === "computeRectification") {
+      return {
+        ok: true,
+        kind: "computeRectification",
+        id: request.id,
+        rectification: computeRectification(request.input),
       };
     }
     return { ok: true, kind: "generateChart", id: request.id, chart: generateChart(request.birth) };

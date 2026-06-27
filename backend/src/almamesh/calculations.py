@@ -483,6 +483,38 @@ def get_dignity(planet: PlanetName, sign: ZodiacSign, lord: PlanetName) -> Digni
 # --- Main API ---
 
 
+# A Lagna within this many degrees of a sign boundary is "near a cusp": minutes
+# of recorded birth time can flip the rising sign. Mirrors the UI's near-cusp
+# threshold (apps/web/src/lib/lagnaCusp.ts) so the engine stays the single source
+# of truth for the "Birth-time sensitivity" banner.
+CUSP_THRESHOLD_DEG = 3.0
+
+
+def _cusp_proximity(longitude: float) -> tuple[float, ZodiacSign, bool]:
+    """Distance to the nearest sign boundary, the sign across it, and near-cusp.
+
+    Mirrors the UI cusp contract (apps/web/src/lib/lagnaCusp.ts): a sign spans
+    30 deg; ``to_lower`` is the distance back to this sign's 0 deg edge and
+    ``to_upper`` the distance forward to its 30 deg edge. The NEARER edge wins
+    (ties go to the lower edge); its neighbour is the PREVIOUS sign at the lower
+    edge, the NEXT sign at the upper edge, and the zodiac wraps Aries<->Pisces.
+    ``is_near_cusp`` is true when that distance is within ``CUSP_THRESHOLD_DEG``
+    (inclusive). Pure: it only MEASURES the engine's longitude, never recomputes.
+    """
+    sign_idx = int((longitude % 360) // 30)
+    sign_degrees = longitude % 30
+    to_lower = sign_degrees
+    to_upper = 30.0 - sign_degrees
+    if to_lower <= to_upper:
+        distance = to_lower
+        adjacent_idx = (sign_idx - 1) % 12
+    else:
+        distance = to_upper
+        adjacent_idx = (sign_idx + 1) % 12
+    adjacent_sign = ZodiacSign(ZODIAC_SIGNS[adjacent_idx])
+    return distance, adjacent_sign, distance <= CUSP_THRESHOLD_DEG
+
+
 def _calculate_lagna_data(
     astro: SkyfieldAstronomy,
     dt_utc: datetime,
@@ -495,6 +527,7 @@ def _calculate_lagna_data(
     lagna_sign_idx = int(lagna_long // 30)
     lagna_sign = ZodiacSign(ZODIAC_SIGNS[lagna_sign_idx])
     n_name, n_pada, n_lord = get_nakshatra_info(lagna_long)
+    cusp_distance, adjacent_sign, near_cusp = _cusp_proximity(lagna_long)
 
     lagna_data = LagnaData(
         longitude=lagna_long,
@@ -504,6 +537,9 @@ def _calculate_lagna_data(
         nakshatra=n_name,
         nakshatra_pada=n_pada,
         nakshatra_lord=n_lord,
+        lagna_cusp_distance_deg=cusp_distance,
+        lagna_adjacent_sign=adjacent_sign,
+        is_near_cusp=near_cusp,
     )
     return lagna_data, lagna_sign_idx
 
@@ -637,6 +673,7 @@ def calculate_sidereal_context(
     ayanamsa_type: AyanamsaType = AyanamsaType.LAHIRI,
     node_type: NodeType = NodeType.MEAN,
     reference_date: datetime | None = None,
+    astronomy: SkyfieldAstronomy | None = None,
 ) -> SiderealContext:
     """
     Orchestrate full sidereal context calculation.
@@ -647,12 +684,14 @@ def calculate_sidereal_context(
     lunar node. `reference_date` selects which Vimshottari maha dasha is
     "current"; when None it defaults to the wall clock, but callers that need
     reproducible output (browser parity, content-addressed bundles) must pass
-    it explicitly.
+    it explicitly. `astronomy` is an optional pre-warmed SkyfieldAstronomy
+    instance; when provided it is reused (avoids repeated de421 loads for
+    multi-candidate scoring). Default None = unchanged single-call behavior.
     """
     # Normalize to a true UTC instant (CONVERT aware datetimes; never relabel).
     dt_utc = _to_utc(dt_utc)
 
-    astro = SkyfieldAstronomy()
+    astro = astronomy if astronomy is not None else SkyfieldAstronomy()
     ayanamsa = _resolve_ayanamsa(astro, dt_utc, ayanamsa_type)
 
     # Stages

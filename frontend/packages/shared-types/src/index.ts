@@ -1122,6 +1122,33 @@ export interface SiderealPlanet {
 }
 
 /**
+ * The Lagna (Ascendant) as carried on `SiderealContext`. Historically an
+ * untyped `Record<string, unknown>`; the named fields below document what the
+ * engine actually emits while the `[key: string]: unknown` index signature
+ * keeps it permissive (partial test fixtures like `lagna: {}` still type-check).
+ *
+ * The three `lagna_*` / `is_near_cusp` fields are the engine's CUSP-PROXIMITY
+ * single-source-of-truth — additive, so older stored charts/bundles omit them
+ * (the UI's lib/lagnaCusp.ts then falls back to its own measurement).
+ */
+export interface SiderealLagna {
+  readonly sign?: string;
+  readonly sign_degrees?: number;
+  readonly longitude?: number;
+  readonly sign_lord?: string;
+  readonly nakshatra?: string;
+  readonly nakshatra_pada?: number;
+  readonly nakshatra_lord?: string;
+  /** Degrees from the Lagna to the NEAREST sign boundary (engine cusp SoT). */
+  readonly lagna_cusp_distance_deg?: number;
+  /** The sign across that nearest boundary (engine Title-Case). */
+  readonly lagna_adjacent_sign?: string | null;
+  /** True when within the engine's near-cusp threshold (~3°). */
+  readonly is_near_cusp?: boolean;
+  readonly [key: string]: unknown;
+}
+
+/**
  * Sidereal context containing all planet positions
  * Matches backend SiderealContext class
  */
@@ -1131,7 +1158,7 @@ export interface SiderealContext {
   ayanamsa_type: string;
   house_system: string;
   sidereal_time: number;
-  lagna: Record<string, unknown>;
+  lagna: SiderealLagna;
   planets: Record<string, SiderealPlanet>;
 }
 
@@ -1238,7 +1265,87 @@ export interface AstrologicalQuestionResponse extends BaseResponse {
 // Rectification Types
 // ============================================================================
 
-export type ConsentLevel = 'basic' | 'standard' | 'detailed';
+// Life event category vocabulary for birth-time rectification (Phase 2)
+export type LifeEventCategory =
+  | 'marriage'
+  | 'engagement'
+  | 'breakup'
+  | 'childbirth'
+  | 'career_change'
+  | 'promotion'
+  | 'job_loss'
+  | 'business_start'
+  | 'relocation'
+  | 'property_purchase'
+  | 'windfall'
+  | 'expense_shock'
+  | 'health_issue'
+  | 'surgery'
+  | 'higher_studies'
+  | 'litigation';
+
+/** All 16 life-event categories for rectification. */
+export const LIFE_EVENT_CATEGORIES: readonly LifeEventCategory[] = [
+  'marriage',
+  'engagement',
+  'breakup',
+  'childbirth',
+  'career_change',
+  'promotion',
+  'job_loss',
+  'business_start',
+  'relocation',
+  'property_purchase',
+  'windfall',
+  'expense_shock',
+  'health_issue',
+  'surgery',
+  'higher_studies',
+  'litigation',
+];
+
+// Rectification result mode (cusp-based or window-based time-fitting)
+export type RectificationMode = 'cusp' | 'window';
+
+// Confidence band for a rectification result (how near the tie between candidates)
+export type RectificationBand = 'near_tie' | 'leans' | 'consistent';
+
+/** Life event input for rectification analysis. */
+export interface RectificationEventInput {
+  readonly date: string;
+  readonly category: LifeEventCategory;
+}
+
+/** Supporting evidence for a life event in the rectification result. */
+export interface EventEvidence {
+  readonly eventIndex: number;
+  readonly category: LifeEventCategory;
+  readonly date: string;
+  readonly signals: readonly string[];
+  readonly contribution: number;
+}
+
+/** One candidate rectified time with supporting event evidence. */
+export interface RectificationCandidate {
+  readonly ascendantSign: string;
+  readonly representativeTimeLocal: string;
+  readonly lagnaLongitudeDeg: number;
+  readonly lagnaCuspDistanceDeg: number;
+  readonly isNearCusp: boolean;
+  readonly fitScore: number;
+  readonly supportingEvents: readonly EventEvidence[];
+}
+
+/** The complete rectification result: mode, candidates, margin, band, honesty note. */
+export interface RectificationResult {
+  readonly mode: RectificationMode;
+  readonly candidates: readonly RectificationCandidate[];
+  readonly margin: number;
+  readonly band: RectificationBand;
+  readonly discriminatingEventCount: number;
+  readonly recordedTimeSign: string | null;
+  readonly honestyNoteKey: string;
+}
 
 export type LifeEventType =
   | 'marriage' | 'child_birth' | 'parent_death'
@@ -1246,135 +1353,6 @@ export type LifeEventType =
   | 'education_start' | 'graduation'
   | 'property_acquisition' | 'relocation'
   | 'major_surgery' | 'accident' | 'relationship_end';
-
-export type EventReliability = 'gold_standard' | 'high' | 'moderate';
-
-export type RectificationPhase =
-  | 'collecting_events' | 'analyzing' | 'completed' | 'failed';
-
-export interface LifeEvent {
-  event_type: LifeEventType;
-  event_date: string;
-  description: string;
-  reliability: EventReliability;
-  is_date_uncertain?: boolean;
-}
-
-export interface RectificationSessionCreateRequest {
-  person_name: string;
-  birth_datetime_utc: string;
-  birth_city: string;
-  birth_state: string;
-  birth_country: string;
-  birth_latitude: number;
-  birth_longitude: number;
-  birth_timezone: string;
-  time_range_minutes?: number;
-}
-
-/**
- * Rectification step enum
- * Matches backend RectificationStep enum
- */
-export type RectificationStep =
-  | 'collecting_events'
-  | 'analyzing'
-  | 'validating'
-  | 'reviewing'
-  | 'finalized'
-  | 'cancelled';
-
-/**
- * Rectification session response
- * Matches backend RectificationSession class structure
- */
-export interface RectificationSessionResponse {
-  session_id: string;
-  user_id: string;
-  person_name: string;
-  original_birth_data?: ProcessedBirthData;
-  collected_events?: LifeEvent[];
-  current_step: RectificationStep;
-  completed_steps?: RectificationStep[];
-  time_range_minutes?: number;
-  confidence_threshold?: number;
-  time_candidates?: BirthTimeCandidate[];
-  recommended_time?: BirthTimeCandidate | null;
-  created_at: string;
-  updated_at?: string;
-  completed_at?: string | null;
-  data_retention_days?: number;
-  user_consent_level?: ConsentLevel;
-  expires_at?: string | null;
-}
-
-export interface SessionProgress {
-  session_id: string;
-  phase: RectificationPhase;
-  current_step: string;
-  events_collected: number;
-  events_required: number;
-  can_proceed: boolean;
-  progress_percent: number;
-  next_action: string;
-  consent_level: ConsentLevel;
-  available_event_types: LifeEventType[];
-  is_complete: boolean;
-  is_cancelled: boolean;
-}
-
-export interface BirthTimeCandidate {
-  candidate_id: string;
-  original_time: string;
-  candidate_time: string;
-  time_adjustment_minutes: number;
-  overall_confidence: number;
-  dasha_alignment_score: number;
-  divisional_accuracy_score: number;
-  transit_validation_score: number;
-  house_activation_score: number;
-  events_validated: number;
-  events_failed: number;
-  confidence_level: 'professional' | 'high' | 'moderate' | 'low';
-}
-
-export interface RectificationResult {
-  success: boolean;
-  original_time: string;
-  rectified_time: string;
-  confidence_level: string;
-  time_adjustment_minutes: number;
-  events_analyzed: number;
-  events_validated: number;
-  validation_rate: number;
-  accuracy_assessment: string;
-  notable_changes: string[];
-}
-
-// ============================================================================
-// Question Flow Types
-// ============================================================================
-
-export interface QuestionOption {
-  value: string;
-  label: string;
-}
-
-export interface RectificationQuestion {
-  question_id: string;
-  question_text: string;
-  event_type: LifeEventType;
-  options: QuestionOption[];
-  is_required: boolean;
-}
-
-export interface QuestionFlowState {
-  session_id: string;
-  current_tier: number;
-  questions_answered: number;
-  total_questions: number;
-  is_complete: boolean;
-}
 
 // ============================================================================
 // Token Usage Types
@@ -1446,33 +1424,6 @@ export interface UsageResponse {
   by_call_type: Record<string, CallTypeBreakdown>;
   recent_calls: RecentCall[];
 }
-
-// ============================================================================
-// Birth Time Uncertainty Types
-// ============================================================================
-
-/**
- * Birth time uncertainty levels for rectification
- */
-export type BirthTimeUncertainty =
-  | 'exact'           // Known to the minute
-  | 'within_15_min'   // Within 15 minutes
-  | 'within_1_hour'   // Within 1 hour
-  | 'within_2_hours'  // Within 2 hours
-  | 'approximate'     // General time of day (morning/afternoon/evening)
-  | 'unknown';        // Birth time unknown
-
-/**
- * Labels for birth time uncertainty levels
- */
-export const BIRTH_TIME_UNCERTAINTY_LABELS: Record<BirthTimeUncertainty, string> = {
-  exact: 'Exact (to the minute)',
-  within_15_min: 'Within 15 minutes',
-  within_1_hour: 'Within 1 hour',
-  within_2_hours: 'Within 2 hours',
-  approximate: 'Approximate (morning/afternoon/evening)',
-  unknown: 'Unknown',
-};
 
 /**
  * Life event type labels for display
@@ -1577,38 +1528,6 @@ export interface StartOnboardingRequest {
   options?: {
     generate_interpretation?: boolean;
   };
-}
-
-/**
- * Rectification life event for display
- */
-export interface RectificationLifeEvent {
-  id: string;
-  event_type: LifeEventType;
-  event_date: string;      // YYYY-MM-DD format
-  description?: string;
-  reliability?: EventReliability;
-}
-
-/**
- * User rectification data stored in preferences
- */
-export interface UserRectificationData {
-  uncertainty_level: BirthTimeUncertainty;
-  life_events: RectificationLifeEvent[];
-  original_birth_time?: string;   // HH:MM format
-  rectified_birth_time?: string;  // HH:MM format
-  rectification_confidence?: number;  // 0-1 score
-  last_updated?: string;          // ISO datetime
-}
-
-/**
- * Request to update user rectification data
- */
-export interface UpdateRectificationRequest {
-  uncertainty_level?: BirthTimeUncertainty;
-  life_events?: RectificationLifeEvent[];
-  trigger_regeneration?: boolean;  // If true, regenerate chart with new rectified time
 }
 
 // ============================================================================

@@ -520,4 +520,68 @@ describe('ReportView predictive sections', () => {
 
     expect(screen.queryByTestId('report-cusp-note')).toBeNull();
   });
+
+  it('renders the cusp caveat as a PROMINENT, titled callout that leads with the ascendant value', () => {
+    const chart = storedChart();
+    const nearCusp: StoredChart = {
+      ...chart,
+      sidereal_chart: {
+        ...CHART,
+        lagna: { ...CHART.lagna, sign: 'Aquarius', longitude: 328.84, sign_degrees: 28.84 },
+      },
+    } as StoredChart;
+    useChartLibraryStore.setState({ charts: { 'chart-1': nearCusp }, hydrated: true });
+    useInterpretationStore.getState().setInterpretation('chart-1', FULL_INTERPRETATION, '2026-06-05T00:00:00Z');
+    renderReport('you');
+
+    const callout = screen.getByTestId('report-cusp-note');
+    // Promoted from the old muted inline footnote → a bordered, titled callout.
+    expect(callout.className).toContain('cusp-callout');
+    expect(screen.getByTestId('report-cusp-callout-title')).toBeTruthy();
+    // Leads with the ascendant value itself, beside the warning.
+    expect(callout.textContent).toContain('Aquarius');
+    // Still engine-grounded honesty: the alternative sign + rectification advice.
+    expect(callout.textContent).toContain('Pisces');
+    expect(callout.textContent).toMatch(/refining the birth time/i);
+  });
+});
+
+describe('ReportView cover — birth-time honesty', () => {
+  beforeEach(() => {
+    useChartLibraryStore.setState({ charts: {}, hydrated: true });
+    useInterpretationStore.setState({ byChart: {} });
+    usePredictiveStore.getState().reset();
+  });
+
+  it('badges the birth time "As recorded" with no rectified detail when none is in effect', () => {
+    seed();
+    renderReport('you');
+
+    const badge = screen.getByTestId('report-time-badge');
+    expect(badge.getAttribute('data-variant')).toBe('recorded');
+    expect(badge.textContent).toMatch(/as recorded/i);
+    // No entered→rectified line when the recorded time was used verbatim.
+    expect(screen.queryByTestId('report-time-rectified-detail')).toBeNull();
+  });
+
+  it('shows BOTH the entered and rectified times + a "+N min" badge when rectified', () => {
+    const chart = storedChart();
+    // Entered 11:45 → chart computed for the effective 12:00 local (+15 min).
+    const rectified: StoredChart = {
+      ...chart,
+      birth_data: { ...chart.birth_data, birth_time_original: '11:45' },
+    } as StoredChart;
+    useChartLibraryStore.setState({ charts: { 'chart-1': rectified }, hydrated: true });
+    useInterpretationStore.getState().setInterpretation('chart-1', FULL_INTERPRETATION, '2026-06-05T00:00:00Z');
+    renderReport('you');
+
+    const badge = screen.getByTestId('report-time-badge');
+    expect(badge.getAttribute('data-variant')).toBe('rectified');
+    expect(badge.textContent).toMatch(/\+\s?15\s?min/);
+
+    // Honest: BOTH wall clocks appear — the entered time AND the rectified one used.
+    const detail = screen.getByTestId('report-time-rectified-detail');
+    expect(detail.textContent).toContain('11:45');
+    expect(detail.textContent).toContain('12:00');
+  });
 });

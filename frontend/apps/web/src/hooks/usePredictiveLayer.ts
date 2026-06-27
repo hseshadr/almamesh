@@ -36,6 +36,7 @@ import {
   predictiveReferenceInstant,
   selectPrimaryStoredChart,
 } from '../lib/predictive';
+import { useRectificationGate } from '../lib/rectificationGate';
 
 /**
  * The deferred auto-kickoff delay (ms). It is a HARD floor, NOT an idle hint:
@@ -142,9 +143,13 @@ export function usePredictiveLayer({ auto = false }: UsePredictiveLayerOptions =
   // timer elapses frees the engine entirely. Never auto-retries an error (that
   // stays a human decision); recomputes when the profile changed under an
   // already-ready store (ensurePredictive is idempotent per key).
+  // Suppress auto-start while the rectification wizard is mounted so the single
+  // serial Pyodide worker stays free for the interactive rectification call.
+  const rectGateActive = useRectificationGate((s) => s.active);
+
   const pendingKickoff = useRef<ScheduledKickoff | null>(null);
   useEffect(() => {
-    if (!auto || !engine || !input) {
+    if (!auto || !engine || !input || rectGateActive) {
       return;
     }
     const staleProfile = status === 'ready' && loadedProfileKey !== profileKey;
@@ -166,7 +171,7 @@ export function usePredictiveLayer({ auto = false }: UsePredictiveLayerOptions =
         pendingKickoff.current = null;
       }
     };
-  }, [auto, engine, input, status, loadedProfileKey, profileKey, compute]);
+  }, [auto, engine, input, rectGateActive, status, loadedProfileKey, profileKey, compute]);
 
   return {
     status,

@@ -49,9 +49,14 @@
     "ascendant_unavailable": "Ascendant preview unavailable — the engine is still starting.",
     "ascendant_prompt": "Set a birth date and location to preview the Ascendant.",
     "cusp_warning": "⚠ ~{{degrees}}° from {{sign}} — your rising sign is on a cusp; small birth-time changes flip it.",
-    "cusp_flip": "At this time the Ascendant reads {{sign}} — a change from your entered time, which rises {{enteredSign}}. This is a possibility to weigh against your life events, not a verdict.",
+    "comparison_label": "Same birth · two candidate times",
+    "comparison_as_recorded": "As recorded",
+    "comparison_rectified": "Rectified",
+    "comparison_near": "{{sign}} rises only ~{{degrees}}° from the {{neighbour}} cusp. A few minutes' difference in your recorded time would make it {{neighbour}} and shift every house by one sign — the same person at two candidate times.",
+    "comparison_flip": "Same person, two candidate times: the rising sign changes {{recorded}} → {{rectified}}, so every house shifts by one sign. Weigh this against your life events — it is a possibility, not a verdict.",
     "adjustment_in_effect": "Rectified: entered {{entered}} → using {{rectified}} ({{sign}}{{minutes}} min).",
     "confidence_hint": "Your birth time is {{confidence}}. There is no automatic rectification — you refine it here by hand: nudge the rectified time, watch the Ascendant above, and weigh it against your real life events. This matters most when the lagna sits on a cusp, where minutes flip the rising sign.",
+    "life_events_refine_link": "Refine with life events →",
     "location_label": "Birth Location",
     "location_placeholder": "City, Country",
     "location_hint": "Timezone will be automatically determined from your location.",
@@ -186,6 +191,7 @@
     "tokens": "{{n}} tokens",
     "insufficient": "Insufficient tokens for this operation. Please upgrade your plan or wait for your monthly reset.",
     "processing": "Processing...",
-    "confirm": "Confirm & Regenerate"
+    "confirm": "Confirm & Regenerate",
+    "flip_ack": "This changes your rising sign {{from}} → {{to}} and shifts every house in your chart. I understand and want to continue."
   }
 }

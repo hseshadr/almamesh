@@ -1,0 +1,96 @@
+{
+  "_meta": "machine-translated from en; native review pending",
+  "categories": {
+    "marriage": "Casamento",
+    "engagement": "Noivado",
+    "breakup": "Separação / Divórcio",
+    "childbirth": "Nascimento de filho",
+    "career_change": "Mudança de carreira",
+    "promotion": "Promoção",
+    "job_loss": "Perda de emprego",
+    "business_start": "Início de negócio",
+    "relocation": "Mudança de cidade",
+    "property_purchase": "Compra de imóvel",
+    "windfall": "Ganho inesperado",
+    "expense_shock": "Despesa grande / Perda financeira",
+    "health_issue": "Problema de saúde",
+    "surgery": "Cirurgia",
+    "higher_studies": "Estudos superiores",
+    "litigation": "Litígio / Ação legal"
+  },
+  "entry": {
+    "title": "Seus eventos de vida",
+    "subtitle": "Adicione datas de eventos importantes. Quanto mais específico, melhor.",
+    "add": "Adicionar evento",
+    "date_label": "Data",
+    "category_label": "Categoria",
+    "category_placeholder": "Selecione uma categoria",
+    "note_label": "Observação (opcional)",
+    "delete": "Excluir",
+    "continue": "Continuar",
+    "min_events_hint": "Adicione pelo menos um evento com data e categoria para continuar."
+  },
+  "band": {
+    "near_tie": "Empate próximo",
+    "leans": "Tende para",
+    "consistent": "Consistente"
+  },
+  "honesty": {
+    "near_tie": "Os eventos que você forneceu não favorecem claramente um candidato em relação ao outro. Ambos são plausíveis. Apenas um registro de nascimento pode resolver um empate próximo — este resultado é uma hipótese, não um veredicto.",
+    "leans": "As evidências tendem para um candidato, mas a margem é modesta. Trate isso como uma hipótese de trabalho para contrastar com sua experiência vivida, não como uma conclusão definitiva.",
+    "consistent": "Os eventos apoiam consistentemente o candidato principal. Mesmo assim, nenhum algoritmo substitui um registro de nascimento. Use este horário como ponto de partida, não como uma certeza."
+  },
+  "signals": {
+    "dasha_lord_rules": "O senhor da dasa rege a casa {{house}}",
+    "dasha_lord_in": "O senhor da dasa está na casa {{house}}",
+    "slow_transit": "Planeta lento em trânsito pela casa {{house}}",
+    "unknown": "Um sinal de temporização"
+  },
+  "results": {
+    "title": "Resultados de Retificação",
+    "representative_time_label": "Horário representativo",
+    "representative_caveat": "Este é um horário representativo para esta janela — não uma afirmação ao minuto exato.",
+    "confirm": "Usar este horário",
+    "keep_recorded": "Manter meu horário registrado",
+    "near_tie_settle_note": "Apenas um registro de nascimento pode resolver um empate próximo. Ambos os candidatos são plausíveis — avalie-os com base na sua experiência vivida.",
+    "recorded_reference_label": "Seu horário registrado",
+    "candidate_label": "Candidato {{rank}}",
+    "evidence_table_label": "Eventos de vida de apoio",
+    "window_caveat": "Os eventos determinam apenas o signo ascendente, não o minuto exato. O horário representativo mostrado é ilustrativo — ele o posiciona dentro do signo, não em um momento de nascimento preciso."
+  },
+  "wizard": {
+    "title": "Refinar seu horário de nascimento"
+  },
+  "intro": {
+    "heading": "Estreitar seu signo ascendente",
+    "body": "Se o seu horário de nascimento é incerto, eventos de vida podem ajudar a estreitar a janela. O motor testará se o seu horário registrado — ou um candidato próximo — se encaixa melhor no padrão de eventos que você inserir.",
+    "honesty": "Este é um motor de hipóteses, não uma máquina de vereditos. Um certidão de nascimento registrada sempre prevalece. Você obtém uma lista classificada e um rótulo de confiança honesto.",
+    "start": "Adicionar eventos de vida"
+  },
+  "fit": {
+    "heading": "Analisando seus eventos…",
+    "body": "O motor no dispositivo está comparando janelas de nascimento candidatas com seus eventos de vida. Isso geralmente leva alguns segundos.",
+    "engine_warming": "O motor de gráfico ainda está aquecendo. A análise começará automaticamente quando estiver pronto.",
+    "error_heading": "Análise falhou",
+    "retry": "Tentar novamente",
+    "elapsed": "{{seconds}}s decorridos",
+    "device_note": "Ajustando seus eventos com os gráficos candidatos. Isso é executado inteiramente no seu dispositivo."
+  },
+  "steps": {
+    "intro": "Introdução",
+    "events": "Eventos de vida",
+    "fit": "Analisando",
+    "results": "Resultados"
+  },
+  "accelerator": {
+    "title": "Cole Sua História",
+    "warning": "O que você escrever aqui — incluindo nomes ou lugares — é enviado para o seu endpoint de IA configurado. Apenas as datas e tipos de evento extraídos ficam no seu dispositivo.",
+    "textarea_placeholder": "Descreva eventos importantes da sua vida em texto simples — datas e o que aconteceu…",
+    "submit": "Extrair Eventos",
+    "gated_note": "Configure um endpoint de IA na nuvem nas Configurações para usar este recurso.",
+    "empty_result": "Não foi possível extrair eventos — adicione-os manualmente com o botão abaixo.",
+    "error": "Algo deu errado — a chamada à IA falhou. Verifique sua conexão ou configurações do endpoint e tente novamente.",
+    "loading": "Extraindo eventos…"
+  },
+  "back": "Voltar"
+}

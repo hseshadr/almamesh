@@ -49,6 +49,16 @@ export interface LagnaData {
   readonly nakshatra: string;
   readonly nakshatra_pada: number;
   readonly nakshatra_lord: string;
+  /**
+   * Degrees from the Lagna to the NEAREST sign boundary — the engine's cusp
+   * single-source-of-truth for the UI's near-cusp banner. Additive: older
+   * bundles omit it (the UI falls back to its own measurement).
+   */
+  readonly lagna_cusp_distance_deg?: number;
+  /** The sign across that nearest boundary (engine Title-Case). Additive. */
+  readonly lagna_adjacent_sign?: string | null;
+  /** True when within the engine's near-cusp threshold (~3°). Additive. */
+  readonly is_near_cusp?: boolean;
 }
 
 export interface HouseCusp {

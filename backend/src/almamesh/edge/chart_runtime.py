@@ -9,8 +9,8 @@ raised — so the router always gets a clean verdict.
 from __future__ import annotations
 
 import time
-from collections.abc import Mapping
-from datetime import datetime
+from collections.abc import Mapping, Sequence
+from datetime import UTC, date, datetime
 
 from edgeproc import (
     CapabilityVerdict,
@@ -23,8 +23,11 @@ from edgeproc import (
 from edgeproc.core.models import JsonValue
 
 from almamesh.calculations import calculate_sidereal_context
+from almamesh.constants.astrology import EventType
 from almamesh.mesh import compute_mesh_edge
 from almamesh.predictive import compute_predictive_contexts
+from almamesh.rectification import compute_rectification_result
+from almamesh.rectification.models import RectificationEventInput, RectificationMode
 from almamesh.schemas.astrology import SiderealContext
 from almamesh.schemas.mesh import MatchRole, Relationship
 
@@ -103,6 +106,50 @@ def compute_mesh(payload: Mapping[str, object]) -> dict[str, JsonValue]:
         window_end=datetime.fromisoformat(str(payload["window_end"])),
     )
     return edge.model_dump(mode="json")
+
+
+def _parse_rect_event(raw: object) -> RectificationEventInput:
+    """Parse one raw event mapping into a typed RectificationEventInput."""
+    if not isinstance(raw, Mapping):
+        raise TypeError(f"event must be a mapping; got {type(raw).__name__}")
+    return RectificationEventInput(
+        date=date.fromisoformat(str(raw["date"])),
+        category=EventType(str(raw["category"])),
+    )
+
+
+def _parse_rect_events(raw: object) -> list[RectificationEventInput]:
+    """Narrow the raw events value to a typed list — fail loud on wrong shape."""
+    if not isinstance(raw, Sequence) or isinstance(raw, str):
+        raise TypeError(f"events must be a sequence; got {type(raw).__name__}")
+    return [_parse_rect_event(e) for e in raw]
+
+
+def compute_rectification(payload: Mapping[str, object]) -> dict[str, JsonValue]:
+    """Rectification scored against user-supplied life events (cusp or window mode).
+
+    ``reference_date`` (ISO 8601) pins the "current" Vimshottari maha dasha for
+    all candidate scoring — pass it for determinism (required in parity tests).
+    When absent, wall-clock time is used (non-deterministic, fine for live use).
+    ``span_minutes`` (int, optional) bounds the window search in WINDOW mode;
+    absent or null means the full birth day is scanned.
+    """
+    dt_utc = datetime.fromisoformat(str(payload["datetime_utc"]))
+    raw_ref = payload.get("reference_date")
+    reference_date = datetime.fromisoformat(str(raw_ref)) if raw_ref else datetime.now(UTC)
+    raw_span = payload.get("span_minutes")
+    span_minutes = int(str(raw_span)) if raw_span is not None else None
+    result = compute_rectification_result(
+        dt_utc=dt_utc,
+        latitude=float(payload["latitude"]),  # type: ignore[arg-type]
+        longitude=float(payload["longitude"]),  # type: ignore[arg-type]
+        utc_offset_minutes=int(str(payload["utc_offset_minutes"])),
+        events=_parse_rect_events(payload["events"]),
+        mode=RectificationMode(str(payload["mode"])),
+        reference_date=reference_date,
+        span_minutes=span_minutes,
+    )
+    return result.model_dump(mode="json")
 
 
 class ChartRuntime:

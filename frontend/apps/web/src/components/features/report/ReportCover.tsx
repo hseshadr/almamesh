@@ -6,6 +6,15 @@
  * `formatBirthDateTime`, place via `buildPlaceString`, ascendant), and the
  * generated date via `formatReportDate(new Date())` — which is null/epoch-safe,
  * so the cover never reads "December 31, 1969" the way the old export did.
+ *
+ * Two honesty surfaces sit on the cover (so the screen report matches the PDF):
+ *   1. The Time of Birth ALWAYS carries an "As recorded" / "Rectified +N min"
+ *      badge; when a rectification is in effect it also prints BOTH wall clocks
+ *      ("entered 5:45 AM → computed for 6:00 AM") — derived purely from the
+ *      `RectificationDelta` the caller threads in (no astrology recomputed).
+ *   2. A near-cusp Ascendant raises a PROMINENT bordered callout (not a muted
+ *      footnote) that leads with the rising value and names the alternative sign
+ *      + the rectification advice. The cusp signal comes from `lib/lagnaCusp`.
  */
 
 import type { ReactElement } from 'react';
@@ -19,6 +28,7 @@ import {
   formatReportDate,
 } from '../../../lib/reportData';
 import { cuspInfo } from '../../../lib/lagnaCusp';
+import type { RectificationDelta } from '../../../lib/rectification';
 import type { ReportAudience } from '../../../lib/reportSelectors';
 
 function titleCase(value: string): string {
@@ -30,13 +40,107 @@ interface ReportCoverProps {
   readonly audience: ReportAudience;
   readonly birth: ProcessedBirthData;
   readonly lagna: LagnaData;
+  /**
+   * The derived entered→rectified adjustment, or null when the recorded time was
+   * used verbatim. Threaded from `ReportView` (which calls `rectificationDelta`)
+   * the same way the PDF builder threads it — i18n stays here in React.
+   */
+  readonly rectification?: RectificationDelta | null;
+}
+
+/**
+ * The Time-of-Birth value: the effective wall clock used, an honesty badge
+ * ("As recorded" vs "Rectified +N min"), and — when rectified — both clocks.
+ */
+function TimeOfBirthValue({
+  effective,
+  rectification,
+}: {
+  readonly effective: string;
+  readonly rectification?: RectificationDelta | null;
+}): ReactElement {
+  const { t } = useTranslation('report');
+  const rectified = rectification ?? null;
+  const sign = rectified && rectified.deltaMinutes > 0 ? '+' : '−';
+
+  return (
+    <>
+      {effective}
+      {rectified ? (
+        <span
+          className="report-cover-time-badge"
+          data-variant="rectified"
+          data-testid="report-time-badge"
+        >
+          {t('cover.time_badge_rectified', {
+            sign,
+            minutes: Math.abs(rectified.deltaMinutes),
+          })}
+        </span>
+      ) : (
+        <span
+          className="report-cover-time-badge"
+          data-variant="recorded"
+          data-testid="report-time-badge"
+        >
+          {t('cover.time_badge_recorded')}
+        </span>
+      )}
+      {rectified ? (
+        <span className="report-cover-time-detail" data-testid="report-time-rectified-detail">
+          {t('cover.time_rectified_detail', {
+            entered: rectified.enteredLabel,
+            rectified: rectified.rectifiedLabel,
+          })}
+        </span>
+      ) : null}
+    </>
+  );
+}
+
+/**
+ * A PROMINENT bordered cusp callout (engine-grounded honesty, not alarmist):
+ * leads with the ascendant value, names the alternative rising sign, and states
+ * that house placements depend on the recorded time. Renders nothing unless the
+ * lagna sits within `cuspInfo`'s near-boundary threshold.
+ */
+function CuspCallout({ lagna }: { readonly lagna: LagnaData }): ReactElement | null {
+  const { t } = useTranslation('report');
+  const sign = titleCase(lagna.sign);
+  const cusp = cuspInfo(sign, lagna.sign_degrees);
+  if (!cusp) {
+    return null;
+  }
+  return (
+    <aside className="report-cover-cusp-callout" role="note" data-testid="report-cusp-note">
+      <span className="report-cover-cusp-callout-title" data-testid="report-cusp-callout-title">
+        {t('cover.cusp_callout_title')}
+      </span>
+      <span className="report-cover-cusp-callout-asc">
+        {sign} {formatDegree(lagna.sign_degrees)}
+      </span>
+      <span className="report-cover-cusp-callout-body">
+        {t('cover.cusp_note', {
+          degrees: cusp.degrees.toFixed(1),
+          sign: cusp.neighbourSign,
+        })}
+      </span>
+    </aside>
+  );
 }
 
 /** Cover page: wordmark, audience badge, name, birth box, generated date. */
-export function ReportCover({ personName, audience, birth, lagna }: ReportCoverProps): ReactElement {
+export function ReportCover({
+  personName,
+  audience,
+  birth,
+  lagna,
+  rectification,
+}: ReportCoverProps): ReactElement {
   const { t } = useTranslation('report');
   const when = formatBirthDateTime(birth);
   const place = buildPlaceString(birth);
+  const effectiveTime = `${when.time || '—'}${when.tzLabel ? ` (${when.tzLabel})` : ''}`;
 
   return (
     <section className="report-section report-cover" data-testid="report-cover">
@@ -72,8 +176,7 @@ export function ReportCover({ personName, audience, birth, lagna }: ReportCoverP
         <div className="report-cover-birth-item">
           <dt>{t('cover.time_of_birth')}</dt>
           <dd>
-            {when.time || '—'}
-            {when.tzLabel ? ` (${when.tzLabel})` : ''}
+            <TimeOfBirthValue effective={effectiveTime} rectification={rectification} />
           </dd>
         </div>
         <div className="report-cover-birth-item report-cover-birth-item-full">
@@ -84,25 +187,15 @@ export function ReportCover({ personName, audience, birth, lagna }: ReportCoverP
           <dt>{t('cover.ascendant')}</dt>
           <dd>
             {titleCase(lagna.sign)} {formatDegree(lagna.sign_degrees)}
-            {/* Generic near-cusp note (any sign, either boundary). Letterpress
-                honesty for print: names the alternative rising sign, states that
-                house-based interpretation depends on the recorded time, and
-                recommends refining the birth time before relying on house
-                placements (copy lives in report:cover.cusp_note). */}
-            {(() => {
-              const cusp = cuspInfo(titleCase(lagna.sign), lagna.sign_degrees);
-              return cusp ? (
-                <span className="report-cover-cusp" data-testid="report-cusp-note">
-                  {t('cover.cusp_note', {
-                    degrees: cusp.degrees.toFixed(1),
-                    sign: cusp.neighbourSign,
-                  })}
-                </span>
-              ) : null;
-            })()}
           </dd>
         </div>
       </dl>
+
+      {/* Promoted near-cusp caveat: a bordered callout beside the Ascendant, not
+          a muted footnote. Engine-grounded (cuspInfo measures the distance) and
+          honest — it names the alternative rising sign and recommends refining
+          the birth time before relying on house placements. */}
+      <CuspCallout lagna={lagna} />
 
       <p className="report-cover-generated" data-testid="report-generated-date">
         {t('cover.generated_on', { date: formatReportDate(new Date()) })}

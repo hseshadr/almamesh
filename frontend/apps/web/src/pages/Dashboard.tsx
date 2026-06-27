@@ -341,6 +341,11 @@ export default function DashboardPage() {
     longitude: rawLagna.longitude as number | undefined,
     nakshatra: rawLagna.nakshatra as string | undefined,
     nakshatraPada: rawLagna.nakshatra_pada as number | undefined,
+    // The engine's cusp-proximity block (authoritative when present): drives the
+    // Birth-time sensitivity callout off the engine's own near-cusp verdict.
+    cuspDistanceDeg: rawLagna.lagna_cusp_distance_deg as number | undefined,
+    adjacentSign: rawLagna.lagna_adjacent_sign as string | null | undefined,
+    isNearCusp: rawLagna.is_near_cusp as boolean | undefined,
   } : null;
 
   // The Moon's placement for the identity strip (engine keys planets by name;

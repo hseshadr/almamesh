@@ -13,7 +13,7 @@
  * - Animated entrance/exit with Framer Motion
  */
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AnimatePresence, motion } from 'framer-motion';
 import type { RegenerationScope } from '@almamesh/store';
@@ -27,6 +27,13 @@ interface RegenerationConfirmModalProps {
   estimatedCost: number;
   currentBalance?: number;
   isProcessing?: boolean;
+  /**
+   * Present only when the rectified time crosses a sign boundary: the rising
+   * sign changes `from` -> `to` and every house shifts with it. When set, the
+   * user must explicitly acknowledge that consequence before regenerating —
+   * this is not a tweak, it is a different chart. Absent/null -> no extra gate.
+   */
+  signFlip?: { readonly from: string; readonly to: string } | null;
 }
 
 export function RegenerationConfirmModal({
@@ -37,8 +44,18 @@ export function RegenerationConfirmModal({
   estimatedCost,
   currentBalance = 0,
   isProcessing = false,
+  signFlip = null,
 }: RegenerationConfirmModalProps) {
   const { t } = useTranslation(['settings', 'common']);
+
+  // A rising-sign flip demands an explicit "yes, I understand" before we
+  // regenerate. The acknowledgement resets every time the modal (re)opens or the
+  // flip itself changes, so a stale tick can never wave a new flip through.
+  const [acknowledged, setAcknowledged] = useState(false);
+  useEffect(() => {
+    setAcknowledged(false);
+  }, [isOpen, signFlip]);
+  const needsAck = signFlip != null;
   // Handle escape key to close modal
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -168,6 +185,24 @@ export function RegenerationConfirmModal({
                   <p className="text-status-error text-xs">{t('regen_modal.insufficient')}</p>
                 </div>
               )}
+
+              {signFlip && (
+                <label
+                  data-testid="regen-flip-ack"
+                  className="mt-2 flex cursor-pointer items-start gap-3 rounded-md border border-status-warning/40 bg-status-warning/10 p-3"
+                >
+                  <input
+                    type="checkbox"
+                    checked={acknowledged}
+                    onChange={(e) => setAcknowledged(e.target.checked)}
+                    disabled={isProcessing}
+                    className="mt-0.5 h-4 w-4 flex-shrink-0 accent-status-warning"
+                  />
+                  <span className="text-xs leading-relaxed text-status-warning">
+                    {t('regen_modal.flip_ack', { from: signFlip.from, to: signFlip.to })}
+                  </span>
+                </label>
+              )}
             </div>
 
             {/* Footer */}
@@ -181,7 +216,7 @@ export function RegenerationConfirmModal({
               </button>
               <button
                 onClick={onConfirm}
-                disabled={isProcessing || hasInsufficientTokens}
+                disabled={isProcessing || hasInsufficientTokens || (needsAck && !acknowledged)}
                 className="flex-1 px-4 py-2.5 bg-accent-gold text-background-primary rounded-md hover:bg-accent-gold/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm font-bold"
               >
                 {isProcessing ? (

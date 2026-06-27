@@ -874,14 +874,80 @@
   border-bottom: none;
 }
 
-/* Cover near-cusp note (generic, any sign) under the ascendant value. */
-.report-cover-cusp {
+/* Time-of-Birth honesty badge: "As recorded" (muted) vs "Rectified +N min"
+   (brass-emphasised). Always present beside the effective wall clock. */
+.report-cover-time-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 9px;
+  border: 0.5px solid var(--report-rule);
+  border-radius: 999px;
+  font-family: var(--report-sans);
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--report-muted);
+  vertical-align: middle;
+}
+
+.report-cover-time-badge[data-variant='rectified'] {
+  border-color: var(--report-gold);
+  background: var(--report-gold-tint);
+  color: var(--report-gold-deep);
+}
+
+/* The honest entered → rectified line, shown only when a rectification applies. */
+.report-cover-time-detail {
+  display: block;
+  margin-top: 4px;
+  font-family: var(--report-sans);
+  font-size: 0.7rem;
+  font-style: italic;
+  color: var(--report-ink-soft);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* Promoted near-cusp caveat: a PROMINENT brass-bordered callout beside the
+   Ascendant (was a muted 0.68rem footnote). Engine-grounded, calm, not alarmist. */
+.report-cover-cusp-callout {
+  display: block;
+  width: 100%;
+  max-width: 132mm;
+  margin: -5mm auto 9mm;
+  padding: 11px 16px 12px;
+  border: 0.5px solid var(--report-gold);
+  border-left: 3px solid var(--report-gold);
+  background: var(--report-gold-tint);
+  text-align: left;
+}
+
+.report-cover-cusp-callout-title {
   display: block;
   font-family: var(--report-sans);
-  font-size: 0.68rem;
-  font-style: italic;
-  color: var(--report-muted);
-  margin-top: 3px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--report-gold-deep);
+  margin-bottom: 4px;
+}
+
+.report-cover-cusp-callout-asc {
+  display: block;
+  font-family: var(--report-serif);
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--report-ink);
+  margin-bottom: 4px;
+}
+
+.report-cover-cusp-callout-body {
+  display: block;
+  font-family: var(--report-sans);
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--report-ink-soft);
 }
 
 /* On-screen-only "compute timing sections before printing" affordance. */

@@ -27,6 +27,21 @@ const ZODIAC_ORDER: readonly string[] = [
 
 const SIGN_SPAN = 30;
 
+/**
+ * The engine's CUSP-PROXIMITY single source of truth, as emitted on the chart's
+ * lagna (`SiderealLagna` in @almamesh/shared-types). When present, these helpers
+ * consume it verbatim — the engine is authoritative — and only fall back to the
+ * local TS measurement below when the fields are absent (older bundles / charts).
+ */
+export interface EngineCuspFields {
+  /** Degrees from the Lagna to the NEAREST sign boundary (engine measurement). */
+  readonly lagna_cusp_distance_deg?: number;
+  /** The sign across that nearest boundary (engine Title-Case name). */
+  readonly lagna_adjacent_sign?: string | null;
+  /** True when within the engine's near-cusp threshold (~3°). */
+  readonly is_near_cusp?: boolean;
+}
+
 /** Adjacent sign in the cycle; `step` is -1 (previous) or +1 (next). */
 function neighbour(sign: string, step: number): string | null {
   const index = ZODIAC_ORDER.indexOf(sign);
@@ -36,9 +51,15 @@ function neighbour(sign: string, step: number): string | null {
   return ZODIAC_ORDER[(index + step + ZODIAC_ORDER.length) % ZODIAC_ORDER.length];
 }
 
-/** Degrees from the lagna to the nearer of the two 0°/30° sign boundaries. */
-export function degreesToNearestCusp(signDegrees: number): number {
-  return Math.min(signDegrees, SIGN_SPAN - signDegrees);
+/**
+ * Degrees from the lagna to the nearer of the two 0°/30° sign boundaries.
+ * Prefers the engine's own measurement (`engineDistanceDeg`) when supplied,
+ * else measures locally — keeping the engine as the single source of truth.
+ */
+export function degreesToNearestCusp(signDegrees: number, engineDistanceDeg?: number): number {
+  return typeof engineDistanceDeg === 'number'
+    ? engineDistanceDeg
+    : Math.min(signDegrees, SIGN_SPAN - signDegrees);
 }
 
 /** The adjacent sign a near-boundary lagna is about to cross into, and how far. */
@@ -54,8 +75,26 @@ export interface CuspInfo {
  * boundary, else `null`. The lower boundary points at the PREVIOUS sign, the
  * upper boundary at the NEXT sign; the cycle wraps (Aries↔Pisces). Returns
  * `null` for an unknown sign name rather than throwing.
+ *
+ * When `engine` carries the chart's engine-emitted cusp fields, they are the
+ * single source of truth: the adjacent sign and distance come straight from the
+ * engine (gated by the caller's `threshold`). Absent them, it measures locally.
  */
-export function cuspInfo(sign: string, signDegrees: number, threshold = 3): CuspInfo | null {
+export function cuspInfo(
+  sign: string,
+  signDegrees: number,
+  threshold = 3,
+  engine?: EngineCuspFields,
+): CuspInfo | null {
+  if (
+    engine != null &&
+    engine.lagna_adjacent_sign != null &&
+    typeof engine.lagna_cusp_distance_deg === 'number'
+  ) {
+    return engine.lagna_cusp_distance_deg <= threshold
+      ? { neighbourSign: engine.lagna_adjacent_sign, degrees: engine.lagna_cusp_distance_deg }
+      : null;
+  }
   const toLower = signDegrees;
   const toUpper = SIGN_SPAN - signDegrees;
   if (toLower <= toUpper) {

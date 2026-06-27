@@ -1,0 +1,95 @@
+{
+  "categories": {
+    "marriage": "Marriage",
+    "engagement": "Engagement",
+    "breakup": "Breakup / Divorce",
+    "childbirth": "Birth of a Child",
+    "career_change": "Career Change",
+    "promotion": "Promotion",
+    "job_loss": "Job Loss",
+    "business_start": "Business Started",
+    "relocation": "Relocation",
+    "property_purchase": "Property Purchase",
+    "windfall": "Financial Windfall",
+    "expense_shock": "Major Expense / Financial Loss",
+    "health_issue": "Health Issue",
+    "surgery": "Surgery",
+    "higher_studies": "Higher Studies",
+    "litigation": "Litigation / Legal Action"
+  },
+  "entry": {
+    "title": "Your Life Events",
+    "subtitle": "Add dates of key events. The more specific, the better.",
+    "add": "Add Event",
+    "date_label": "Date",
+    "category_label": "Category",
+    "category_placeholder": "Select a category",
+    "note_label": "Note (optional)",
+    "delete": "Delete",
+    "continue": "Continue",
+    "min_events_hint": "Add at least one event with a date and category to continue."
+  },
+  "band": {
+    "near_tie": "Near Tie",
+    "leans": "Leans Toward",
+    "consistent": "Consistent"
+  },
+  "honesty": {
+    "near_tie": "The events you provided do not clearly favour one candidate time over the other. Both are plausible. Only a recorded birth certificate can settle a near-tie — this result is a hypothesis, not a verdict.",
+    "leans": "The evidence leans toward one candidate, but the margin is modest. Treat this as a working hypothesis to weigh against your lived experience — not a definitive finding.",
+    "consistent": "The events consistently support the leading candidate. Even so, no algorithm replaces a recorded birth certificate. Use this time as a starting point, not a certainty."
+  },
+  "signals": {
+    "dasha_lord_rules": "Dasha lord rules the {{houseOrdinal}} house",
+    "dasha_lord_in": "Dasha lord is placed in the {{houseOrdinal}} house",
+    "slow_transit": "Slow planet transiting the {{houseOrdinal}} house",
+    "unknown": "A timing signal"
+  },
+  "results": {
+    "title": "Rectification Results",
+    "representative_time_label": "Representative time",
+    "representative_caveat": "This is a representative time for this window — not a claim to the exact minute.",
+    "confirm": "Use this time",
+    "keep_recorded": "Keep my recorded time",
+    "near_tie_settle_note": "Only a recorded birth certificate can settle a near-tie. Both candidates below are plausible — weigh them against your lived experience.",
+    "recorded_reference_label": "Your recorded time",
+    "candidate_label": "Candidate {{rank}}",
+    "evidence_table_label": "Supporting life events",
+    "window_caveat": "Events narrow the rising sign only, not the exact minute. The representative time shown is illustrative — it places you within the sign, not at a precise birth moment."
+  },
+  "wizard": {
+    "title": "Refine Your Birth Time"
+  },
+  "intro": {
+    "heading": "Narrow your rising sign",
+    "body": "If your birth time is uncertain, life events can help narrow the window. The engine will test whether your recorded time — or a nearby candidate — better fits the pattern of events you enter.",
+    "honesty": "This is a hypothesis engine, not a verdict machine. A recorded birth certificate always wins. What you get is a ranked shortlist and an honest confidence label.",
+    "start": "Add life events"
+  },
+  "fit": {
+    "heading": "Analysing your events…",
+    "body": "The on-device engine is comparing candidate birth windows against your life events. This usually takes a few seconds.",
+    "engine_warming": "The chart engine is still warming up. The analysis will start automatically once it is ready.",
+    "error_heading": "Analysis failed",
+    "retry": "Retry",
+    "elapsed": "{{seconds}}s elapsed",
+    "device_note": "Fitting your events against candidate charts. This runs entirely on your device."
+  },
+  "steps": {
+    "intro": "Introduction",
+    "events": "Life events",
+    "fit": "Analysing",
+    "results": "Results"
+  },
+  "accelerator": {
+    "title": "Paste Your Story",
+    "warning": "What you type here — including any names or places — is sent to your configured AI endpoint. Only the extracted dates and event types stay on your device.",
+    "textarea_placeholder": "Describe key life events in plain text — dates and what happened…",
+    "submit": "Extract Events",
+    "gated_note": "Configure an AI cloud endpoint in Settings to use this feature.",
+    "empty_result": "Couldn't extract any events — add them manually using the button below.",
+    "error": "Something went wrong — the AI call failed. Check your connection or endpoint settings and try again.",
+    "loading": "Extracting events…"
+  },
+  "back": "Back"
+}

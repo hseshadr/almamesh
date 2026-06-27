@@ -32,7 +32,17 @@
     "placeholder": "Select your birth time",
     "clock_hint": "Enter the time as shown on the clock at your birthplace.",
     "timezone_hint": " We'll use the {{timezone}} timezone for calculations.",
-    "estimate_hint": "Don't know your exact birth time? Enter your best estimate."
+    "estimate_hint": "Don't know your exact birth time? Enter your best estimate.",
+    "confidence_label": "How sure are you of this time?",
+    "confidence": {
+      "exact": "Exact",
+      "approximate": "Approximate",
+      "rough": "Rough",
+      "unknown": "I don't know"
+    },
+    "confidence_margin": "We'll treat this as accurate within ±{{minutes}} min.",
+    "confidence_exact_note": "We'll treat this as an exact time.",
+    "confidence_unknown_note": "We'll use noon as a placeholder — you can refine it by hand later in Settings."
   },
   "life_events": {
     "title": "Share Your Life Story",
@@ -47,8 +57,8 @@
     "saved_label": "Saved on this device:",
     "inspiration_label": "Need inspiration? Try an example:",
     "helpful_title": "Events that help most:",
-    "analyzing": "Analyzing...",
-    "analyze_continue": "Analyze & Continue",
+    "analyzing": "Saving...",
+    "analyze_continue": "Save & Continue",
     "skip": "Skip - I'll use approximate birth time",
     "examples": [
       "I got married in June 2015, had my first child in 2018, and changed careers from engineering to teaching in 2020.",

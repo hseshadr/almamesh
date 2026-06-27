@@ -29,6 +29,7 @@ import { useElapsedSeconds, formatElapsed } from '../hooks/useElapsedSeconds';
 import { useContentModeStore } from '../stores/contentMode';
 import { resolveReportAudience } from '../lib/reportSelectors';
 import { cuspInfo } from '../lib/lagnaCusp';
+import { rectificationDelta } from '../lib/rectification';
 import { downloadReportPdf, type ReportPdfChrome } from '../lib/downloadReportPdf';
 import {
   ReportChartsPage,
@@ -291,7 +292,13 @@ export default function ReportView(): ReactElement {
 
       <article className="report-document" data-testid="report-document">
         {birth ? (
-          <ReportCover personName={personName} audience={audience} birth={birth} lagna={lagna} />
+          <ReportCover
+            personName={personName}
+            audience={audience}
+            birth={birth}
+            lagna={lagna}
+            rectification={rectificationDelta(birth)}
+          />
         ) : null}
         <ReportChartsPage chart={sidereal} />
         <ReportPlanetTable chart={sidereal} />

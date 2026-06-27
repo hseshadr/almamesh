@@ -15,6 +15,7 @@ import type {
   PredictiveInput,
   WorkerLike,
 } from "./protocol";
+import type { RectificationInput, RectificationResultRaw } from "./rectification";
 
 interface Pending {
   readonly resolve: (response: ChartWorkerResponse) => void;
@@ -81,6 +82,19 @@ export class ChartEngineClient {
     const response = await this.#send({ kind: "computeMeshEdge", id: this.#allocId(), input });
     if (response.ok && response.kind === "computeMeshEdge") {
       return response.meshEdge;
+    }
+    throw new Error(response.ok ? "unexpected response kind" : response.error);
+  }
+
+  /**
+   * Compute birth-time rectification on-device by scoring the user-supplied
+   * life events against Ascendant-sign candidates. Requires a prior successful
+   * `boot`. Lighter than predictive (~5s under Pyodide).
+   */
+  public async computeRectification(input: RectificationInput): Promise<RectificationResultRaw> {
+    const response = await this.#send({ kind: "computeRectification", id: this.#allocId(), input });
+    if (response.ok && response.kind === "computeRectification") {
+      return response.rectification;
     }
     throw new Error(response.ok ? "unexpected response kind" : response.error);
   }

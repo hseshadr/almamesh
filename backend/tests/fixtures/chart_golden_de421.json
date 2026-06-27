@@ -713,6 +713,9 @@
       }
     },
     "lagna": {
+      "is_near_cusp": false,
+      "lagna_adjacent_sign": "Taurus",
+      "lagna_cusp_distance_deg": 7.024244,
       "longitude": 22.975756,
       "nakshatra": "Bharani",
       "nakshatra_lord": "venus",
@@ -2222,6 +2225,9 @@
       }
     },
     "lagna": {
+      "is_near_cusp": true,
+      "lagna_adjacent_sign": "Virgo",
+      "lagna_cusp_distance_deg": 1.95186,
       "longitude": 148.04814,
       "nakshatra": "Uttara Phalguni",
       "nakshatra_lord": "sun",
@@ -3874,6 +3880,9 @@
       }
     },
     "lagna": {
+      "is_near_cusp": true,
+      "lagna_adjacent_sign": "Cancer",
+      "lagna_cusp_distance_deg": 0.042964,
       "longitude": 120.042964,
       "nakshatra": "Magha",
       "nakshatra_lord": "ketu",
@@ -5202,6 +5211,9 @@
       }
     },
     "lagna": {
+      "is_near_cusp": true,
+      "lagna_adjacent_sign": "Cancer",
+      "lagna_cusp_distance_deg": 1.181873,
       "longitude": 88.818127,
       "nakshatra": "Punarvasu",
       "nakshatra_lord": "jupiter",
@@ -6696,6 +6708,9 @@
       }
     },
     "lagna": {
+      "is_near_cusp": false,
+      "lagna_adjacent_sign": "Leo",
+      "lagna_cusp_distance_deg": 13.879008,
       "longitude": 106.120992,
       "nakshatra": "Pushya",
       "nakshatra_lord": "saturn",
@@ -8182,6 +8197,9 @@
       }
     },
     "lagna": {
+      "is_near_cusp": false,
+      "lagna_adjacent_sign": "Taurus",
+      "lagna_cusp_distance_deg": 3.112392,
       "longitude": 26.887608,
       "nakshatra": "Krittika",
       "nakshatra_lord": "sun",
@@ -9566,6 +9584,9 @@
       }
     },
     "lagna": {
+      "is_near_cusp": false,
+      "lagna_adjacent_sign": "Leo",
+      "lagna_cusp_distance_deg": 9.645593,
       "longitude": 159.645593,
       "nakshatra": "Uttara Phalguni",
       "nakshatra_lord": "sun",
