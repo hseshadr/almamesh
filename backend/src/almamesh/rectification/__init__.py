@@ -38,12 +38,22 @@ def _score_all_candidates(
 
 
 def _count_discriminating(cands: list[RectificationCandidate]) -> int:
-    """Count events where contribution differs across at least two candidates."""
+    """Count events where the SIGNAL SET differs across at least two candidates.
+
+    Precondition: ``supporting_events[i].event_index == i`` for every candidate
+    (guaranteed by ``score_candidate``; asserted here so a future reorder fails loudly).
+    """
     if len(cands) < 2:
         return 0
+    for c in cands:
+        for i, ev in enumerate(c.supporting_events):
+            assert ev.event_index == i, (
+                f"Event index mismatch at position {i}: "
+                f"got event_index={ev.event_index} for {c.ascendant_sign!r}"
+            )
     ref = cands[0].supporting_events
     return sum(
-        any(c.supporting_events[i].contribution != ref[i].contribution for c in cands[1:])
+        any(set(c.supporting_events[i].signals) != set(ref[i].signals) for c in cands[1:])
         for i in range(len(ref))
     )
 
@@ -69,6 +79,10 @@ def compute_rectification_result(
     """Cusp-mode rectification: score both adjacent-sign candidates, rank honestly."""
     astro = make_astronomy()
     candidate_times = cusp_candidate_times(dt_utc, latitude, longitude, astronomy=astro)
+    assert len(candidate_times) == 2, (  # noqa: S101
+        f"cusp_candidate_times must return exactly 2 adjacent-sign candidates; "
+        f"got {len(candidate_times)}"
+    )
     transit_signs = compute_transit_signs(events)
     cands = _score_all_candidates(
         candidate_times,
