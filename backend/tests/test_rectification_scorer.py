@@ -14,13 +14,13 @@ The fixture is a SYNTHETIC Bengaluru cusp native — never the owner's real data
 
 from __future__ import annotations
 
-import re
 from datetime import UTC, date, datetime
 
 import pytest
 
 from almamesh.calculations import calculate_sidereal_context
 from almamesh.constants.astrology import EventType, PlanetName
+from almamesh.rectification.houses import category_houses
 from almamesh.rectification.models import RectificationEventInput
 from almamesh.rectification.scorer import (
     W_PRIMARY,
@@ -29,7 +29,7 @@ from almamesh.rectification.scorer import (
     _event_instant,
     extract_event_signals,
 )
-from almamesh.schemas.astrology import SiderealContext
+from almamesh.schemas.astrology import MahaDashaPeriod, SiderealContext, VimshottariDashaData
 from almamesh.transits import calculate_transit_context
 
 # Two birth TIMES of one synthetic cusp native that rotate the ascendant a full
@@ -39,7 +39,39 @@ _BIRTH_B = datetime(1988, 8, 8, 3, 30, tzinfo=UTC)  # Virgo rising -> 7th-lord J
 _LAT, _LON = 12.9716, 77.5946
 _REF = datetime(2026, 6, 9, 12, 0, tzinfo=UTC)
 
-_H7_KEY = re.compile(r"^(dasha_lord_rules_h7|dasha_lord_in_h7|slow_transit_h7)$")
+
+def _stub_dashas(*, include_date: datetime | None = None) -> VimshottariDashaData:
+    """Minimal VimshottariDashaData for corrupt-tree tests.
+
+    When ``include_date`` is set the single maha COVERS that instant but its
+    antar_sequence is empty (corrupt). Without it the maha ends before 2035
+    so any 2035 instant is fully out-of-tree.
+    """
+    maha_start = datetime(2020, 1, 1, tzinfo=UTC)
+    maha_end = datetime(2030, 1, 1, tzinfo=UTC)
+    maha = MahaDashaPeriod(
+        lord=PlanetName.JUPITER,
+        start_date=maha_start,
+        end_date=maha_end,
+        duration_years=10.0,
+        antar_sequence=[],  # deliberately broken
+    )
+    return VimshottariDashaData(maha_dasha_sequence=[maha])
+
+
+def test_active_lords_raises_on_corrupt_antar() -> None:
+    """ValueError when a date inside a maha has no covering antardasha (empty antar_sequence)."""
+    dashas = _stub_dashas(include_date=datetime(2025, 6, 1, 12, tzinfo=UTC))
+    inside = datetime(2025, 6, 1, 12, tzinfo=UTC)
+    with pytest.raises(ValueError, match="JUPITER"):
+        _active_lords_at(dashas, inside)
+
+
+def test_active_lords_no_raise_outside_tree() -> None:
+    """Dates entirely outside the dasha tree return () without raising."""
+    dashas = _stub_dashas()
+    outside = datetime(2035, 1, 1, 12, tzinfo=UTC)
+    assert _active_lords_at(dashas, outside) == ()
 
 
 @pytest.fixture(scope="module")
@@ -141,11 +173,18 @@ def test_signal_keys_and_contribution_math(ctx_a: SiderealContext) -> None:
     # Given any firing event, with an explicit event_index from the caller
     when = _first_date_with_active_lord(ctx_a, ctx_a.houses[7].sign_lord)
     evidence = extract_event_signals(ctx_a, _marriage(when), birth_dt=_BIRTH_A, event_index=3)
-    # Then the caller's index is preserved and every key is a known h7 machine key
+    # The caller's index is preserved and the rulership signal explicitly fired
     assert evidence.event_index == 3
-    assert evidence.signals  # at least the rulership signal fired
-    assert all(_H7_KEY.match(s) for s in evidence.signals)
-    # And contribution is exactly the sum of per-signal weights
+    assert "dasha_lord_rules_h7" in evidence.signals
+    # Every key is a valid machine key for one of MARRIAGE's classical houses
+    # (built from category_houses so the test tracks any future house-map change)
+    valid_keys = {
+        f"{prefix}_h{h}"
+        for h in category_houses(EventType.MARRIAGE)
+        for prefix in ("dasha_lord_rules", "dasha_lord_in", "slow_transit")
+    }
+    assert all(s in valid_keys for s in evidence.signals)
+    # Contribution is exactly the sum of per-signal weights
     expected = sum(
         W_TRANSIT if s.startswith("slow_transit") else W_PRIMARY for s in evidence.signals
     )

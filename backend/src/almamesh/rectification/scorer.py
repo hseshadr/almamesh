@@ -61,7 +61,11 @@ def _active_lords_at(dashas: VimshottariDashaData, when: datetime) -> tuple[Plan
         return ()
     antar = _period_containing(maha.antar_sequence, when)
     if antar is None:
-        return (maha.lord,)
+        raise ValueError(
+            f"{when.date()} falls inside maha {maha.lord!r} "
+            f"({maha.start_date.date()}–{maha.end_date.date()}) "
+            "but no antardasha covers it — corrupt dasha tree"
+        )
     pratyantar = _active_pratyantardasha(antar.lord, antar.start_date, antar.end_date, when)
     return (maha.lord, antar.lord, pratyantar)
 
