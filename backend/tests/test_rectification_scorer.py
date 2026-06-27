@@ -19,15 +19,29 @@ from datetime import UTC, date, datetime
 import pytest
 
 from almamesh.calculations import calculate_sidereal_context
-from almamesh.constants.astrology import EventType, PlanetName
+from almamesh.constants.astrology import EventType, PlanetName, ZodiacSign
 from almamesh.rectification.houses import category_houses
-from almamesh.rectification.models import RectificationEventInput
+from almamesh.rectification.models import (
+    EventEvidence,
+    RectificationBand,
+    RectificationCandidate,
+    RectificationEventInput,
+)
 from almamesh.rectification.scorer import (
+    CATEGORY_CAP,
+    CONSISTENT_MARGIN,
+    EPS,
+    MIN_DISCRIMINATING_EVENTS,
+    NEAR_TIE_MARGIN,
     W_PRIMARY,
     W_TRANSIT,
     _active_lords_at,
+    _decorrelated_total,
     _event_instant,
+    compute_transit_signs,
     extract_event_signals,
+    rank_candidates,
+    score_candidate,
 )
 from almamesh.schemas.astrology import MahaDashaPeriod, SiderealContext, VimshottariDashaData
 from almamesh.transits import calculate_transit_context
@@ -110,7 +124,7 @@ def test_active_seventh_lord_fires_rules_h7(ctx_a: SiderealContext) -> None:
     seventh_lord = ctx_a.houses[7].sign_lord
     when = _first_date_with_active_lord(ctx_a, seventh_lord)
     # When the event is scored against candidate A
-    evidence = extract_event_signals(ctx_a, _marriage(when), birth_dt=_BIRTH_A)
+    evidence = extract_event_signals(ctx_a, _marriage(when))
     # Then the 7th-rulership signal fires and contributes the primary weight
     assert "dasha_lord_rules_h7" in evidence.signals
     assert evidence.contribution >= W_PRIMARY
@@ -134,7 +148,7 @@ def test_inactive_seventh_lord_yields_no_dasha_h7(ctx_a: SiderealContext) -> Non
     # Given a date where neither the 7th-lord nor any 7th occupant is active
     when = _quiet_seventh_date(ctx_a)
     # When scored, the dasha-house signals must stay silent (transit may differ)
-    evidence = extract_event_signals(ctx_a, _marriage(when), birth_dt=_BIRTH_A)
+    evidence = extract_event_signals(ctx_a, _marriage(when))
     assert "dasha_lord_rules_h7" not in evidence.signals
     assert "dasha_lord_in_h7" not in evidence.signals
 
@@ -160,8 +174,8 @@ def test_ascendant_rotation_discriminates_candidates(
     assert lord_a != lord_b
     # And the SAME marriage date, chosen so only A's 7th-lord is then active
     when = _discriminating_date(ctx_a, ctx_b, lord_a, lord_b)
-    ev_a = extract_event_signals(ctx_a, _marriage(when), birth_dt=_BIRTH_A)
-    ev_b = extract_event_signals(ctx_b, _marriage(when), birth_dt=_BIRTH_B)
+    ev_a = extract_event_signals(ctx_a, _marriage(when))
+    ev_b = extract_event_signals(ctx_b, _marriage(when))
     # Then the inverse scorer separates the candidates on the identical input
     assert "dasha_lord_rules_h7" in ev_a.signals
     assert "dasha_lord_rules_h7" not in ev_b.signals
@@ -172,7 +186,7 @@ def test_ascendant_rotation_discriminates_candidates(
 def test_signal_keys_and_contribution_math(ctx_a: SiderealContext) -> None:
     # Given any firing event, with an explicit event_index from the caller
     when = _first_date_with_active_lord(ctx_a, ctx_a.houses[7].sign_lord)
-    evidence = extract_event_signals(ctx_a, _marriage(when), birth_dt=_BIRTH_A, event_index=3)
+    evidence = extract_event_signals(ctx_a, _marriage(when), event_index=3)
     # The caller's index is preserved and the rulership signal explicitly fired
     assert evidence.event_index == 3
     assert "dasha_lord_rules_h7" in evidence.signals
@@ -203,6 +217,154 @@ def test_slow_transit_signal_matches_gochara(ctx_a: SiderealContext) -> None:
         if g in placements
     )
     # When scored, the transit signal agrees with the engine's own placement
-    evidence = extract_event_signals(ctx_a, _marriage(when), birth_dt=_BIRTH_A)
+    evidence = extract_event_signals(ctx_a, _marriage(when))
     assert slow_in_7  # fixture sanity: Saturn is in the 7th here, so the branch fires
     assert ("slow_transit_h7" in evidence.signals) == slow_in_7
+
+
+# --------------------------------------------------------------------------- #
+# Task 8: candidate aggregation, de-correlation, honest margin -> band gate.
+# These guard against FALSE PRECISION — under-claiming (NEAR_TIE) is the safe
+# failure for an anti-scam tool.
+# --------------------------------------------------------------------------- #
+
+
+def _candidate(fit: float) -> RectificationCandidate:
+    """A minimal candidate carrying only the fit score that ranking cares about."""
+    return RectificationCandidate(
+        ascendant_sign=ZodiacSign.LEO,
+        representative_time_local="06:00",
+        lagna_longitude_deg=120.0,
+        lagna_cusp_distance_deg=5.0,
+        is_near_cusp=False,
+        fit_score=fit,
+        supporting_events=[],
+    )
+
+
+def _evidence(contribution: float, category: EventType = EventType.MARRIAGE) -> EventEvidence:
+    """Synthetic evidence with a fixed contribution for de-correlation math."""
+    return EventEvidence(
+        event_index=0,
+        category=category,
+        date=date(2020, 1, 1),
+        signals=[],
+        contribution=contribution,
+    )
+
+
+def test_two_separated_candidates_are_consistent() -> None:
+    # Given one candidate fitting the events far better than the other
+    ranked, margin, band = rank_candidates(
+        [_candidate(1.0), _candidate(5.0)], discriminating_event_count=MIN_DISCRIMINATING_EVENTS
+    )
+    # Then ranking sorts it on top, the margin clears the bar, and the band is CONSISTENT
+    assert ranked[0].fit_score == 5.0
+    assert margin > CONSISTENT_MARGIN
+    assert band is RectificationBand.CONSISTENT
+
+
+def test_near_equal_candidates_are_near_tie() -> None:
+    # Given two near-equal fits (a coin-flip)
+    _ranked, margin, band = rank_candidates(
+        [_candidate(1.0), _candidate(0.95)], discriminating_event_count=MIN_DISCRIMINATING_EVENTS
+    )
+    # Then the honest verdict is NEAR_TIE, never a fabricated lean
+    assert margin < NEAR_TIE_MARGIN
+    assert band is RectificationBand.NEAR_TIE
+
+
+def test_intermediate_separation_leans() -> None:
+    # Given a real-but-modest separation
+    _ranked, margin, band = rank_candidates(
+        [_candidate(1.0), _candidate(0.6)], discriminating_event_count=MIN_DISCRIMINATING_EVENTS
+    )
+    # Then the band is the cautious middle, LEANS
+    assert NEAR_TIE_MARGIN <= margin < CONSISTENT_MARGIN
+    assert band is RectificationBand.LEANS
+
+
+def test_single_candidate_has_zero_margin() -> None:
+    # Given only one candidate there is nothing to compare against
+    _ranked, margin, band = rank_candidates(
+        [_candidate(3.0)], discriminating_event_count=MIN_DISCRIMINATING_EVENTS
+    )
+    assert margin == 0.0
+    assert band is RectificationBand.NEAR_TIE
+
+
+def test_min_evidence_gate_forces_near_tie_despite_large_margin() -> None:
+    # Given a strong separation that WOULD read CONSISTENT...
+    _ranked, margin, band = rank_candidates(
+        [_candidate(5.0), _candidate(1.0)],
+        discriminating_event_count=MIN_DISCRIMINATING_EVENTS - 1,
+    )
+    # ...but with too few discriminating events, honesty FORCES NEAR_TIE
+    assert margin > CONSISTENT_MARGIN
+    assert band is RectificationBand.NEAR_TIE
+
+
+def test_decorrelation_caps_stacked_same_category_events() -> None:
+    # Given five identical same-category events vs a single one
+    total_one = _decorrelated_total([_evidence(1.0)])
+    total_five = _decorrelated_total([_evidence(1.0) for _ in range(5)])
+    # Then a single event scores its full weight
+    assert total_one == pytest.approx(1.0)
+    # And five duplicates are hard-capped (never the naive 5.0) and sub-linear
+    assert total_five <= CATEGORY_CAP
+    assert total_five < 2 * total_one  # geometric ceiling: diminishing returns
+    assert total_five < 5 * total_one  # the anti-stacking guarantee
+
+
+def test_decorrelation_is_per_category_not_global() -> None:
+    # Given two events in DIFFERENT categories (independent evidence)
+    mixed = [_evidence(1.0, EventType.MARRIAGE), _evidence(1.0, EventType.PROMOTION)]
+    # Then they add up fully — de-correlation only damps same-category clusters
+    assert _decorrelated_total(mixed) == pytest.approx(2.0)
+
+
+def test_score_candidate_fills_candidate_from_context(ctx_a: SiderealContext) -> None:
+    # Given a marriage on a date where candidate A's 7th-lord is active
+    when = _first_date_with_active_lord(ctx_a, ctx_a.houses[7].sign_lord)
+    cand = score_candidate(ctx_a, [_marriage(when)], birth_dt=_BIRTH_A)
+    # Then the candidate mirrors the context's lagna and carries indexed evidence
+    assert cand.ascendant_sign == ctx_a.lagna.sign
+    assert cand.lagna_longitude_deg == ctx_a.lagna.longitude
+    assert cand.is_near_cusp == ctx_a.lagna.is_near_cusp
+    assert cand.representative_time_local == _BIRTH_A.strftime("%H:%M")
+    assert cand.supporting_events[0].event_index == 0
+    assert cand.fit_score > 0
+
+
+def test_score_candidate_decorrelates_repeated_events(ctx_a: SiderealContext) -> None:
+    # Given the SAME firing marriage entered once vs five times
+    when = _first_date_with_active_lord(ctx_a, ctx_a.houses[7].sign_lord)
+    fit_one = score_candidate(ctx_a, [_marriage(when)], birth_dt=_BIRTH_A).fit_score
+    fit_five = score_candidate(ctx_a, [_marriage(when)] * 5, birth_dt=_BIRTH_A).fit_score
+    # Then stacking cannot inflate the fit linearly or past the per-category cap
+    assert fit_one > 0
+    assert fit_five < 5 * fit_one
+    assert fit_five <= max(CATEGORY_CAP, fit_one) + EPS
+
+
+def test_precomputed_transit_signs_match_internal_path(ctx_a: SiderealContext) -> None:
+    # Given a date where a slow graha transits candidate A's 7th house
+    when = date(2023, 2, 1)
+    signs = compute_transit_signs([_marriage(when)])
+    # When scored via the orchestrator's PRECOMPUTED signs vs the internal fallback
+    ev_precomp = extract_event_signals(ctx_a, _marriage(when), transit_signs=signs[when])
+    ev_fallback = extract_event_signals(ctx_a, _marriage(when))
+    # Then the two paths are identical, signal-for-signal
+    assert ev_precomp.signals == ev_fallback.signals
+    assert ev_precomp.contribution == pytest.approx(ev_fallback.contribution)
+    # And both agree with the engine's own gochara placement (no behavior drift)
+    placements = calculate_transit_context(
+        ctx_a, _BIRTH_A, transit_instant=_event_instant(when)
+    ).gochara.placements
+    slow_in_7 = any(
+        placements[g].house_from_lagna == 7
+        for g in (PlanetName.JUPITER, PlanetName.SATURN)
+        if g in placements
+    )
+    assert slow_in_7
+    assert ("slow_transit_h7" in ev_precomp.signals) == slow_in_7
