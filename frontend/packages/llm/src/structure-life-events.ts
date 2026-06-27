@@ -43,10 +43,30 @@ const STRUCTURER_SYSTEM_PROMPT = [
 // Validation helpers
 // =============================================================================
 
-const YYYY_MM_DD = /^\d{4}-\d{2}-\d{2}$/;
+const YYYY_MM_DD = /^(\d{4})-(\d{2})-(\d{2})$/;
 
 function isValidYMD(date: string): boolean {
-  return YYYY_MM_DD.test(date);
+  const match = YYYY_MM_DD.exec(date);
+  if (!match) {
+    return false;
+  }
+  const year = parseInt(match[1], 10);
+  const month = parseInt(match[2], 10);
+  const day = parseInt(match[3], 10);
+
+  // Validate month and day bounds
+  if (month < 1 || month > 12) {
+    return false;
+  }
+  if (day < 1 || day > 31) {
+    return false;
+  }
+
+  // Verify it's a real calendar date by constructing a UTC date and round-tripping
+  // This catches invalid combinations like Feb 30
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+  // Check that the date didn't overflow (e.g., Feb 30 becomes Mar 2)
+  return parsed.getUTCFullYear() === year && parsed.getUTCMonth() === month - 1 && parsed.getUTCDate() === day;
 }
 
 function isValidCategory(value: unknown): value is LifeEventCategory {

@@ -133,12 +133,47 @@ describe("structureLifeEvents — validation and filtering", () => {
     expect(result).toEqual([{ date: "2022-03-14", category: "career_change" }]);
   });
 
+  it("drops an item with an impossible calendar date like '2021-13-45' (month > 12, day > 31)", async () => {
+    mockChat.mockResolvedValue(
+      JSON.stringify({
+        events: [
+          { date: "2021-13-45", category: "marriage" },
+          { date: "2022-03-14", category: "career_change" },
+        ],
+      }),
+    );
+    const result = await structureLifeEvents("...", LOCAL_CFG);
+    // The impossible date must be dropped, only the valid one remains
+    expect(result).toEqual([{ date: "2022-03-14", category: "career_change" }]);
+  });
+
   it("drops items that are not objects", async () => {
     mockChat.mockResolvedValue(
       JSON.stringify({ events: [null, 42, "string", { date: "2022-01-01", category: "surgery" }] }),
     );
     const result = await structureLifeEvents("...", LOCAL_CFG);
     expect(result).toEqual([{ date: "2022-01-01", category: "surgery" }]);
+  });
+
+  it("strips extra PII fields like name, place, notes — only date and category survive", async () => {
+    mockChat.mockResolvedValue(
+      JSON.stringify({
+        events: [
+          {
+            date: "2020-01-01",
+            category: "marriage",
+            name: "John Smith",
+            place: "Paris",
+            notes: "secret details",
+          },
+        ],
+      }),
+    );
+    const result = await structureLifeEvents("...", LOCAL_CFG);
+    // Only date and category must exist; no PII fields
+    expect(result).toHaveLength(1);
+    expect(Object.keys(result[0])).toEqual(["date", "category"]);
+    expect(result[0]).toEqual({ date: "2020-01-01", category: "marriage" });
   });
 });
 
@@ -159,6 +194,16 @@ describe("structureLifeEvents — safe-default (never throws)", () => {
 
   it("returns [] when .events is missing — no throw", async () => {
     mockChat.mockResolvedValue(JSON.stringify({ other: "field" }));
+    await expect(structureLifeEvents("...", LOCAL_CFG)).resolves.toEqual([]);
+  });
+
+  it("returns [] when .events is not an array (e.g. string or number) — no throw", async () => {
+    mockChat.mockResolvedValue(JSON.stringify({ events: "not-an-array" }));
+    await expect(structureLifeEvents("...", LOCAL_CFG)).resolves.toEqual([]);
+  });
+
+  it("returns [] when .events is a number instead of array — no throw", async () => {
+    mockChat.mockResolvedValue(JSON.stringify({ events: 42 }));
     await expect(structureLifeEvents("...", LOCAL_CFG)).resolves.toEqual([]);
   });
 
