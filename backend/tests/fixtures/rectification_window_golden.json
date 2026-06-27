@@ -1,4 +1,731 @@
 {
+  "discriminating": {
+    "band": "leans",
+    "candidates": [
+      {
+        "ascendant_sign": "Virgo",
+        "fit_score": 8.5,
+        "is_near_cusp": false,
+        "lagna_cusp_distance_deg": 13.883125,
+        "lagna_longitude_deg": 166.116875,
+        "representative_time_local": "12:30",
+        "supporting_events": [
+          {
+            "category": "career_change",
+            "contribution": 1.5,
+            "date": "2005-03-15",
+            "event_index": 0,
+            "signals": [
+              "dasha_lord_in_h10",
+              "slow_transit_h10"
+            ]
+          },
+          {
+            "category": "promotion",
+            "contribution": 2.0,
+            "date": "2010-07-01",
+            "event_index": 1,
+            "signals": [
+              "dasha_lord_rules_h10",
+              "dasha_lord_in_h10"
+            ]
+          },
+          {
+            "category": "business_start",
+            "contribution": 1.0,
+            "date": "2015-09-20",
+            "event_index": 2,
+            "signals": [
+              "dasha_lord_in_h10"
+            ]
+          },
+          {
+            "category": "marriage",
+            "contribution": 0.0,
+            "date": "2003-05-12",
+            "event_index": 3,
+            "signals": []
+          },
+          {
+            "category": "childbirth",
+            "contribution": 2.0,
+            "date": "2018-02-28",
+            "event_index": 4,
+            "signals": [
+              "dasha_lord_rules_h5",
+              "dasha_lord_in_h5"
+            ]
+          },
+          {
+            "category": "relocation",
+            "contribution": 2.0,
+            "date": "2008-11-10",
+            "event_index": 5,
+            "signals": [
+              "dasha_lord_in_h4",
+              "slow_transit_h4",
+              "slow_transit_h12"
+            ]
+          }
+        ]
+      },
+      {
+        "ascendant_sign": "Cancer",
+        "fit_score": 6.0,
+        "is_near_cusp": false,
+        "lagna_cusp_distance_deg": 13.388309,
+        "lagna_longitude_deg": 106.611691,
+        "representative_time_local": "08:15",
+        "supporting_events": [
+          {
+            "category": "career_change",
+            "contribution": 0.0,
+            "date": "2005-03-15",
+            "event_index": 0,
+            "signals": []
+          },
+          {
+            "category": "promotion",
+            "contribution": 0.0,
+            "date": "2010-07-01",
+            "event_index": 1,
+            "signals": []
+          },
+          {
+            "category": "business_start",
+            "contribution": 2.0,
+            "date": "2015-09-20",
+            "event_index": 2,
+            "signals": [
+              "dasha_lord_rules_h10",
+              "dasha_lord_in_h10"
+            ]
+          },
+          {
+            "category": "marriage",
+            "contribution": 2.0,
+            "date": "2003-05-12",
+            "event_index": 3,
+            "signals": [
+              "dasha_lord_rules_h7",
+              "dasha_lord_in_h7"
+            ]
+          },
+          {
+            "category": "childbirth",
+            "contribution": 0.0,
+            "date": "2018-02-28",
+            "event_index": 4,
+            "signals": []
+          },
+          {
+            "category": "relocation",
+            "contribution": 2.0,
+            "date": "2008-11-10",
+            "event_index": 5,
+            "signals": [
+              "dasha_lord_rules_h4",
+              "dasha_lord_in_h12"
+            ]
+          }
+        ]
+      },
+      {
+        "ascendant_sign": "Gemini",
+        "fit_score": 5.0,
+        "is_near_cusp": false,
+        "lagna_cusp_distance_deg": 3.477367,
+        "lagna_longitude_deg": 86.522633,
+        "representative_time_local": "06:45",
+        "supporting_events": [
+          {
+            "category": "career_change",
+            "contribution": 0.0,
+            "date": "2005-03-15",
+            "event_index": 0,
+            "signals": []
+          },
+          {
+            "category": "promotion",
+            "contribution": 0.5,
+            "date": "2010-07-01",
+            "event_index": 1,
+            "signals": [
+              "slow_transit_h10"
+            ]
+          },
+          {
+            "category": "business_start",
+            "contribution": 0.0,
+            "date": "2015-09-20",
+            "event_index": 2,
+            "signals": []
+          },
+          {
+            "category": "marriage",
+            "contribution": 2.0,
+            "date": "2003-05-12",
+            "event_index": 3,
+            "signals": [
+              "dasha_lord_rules_h7",
+              "dasha_lord_in_h7"
+            ]
+          },
+          {
+            "category": "childbirth",
+            "contribution": 0.5,
+            "date": "2018-02-28",
+            "event_index": 4,
+            "signals": [
+              "slow_transit_h5"
+            ]
+          },
+          {
+            "category": "relocation",
+            "contribution": 2.0,
+            "date": "2008-11-10",
+            "event_index": 5,
+            "signals": [
+              "dasha_lord_rules_h4",
+              "dasha_lord_rules_h12"
+            ]
+          }
+        ]
+      },
+      {
+        "ascendant_sign": "Pisces",
+        "fit_score": 5.0,
+        "is_near_cusp": false,
+        "lagna_cusp_distance_deg": 14.595659,
+        "lagna_longitude_deg": 345.404341,
+        "representative_time_local": "00:15",
+        "supporting_events": [
+          {
+            "category": "career_change",
+            "contribution": 1.0,
+            "date": "2005-03-15",
+            "event_index": 0,
+            "signals": [
+              "dasha_lord_rules_h10"
+            ]
+          },
+          {
+            "category": "promotion",
+            "contribution": 0.0,
+            "date": "2010-07-01",
+            "event_index": 1,
+            "signals": []
+          },
+          {
+            "category": "business_start",
+            "contribution": 0.0,
+            "date": "2015-09-20",
+            "event_index": 2,
+            "signals": []
+          },
+          {
+            "category": "marriage",
+            "contribution": 1.0,
+            "date": "2003-05-12",
+            "event_index": 3,
+            "signals": [
+              "dasha_lord_rules_h7"
+            ]
+          },
+          {
+            "category": "childbirth",
+            "contribution": 1.0,
+            "date": "2018-02-28",
+            "event_index": 4,
+            "signals": [
+              "dasha_lord_rules_h5"
+            ]
+          },
+          {
+            "category": "relocation",
+            "contribution": 2.0,
+            "date": "2008-11-10",
+            "event_index": 5,
+            "signals": [
+              "dasha_lord_rules_h4",
+              "dasha_lord_in_h4"
+            ]
+          }
+        ]
+      },
+      {
+        "ascendant_sign": "Scorpio",
+        "fit_score": 4.5,
+        "is_near_cusp": false,
+        "lagna_cusp_distance_deg": 14.449877,
+        "lagna_longitude_deg": 224.449877,
+        "representative_time_local": "16:45",
+        "supporting_events": [
+          {
+            "category": "career_change",
+            "contribution": 0.0,
+            "date": "2005-03-15",
+            "event_index": 0,
+            "signals": []
+          },
+          {
+            "category": "promotion",
+            "contribution": 0.0,
+            "date": "2010-07-01",
+            "event_index": 1,
+            "signals": []
+          },
+          {
+            "category": "business_start",
+            "contribution": 2.5,
+            "date": "2015-09-20",
+            "event_index": 2,
+            "signals": [
+              "dasha_lord_rules_h10",
+              "dasha_lord_in_h10",
+              "slow_transit_h10"
+            ]
+          },
+          {
+            "category": "marriage",
+            "contribution": 1.0,
+            "date": "2003-05-12",
+            "event_index": 3,
+            "signals": [
+              "dasha_lord_rules_h7"
+            ]
+          },
+          {
+            "category": "childbirth",
+            "contribution": 0.0,
+            "date": "2018-02-28",
+            "event_index": 4,
+            "signals": []
+          },
+          {
+            "category": "relocation",
+            "contribution": 1.0,
+            "date": "2008-11-10",
+            "event_index": 5,
+            "signals": [
+              "dasha_lord_rules_h12"
+            ]
+          }
+        ]
+      },
+      {
+        "ascendant_sign": "Taurus",
+        "fit_score": 4.5,
+        "is_near_cusp": false,
+        "lagna_cusp_distance_deg": 14.300081,
+        "lagna_longitude_deg": 45.699919,
+        "representative_time_local": "03:45",
+        "supporting_events": [
+          {
+            "category": "career_change",
+            "contribution": 1.0,
+            "date": "2005-03-15",
+            "event_index": 0,
+            "signals": [
+              "dasha_lord_rules_h10"
+            ]
+          },
+          {
+            "category": "promotion",
+            "contribution": 0.0,
+            "date": "2010-07-01",
+            "event_index": 1,
+            "signals": []
+          },
+          {
+            "category": "business_start",
+            "contribution": 0.0,
+            "date": "2015-09-20",
+            "event_index": 2,
+            "signals": []
+          },
+          {
+            "category": "marriage",
+            "contribution": 0.0,
+            "date": "2003-05-12",
+            "event_index": 3,
+            "signals": []
+          },
+          {
+            "category": "childbirth",
+            "contribution": 0.0,
+            "date": "2018-02-28",
+            "event_index": 4,
+            "signals": []
+          },
+          {
+            "category": "relocation",
+            "contribution": 3.5,
+            "date": "2008-11-10",
+            "event_index": 5,
+            "signals": [
+              "dasha_lord_in_h4",
+              "slow_transit_h4",
+              "dasha_lord_rules_h12",
+              "dasha_lord_in_h12"
+            ]
+          }
+        ]
+      },
+      {
+        "ascendant_sign": "Sagittarius",
+        "fit_score": 3.5,
+        "is_near_cusp": false,
+        "lagna_cusp_distance_deg": 14.847835,
+        "lagna_longitude_deg": 255.152165,
+        "representative_time_local": "19:00",
+        "supporting_events": [
+          {
+            "category": "career_change",
+            "contribution": 0.5,
+            "date": "2005-03-15",
+            "event_index": 0,
+            "signals": [
+              "slow_transit_h10"
+            ]
+          },
+          {
+            "category": "promotion",
+            "contribution": 1.5,
+            "date": "2010-07-01",
+            "event_index": 1,
+            "signals": [
+              "dasha_lord_rules_h10",
+              "slow_transit_h10"
+            ]
+          },
+          {
+            "category": "business_start",
+            "contribution": 0.0,
+            "date": "2015-09-20",
+            "event_index": 2,
+            "signals": []
+          },
+          {
+            "category": "marriage",
+            "contribution": 1.5,
+            "date": "2003-05-12",
+            "event_index": 3,
+            "signals": [
+              "dasha_lord_in_h7",
+              "slow_transit_h7"
+            ]
+          },
+          {
+            "category": "childbirth",
+            "contribution": 0.0,
+            "date": "2018-02-28",
+            "event_index": 4,
+            "signals": []
+          },
+          {
+            "category": "relocation",
+            "contribution": 0.0,
+            "date": "2008-11-10",
+            "event_index": 5,
+            "signals": []
+          }
+        ]
+      },
+      {
+        "ascendant_sign": "Aquarius",
+        "fit_score": 3.5,
+        "is_near_cusp": false,
+        "lagna_cusp_distance_deg": 13.33078,
+        "lagna_longitude_deg": 316.66922,
+        "representative_time_local": "22:45",
+        "supporting_events": [
+          {
+            "category": "career_change",
+            "contribution": 0.0,
+            "date": "2005-03-15",
+            "event_index": 0,
+            "signals": []
+          },
+          {
+            "category": "promotion",
+            "contribution": 0.0,
+            "date": "2010-07-01",
+            "event_index": 1,
+            "signals": []
+          },
+          {
+            "category": "business_start",
+            "contribution": 0.5,
+            "date": "2015-09-20",
+            "event_index": 2,
+            "signals": [
+              "slow_transit_h10"
+            ]
+          },
+          {
+            "category": "marriage",
+            "contribution": 1.0,
+            "date": "2003-05-12",
+            "event_index": 3,
+            "signals": [
+              "dasha_lord_in_h7"
+            ]
+          },
+          {
+            "category": "childbirth",
+            "contribution": 2.0,
+            "date": "2018-02-28",
+            "event_index": 4,
+            "signals": [
+              "dasha_lord_rules_h5",
+              "dasha_lord_in_h5"
+            ]
+          },
+          {
+            "category": "relocation",
+            "contribution": 0.0,
+            "date": "2008-11-10",
+            "event_index": 5,
+            "signals": []
+          }
+        ]
+      },
+      {
+        "ascendant_sign": "Libra",
+        "fit_score": 3.0,
+        "is_near_cusp": false,
+        "lagna_cusp_distance_deg": 14.120421,
+        "lagna_longitude_deg": 194.120421,
+        "representative_time_local": "14:30",
+        "supporting_events": [
+          {
+            "category": "career_change",
+            "contribution": 0.0,
+            "date": "2005-03-15",
+            "event_index": 0,
+            "signals": []
+          },
+          {
+            "category": "promotion",
+            "contribution": 1.0,
+            "date": "2010-07-01",
+            "event_index": 1,
+            "signals": [
+              "dasha_lord_in_h10"
+            ]
+          },
+          {
+            "category": "business_start",
+            "contribution": 0.0,
+            "date": "2015-09-20",
+            "event_index": 2,
+            "signals": []
+          },
+          {
+            "category": "marriage",
+            "contribution": 0.0,
+            "date": "2003-05-12",
+            "event_index": 3,
+            "signals": []
+          },
+          {
+            "category": "childbirth",
+            "contribution": 0.0,
+            "date": "2018-02-28",
+            "event_index": 4,
+            "signals": []
+          },
+          {
+            "category": "relocation",
+            "contribution": 2.0,
+            "date": "2008-11-10",
+            "event_index": 5,
+            "signals": [
+              "dasha_lord_rules_h4",
+              "dasha_lord_in_h4"
+            ]
+          }
+        ]
+      },
+      {
+        "ascendant_sign": "Capricorn",
+        "fit_score": 3.0,
+        "is_near_cusp": false,
+        "lagna_cusp_distance_deg": 14.329807,
+        "lagna_longitude_deg": 285.670193,
+        "representative_time_local": "21:00",
+        "supporting_events": [
+          {
+            "category": "career_change",
+            "contribution": 1.0,
+            "date": "2005-03-15",
+            "event_index": 0,
+            "signals": [
+              "dasha_lord_rules_h10"
+            ]
+          },
+          {
+            "category": "promotion",
+            "contribution": 0.0,
+            "date": "2010-07-01",
+            "event_index": 1,
+            "signals": []
+          },
+          {
+            "category": "business_start",
+            "contribution": 0.0,
+            "date": "2015-09-20",
+            "event_index": 2,
+            "signals": []
+          },
+          {
+            "category": "marriage",
+            "contribution": 0.5,
+            "date": "2003-05-12",
+            "event_index": 3,
+            "signals": [
+              "slow_transit_h7"
+            ]
+          },
+          {
+            "category": "childbirth",
+            "contribution": 0.0,
+            "date": "2018-02-28",
+            "event_index": 4,
+            "signals": []
+          },
+          {
+            "category": "relocation",
+            "contribution": 1.5,
+            "date": "2008-11-10",
+            "event_index": 5,
+            "signals": [
+              "dasha_lord_in_h12",
+              "slow_transit_h12"
+            ]
+          }
+        ]
+      },
+      {
+        "ascendant_sign": "Leo",
+        "fit_score": 2.5,
+        "is_near_cusp": false,
+        "lagna_cusp_distance_deg": 14.160659,
+        "lagna_longitude_deg": 134.160659,
+        "representative_time_local": "10:15",
+        "supporting_events": [
+          {
+            "category": "career_change",
+            "contribution": 1.0,
+            "date": "2005-03-15",
+            "event_index": 0,
+            "signals": [
+              "dasha_lord_rules_h10"
+            ]
+          },
+          {
+            "category": "promotion",
+            "contribution": 1.0,
+            "date": "2010-07-01",
+            "event_index": 1,
+            "signals": [
+              "dasha_lord_rules_h10"
+            ]
+          },
+          {
+            "category": "business_start",
+            "contribution": 0.0,
+            "date": "2015-09-20",
+            "event_index": 2,
+            "signals": []
+          },
+          {
+            "category": "marriage",
+            "contribution": 0.0,
+            "date": "2003-05-12",
+            "event_index": 3,
+            "signals": []
+          },
+          {
+            "category": "childbirth",
+            "contribution": 0.5,
+            "date": "2018-02-28",
+            "event_index": 4,
+            "signals": [
+              "slow_transit_h5"
+            ]
+          },
+          {
+            "category": "relocation",
+            "contribution": 0.0,
+            "date": "2008-11-10",
+            "event_index": 5,
+            "signals": []
+          }
+        ]
+      },
+      {
+        "ascendant_sign": "Aries",
+        "fit_score": 1.0,
+        "is_near_cusp": false,
+        "lagna_cusp_distance_deg": 12.444552,
+        "lagna_longitude_deg": 17.555448,
+        "representative_time_local": "02:00",
+        "supporting_events": [
+          {
+            "category": "career_change",
+            "contribution": 0.0,
+            "date": "2005-03-15",
+            "event_index": 0,
+            "signals": []
+          },
+          {
+            "category": "promotion",
+            "contribution": 0.0,
+            "date": "2010-07-01",
+            "event_index": 1,
+            "signals": []
+          },
+          {
+            "category": "business_start",
+            "contribution": 0.0,
+            "date": "2015-09-20",
+            "event_index": 2,
+            "signals": []
+          },
+          {
+            "category": "marriage",
+            "contribution": 0.0,
+            "date": "2003-05-12",
+            "event_index": 3,
+            "signals": []
+          },
+          {
+            "category": "childbirth",
+            "contribution": 1.0,
+            "date": "2018-02-28",
+            "event_index": 4,
+            "signals": [
+              "dasha_lord_in_h5"
+            ]
+          },
+          {
+            "category": "relocation",
+            "contribution": 0.0,
+            "date": "2008-11-10",
+            "event_index": 5,
+            "signals": []
+          }
+        ]
+      }
+    ],
+    "discriminating_event_count": 6,
+    "honesty_note_key": "rectify.honesty.leans",
+    "margin": 0.172414,
+    "mode": "window",
+    "recorded_time_sign": "Virgo"
+  },
   "main": {
     "band": "near_tie",
     "candidates": [

@@ -66,10 +66,16 @@ def _count_discriminating(cands: list[RectificationCandidate]) -> int:
 
 
 def _recorded_sign(
-    dt_utc: datetime, latitude: float, longitude: float, reference_date: datetime
+    dt_utc: datetime,
+    latitude: float,
+    longitude: float,
+    reference_date: datetime,
+    astronomy: SkyfieldAstronomy | None = None,
 ) -> ZodiacSign:
     """Ascendant sign at the as-recorded birth time."""
-    ctx = calculate_sidereal_context(dt_utc, latitude, longitude, reference_date=reference_date)
+    ctx = calculate_sidereal_context(
+        dt_utc, latitude, longitude, reference_date=reference_date, astronomy=astronomy
+    )
     return ctx.lagna.sign
 
 
@@ -88,9 +94,11 @@ def _candidate_times(
     """
     if mode == RectificationMode.CUSP:
         times = cusp_candidate_times(dt_utc, latitude, longitude, astronomy=astro)
-        assert len(times) == 2, (  # noqa: S101
-            f"cusp_candidate_times must return exactly 2 adjacent-sign candidates; got {len(times)}"
-        )
+        if len(times) != 2:
+            raise RuntimeError(
+                "cusp_candidate_times must return exactly 2 adjacent-sign"
+                f" candidates; got {len(times)}"
+            )
         return times
     return window_candidate_times(
         dt_utc,
@@ -150,7 +158,8 @@ def compute_rectification_result(
         reference_date,
         astro,
     )
-    return _build_result(mode, cands, _recorded_sign(dt_utc, latitude, longitude, reference_date))
+    recorded = _recorded_sign(dt_utc, latitude, longitude, reference_date, astronomy=astro)
+    return _build_result(mode, cands, recorded)
 
 
 __all__ = [
