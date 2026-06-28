@@ -29,6 +29,15 @@ class RectificationBand(str, Enum):
     CONSISTENT = "consistent"
 
 
+class EventDatePrecision(str, Enum):
+    """How precisely the user knows an event's date (drives engine weighting)."""
+
+    EXACT = "exact"  # known day
+    MONTH = "month"  # known month, not day
+    YEAR = "year"  # known year, not month
+    APPROX = "approx"  # no reliable year (a multi-year span)
+
+
 class RectificationEventInput(BaseModel):
     """A single life event supplied by the user for rectification analysis."""
 
@@ -36,6 +45,7 @@ class RectificationEventInput(BaseModel):
 
     date: datetime.date
     category: EventType
+    precision: EventDatePrecision = EventDatePrecision.EXACT
 
 
 class EventEvidence(BaseModel):
