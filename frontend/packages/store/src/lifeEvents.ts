@@ -14,7 +14,7 @@
  * keyed by the owning profile id so each person keeps their own notes.
  */
 
-import type { LifeEventCategory } from '@almamesh/shared-types';
+import type { EventDatePrecision, LifeEventCategory } from '@almamesh/shared-types';
 import { create, type StateCreator } from 'zustand';
 import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware';
 import { get as idbGet, set as idbSet, del as idbDel } from 'idb-keyval';
@@ -48,6 +48,8 @@ export interface LifeEvent {
    * a structured date + category before they can be sent to the engine.
    */
   readonly needsStructuring?: boolean;
+  /** How precisely the user knows the date (drives engine weighting). Absent ⇒ treated as 'exact'. */
+  readonly precision?: EventDatePrecision;
   /** ISO-8601 creation timestamp; also the stable ordering key within a profile. */
   readonly createdAt: string;
 }
@@ -68,7 +70,7 @@ export interface LifeEventInput {
 const PERSIST_NAME = 'almamesh-life-events';
 
 /** Bump when the persisted `LifeEvent` shape changes; always pair with `migrate`. */
-export const LIFE_EVENTS_PERSIST_VERSION = 2;
+export const LIFE_EVENTS_PERSIST_VERSION = 3;
 
 /** The slice of the store that `partialize` actually persists. */
 export interface PersistedLifeEventsState {
@@ -103,12 +105,23 @@ function migrateEventToV2(e: unknown): LifeEvent {
 }
 
 /**
+ * Coerce a single unknown persisted blob into a valid v3 `LifeEvent`.
+ * Called for every event in a profile when migrating from v2.
+ * Events that already have a `precision` are passed through unchanged.
+ */
+function migrateEventToV3(e: unknown): LifeEvent {
+  const base = e as LifeEvent;
+  return base.precision ? base : { ...base, precision: 'exact' };
+}
+
+/**
  * Defensive hydration: tolerate ANY old/unknown/corrupt persisted blob and
  * always return a valid `{ eventsByProfile }`. A returning visitor whose stored
  * notes are malformed must never crash the app — we fall back to an empty map.
  *
  * Migration chain:
  *   v0/v1 → v2: legacy `{ description }` events become `{ note, date: "", needsStructuring: true }` drafts.
+ *   v2 → v3: backfill `precision: 'exact'` on all existing structured events.
  */
 export function migrateLifeEventsPersistedState(
   persisted: unknown,
@@ -127,6 +140,15 @@ export function migrateLifeEventsPersistedState(
     const migrated: Record<string, readonly LifeEvent[]> = {};
     for (const [profileId, events] of Object.entries(byProfile)) {
       migrated[profileId] = Array.isArray(events) ? events.map(migrateEventToV2) : [];
+    }
+    return { eventsByProfile: migrated };
+  }
+
+  // v2 → v3: backfill precision='exact' on all existing events.
+  if (fromVersion < 3) {
+    const migrated: Record<string, readonly LifeEvent[]> = {};
+    for (const [profileId, events] of Object.entries(byProfile)) {
+      migrated[profileId] = Array.isArray(events) ? (events as LifeEvent[]).map(migrateEventToV3) : [];
     }
     return { eventsByProfile: migrated };
   }
@@ -215,7 +237,7 @@ export interface LifeEventsStore {
   editEvent: (
     profileId: string,
     id: string,
-    patch: Partial<Pick<LifeEvent, 'date' | 'category' | 'note' | 'needsStructuring'>>,
+    patch: Partial<Pick<LifeEvent, 'date' | 'category' | 'note' | 'needsStructuring' | 'precision'>>,
   ) => void;
   /** Remove a single event by id. A no-op when `id` is not found. */
   removeEvent: (profileId: string, id: string) => void;
