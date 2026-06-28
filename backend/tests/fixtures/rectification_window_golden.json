@@ -1581,5 +1581,336 @@
     "margin": 0.0,
     "mode": "window",
     "recorded_time_sign": "Cancer"
+  },
+  "precision": {
+    "band": "near_tie",
+    "candidates": [
+      {
+        "ascendant_sign": "Pisces",
+        "fit_score": 2.518462,
+        "is_near_cusp": false,
+        "lagna_cusp_distance_deg": 12.666427,
+        "lagna_longitude_deg": 347.333573,
+        "representative_time_local": "04:15",
+        "supporting_events": [
+          {
+            "category": "relocation",
+            "contribution": 2.038462,
+            "date": "2010-01-01",
+            "event_index": 0,
+            "signals": [
+              "dasha_lord_in_h4",
+              "dasha_lord_rules_h12",
+              "slow_transit_h12"
+            ]
+          },
+          {
+            "category": "marriage",
+            "contribution": 0.48,
+            "date": "2012-01-01",
+            "event_index": 1,
+            "signals": []
+          }
+        ]
+      },
+      {
+        "ascendant_sign": "Libra",
+        "fit_score": 2.364615,
+        "is_near_cusp": false,
+        "lagna_cusp_distance_deg": 14.253722,
+        "lagna_longitude_deg": 195.746278,
+        "representative_time_local": "19:00",
+        "supporting_events": [
+          {
+            "category": "relocation",
+            "contribution": 1.884615,
+            "date": "2010-01-01",
+            "event_index": 0,
+            "signals": [
+              "dasha_lord_in_h4",
+              "slow_transit_h12"
+            ]
+          },
+          {
+            "category": "marriage",
+            "contribution": 0.48,
+            "date": "2012-01-01",
+            "event_index": 1,
+            "signals": []
+          }
+        ]
+      },
+      {
+        "ascendant_sign": "Sagittarius",
+        "fit_score": 2.315385,
+        "is_near_cusp": false,
+        "lagna_cusp_distance_deg": 13.082022,
+        "lagna_longitude_deg": 256.917978,
+        "representative_time_local": "23:45",
+        "supporting_events": [
+          {
+            "category": "relocation",
+            "contribution": 1.115385,
+            "date": "2010-01-01",
+            "event_index": 0,
+            "signals": [
+              "dasha_lord_rules_h4"
+            ]
+          },
+          {
+            "category": "marriage",
+            "contribution": 1.2,
+            "date": "2012-01-01",
+            "event_index": 1,
+            "signals": [
+              "dasha_lord_rules_h7",
+              "dasha_lord_in_h7"
+            ]
+          }
+        ]
+      },
+      {
+        "ascendant_sign": "Aries",
+        "fit_score": 1.623077,
+        "is_near_cusp": false,
+        "lagna_cusp_distance_deg": 9.788655,
+        "lagna_longitude_deg": 20.211345,
+        "representative_time_local": "05:45",
+        "supporting_events": [
+          {
+            "category": "relocation",
+            "contribution": 1.423077,
+            "date": "2010-01-01",
+            "event_index": 0,
+            "signals": [
+              "dasha_lord_rules_h12"
+            ]
+          },
+          {
+            "category": "marriage",
+            "contribution": 0.2,
+            "date": "2012-01-01",
+            "event_index": 1,
+            "signals": [
+              "dasha_lord_rules_h7"
+            ]
+          }
+        ]
+      },
+      {
+        "ascendant_sign": "Capricorn",
+        "fit_score": 1.544615,
+        "is_near_cusp": false,
+        "lagna_cusp_distance_deg": 13.816779,
+        "lagna_longitude_deg": 286.183221,
+        "representative_time_local": "01:30",
+        "supporting_events": [
+          {
+            "category": "relocation",
+            "contribution": 1.384615,
+            "date": "2010-01-01",
+            "event_index": 0,
+            "signals": [
+              "dasha_lord_rules_h12"
+            ]
+          },
+          {
+            "category": "marriage",
+            "contribution": 0.16,
+            "date": "2012-01-01",
+            "event_index": 1,
+            "signals": []
+          }
+        ]
+      },
+      {
+        "ascendant_sign": "Leo",
+        "fit_score": 1.523077,
+        "is_near_cusp": false,
+        "lagna_cusp_distance_deg": 13.256578,
+        "lagna_longitude_deg": 136.743422,
+        "representative_time_local": "14:15",
+        "supporting_events": [
+          {
+            "category": "relocation",
+            "contribution": 0.923077,
+            "date": "2010-01-01",
+            "event_index": 0,
+            "signals": [
+              "dasha_lord_rules_h12"
+            ]
+          },
+          {
+            "category": "marriage",
+            "contribution": 0.6,
+            "date": "2012-01-01",
+            "event_index": 1,
+            "signals": [
+              "dasha_lord_in_h7"
+            ]
+          }
+        ]
+      },
+      {
+        "ascendant_sign": "Scorpio",
+        "fit_score": 1.509231,
+        "is_near_cusp": false,
+        "lagna_cusp_distance_deg": 13.465769,
+        "lagna_longitude_deg": 226.534231,
+        "representative_time_local": "21:30",
+        "supporting_events": [
+          {
+            "category": "relocation",
+            "contribution": 1.269231,
+            "date": "2010-01-01",
+            "event_index": 0,
+            "signals": [
+              "dasha_lord_in_h4",
+              "slow_transit_h4"
+            ]
+          },
+          {
+            "category": "marriage",
+            "contribution": 0.24,
+            "date": "2012-01-01",
+            "event_index": 1,
+            "signals": []
+          }
+        ]
+      },
+      {
+        "ascendant_sign": "Cancer",
+        "fit_score": 1.461538,
+        "is_near_cusp": false,
+        "lagna_cusp_distance_deg": 13.988681,
+        "lagna_longitude_deg": 106.011319,
+        "representative_time_local": "11:45",
+        "supporting_events": [
+          {
+            "category": "relocation",
+            "contribution": 0.461538,
+            "date": "2010-01-01",
+            "event_index": 0,
+            "signals": []
+          },
+          {
+            "category": "marriage",
+            "contribution": 1.0,
+            "date": "2012-01-01",
+            "event_index": 1,
+            "signals": [
+              "dasha_lord_in_h7"
+            ]
+          }
+        ]
+      },
+      {
+        "ascendant_sign": "Gemini",
+        "fit_score": 1.433846,
+        "is_near_cusp": true,
+        "lagna_cusp_distance_deg": 2.504383,
+        "lagna_longitude_deg": 87.495617,
+        "representative_time_local": "10:15",
+        "supporting_events": [
+          {
+            "category": "relocation",
+            "contribution": 1.153846,
+            "date": "2010-01-01",
+            "event_index": 0,
+            "signals": [
+              "slow_transit_h4"
+            ]
+          },
+          {
+            "category": "marriage",
+            "contribution": 0.28,
+            "date": "2012-01-01",
+            "event_index": 1,
+            "signals": []
+          }
+        ]
+      },
+      {
+        "ascendant_sign": "Virgo",
+        "fit_score": 1.063077,
+        "is_near_cusp": false,
+        "lagna_cusp_distance_deg": 14.820205,
+        "lagna_longitude_deg": 164.820205,
+        "representative_time_local": "16:30",
+        "supporting_events": [
+          {
+            "category": "relocation",
+            "contribution": 0.423077,
+            "date": "2010-01-01",
+            "event_index": 0,
+            "signals": []
+          },
+          {
+            "category": "marriage",
+            "contribution": 0.64,
+            "date": "2012-01-01",
+            "event_index": 1,
+            "signals": [
+              "dasha_lord_rules_h7"
+            ]
+          }
+        ]
+      },
+      {
+        "ascendant_sign": "Aquarius",
+        "fit_score": 0.810769,
+        "is_near_cusp": false,
+        "lagna_cusp_distance_deg": 12.166466,
+        "lagna_longitude_deg": 317.833534,
+        "representative_time_local": "03:00",
+        "supporting_events": [
+          {
+            "category": "relocation",
+            "contribution": 0.730769,
+            "date": "2010-01-01",
+            "event_index": 0,
+            "signals": []
+          },
+          {
+            "category": "marriage",
+            "contribution": 0.08,
+            "date": "2012-01-01",
+            "event_index": 1,
+            "signals": [
+              "dasha_lord_rules_h7"
+            ]
+          }
+        ]
+      },
+      {
+        "ascendant_sign": "Taurus",
+        "fit_score": 0.503077,
+        "is_near_cusp": false,
+        "lagna_cusp_distance_deg": 13.087707,
+        "lagna_longitude_deg": 46.912293,
+        "representative_time_local": "07:15",
+        "supporting_events": [
+          {
+            "category": "relocation",
+            "contribution": 0.423077,
+            "date": "2010-01-01",
+            "event_index": 0,
+            "signals": []
+          },
+          {
+            "category": "marriage",
+            "contribution": 0.08,
+            "date": "2012-01-01",
+            "event_index": 1,
+            "signals": []
+          }
+        ]
+      }
+    ],
+    "discriminating_event_count": 2,
+    "honesty_note_key": "rectify.honesty.near_tie",
+    "margin": 0.031506,
+    "mode": "window",
+    "recorded_time_sign": "Cancer"
   }
 }
