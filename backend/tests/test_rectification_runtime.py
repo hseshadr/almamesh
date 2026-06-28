@@ -87,3 +87,20 @@ def test_compute_rectification_rejects_bad_event_item() -> None:
     bad = dict(_PAYLOAD, events=["not-a-mapping"])
     with pytest.raises(TypeError):
         compute_rectification(bad)
+
+
+def test_runtime_parses_precision_and_defaults_to_exact() -> None:
+    from almamesh.edge.chart_runtime import _parse_rect_event
+    from almamesh.rectification.models import EventDatePrecision
+
+    assert _parse_rect_event({"date": "2005-06-01", "category": "marriage"}).precision is EventDatePrecision.EXACT
+    assert _parse_rect_event(
+        {"date": "2005-06-01", "category": "marriage", "precision": "year"}
+    ).precision is EventDatePrecision.YEAR
+
+
+def test_runtime_rejects_bad_precision() -> None:
+    from almamesh.edge.chart_runtime import _parse_rect_event
+
+    with pytest.raises(ValueError):
+        _parse_rect_event({"date": "2005-06-01", "category": "marriage", "precision": "fuzzy"})

@@ -27,7 +27,11 @@ from almamesh.constants.astrology import EventType
 from almamesh.mesh import compute_mesh_edge
 from almamesh.predictive import compute_predictive_contexts
 from almamesh.rectification import compute_rectification_result
-from almamesh.rectification.models import RectificationEventInput, RectificationMode
+from almamesh.rectification.models import (
+    EventDatePrecision,
+    RectificationEventInput,
+    RectificationMode,
+)
 from almamesh.schemas.astrology import SiderealContext
 from almamesh.schemas.mesh import MatchRole, Relationship
 
@@ -115,6 +119,7 @@ def _parse_rect_event(raw: object) -> RectificationEventInput:
     return RectificationEventInput(
         date=date.fromisoformat(str(raw["date"])),
         category=EventType(str(raw["category"])),
+        precision=EventDatePrecision(str(raw.get("precision", "exact"))),
     )
 
 
