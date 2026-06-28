@@ -58,8 +58,8 @@ describe("structureLifeEvents — happy path", () => {
       LOCAL_CFG,
     );
     expect(result).toEqual({ status: 'ok', events: [
-      { date: "2015-03-10", category: "marriage" },
-      { date: "2018-07-22", category: "childbirth" },
+      { date: "2015-03-10", category: "marriage", precision: 'exact' },
+      { date: "2018-07-22", category: "childbirth", precision: 'exact' },
     ] });
   });
 
@@ -98,7 +98,7 @@ describe("structureLifeEvents — validation and filtering", () => {
       }),
     );
     const result = await structureLifeEvents("...", LOCAL_CFG);
-    expect(result).toEqual({ status: 'ok', events: [{ date: "2018-07-22", category: "marriage" }] });
+    expect(result).toEqual({ status: 'ok', events: [{ date: "2018-07-22", category: "marriage", precision: 'exact' }] });
   });
 
   it("drops an item with a year-only date like '2020'", async () => {
@@ -111,7 +111,7 @@ describe("structureLifeEvents — validation and filtering", () => {
       }),
     );
     const result = await structureLifeEvents("...", LOCAL_CFG);
-    expect(result).toEqual({ status: 'ok', events: [{ date: "2021-05-15", category: "promotion" }] });
+    expect(result).toEqual({ status: 'ok', events: [{ date: "2021-05-15", category: "promotion", precision: 'exact' }] });
   });
 
   it("drops an item with a natural-language date like 'tomorrow'", async () => {
@@ -132,7 +132,7 @@ describe("structureLifeEvents — validation and filtering", () => {
       }),
     );
     const result = await structureLifeEvents("...", LOCAL_CFG);
-    expect(result).toEqual({ status: 'ok', events: [{ date: "2022-03-14", category: "career_change" }] });
+    expect(result).toEqual({ status: 'ok', events: [{ date: "2022-03-14", category: "career_change", precision: 'exact' }] });
   });
 
   it("drops an item with an impossible calendar date like '2021-13-45' (month > 12, day > 31)", async () => {
@@ -146,7 +146,7 @@ describe("structureLifeEvents — validation and filtering", () => {
     );
     const result = await structureLifeEvents("...", LOCAL_CFG);
     // The impossible date must be dropped, only the valid one remains
-    expect(result).toEqual({ status: 'ok', events: [{ date: "2022-03-14", category: "career_change" }] });
+    expect(result).toEqual({ status: 'ok', events: [{ date: "2022-03-14", category: "career_change", precision: 'exact' }] });
   });
 
   it("drops items that are not objects", async () => {
@@ -154,10 +154,10 @@ describe("structureLifeEvents — validation and filtering", () => {
       JSON.stringify({ events: [null, 42, "string", { date: "2022-01-01", category: "surgery" }] }),
     );
     const result = await structureLifeEvents("...", LOCAL_CFG);
-    expect(result).toEqual({ status: 'ok', events: [{ date: "2022-01-01", category: "surgery" }] });
+    expect(result).toEqual({ status: 'ok', events: [{ date: "2022-01-01", category: "surgery", precision: 'exact' }] });
   });
 
-  it("strips extra PII fields like name, place, notes — only date and category survive", async () => {
+  it("strips extra PII fields like name, place, notes — only date, category, precision survive", async () => {
     mockChat.mockResolvedValue(
       JSON.stringify({
         events: [
@@ -172,12 +172,29 @@ describe("structureLifeEvents — validation and filtering", () => {
       }),
     );
     const result = await structureLifeEvents("...", LOCAL_CFG);
-    // Only date and category must exist; no PII fields
+    // Only date, category, precision must exist; no PII fields
     expect(result.status).toBe('ok');
     if (result.status !== 'ok') return;
     expect(result.events).toHaveLength(1);
-    expect(Object.keys(result.events[0]!)).toEqual(["date", "category"]);
-    expect(result.events[0]).toEqual({ date: "2020-01-01", category: "marriage" });
+    expect(Object.keys(result.events[0]!)).toEqual(["date", "category", "precision"]);
+    expect(result.events[0]).toEqual({ date: "2020-01-01", category: "marriage", precision: 'exact' });
+  });
+
+  it("emits valid precision and defaults missing/invalid to exact", async () => {
+    mockChat.mockResolvedValue(
+      JSON.stringify({
+        events: [
+          { date: "2010-06-01", category: "marriage", precision: "year" },
+          { date: "2018-03-15", category: "childbirth" },                         // missing precision → 'exact'
+          { date: "2020-09-20", category: "career_change", precision: "bogus" },  // invalid → 'exact'
+        ],
+      }),
+    );
+    const res = await structureLifeEvents("...", LOCAL_CFG);
+    expect(res.status).toBe('ok');
+    if (res.status === 'ok') {
+      expect(res.events.map((e) => e.precision)).toEqual(['year', 'exact', 'exact']);
+    }
   });
 });
 

@@ -6,5 +6,6 @@
     "lib": ["ES2023", "DOM", "DOM.Iterable", "WebWorker"]
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "dist", "src/**/*.test.ts"]
+  "exclude": ["node_modules", "dist", "src/**/*.test.ts"],
+  "references": [{ "path": "../shared-types" }]
 }

@@ -4,13 +4,13 @@
 // in plain prose — it must NEVER compute astrology, rectify birth times, or invent
 // dates. The RECTIFICATION_FENCE makes this contract explicit in the system prompt.
 //
-// Privacy boundary: the output is typed { date, category } only — no names, no
-// places, no PII can survive the validation filter even if the model emits them.
+// Privacy boundary: the output is typed { date, category, precision } only — no
+// names, no places, no PII can survive the validation filter even if the model emits them.
 //
 // Safe-default contract: real failures (network/LLM/JSON-parse) return { status: 'error' };
 // a well-formed but empty or filtered response returns { status: 'ok', events: [] }. Never throws.
 
-import { LIFE_EVENT_CATEGORIES, type LifeEventCategory, type RectificationEventInput } from "@almamesh/shared-types";
+import { LIFE_EVENT_CATEGORIES, type EventDatePrecision, type LifeEventCategory, type RectificationEventInput } from "@almamesh/shared-types";
 
 import { chatCompletionJson, type ChatCompletionJsonOptions } from "./client";
 import type { ProviderConfig } from "./config";
@@ -24,7 +24,7 @@ import { RECTIFICATION_FENCE } from "./prompt";
 const STRUCTURER_SYSTEM_PROMPT = [
   "You are a text structurer. Your sole task is to read the user's free-text description",
   "of life events and return ONE JSON object with this exact shape:",
-  '{ "events": [ { "date": "YYYY-MM-DD", "category": "<category>" } ] }',
+  '{ "events": [ { "date": "YYYY-MM-DD", "category": "<category>", "precision": "exact|month|year|approx" } ] }',
   "",
   "The 16 valid categories are (use EXACTLY these strings, no others):",
   LIFE_EVENT_CATEGORIES.join(", "),
@@ -32,6 +32,7 @@ const STRUCTURER_SYSTEM_PROMPT = [
   "Rules:",
   "- Include ONLY events the user explicitly stated with a date you can express as YYYY-MM-DD.",
   "- OMIT any event you cannot date to a full YYYY-MM-DD, or whose category is not in the list.",
+  '- Set "precision" to "exact" when the user gave a full date; use "year", "month", or "approx" when they were vague (e.g. "around 2010" → year, "early 2010" → month, "sometime in my 30s" → approx).',
   "- Output ONLY the JSON object — no explanation, no commentary, no markdown fences.",
   "- Do NOT compute astrology, rectify birth times, or interpret any chart.",
   "- Do NOT echo names, places, or any identifying information in your output.",
@@ -71,6 +72,10 @@ function isValidYMD(date: string): boolean {
 
 function isValidCategory(value: unknown): value is LifeEventCategory {
   return typeof value === "string" && (LIFE_EVENT_CATEGORIES as readonly string[]).includes(value);
+}
+
+function isValidPrecision(value: unknown): value is EventDatePrecision {
+  return value === 'exact' || value === 'month' || value === 'year' || value === 'approx';
 }
 
 // =============================================================================
@@ -123,10 +128,10 @@ export async function structureLifeEvents(
       events: events.flatMap((item: unknown): RectificationEventInput[] => {
         if (!item || typeof item !== "object" || Array.isArray(item)) return [];
         const row = item as Record<string, unknown>;
-        const { date, category } = row;
+        const { date, category, precision } = row;
         if (typeof date !== "string" || !isValidYMD(date)) return [];
         if (!isValidCategory(category)) return [];
-        return [{ date, category }];
+        return [{ date, category, precision: isValidPrecision(precision) ? precision : 'exact' }];
       }),
     };
   } catch {
