@@ -3,8 +3,52 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AlmaMesh - Vedic Astrology Platform</title>
-    <meta name="description" content="Discover your cosmic blueprint with authentic Vedic astrology insights" />
+    <title>AlmaMesh — Free Local-First Vedic Astrology in Your Browser</title>
+    <meta
+      name="description"
+      content="Free, local-first Vedic astrology that runs entirely in your browser. No accounts, no server, offline after first load. Honest, anti-scam, open engine (Skyfield/Pyodide), optional BYO-AI narration."
+    />
+    <link rel="canonical" href="https://almamesh.com/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="AlmaMesh" />
+    <meta property="og:title" content="AlmaMesh — Free Local-First Vedic Astrology in Your Browser" />
+    <meta
+      property="og:description"
+      content="Free, local-first Vedic astrology that runs entirely in your browser. No accounts, no server, offline after first load. Open engine (Skyfield/Pyodide)."
+    />
+    <meta property="og:url" content="https://almamesh.com/" />
+    <meta property="og:image" content="https://almamesh.com/og-card.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="AlmaMesh — Free Local-First Vedic Astrology in Your Browser" />
+    <meta
+      name="twitter:description"
+      content="Free, local-first Vedic astrology that runs entirely in your browser. No accounts, no server, offline after first load. Open engine (Skyfield/Pyodide)."
+    />
+    <meta name="twitter:image" content="https://almamesh.com/og-card.png" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "AlmaMesh",
+        "url": "https://almamesh.com",
+        "applicationCategory": "LifestyleApplication",
+        "operatingSystem": "Web",
+        "description": "Free, local-first Vedic astrology that runs entirely in your browser. No accounts, no server, offline after first load. Honest, anti-scam, open engine (Skyfield/Pyodide), optional BYO-AI narration.",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        },
+        "license": "https://opensource.org/licenses/MIT",
+        "codeRepository": "https://github.com/hseshadr/almamesh",
+        "author": {
+          "@type": "Person",
+          "name": "Harish Seshadri"
+        }
+      }
+    </script>
     <link rel="icon" type="image/png" href="/favicon.png" />
     <!-- Observatory typography (Fraunces / Hanken Grotesk / Spline Sans Mono) is
          SELF-HOSTED via @fontsource-variable (imported in main.tsx). No external
@@ -16,6 +60,22 @@
     <meta http-equiv="Expires" content="0" />
   </head>
   <body class="font-sans antialiased bg-background-primary">
+    <noscript>
+      <h1>AlmaMesh — free, local-first Vedic astrology that runs in your browser</h1>
+      <p>
+        AlmaMesh computes authentic Vedic (sidereal) astrology charts entirely on
+        your device with transparent, open chart math (Skyfield / Pyodide). No
+        accounts, no server, and offline after the first load — nothing about your
+        birth data ever leaves your machine. Optional bring-your-own-AI narration
+        keeps interpretation in your control.
+      </p>
+      <p>
+        <a href="https://github.com/hseshadr/almamesh">View source on GitHub</a>
+      </p>
+      <p>
+        <em>The interactive app requires JavaScript.</em>
+      </p>
+    </noscript>
     <div id="root"></div>
     <!--
       The PWA Service Worker (vite-plugin-pwa / Workbox) is registered from
