@@ -14,7 +14,7 @@ The fixture is a SYNTHETIC Bengaluru cusp native — never the owner's real data
 
 from __future__ import annotations
 
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 
 import pytest
 
@@ -22,6 +22,7 @@ from almamesh.calculations import calculate_sidereal_context
 from almamesh.constants.astrology import EventType, PlanetName, ZodiacSign
 from almamesh.rectification.houses import category_houses
 from almamesh.rectification.models import (
+    EventDatePrecision,
     EventEvidence,
     RectificationBand,
     RectificationCandidate,
@@ -38,6 +39,7 @@ from almamesh.rectification.scorer import (
     _active_lords_at,
     _decorrelated_total,
     _event_instant,
+    _event_instants,
     _transit_houses,
     compute_transit_signs,
     extract_event_signals,
@@ -404,3 +406,33 @@ def test_fast_graha_transit_is_ignored_by_transit_houses(ctx_a: SiderealContext)
         "Fast graha (Sun in Scorpio) must not contribute a slow_transit house; "
         f"got {houses_wide!r}, expected {houses_slow!r}"
     )
+
+
+# ---------------------------------------------------------------------------
+# Task 2: _event_instants — deterministic per-precision instant grid
+# ---------------------------------------------------------------------------
+
+
+def test_event_instants_exact_is_single_noon_instant() -> None:
+    d = date(2005, 6, 15)
+    instants = _event_instants(d, EventDatePrecision.EXACT)
+    assert instants == (_event_instant(d),)
+
+
+def test_event_instants_counts_and_span() -> None:
+    d = date(2005, 6, 15)
+    assert len(_event_instants(d, EventDatePrecision.MONTH)) == 3
+    year = _event_instants(d, EventDatePrecision.YEAR)
+    assert len(year) == 13
+    assert all(t.tzinfo == UTC and t.hour == 12 for t in year)
+    # inclusive span = ±182 days
+    assert year[0].date() == d - timedelta(days=182)
+    assert year[-1].date() == d + timedelta(days=182)
+    assert len(_event_instants(d, EventDatePrecision.APPROX)) == 25
+
+
+def test_event_instants_are_sorted_and_deterministic() -> None:
+    d = date(2010, 1, 1)
+    a = _event_instants(d, EventDatePrecision.APPROX)
+    assert list(a) == sorted(a)
+    assert a == _event_instants(d, EventDatePrecision.APPROX)  # pure

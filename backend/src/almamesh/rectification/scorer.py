@@ -30,7 +30,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from typing import TypeVar
 
 from almamesh.calculations import SkyfieldAstronomy
@@ -41,6 +41,7 @@ from almamesh.constants.astrology import ZODIAC_SIGNS, EventType, PlanetName, Zo
 from almamesh.dasha.vimshottari import _active_pratyantardasha
 from almamesh.rectification.houses import category_houses
 from almamesh.rectification.models import (
+    EventDatePrecision,
     EventEvidence,
     RectificationBand,
     RectificationCandidate,
@@ -92,10 +93,37 @@ _SIGN_INDEX: dict[ZodiacSign, int] = {sign: i for i, sign in enumerate(ZodiacSig
 
 _PeriodT = TypeVar("_PeriodT", bound=DashaPeriod)
 
+# --- Per-precision instant grid constants (Task 2) ----------------------------
+# Half-width in days for each precision level; EXACT collapses to a single point.
+_PRECISION_HALF_DAYS: dict[EventDatePrecision, int] = {
+    EventDatePrecision.EXACT: 0,
+    EventDatePrecision.MONTH: 15,
+    EventDatePrecision.YEAR: 182,
+    EventDatePrecision.APPROX: 730,
+}
+# Number of evenly-spaced noon-UTC samples (inclusive of both endpoints).
+_PRECISION_SAMPLES: dict[EventDatePrecision, int] = {
+    EventDatePrecision.EXACT: 1,
+    EventDatePrecision.MONTH: 3,
+    EventDatePrecision.YEAR: 13,
+    EventDatePrecision.APPROX: 25,
+}
+
 
 def _event_instant(event_date: date) -> datetime:
     """Pin an event date to 12:00 UTC — deterministic, never the wall clock."""
     return datetime(event_date.year, event_date.month, event_date.day, 12, tzinfo=UTC)
+
+
+def _event_instants(event_date: date, precision: EventDatePrecision) -> tuple[datetime, ...]:
+    """Evenly-spaced noon-UTC instants spanning the precision window (inclusive)."""
+    half = _PRECISION_HALF_DAYS[precision]
+    count = _PRECISION_SAMPLES[precision]
+    if count == 1:
+        return (_event_instant(event_date),)
+    step = (2 * half) / (count - 1)
+    offsets = (round(step * i) - half for i in range(count))
+    return tuple(_event_instant(event_date + timedelta(days=o)) for o in offsets)
 
 
 def _period_containing(periods: Sequence[_PeriodT], when: datetime) -> _PeriodT | None:
