@@ -354,8 +354,9 @@ def test_precomputed_transit_signs_match_internal_path(ctx_a: SiderealContext) -
     # Given a date where a slow graha transits candidate A's 7th house
     when = date(2023, 2, 1)
     signs = compute_transit_signs([_marriage(when)])
-    # When scored via the orchestrator's PRECOMPUTED signs vs the internal fallback
-    ev_precomp = extract_event_signals(ctx_a, _marriage(when), transit_signs=signs[when])
+    # When scored via the orchestrator's PRECOMPUTED signs (whole per-instant map)
+    # vs the internal fallback — results must be signal-for-signal identical
+    ev_precomp = extract_event_signals(ctx_a, _marriage(when), transit_signs=signs)
     ev_fallback = extract_event_signals(ctx_a, _marriage(when))
     # Then the two paths are identical, signal-for-signal
     assert ev_precomp.signals == ev_fallback.signals
@@ -436,3 +437,43 @@ def test_event_instants_are_sorted_and_deterministic() -> None:
     a = _event_instants(d, EventDatePrecision.APPROX)
     assert list(a) == sorted(a)
     assert a == _event_instants(d, EventDatePrecision.APPROX)  # pure
+
+
+# ---------------------------------------------------------------------------
+# Task 3: compute_transit_signs — per-instant, window-aware, skips APPROX
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="module")
+def rect_astronomy():  # type: ignore[return]
+    from almamesh.rectification.candidates import make_astronomy
+
+    return make_astronomy()
+
+
+def test_compute_transit_signs_keyed_by_instant_covers_window(
+    rect_astronomy: object,
+) -> None:
+    # Given a MONTH-precision event (3 instants in its window)
+    ev = RectificationEventInput(
+        date=date(2005, 6, 15),
+        category=EventType.MARRIAGE,
+        precision=EventDatePrecision.MONTH,
+    )
+    signs = compute_transit_signs([ev], astronomy=rect_astronomy)  # type: ignore[arg-type]
+    # Then the result is keyed by datetime and covers every window instant
+    for instant in _event_instants(ev.date, EventDatePrecision.MONTH):
+        assert instant in signs, f"missing instant {instant} in transit-signs map"
+    assert len(signs) == len(_event_instants(ev.date, EventDatePrecision.MONTH))
+
+
+def test_compute_transit_signs_skips_approx_events(
+    rect_astronomy: object,
+) -> None:
+    # APPROX events contribute zero instants — transit signal is zeroed downstream
+    ev = RectificationEventInput(
+        date=date(2005, 6, 15),
+        category=EventType.MARRIAGE,
+        precision=EventDatePrecision.APPROX,
+    )
+    assert compute_transit_signs([ev], astronomy=rect_astronomy) == {}  # type: ignore[arg-type]
