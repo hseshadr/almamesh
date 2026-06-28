@@ -11,7 +11,7 @@
 import type { ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { LifeEvent } from '@almamesh/store';
-import type { LifeEventCategory } from '@almamesh/shared-types';
+import type { EventDatePrecision, LifeEventCategory } from '@almamesh/shared-types';
 import { LIFE_EVENT_CATEGORIES } from '@almamesh/shared-types';
 
 export interface EventRowProps {
@@ -19,6 +19,7 @@ export interface EventRowProps {
   readonly onDateChange: (date: string) => void;
   readonly onCategoryChange: (category: LifeEventCategory | undefined) => void;
   readonly onNoteChange: (note: string) => void;
+  readonly onPrecisionChange: (precision: EventDatePrecision) => void;
   readonly onDelete: () => void;
 }
 
@@ -27,6 +28,7 @@ export function EventRow({
   onDateChange,
   onCategoryChange,
   onNoteChange,
+  onPrecisionChange,
   onDelete,
 }: EventRowProps): ReactElement {
   const { t } = useTranslation('rectify');
@@ -100,6 +102,28 @@ export function EventRow({
           placeholder={t('entry.note_label')}
           className="rounded border border-border-subtle bg-surface-primary px-2 py-1 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-1 focus:ring-accent-primary"
         />
+      </div>
+
+      {/* Precision */}
+      <div className="flex min-w-[9rem] flex-col gap-1">
+        <label
+          htmlFor={`precision-${event.id}`}
+          className="text-xs font-medium uppercase tracking-wider text-text-tertiary"
+        >
+          {t('entry.precision_label')}
+        </label>
+        <select
+          id={`precision-${event.id}`}
+          value={event.precision ?? 'exact'}
+          onChange={(e) => onPrecisionChange(e.target.value as EventDatePrecision)}
+          aria-label={t('entry.precision_label')}
+          className="rounded border border-border-subtle bg-surface-primary px-2 py-1 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-accent-primary"
+        >
+          <option value="exact">{t('entry.precision_exact')}</option>
+          <option value="month">{t('entry.precision_month')}</option>
+          <option value="year">{t('entry.precision_year')}</option>
+          <option value="approx">{t('entry.precision_approx')}</option>
+        </select>
       </div>
 
       {/* Delete */}

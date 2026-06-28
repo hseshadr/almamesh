@@ -27,6 +27,11 @@
     "category_placeholder": "Selecciona una categoría",
     "note_label": "Nota (opcional)",
     "delete": "Eliminar",
+    "precision_label": "Precisión de la fecha",
+    "precision_exact": "Fecha exacta",
+    "precision_month": "Solo el mes",
+    "precision_year": "Solo el año",
+    "precision_approx": "Aproximada",
     "continue": "Continuar",
     "min_events_hint": "Agrega al menos un evento con fecha y categoría para continuar."
   },

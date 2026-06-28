@@ -121,8 +121,8 @@ describe('StoryAccelerator', () => {
 
     it('appends extracted events as reviewable draft rows with date + category', async () => {
       const results: RectificationEventInput[] = [
-        { date: '2020-01-15', category: 'marriage' },
-        { date: '2018-03-10', category: 'career_change' },
+        { date: '2020-01-15', category: 'marriage', precision: 'exact' },
+        { date: '2018-03-10', category: 'career_change', precision: 'exact' },
       ];
       vi.mocked(structureLifeEvents).mockResolvedValue({ status: 'ok', events: results });
 
@@ -150,7 +150,7 @@ describe('StoryAccelerator', () => {
         },
       });
       vi.mocked(structureLifeEvents).mockResolvedValue({ status: 'ok', events: [
-        { date: '2020-01-15', category: 'marriage' },
+        { date: '2020-01-15', category: 'marriage', precision: 'exact' },
       ] });
 
       render(<StoryAccelerator profileId={PROFILE_ID} />);
@@ -168,7 +168,7 @@ describe('StoryAccelerator', () => {
 
     it('does NOT auto-fit or navigate: the component has no navigation side-effects', async () => {
       vi.mocked(structureLifeEvents).mockResolvedValue({ status: 'ok', events: [
-        { date: '2020-01-15', category: 'marriage' },
+        { date: '2020-01-15', category: 'marriage', precision: 'exact' },
       ] });
 
       // The component intentionally takes no onContinue / navigation prop —

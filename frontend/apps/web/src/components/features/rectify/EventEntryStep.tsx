@@ -68,6 +68,7 @@ export function EventEntryStep({ profileId, onContinue }: EventEntryStepProps): 
               editEvent(profileId, event.id, { category })
             }
             onNoteChange={(note) => editEvent(profileId, event.id, { note })}
+            onPrecisionChange={(precision) => editEvent(profileId, event.id, { precision })}
             onDelete={() => removeEvent(profileId, event.id)}
           />
         ))}
