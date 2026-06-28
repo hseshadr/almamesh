@@ -13,7 +13,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { useLifeEventsStore, useLanguageStore, type LifeEvent } from '@almamesh/store';
 
-import '../../../i18n/config';
+import i18n from '../../../i18n/config';
 import { EventEntryStep } from './EventEntryStep';
 
 const PROFILE_ID = 'test-profile';
@@ -34,7 +34,9 @@ describe('EventEntryStep', () => {
   it('renders the step title and subtitle', () => {
     render(<EventEntryStep profileId={PROFILE_ID} onContinue={() => {}} />);
     expect(screen.getByText('Your Life Events')).toBeTruthy();
-    expect(screen.getByText(/Add dates of key events/i)).toBeTruthy();
+    // Assert the subtitle renders without coupling to its exact prose (copy is
+    // localized + maintained separately): match the live i18n value.
+    expect(screen.getByText(i18n.t('rectify:entry.subtitle'))).toBeTruthy();
   });
 
   it('renders existing store events as EventRow elements', () => {

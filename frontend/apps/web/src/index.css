@@ -7,6 +7,17 @@
  * The color palette is owned by @almamesh/constants -> tailwind.config.ts.
  */
 :root {
+  /*
+   * Observatory is a DARK theme. Declaring the color scheme makes the browser
+   * render native form controls (<input type="date">, <select>, text inputs)
+   * with dark UA defaults instead of the forced white background of the default
+   * `light` scheme. Without this, native controls paint white and the light
+   * parchment text (text-text-primary) becomes invisible — the reported
+   * "Refine Your Birth Time" unreadable-inputs bug. The @media print block below
+   * resets this to `light` for the paper report.
+   */
+  color-scheme: dark;
+
   /* Typography */
   --font-display: 'Fraunces Variable', 'Fraunces', Georgia, serif;
   --font-sans: 'Hanken Grotesk Variable', 'Hanken Grotesk', system-ui, sans-serif;
@@ -271,6 +282,9 @@ h4 {
    * ============================================ */
 
   :root {
+    /* The paper report is a LIGHT surface — render native controls / system
+     * colors in the light scheme so nothing inherits the app's dark scheme. */
+    color-scheme: light;
     --foreground-rgb: 0, 0, 0;
     --background-start-rgb: 255, 255, 255;
     --background-end-rgb: 255, 255, 255;

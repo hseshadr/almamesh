@@ -20,7 +20,7 @@
   },
   "entry": {
     "title": "Tus eventos de vida",
-    "subtitle": "Agrega fechas de eventos clave. Cuanto más específico, mejor.",
+    "subtitle": "Recordarlos puede ser difícil, pero cada evento con fecha ayuda a precisar tu hora de nacimiento, lo que afina las partes más sensibles al tiempo de tu gráfico. Cuanto más específica sea la fecha, mejor.",
     "add": "Agregar evento",
     "date_label": "Fecha",
     "category_label": "Categoría",
