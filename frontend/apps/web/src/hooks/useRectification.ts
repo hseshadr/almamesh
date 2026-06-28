@@ -30,6 +30,7 @@ import {
   useLifeEventsStore,
   useRectificationStore,
   isStructuredLifeEvent,
+  type LifeEvent,
   type RectificationRuntime,
   type StoredChart,
 } from '@almamesh/store';
@@ -85,6 +86,23 @@ function birthDescForProfile(
     longitude: loc.longitude,
     tz: loc.timezone ?? 'UTC',
   };
+}
+
+/**
+ * Map store life events to the engine's wire format.
+ *
+ * Exported as a pure function so it can be unit-tested independently of the
+ * hook.  Unstructured events (missing `date` or `category`) are filtered out;
+ * events without an explicit `precision` default to `'exact'`.
+ */
+export function toWireEvents(events: readonly LifeEvent[]): RectificationEventInput[] {
+  return events
+    .filter(isStructuredLifeEvent)
+    .map((e): RectificationEventInput => ({
+      date: e.date,
+      category: e.category!,
+      precision: e.precision ?? 'exact',
+    }));
 }
 
 /** Build the camelCase wire payload from the birth description + events. */
@@ -223,11 +241,7 @@ export function useRectification(profileId: string): UseRectificationResult {
     async (runtimeEngine: RectificationRuntime, mode: RectificationMode): Promise<void> => {
       if (birth === null) return;
 
-      const wireEvents = useLifeEventsStore
-        .getState()
-        .getEvents(profileId)
-        .filter(isStructuredLifeEvent)
-        .map((e): RectificationEventInput => ({ date: e.date, category: e.category! }));
+      const wireEvents = toWireEvents(useLifeEventsStore.getState().getEvents(profileId));
 
       if (wireEvents.length < 1) return;
 

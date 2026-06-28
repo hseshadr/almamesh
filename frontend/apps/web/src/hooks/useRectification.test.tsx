@@ -18,6 +18,7 @@ import {
   useLifeEventsStore,
   useRectificationStore,
   type StoredChart,
+  type LifeEvent,
 } from '@almamesh/store';
 import type { ChartEngine } from '@almamesh/browser';
 import type { RectificationResultRaw } from '@almamesh/browser/types';
@@ -26,7 +27,7 @@ import {
   type ChartEngineContextValue,
 } from '../providers/chartEngineContext';
 import { useRectificationGate } from '../lib/rectificationGate';
-import { useRectification } from './useRectification';
+import { useRectification, toWireEvents } from './useRectification';
 
 // ---------------------------------------------------------------------------
 // Synthetic fixtures (no real PII — generic birth data)
@@ -382,5 +383,28 @@ describe('detectedMode', () => {
     });
 
     expect(result.current.detectedMode).toBe('cusp');
+  });
+});
+
+describe('toWireEvents', () => {
+  it('wire events default precision to exact, and carry the stored precision', () => {
+    const events = [
+      { id: 'a', date: '2005-06-01', category: 'marriage', createdAt: 't' },
+      { id: 'b', date: '2010-01-01', category: 'relocation', precision: 'year', createdAt: 't' },
+    ] as LifeEvent[];
+    const wire = toWireEvents(events);
+    expect(wire[0].precision).toBe('exact');
+    expect(wire[1].precision).toBe('year');
+  });
+
+  it('filters out unstructured events (missing date or category)', () => {
+    const events = [
+      { id: 'a', date: '2005-06-01', category: 'marriage', createdAt: 't' },
+      { id: 'b', date: '', category: 'relocation', createdAt: 't' },
+      { id: 'c', date: '2010-01-01', category: undefined, createdAt: 't' },
+    ] as LifeEvent[];
+    const wire = toWireEvents(events);
+    expect(wire).toHaveLength(1);
+    expect(wire[0].precision).toBe('exact');
   });
 });
