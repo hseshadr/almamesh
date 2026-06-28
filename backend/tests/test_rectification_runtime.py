@@ -93,10 +93,16 @@ def test_runtime_parses_precision_and_defaults_to_exact() -> None:
     from almamesh.edge.chart_runtime import _parse_rect_event
     from almamesh.rectification.models import EventDatePrecision
 
-    assert _parse_rect_event({"date": "2005-06-01", "category": "marriage"}).precision is EventDatePrecision.EXACT
-    assert _parse_rect_event(
-        {"date": "2005-06-01", "category": "marriage", "precision": "year"}
-    ).precision is EventDatePrecision.YEAR
+    assert (
+        _parse_rect_event({"date": "2005-06-01", "category": "marriage"}).precision
+        is EventDatePrecision.EXACT
+    )
+    assert (
+        _parse_rect_event(
+            {"date": "2005-06-01", "category": "marriage", "precision": "year"}
+        ).precision
+        is EventDatePrecision.YEAR
+    )
 
 
 def test_runtime_rejects_bad_precision() -> None:
