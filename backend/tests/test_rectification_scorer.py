@@ -477,3 +477,72 @@ def test_compute_transit_signs_skips_approx_events(
         precision=EventDatePrecision.APPROX,
     )
     assert compute_transit_signs([ev], astronomy=rect_astronomy) == {}  # type: ignore[arg-type]
+
+
+# ---------------------------------------------------------------------------
+# Task 4: precision-aware marginalization in extract_event_signals
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="module")
+def rect_context(ctx_a: SiderealContext) -> SiderealContext:
+    """Module-scoped context for Task-4 back-compat tests — delegates to ctx_a.
+
+    Reuses the same _BIRTH_A / _LAT / _LON / _REF synthetic native so the
+    back-compat assertion is anchored to an already-trusted fixture.
+    """
+    return ctx_a
+
+
+@pytest.fixture(scope="module")
+def rect_signs_exact() -> dict:  # type: ignore[type-arg]
+    """Transit-signs map for the EXACT back-compat probe (date 2005-06-15).
+
+    Extra string sentinel keys carry the pre-Task-4 probed values so the
+    back-compat test is self-contained.  Datetime lookups inside
+    ``extract_event_signals`` never match string keys, so they are invisible
+    to the production code path.
+
+    Probed from the pre-Task-4 single-noon-instant code:
+        ctx_a (Leo rising, _BIRTH_A), ev date=2005-06-15, category=MARRIAGE
+        → contribution=1.0, signals={'dasha_lord_in_h7'}
+    """
+    ev = RectificationEventInput(date=date(2005, 6, 15), category=EventType.MARRIAGE)
+    signs = compute_transit_signs([ev])  # single noon-UTC instant for EXACT
+    return {
+        **signs,
+        "__legacy_contribution__": 1.0,
+        "__legacy_signals__": {"dasha_lord_in_h7"},
+    }
+
+
+def test_exact_precision_matches_legacy_single_instant(
+    rect_context: SiderealContext,
+    rect_signs_exact: dict,  # type: ignore[type-arg]
+) -> None:
+    """EXACT-precision marginalization is byte-identical to the pre-Task-4 single-noon path.
+
+    For n=1 window, mean-over-1-instant == the single value, so the new
+    marginalization must reproduce the legacy contribution and signals exactly.
+    """
+    ev = RectificationEventInput(date=date(2005, 6, 15), category=EventType.MARRIAGE)
+    ev_default = extract_event_signals(rect_context, ev, transit_signs=rect_signs_exact)
+    assert ev_default.contribution == rect_signs_exact["__legacy_contribution__"]
+    assert set(ev_default.signals) == rect_signs_exact["__legacy_signals__"]
+
+
+def test_approx_zeros_transit_contribution(rect_context: SiderealContext) -> None:
+    """APPROX events must never emit slow_transit signals, even when transit signs would fire.
+
+    2023-02-01 is chosen because Saturn transits ctx_a's 7th house on that date
+    (confirmed by ``test_slow_transit_signal_matches_gochara``).  Before Task-4
+    the code falls back to ``_fallback_signs`` for APPROX with an empty map and
+    would fire 'slow_transit_h7'; after Task-4 APPROX hard-zeroes transit.
+    """
+    ev = RectificationEventInput(
+        date=date(2023, 2, 1),
+        category=EventType.MARRIAGE,
+        precision=EventDatePrecision.APPROX,
+    )
+    evidence = extract_event_signals(rect_context, ev, transit_signs={})
+    assert all(not s.startswith("slow_transit") for s in evidence.signals)

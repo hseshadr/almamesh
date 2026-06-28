@@ -218,6 +218,19 @@ def _transit_houses(
     )
 
 
+def _transit_houses_at(
+    context: SiderealContext,
+    when: datetime,
+    transit_signs: Mapping[datetime, Mapping[PlanetName, ZodiacSign]] | None,
+) -> frozenset[int]:
+    """Whole-sign transit houses at one instant: look up the precomputed map or fall back."""
+    per_instant = transit_signs.get(when) if transit_signs is not None else None
+    signs: Mapping[PlanetName, ZodiacSign] = (
+        per_instant if per_instant is not None else _fallback_signs(when)
+    )
+    return _transit_houses(context, signs)
+
+
 def _collect_signals(
     context: SiderealContext,
     category_houses_: Sequence[int],
@@ -238,6 +251,17 @@ def _signal_weight(signal: str) -> float:
     return W_TRANSIT if signal.startswith("slow_transit") else W_PRIMARY
 
 
+def _instant_signals(
+    context: SiderealContext,
+    houses: Sequence[int],
+    when: datetime,
+    transit_houses: frozenset[int],
+) -> list[str]:
+    """Fired signal keys at one instant (dasha + transit) for the event's houses."""
+    active_lords = _active_lords_at(context.dashas, when)
+    return _collect_signals(context, houses, active_lords, transit_houses)
+
+
 def extract_event_signals(
     context: SiderealContext,
     event: RectificationEventInput,
@@ -245,28 +269,40 @@ def extract_event_signals(
     event_index: int = 0,
     transit_signs: Mapping[datetime, Mapping[PlanetName, ZodiacSign]] | None = None,
 ) -> EventEvidence:
-    """Score one life event against ONE candidate chart (ascendant-dependent).
+    """Marginalize one event's dasha + transit contribution across its precision window.
 
     ``transit_signs`` is the orchestrator's per-instant map (``compute_transit_signs``,
-    keyed by ``datetime``); ``None`` triggers an internal fallback that yields the
-    identical result. Task 3: looks up the event's single noon-UTC instant; Task 4
-    will marginalize across the full precision window instead. ``event_index``
-    defaults to 0; ``score_candidate`` sets the real position.
+    keyed by ``datetime``); ``None`` triggers an internal fallback. For ``APPROX``
+    precision the transit contribution is hard-zeroed — slow planets move too slowly
+    relative to a ±2-year window to provide reliable per-instant evidence. For
+    ``EXACT`` (1-instant window) the result is byte-identical to the pre-Task-4
+    single-noon-instant code path. ``event_index`` defaults to 0; ``score_candidate``
+    sets the real position.
     """
-    when = _event_instant(event.date)
-    active_lords = _active_lords_at(context.dashas, when)
-    per_instant = transit_signs.get(when) if transit_signs is not None else None
-    signs: Mapping[PlanetName, ZodiacSign] = (
-        per_instant if per_instant is not None else _fallback_signs(when)
-    )
     houses = category_houses(event.category)
-    signals = _collect_signals(context, houses, active_lords, _transit_houses(context, signs))
+    instants = _event_instants(event.date, event.precision)
+    zero_transit = event.precision is EventDatePrecision.APPROX
+    dasha_sum = 0.0
+    transit_sum = 0.0
+    for when in instants:
+        t_houses = frozenset() if zero_transit else _transit_houses_at(context, when, transit_signs)
+        for signal in _instant_signals(context, houses, when, t_houses):
+            if signal.startswith("slow_transit"):
+                transit_sum += _signal_weight(signal)
+            else:
+                dasha_sum += _signal_weight(signal)
+    n = len(instants)
+    central = instants[n // 2]
+    central_transit = (
+        frozenset() if zero_transit else _transit_houses_at(context, central, transit_signs)
+    )
+    signals = _instant_signals(context, houses, central, central_transit)
     return EventEvidence(
         event_index=event_index,
         category=event.category,
         date=event.date,
         signals=signals,
-        contribution=sum(_signal_weight(signal) for signal in signals),
+        contribution=(dasha_sum + transit_sum) / n,
     )
 
 
@@ -295,17 +331,6 @@ def _decorrelated_total(evidences: Sequence[EventEvidence]) -> float:
     for evidence in evidences:
         by_category[evidence.category].append(evidence.contribution)
     return sum(_category_total(contributions) for contributions in by_category.values())
-
-
-def _signs_for(
-    transit_signs: Mapping[datetime, Mapping[PlanetName, ZodiacSign]] | None,
-) -> Mapping[datetime, Mapping[PlanetName, ZodiacSign]] | None:
-    """Pass the per-instant transit-sign map through (or None for fallback).
-
-    The per-instant lookup moves into ``extract_event_signals`` (Task 4 will
-    marginalize across the full precision window; Task 3 looks up a single instant).
-    """
-    return transit_signs
 
 
 def _build_candidate(
@@ -342,9 +367,7 @@ def score_candidate(
     ``datetime``); when absent each event computes its own signs on demand.
     """
     evidences = [
-        extract_event_signals(
-            context, event, event_index=index, transit_signs=_signs_for(transit_signs)
-        )
+        extract_event_signals(context, event, event_index=index, transit_signs=transit_signs)
         for index, event in enumerate(events)
     ]
     return _build_candidate(context, birth_dt, _decorrelated_total(evidences), evidences)
