@@ -162,6 +162,7 @@
       "version": "0.0.1",
       "devDependencies": {
         "typescript": "~5.7.0",
+        "vitest": "^4.0.16",
       },
     },
     "packages/store": {
