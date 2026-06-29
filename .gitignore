@@ -90,6 +90,10 @@ yarn-error.log*
 *.tmp
 *.temp
 
+# Throwaway live-validation scratch scripts (the committed gates live in apps/web/scripts/)
+frontend/apps/web/verify-*.mjs
+frontend/apps/web/*.config.cs.ts
+
 # Claude Code session scratch
 docs/superpowers/
 
