@@ -105,5 +105,11 @@
     "transcript_label": "Conversation",
     "error": "I couldn't reach the AI just now — please try again, or enter events manually below."
   },
+  "tray": {
+    "review_one": "{{count}} event gathered · review",
+    "review_other": "{{count}} events gathered · review",
+    "honesty": "The engine ranks candidate rising signs and assigns a confidence band — not a definitive verdict. All computation runs on your device; no birth data leaves it.",
+    "cta": "Find my rising sign"
+  },
   "back": "Back"
 }

@@ -106,5 +106,11 @@
     "transcript_label": "Conversa",
     "error": "Não consegui contatar a IA agora — tente novamente ou adicione os eventos manualmente abaixo."
   },
+  "tray": {
+    "review_one": "{{count}} evento coletado · revisar",
+    "review_other": "{{count}} eventos coletados · revisar",
+    "honesty": "O motor classifica os signos ascendentes candidatos e atribui uma faixa de confiança — não um veredicto definitivo. Todo o cálculo é executado no seu dispositivo; nenhum dado de nascimento o deixa.",
+    "cta": "Encontrar meu signo ascendente"
+  },
   "back": "Voltar"
 }
