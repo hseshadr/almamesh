@@ -350,8 +350,10 @@ test.describe('Phase-2 Rectification Wizard', () => {
 
     // ── 15. UNHAPPY PATH 2: wizard re-navigable (no dead-end) ────────────
     await spaNav(page, `/rectify/${profileId}`);
+    // Return-aware wizard: with existing events the wizard opens on the events
+    // step (event-entry-step), not the intro. Accept either — the point is no crash.
     await expect(
-      page.locator('[data-testid="intro-step"]'),
+      page.locator('[data-testid="intro-step"], [data-testid="event-entry-step"]').first(),
       'wizard must be re-navigable without crash',
     ).toBeVisible({ timeout: 8_000 });
 
