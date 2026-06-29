@@ -31,7 +31,6 @@
     "precision_month": "Month only",
     "precision_year": "Year only",
     "precision_approx": "Approximate",
-    "continue": "Continue",
     "manual_toggle": "Enter events manually instead"
   },
   "band": {
@@ -87,14 +86,7 @@
     "results": "Results"
   },
   "accelerator": {
-    "title": "Paste Your Story",
-    "warning": "What you type here — including any names or places — is sent to your configured AI endpoint. Only the extracted dates and event types stay on your device.",
-    "textarea_placeholder": "Describe key life events in plain text — dates and what happened…",
-    "submit": "Extract Events",
-    "gated_note": "Configure an AI cloud endpoint in Settings to use this feature.",
-    "empty_result": "Couldn't extract any events — add them manually using the button below.",
-    "error": "Something went wrong — the AI call failed. Check your connection or endpoint settings and try again.",
-    "loading": "Extracting events…"
+    "warning": "What you type here — including any names or places — is sent to your configured AI endpoint. Only the extracted dates and event types stay on your device."
   },
   "chat": {
     "opening": "Hi! I'll ask you about one life event at a time — a marriage, a move, a career change. Start with any event you remember well, and tell me roughly when it happened.",
