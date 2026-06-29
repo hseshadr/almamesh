@@ -97,5 +97,13 @@
     "error": "Algo salió mal — la llamada a la IA falló. Verifica tu conexión o configuración del endpoint e inténtalo de nuevo.",
     "loading": "Extrayendo eventos…"
   },
+  "chat": {
+    "opening": "¡Hola! Te haré preguntas sobre un evento de vida a la vez — un matrimonio, una mudanza, un cambio de carrera. Empieza con cualquier evento que recuerdes bien y cuéntame aproximadamente cuándo ocurrió.",
+    "gated_note": "El chat de IA requiere un endpoint en la nube. Aún puedes agregar eventos manualmente a continuación.",
+    "input_placeholder": "Comparte un evento…",
+    "input_label": "Tu mensaje",
+    "send": "Enviar",
+    "transcript_label": "Conversación"
+  },
   "back": "Atrás"
 }

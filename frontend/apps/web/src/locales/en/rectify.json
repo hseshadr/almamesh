@@ -96,5 +96,13 @@
     "error": "Something went wrong — the AI call failed. Check your connection or endpoint settings and try again.",
     "loading": "Extracting events…"
   },
+  "chat": {
+    "opening": "Hi! I'll ask you about one life event at a time — a marriage, a move, a career change. Start with any event you remember well, and tell me roughly when it happened.",
+    "gated_note": "AI chat requires a cloud endpoint. You can still add events manually below.",
+    "input_placeholder": "Share an event…",
+    "input_label": "Your message",
+    "send": "Send",
+    "transcript_label": "Conversation"
+  },
   "back": "Back"
 }

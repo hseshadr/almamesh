@@ -19,32 +19,12 @@ import type { ReactElement } from 'react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLifeEventsStore } from '@almamesh/store';
-import {
-  describeLlmStatus,
-  readLlmSettings,
-  applyLlmSettings,
-  resolveProviderConfig,
-  structureLifeEvents,
-  type LlmEnv,
-  type PromptLanguage,
-} from '@almamesh/llm';
+import { structureLifeEvents } from '@almamesh/llm';
+import { isCloudConfigured, resolveConfig, toPromptLanguage } from './rectifyLlmConfig';
 
 export interface StoryAcceleratorProps {
   /** The profile whose life-events store will receive the extracted rows. */
   readonly profileId: string;
-}
-
-/** Returns true when the user has opted into a cloud AI endpoint. */
-function isCloudConfigured(): boolean {
-  const status = describeLlmStatus(readLlmSettings());
-  return (status.kind === 'openrouter' || status.kind === 'cloud') && status.configured;
-}
-
-/** Map i18next language to a supported PromptLanguage ('en' fallback). */
-function toPromptLanguage(i18nLang: string): PromptLanguage {
-  if (i18nLang.startsWith('es')) return 'es';
-  if (i18nLang.startsWith('pt')) return 'pt';
-  return 'en';
 }
 
 export function StoryAccelerator({ profileId }: StoryAcceleratorProps): ReactElement {
@@ -79,9 +59,7 @@ export function StoryAccelerator({ profileId }: StoryAcceleratorProps): ReactEle
     setShowError(false);
 
     try {
-      const settings = readLlmSettings();
-      const env = applyLlmSettings(import.meta.env as LlmEnv, settings);
-      const config = resolveProviderConfig(env);
+      const config = resolveConfig();
       const language = toPromptLanguage(i18n.language);
 
       const result = await structureLifeEvents(trimmed, config, language);

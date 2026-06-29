@@ -1,0 +1,36 @@
+/**
+ * Shared LLM-configuration helpers for the rectification wizard.
+ *
+ * Extracted from StoryAccelerator so that ConversationalAccelerator and any
+ * future wizard panel can reuse the cloud-gate check, provider config resolver,
+ * and language mapper without duplicating the logic.
+ */
+import {
+  describeLlmStatus,
+  readLlmSettings,
+  applyLlmSettings,
+  resolveProviderConfig,
+  type LlmEnv,
+  type PromptLanguage,
+  type ProviderConfig,
+} from '@almamesh/llm';
+
+/** Returns true when the user has opted into a cloud AI endpoint. */
+export function isCloudConfigured(): boolean {
+  const status = describeLlmStatus(readLlmSettings());
+  return (status.kind === 'openrouter' || status.kind === 'cloud') && status.configured;
+}
+
+/** Build a ProviderConfig from the persisted user settings + Vite env. */
+export function resolveConfig(): ProviderConfig {
+  const settings = readLlmSettings();
+  const env = applyLlmSettings(import.meta.env as LlmEnv, settings);
+  return resolveProviderConfig(env);
+}
+
+/** Map an i18next language code to a supported PromptLanguage ('en' fallback). */
+export function toPromptLanguage(i18nLang: string): PromptLanguage {
+  if (i18nLang.startsWith('es')) return 'es';
+  if (i18nLang.startsWith('pt')) return 'pt';
+  return 'en';
+}
