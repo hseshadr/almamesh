@@ -40,11 +40,11 @@ export function EventRow({
 
   return (
     <div
-      className="flex flex-wrap items-start gap-3 rounded-lg border border-border-subtle bg-surface-secondary p-3"
+      className="grid grid-cols-1 sm:grid-cols-[8rem_minmax(9rem,1fr)_8rem_minmax(10rem,1.5fr)_auto] sm:items-end gap-3 rounded-lg border border-border-subtle bg-surface-secondary p-3"
       data-testid="event-row"
     >
       {/* Date */}
-      <div className="flex min-w-[10rem] flex-col gap-1">
+      <div className="flex flex-col gap-1">
         <label
           htmlFor={`date-${event.id}`}
           className="text-xs font-medium uppercase tracking-wider text-text-tertiary"
@@ -62,7 +62,7 @@ export function EventRow({
       </div>
 
       {/* Category */}
-      <div className="flex min-w-[12rem] flex-1 flex-col gap-1">
+      <div className="flex flex-col gap-1">
         <label
           htmlFor={`category-${event.id}`}
           className="text-xs font-medium uppercase tracking-wider text-text-tertiary"
@@ -85,27 +85,8 @@ export function EventRow({
         </select>
       </div>
 
-      {/* Note */}
-      <div className="flex min-w-[12rem] flex-1 flex-col gap-1">
-        <label
-          htmlFor={`note-${event.id}`}
-          className="text-xs font-medium uppercase tracking-wider text-text-tertiary"
-        >
-          {t('entry.note_label')}
-        </label>
-        <input
-          id={`note-${event.id}`}
-          type="text"
-          value={event.note ?? ''}
-          onChange={(e) => onNoteChange(e.target.value)}
-          aria-label={t('entry.note_label')}
-          placeholder={t('entry.note_label')}
-          className="rounded border border-border-subtle bg-surface-primary px-2 py-1 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-1 focus:ring-accent-primary"
-        />
-      </div>
-
-      {/* Precision */}
-      <div className="flex min-w-[9rem] flex-col gap-1">
+      {/* Precision — fixed-width column, sits between Category and Note */}
+      <div className="flex flex-col gap-1">
         <label
           htmlFor={`precision-${event.id}`}
           className="text-xs font-medium uppercase tracking-wider text-text-tertiary"
@@ -126,8 +107,27 @@ export function EventRow({
         </select>
       </div>
 
-      {/* Delete */}
-      <div className="flex items-end pb-1">
+      {/* Note — flexible column, takes remaining width */}
+      <div className="flex flex-col gap-1">
+        <label
+          htmlFor={`note-${event.id}`}
+          className="text-xs font-medium uppercase tracking-wider text-text-tertiary"
+        >
+          {t('entry.note_label')}
+        </label>
+        <input
+          id={`note-${event.id}`}
+          type="text"
+          value={event.note ?? ''}
+          onChange={(e) => onNoteChange(e.target.value)}
+          aria-label={t('entry.note_label')}
+          placeholder={t('entry.note_label')}
+          className="rounded border border-border-subtle bg-surface-primary px-2 py-1 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-1 focus:ring-accent-primary"
+        />
+      </div>
+
+      {/* Delete — auto-width, bottom-aligned via sm:items-end on the grid */}
+      <div className="flex items-end">
         <button
           type="button"
           onClick={onDelete}

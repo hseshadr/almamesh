@@ -154,4 +154,20 @@ describe('EventRow', () => {
     );
     expect((screen.getByLabelText(/precision/i) as HTMLSelectElement).value).toBe('month');
   });
+
+  it('row root uses CSS grid layout (not flex-wrap)', () => {
+    const { getByTestId } = render(
+      <EventRow
+        event={baseEvent}
+        onDateChange={noop}
+        onCategoryChange={noop}
+        onNoteChange={noop}
+        onDelete={noop}
+        onPrecisionChange={noop}
+      />,
+    );
+    const root = getByTestId('event-row');
+    expect(root.className).toContain('grid');
+    expect(root.className).not.toContain('flex-wrap');
+  });
 });
