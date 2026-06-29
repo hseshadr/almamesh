@@ -185,7 +185,8 @@ test.describe('Phase-2 Rectification Wizard', () => {
       const lastRow = page.locator('[data-testid="event-row"]').last();
       await lastRow.locator('input[type="date"]').fill(ev.date);
       await page.waitForTimeout(120);
-      await lastRow.locator('select').selectOption({ value: ev.category });
+      // EventRow has two <select>s (Category + Date precision); target Category by aria-label.
+      await lastRow.locator('select[aria-label="Category"]').selectOption({ value: ev.category });
       await page.waitForTimeout(120);
       await lastRow.locator('input[type="text"]').fill(ev.note);
       await page.waitForTimeout(120);
@@ -543,7 +544,8 @@ test.describe('Phase-2 Rectification Wizard', () => {
       const lastRow = page.locator('[data-testid="event-row"]').last();
       await lastRow.locator('input[type="date"]').fill(ev.date);
       await page.waitForTimeout(120);
-      await lastRow.locator('select').selectOption({ value: ev.category });
+      // EventRow has two <select>s (Category + Date precision); target Category by aria-label.
+      await lastRow.locator('select[aria-label="Category"]').selectOption({ value: ev.category });
       await page.waitForTimeout(120);
       await lastRow.locator('input[type="text"]').fill(ev.note);
       await page.waitForTimeout(120);
