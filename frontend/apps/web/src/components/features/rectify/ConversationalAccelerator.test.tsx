@@ -219,6 +219,41 @@ describe('ConversationalAccelerator', () => {
       expect(events[1]?.category).toBe('marriage');
     });
 
+    it('clears busy and streaming draft when the stream throws mid-flight', async () => {
+      // streamFn that yields a partial token then throws — simulates a network error.
+      const errorStream: NonNullable<ConversationalAcceleratorProps['streamFn']> =
+        async function* (_params) {
+          yield 'partial…';
+          throw new Error('stream failure');
+        };
+
+      render(
+        <ConversationalAccelerator
+          profileId={PROFILE_ID}
+          streamFn={errorStream}
+          gatherFn={makeStubGather([])}
+        />,
+      );
+
+      fireEvent.change(screen.getByRole('textbox'), { target: { value: 'test input' } });
+      fireEvent.click(screen.getByRole('button', { name: /send/i }));
+
+      // After the error path settles, busy must be cleared (input re-enabled).
+      await waitFor(() => {
+        const input = screen.getByRole('textbox') as HTMLInputElement;
+        expect(input.disabled).toBe(false);
+      });
+
+      // Streaming draft must be gone — "partial…" should not be rendered anywhere.
+      expect(screen.queryByText('partial…')).toBeNull();
+
+      // Component must still be alive (no crash).
+      expect(screen.getByRole('textbox')).toBeTruthy();
+
+      // No events flushed on a pure stream error.
+      expect(useLifeEventsStore.getState().getEvents(PROFILE_ID).length).toBe(0);
+    });
+
     it('does not add to the store when gather returns no events', async () => {
       // Use vi.fn() so we can wait for the gather call as the completion sentinel.
       // The gather call is registered synchronously (before the returned Promise

@@ -18,7 +18,7 @@
  * completed transcript; labeled input; focus returned to input after each turn.
  */
 import type { ReactElement } from 'react';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLifeEventsStore } from '@almamesh/store';
 import {
@@ -84,6 +84,9 @@ export function ConversationalAccelerator({
   const [busy, setBusy] = useState(false);
   const [captured, setCaptured] = useState<readonly RectificationEventInput[]>([]);
 
+  // Abort any in-flight stream on unmount to avoid setState on an unmounted component.
+  useEffect(() => () => { abortRef.current?.abort(); }, []);
+
   // ── Cloud gate ────────────────────────────────────────────────────────────
   if (!isCloudConfigured()) {
     return (
@@ -131,9 +134,8 @@ export function ConversationalAccelerator({
         setStreamingDraft(draft);
       }
 
-      // Commit the completed assistant message and clear the draft.
+      // Commit the completed assistant message — draft cleared in finally.
       setMessages((prev) => [...prev, { role: 'assistant', content: draft }]);
-      setStreamingDraft('');
 
       // ── Extract and flush life events ──────────────────────────────────
       const extracted = await gatherFn(trimmed, config, language);
@@ -162,7 +164,10 @@ export function ConversationalAccelerator({
 
         setCaptured((prev) => [...prev, ...extracted]);
       }
+    } catch {
+      // Stream or gather error — draft is cleared and input re-enabled in finally.
     } finally {
+      setStreamingDraft('');
       setBusy(false);
       inputRef.current?.focus();
     }
