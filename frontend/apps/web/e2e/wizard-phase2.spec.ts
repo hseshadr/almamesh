@@ -350,10 +350,12 @@ test.describe('Phase-2 Rectification Wizard', () => {
 
     // ── 15. UNHAPPY PATH 2: wizard re-navigable (no dead-end) ────────────
     await spaNav(page, `/rectify/${profileId}`);
-    // Return-aware wizard: with existing events the wizard opens on the events
-    // step (event-entry-step), not the intro. Accept either — the point is no crash.
+    // The wizard h1 title (t('wizard.title') = "Refine Your Birth Time") is present
+    // regardless of which step renders — it's the reliable "no dead-end / no crash"
+    // signal. (Return-aware wizard opens on the events step when events exist, so
+    // intro-step testid is absent; event-entry-step testid only exists in unit mocks.)
     await expect(
-      page.locator('[data-testid="intro-step"], [data-testid="event-entry-step"]').first(),
+      page.locator('h1').filter({ hasText: /refine your birth time/i }),
       'wizard must be re-navigable without crash',
     ).toBeVisible({ timeout: 8_000 });
 
