@@ -157,8 +157,15 @@ test.describe('Phase-2 Rectification Wizard', () => {
     await page.locator('[data-testid="intro-start-btn"]').click();
     await page.waitForTimeout(500);
 
+    // ── 6b. Open GatheredTray via manual toggle ────────────────────────────
+    // EventEntryStep now uses ConversationalAccelerator as the primary path.
+    // EventRows + the "Find my rising sign" CTA live inside GatheredTray,
+    // which is collapsed by default. Expand it via the manual toggle.
+    await page.locator('button').filter({ hasText: /enter events manually instead/i }).click();
+    await page.waitForTimeout(300);
+
     // ── 7. UNHAPPY PATH: 0 events → Continue disabled ─────────────────────
-    const continueBtn = page.locator('button').filter({ hasText: /continue/i });
+    const continueBtn = page.locator('button').filter({ hasText: /find my rising sign/i });
     await expect(continueBtn, 'Continue must be disabled with 0 structured events').toBeDisabled({
       timeout: 5_000,
     });
@@ -515,6 +522,13 @@ test.describe('Phase-2 Rectification Wizard', () => {
     await page.locator('[data-testid="intro-start-btn"]').click();
     await page.waitForTimeout(500);
 
+    // ── 6b. Open GatheredTray via manual toggle ────────────────────────────
+    // EventEntryStep now uses ConversationalAccelerator as the primary path.
+    // EventRows + the "Find my rising sign" CTA live inside GatheredTray,
+    // which is collapsed by default. Expand it via the manual toggle.
+    await page.locator('button').filter({ hasText: /enter events manually instead/i }).click();
+    await page.waitForTimeout(300);
+
     // ── 7. Add ≥3 structured events ───────────────────────────────────────
     const windowEvents = [
       { date: '2008-07-10', category: 'higher_studies', note: 'Started college' },
@@ -537,7 +551,7 @@ test.describe('Phase-2 Rectification Wizard', () => {
     }
 
     await page.screenshot({ path: `${SCRATCHPAD}/window-04-events.png`, fullPage: true });
-    const wContinueBtn = page.locator('button').filter({ hasText: /continue/i });
+    const wContinueBtn = page.locator('button').filter({ hasText: /find my rising sign/i });
     await expect(wContinueBtn, 'Continue must be enabled after ≥1 event').toBeEnabled({
       timeout: 5_000,
     });
