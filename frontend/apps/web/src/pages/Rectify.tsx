@@ -10,7 +10,14 @@
 import { useState, useEffect, useMemo, type ReactElement } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { appEvents, type BirthMeta, useChartLibraryStore, useProfilesStore } from '@almamesh/store';
+import {
+  appEvents,
+  type BirthMeta,
+  isStructuredLifeEvent,
+  useChartLibraryStore,
+  useLifeEventsStore,
+  useProfilesStore,
+} from '@almamesh/store';
 import type { ProcessedBirthData, RectificationCandidate } from '@almamesh/shared-types';
 import type { TimeConfidence } from '@almamesh/constants';
 import { useRectification } from '../hooks/useRectification';
@@ -28,7 +35,11 @@ export function RectifyPage(): ReactElement {
 
   const { state, engineReady, detectedMode, run, retry } = useRectification(profileId);
 
-  const [step, setStep] = useState<WizardStep>('intro');
+  const initialStep: WizardStep =
+    useLifeEventsStore.getState().getEvents(profileId).some(isStructuredLifeEvent)
+      ? 'events'
+      : 'intro';
+  const [step, setStep] = useState<WizardStep>(initialStep);
   const [pendingCandidate, setPendingCandidate] = useState<RectificationCandidate | null>(null);
   const [showModal, setShowModal] = useState(false);
 
