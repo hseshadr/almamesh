@@ -1,102 +1,65 @@
 /**
  * EventEntryStep — slice 1 of the rectification wizard: structured event entry.
  *
- * Renders the profile's life events from `useLifeEventsStore` as `<EventRow>`s,
- * an "Add Event" button that appends a draft row, min-events guidance copy, and
- * a Continue button that is DISABLED until at least one event satisfies
- * `isStructuredLifeEvent` (non-empty date AND a chosen category).
+ * Hybrid UX:
+ *  - Primary path: <ConversationalAccelerator> — a calm, one-event-at-a-time
+ *    interview that flushes extracted events into the life-events store as
+ *    reviewable draft rows.
+ *  - Manual fallback: "Enter events manually instead" toggle that opens the
+ *    <GatheredTray> sticky tray, revealing editable EventRow controls and the
+ *    "Find my rising sign" CTA. No-LLM users are never in a dead-end — the
+ *    tray gives them full access to manual event entry.
+ *  - <GatheredTray> also shows the gathered count and the CTA for LLM users
+ *    (collapsed by default; togglable via its own bar or the manual toggle).
  *
- * No fitting is done here — that is slice 2. This step is purely data entry.
+ * `onContinue` semantics are unchanged — it triggers the fit (slice 2).
  */
 import type { ReactElement } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useLifeEventsStore, isStructuredLifeEvent } from '@almamesh/store';
-import type { LifeEvent } from '@almamesh/store';
-import type { LifeEventCategory } from '@almamesh/shared-types';
-import { EventRow } from './EventRow';
-import { StoryAccelerator } from './StoryAccelerator';
-
-/** Stable empty array so the Zustand selector returns the same reference when
- * the profile has no events yet (avoids spurious re-renders). */
-const EMPTY_EVENTS: readonly LifeEvent[] = [];
+import { ConversationalAccelerator } from './ConversationalAccelerator';
+import { GatheredTray } from './GatheredTray';
 
 export interface EventEntryStepProps {
   /** The profile whose life events are being edited. */
   readonly profileId: string;
-  /** Called when the user clicks Continue (≥1 structured event required). */
+  /** Called when the user clicks "Find my rising sign" (≥1 structured event required). */
   readonly onContinue: () => void;
 }
 
 export function EventEntryStep({ profileId, onContinue }: EventEntryStepProps): ReactElement {
   const { t } = useTranslation('rectify');
-
-  const events = useLifeEventsStore(
-    (s) => s.eventsByProfile[profileId] ?? EMPTY_EVENTS,
-  );
-  const addEvent = useLifeEventsStore((s) => s.addEvent);
-  const editEvent = useLifeEventsStore((s) => s.editEvent);
-  const removeEvent = useLifeEventsStore((s) => s.removeEvent);
-
-  const hasStructured = events.some(isStructuredLifeEvent);
-
-  const handleAdd = () => {
-    // `LifeEventInput.description` must be non-empty for the store to accept it.
-    // We use a minimal placeholder; the user fills in date/category/note via editEvent.
-    addEvent(profileId, { description: 'new' });
-  };
+  const [trayExpanded, setTrayExpanded] = useState(false);
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 pb-24">
       {/* Header */}
       <div>
         <h2 className="text-xl font-semibold text-text-primary">{t('entry.title')}</h2>
         <p className="mt-1 text-sm text-text-secondary">{t('entry.subtitle')}</p>
       </div>
 
-      {/* Optional LLM accelerator — pre-fills reviewable rows from free-form prose.
-          Only actionable when the user has opted into a cloud AI endpoint. */}
-      <StoryAccelerator profileId={profileId} />
+      {/* Primary path: conversational interview */}
+      <ConversationalAccelerator profileId={profileId} />
 
-      {/* Event rows */}
-      <div className="flex flex-col gap-3">
-        {events.map((event) => (
-          <EventRow
-            key={event.id}
-            event={event}
-            onDateChange={(date) => editEvent(profileId, event.id, { date })}
-            onCategoryChange={(category: LifeEventCategory | undefined) =>
-              editEvent(profileId, event.id, { category })
-            }
-            onNoteChange={(note) => editEvent(profileId, event.id, { note })}
-            onPrecisionChange={(precision) => editEvent(profileId, event.id, { precision })}
-            onDelete={() => removeEvent(profileId, event.id)}
-          />
-        ))}
-      </div>
-
-      {/* Add button */}
+      {/* Manual fallback — quiet affordance to open the editable tray directly.
+          Ensures users without a cloud endpoint are never stuck. */}
       <button
         type="button"
-        onClick={handleAdd}
-        className="w-fit rounded-lg border border-dashed border-border-subtle px-4 py-2 text-sm text-text-secondary hover:border-accent-primary hover:text-accent-primary focus:outline-none focus:ring-1 focus:ring-accent-primary"
+        onClick={() => setTrayExpanded(true)}
+        className="w-fit text-xs text-text-tertiary underline hover:text-text-secondary focus:outline-none focus:ring-1 focus:ring-accent-primary"
       >
-        {t('entry.add')}
+        {t('entry.manual_toggle')}
       </button>
 
-      {/* Min-events guidance */}
-      {!hasStructured && (
-        <p className="text-xs text-text-tertiary">{t('entry.min_events_hint')}</p>
-      )}
-
-      {/* Continue */}
-      <button
-        type="button"
-        onClick={onContinue}
-        disabled={!hasStructured}
-        className="w-fit rounded-lg bg-accent-primary px-6 py-2 text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-accent-primary focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40"
-      >
-        {t('entry.continue')}
-      </button>
+      {/* Gathered tray — sticky at bottom, collapsed by default.
+          Expands to show reviewable EventRows + Add button + CTA. */}
+      <GatheredTray
+        profileId={profileId}
+        expanded={trayExpanded}
+        onToggle={() => setTrayExpanded((v) => !v)}
+        onContinue={onContinue}
+      />
     </div>
   );
 }

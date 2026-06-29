@@ -1,127 +1,127 @@
 /**
- * EventEntryStep — structured life-event entry UI (slice 1, entry only).
+ * EventEntryStep — composition of ConversationalAccelerator + GatheredTray.
  *
  * Tests assert:
- *  - existing store rows render as EventRow elements
- *  - "Add Event" appends a draft row
- *  - editing date / category / note calls editEvent (store state updated)
- *  - delete button calls removeEvent (store state updated)
- *  - Continue is disabled until ≥1 event has both date + category
- *  - category <select> options show localized labels, not raw enum values
+ *  - step title renders
+ *  - ConversationalAccelerator is rendered (gated note when no cloud; opening when cloud)
+ *  - GatheredTray is rendered and collapsed by default
+ *  - "Enter events manually instead" toggle exists and expands the tray
+ *  - no-cloud path: gated note visible AND manual toggle opens the tray (no dead-end)
+ *  - CTA fires onContinue when ≥1 structured event exists (via the tray)
+ *  - tray's own toggle can collapse again after manual expand
  */
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { useLifeEventsStore, useLanguageStore, type LifeEvent } from '@almamesh/store';
+import type { LlmStatus } from '@almamesh/llm';
 
-import i18n from '../../../i18n/config';
+// vi.mock is hoisted — replace the LLM module so no cloud / network calls happen.
+vi.mock('@almamesh/llm', () => ({
+  describeLlmStatus: vi.fn(),
+  readLlmSettings: vi.fn(() => ({})),
+  applyLlmSettings: vi.fn((env: Record<string, string | undefined>) => env),
+  resolveProviderConfig: vi.fn(() => ({
+    engine: 'openai-http',
+    model: 'test-model',
+    privacyMode: 'cloud_premium',
+    baseUrl: 'https://openrouter.ai/api/v1',
+    apiKey: 'test-key',
+  })),
+  structureLifeEvents: vi.fn(),
+  streamRectificationInterview: vi.fn(),
+  gatherEventsFromTurn: vi.fn(),
+}));
+
+// Import AFTER mock declarations (hoisting ensures mock runs first at runtime)
+import '../../../i18n/config';
 import { EventEntryStep } from './EventEntryStep';
+import { describeLlmStatus } from '@almamesh/llm';
 
 const PROFILE_ID = 'test-profile';
 
-/** Seed the store directly — bypasses idb-keyval, operates on in-memory state. */
-function setupEvents(events: readonly LifeEvent[]) {
-  useLifeEventsStore.setState({
-    eventsByProfile: { [PROFILE_ID]: events },
-  });
+const NONE_STATUS: LlmStatus = { kind: 'none', label: 'Not set', configured: false };
+const CLOUD_STATUS: LlmStatus = { kind: 'openrouter', label: 'OpenRouter', configured: true };
+
+const STRUCTURED_EVENT: LifeEvent = {
+  id: 'e1',
+  date: '2020-01-15',
+  category: 'marriage',
+  createdAt: '2020-01-01T00:00:00Z',
+};
+
+function seedEvents(events: readonly LifeEvent[]) {
+  useLifeEventsStore.setState({ eventsByProfile: { [PROFILE_ID]: events } });
 }
 
 describe('EventEntryStep', () => {
   beforeEach(() => {
+    vi.resetAllMocks();
     useLanguageStore.setState({ language: 'en' });
     useLifeEventsStore.setState({ eventsByProfile: {} });
+    vi.mocked(describeLlmStatus).mockReturnValue(NONE_STATUS);
   });
 
-  it('renders the step title and subtitle', () => {
+  it('renders the step title', () => {
     render(<EventEntryStep profileId={PROFILE_ID} onContinue={() => {}} />);
     expect(screen.getByText('Your Life Events')).toBeTruthy();
-    // Assert the subtitle renders without coupling to its exact prose (copy is
-    // localized + maintained separately): match the live i18n value.
-    expect(screen.getByText(i18n.t('rectify:entry.subtitle'))).toBeTruthy();
   });
 
-  it('renders existing store events as EventRow elements', () => {
-    setupEvents([
-      { id: 'e1', date: '2020-01-15', category: 'marriage', createdAt: '2020-01-01T00:00:00Z' },
-    ]);
+  it('renders the ConversationalAccelerator — gated note when no cloud configured', () => {
     render(<EventEntryStep profileId={PROFILE_ID} onContinue={() => {}} />);
-    expect((screen.getByLabelText('Date') as HTMLInputElement).value).toBe('2020-01-15');
-    // The stored category should be pre-selected in the <select>
-    expect((screen.getByLabelText('Category') as HTMLSelectElement).value).toBe('marriage');
+    expect(screen.getByTestId('chat-gated')).toBeTruthy();
   });
 
-  it('"Add Event" appends a draft row to the store', () => {
+  it('renders the ConversationalAccelerator — opening message when cloud configured', () => {
+    vi.mocked(describeLlmStatus).mockReturnValue(CLOUD_STATUS);
     render(<EventEntryStep profileId={PROFILE_ID} onContinue={() => {}} />);
-    expect(useLifeEventsStore.getState().eventsByProfile[PROFILE_ID]).toBeUndefined();
-    fireEvent.click(screen.getByText('Add Event'));
-    expect(useLifeEventsStore.getState().eventsByProfile[PROFILE_ID]?.length).toBe(1);
+    expect(screen.getByTestId('chat-opening')).toBeTruthy();
   });
 
-  it('editing the date input calls editEvent and updates the store', () => {
-    setupEvents([{ id: 'e1', date: '', createdAt: '2020-01-01T00:00:00Z' }]);
+  it('renders the GatheredTray collapsed by default', () => {
     render(<EventEntryStep profileId={PROFILE_ID} onContinue={() => {}} />);
-    fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2022-03-10' } });
-    expect(useLifeEventsStore.getState().eventsByProfile[PROFILE_ID]?.[0].date).toBe('2022-03-10');
+    const toggleBtn = screen.getByRole('button', { name: /gathered/i });
+    expect(toggleBtn.getAttribute('aria-expanded')).toBe('false');
   });
 
-  it('editing the category select calls editEvent and updates the store', () => {
-    setupEvents([{ id: 'e1', date: '2020-01-01', createdAt: '2020-01-01T00:00:00Z' }]);
+  it('renders a manual-entry toggle affordance', () => {
     render(<EventEntryStep profileId={PROFILE_ID} onContinue={() => {}} />);
-    fireEvent.change(screen.getByLabelText('Category'), { target: { value: 'promotion' } });
-    expect(useLifeEventsStore.getState().eventsByProfile[PROFILE_ID]?.[0].category).toBe('promotion');
+    expect(screen.getByRole('button', { name: /manually/i })).toBeTruthy();
   });
 
-  it('editing the note input calls editEvent and updates the store', () => {
-    setupEvents([{ id: 'e1', date: '2020-01-01', createdAt: '2020-01-01T00:00:00Z' }]);
+  it('clicking the manual toggle expands the tray', () => {
     render(<EventEntryStep profileId={PROFILE_ID} onContinue={() => {}} />);
-    fireEvent.change(screen.getByLabelText('Note (optional)'), {
-      target: { value: 'civil ceremony' },
-    });
-    expect(useLifeEventsStore.getState().eventsByProfile[PROFILE_ID]?.[0].note).toBe('civil ceremony');
+    fireEvent.click(screen.getByRole('button', { name: /manually/i }));
+    const toggleBtn = screen.getByRole('button', { name: /gathered/i });
+    expect(toggleBtn.getAttribute('aria-expanded')).toBe('true');
   });
 
-  it('delete button removes the event from the store', () => {
-    setupEvents([
-      { id: 'e1', date: '2020-01-15', category: 'marriage', createdAt: '2020-01-01T00:00:00Z' },
-    ]);
+  it('no-cloud path: gated note visible AND manual toggle opens the tray (no dead-end)', () => {
     render(<EventEntryStep profileId={PROFILE_ID} onContinue={() => {}} />);
-    fireEvent.click(screen.getByLabelText('Delete'));
-    expect(useLifeEventsStore.getState().eventsByProfile[PROFILE_ID]?.length).toBe(0);
+    // Gated note is shown
+    expect(screen.getByTestId('chat-gated')).toBeTruthy();
+    // Manual toggle is reachable and opens the tray to editable rows
+    fireEvent.click(screen.getByRole('button', { name: /manually/i }));
+    expect(screen.getByRole('button', { name: /add event/i })).toBeTruthy();
   });
 
-  it('Continue is disabled with no events', () => {
-    render(<EventEntryStep profileId={PROFILE_ID} onContinue={() => {}} />);
-    expect((screen.getByRole('button', { name: 'Continue' }) as HTMLButtonElement).disabled).toBe(
-      true,
-    );
+  it('CTA fires onContinue when ≥1 structured event exists (via tray)', () => {
+    seedEvents([STRUCTURED_EVENT]);
+    const onContinue = vi.fn();
+    render(<EventEntryStep profileId={PROFILE_ID} onContinue={onContinue} />);
+    // Open tray via its own toggle bar (shows "1 event gathered · review")
+    fireEvent.click(screen.getByRole('button', { name: /gathered/i }));
+    fireEvent.click(screen.getByRole('button', { name: /rising sign/i }));
+    expect(onContinue).toHaveBeenCalledOnce();
   });
 
-  it('Continue is disabled when an event has date but no category', () => {
-    setupEvents([{ id: 'e1', date: '2020-01-01', createdAt: '2020-01-01T00:00:00Z' }]);
+  it("tray's own toggle collapses the tray after manual expand", () => {
     render(<EventEntryStep profileId={PROFILE_ID} onContinue={() => {}} />);
-    expect((screen.getByRole('button', { name: 'Continue' }) as HTMLButtonElement).disabled).toBe(
-      true,
-    );
-  });
-
-  it('Continue is enabled when at least one event has both date and category', () => {
-    setupEvents([
-      { id: 'e1', date: '2020-01-15', category: 'marriage', createdAt: '2020-01-01T00:00:00Z' },
-    ]);
-    render(<EventEntryStep profileId={PROFILE_ID} onContinue={() => {}} />);
-    expect((screen.getByRole('button', { name: 'Continue' }) as HTMLButtonElement).disabled).toBe(
-      false,
-    );
-  });
-
-  it('category <select> options render localized labels, not raw enum values', () => {
-    setupEvents([{ id: 'e1', date: '', createdAt: '2020-01-01T00:00:00Z' }]);
-    render(<EventEntryStep profileId={PROFILE_ID} onContinue={() => {}} />);
-    // Localized labels present
-    expect(screen.getByRole('option', { name: 'Marriage' })).toBeTruthy();
-    expect(screen.getByRole('option', { name: 'Career Change' })).toBeTruthy();
-    expect(screen.getByRole('option', { name: 'Higher Studies' })).toBeTruthy();
-    // Raw enum values NOT present as option labels
-    expect(screen.queryByRole('option', { name: 'marriage' })).toBeNull();
-    expect(screen.queryByRole('option', { name: 'career_change' })).toBeNull();
+    // Expand via manual toggle
+    fireEvent.click(screen.getByRole('button', { name: /manually/i }));
+    // Collapse via tray's own toggle bar
+    fireEvent.click(screen.getByRole('button', { name: /gathered/i }));
+    expect(
+      screen.getByRole('button', { name: /gathered/i }).getAttribute('aria-expanded'),
+    ).toBe('false');
   });
 });

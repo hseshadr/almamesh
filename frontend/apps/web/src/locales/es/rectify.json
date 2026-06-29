@@ -33,7 +33,8 @@
     "precision_year": "Solo el año",
     "precision_approx": "Aproximada",
     "continue": "Continuar",
-    "min_events_hint": "Agrega al menos un evento con fecha y categoría para continuar."
+    "min_events_hint": "Agrega al menos un evento con fecha y categoría para continuar.",
+    "manual_toggle": "Ingresar eventos manualmente"
   },
   "band": {
     "near_tie": "Empate cercano",
