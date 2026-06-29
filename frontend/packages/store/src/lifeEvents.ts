@@ -232,7 +232,7 @@ export interface LifeEventsStore {
   clearEvents: (profileId: string) => void;
   /**
    * Patch mutable fields on one event. A no-op when `id` is not found.
-   * Patchable fields: `date`, `category`, `note`, `needsStructuring`.
+   * Patchable fields: `date`, `category`, `note`, `needsStructuring`, `precision`.
    */
   editEvent: (
     profileId: string,

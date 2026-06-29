@@ -14,6 +14,7 @@ from almamesh.rectification.candidates import (
     window_candidate_times,
 )
 from almamesh.rectification.models import (
+    EventDatePrecision,
     RectificationBand,
     RectificationCandidate,
     RectificationEventInput,
@@ -165,5 +166,6 @@ def compute_rectification_result(
 
 __all__ = [
     "compute_rectification_result",
+    "EventDatePrecision",
     "RectificationBand",
 ]

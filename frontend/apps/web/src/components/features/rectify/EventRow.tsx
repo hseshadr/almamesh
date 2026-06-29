@@ -40,7 +40,7 @@ export function EventRow({
 
   return (
     <div
-      className="grid grid-cols-1 sm:grid-cols-[8rem_minmax(9rem,1fr)_8rem_minmax(10rem,1.5fr)_auto] sm:items-end gap-3 rounded-lg border border-border-subtle bg-surface-secondary p-3"
+      className="grid grid-cols-1 sm:grid-cols-[8rem_minmax(0,1fr)_8rem_minmax(0,1.5fr)_auto] sm:items-end gap-3 rounded-lg border border-border-subtle bg-surface-secondary p-3"
       data-testid="event-row"
     >
       {/* Date */}

@@ -122,7 +122,7 @@ def _event_instants(event_date: date, precision: EventDatePrecision) -> tuple[da
     if count == 1:
         return (_event_instant(event_date),)
     step = (2 * half) / (count - 1)
-    offsets = (round(step * i) - half for i in range(count))
+    offsets = [round(step * i) - half for i in range(count)]
     return tuple(_event_instant(event_date + timedelta(days=o)) for o in offsets)
 
 

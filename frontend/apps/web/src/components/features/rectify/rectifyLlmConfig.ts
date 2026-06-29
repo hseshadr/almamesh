@@ -1,9 +1,9 @@
 /**
  * Shared LLM-configuration helpers for the rectification wizard.
  *
- * Extracted from StoryAccelerator so that ConversationalAccelerator and any
- * future wizard panel can reuse the cloud-gate check, provider config resolver,
- * and language mapper without duplicating the logic.
+ * Shared by ConversationalAccelerator and any future wizard panel to reuse
+ * the cloud-gate check, provider config resolver, and language mapper
+ * without duplicating the logic.
  */
 import {
   describeLlmStatus,

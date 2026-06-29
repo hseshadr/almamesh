@@ -181,7 +181,7 @@ export function ConversationalAccelerator({
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col gap-3">
-      {/* Egress warning — mirrors the StoryAccelerator warning */}
+      {/* Egress warning — informs user that transcript text is sent to the configured AI endpoint */}
       <p className="text-xs text-text-secondary">{t('accelerator.warning')}</p>
 
       {/* Completed transcript — role="log" implies aria-live="polite" */}
