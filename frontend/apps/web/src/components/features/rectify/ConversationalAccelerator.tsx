@@ -83,6 +83,7 @@ export function ConversationalAccelerator({
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const [captured, setCaptured] = useState<readonly RectificationEventInput[]>([]);
+  const [chatError, setChatError] = useState<string | null>(null);
 
   // Abort any in-flight stream on unmount to avoid setState on an unmounted component.
   useEffect(() => () => { abortRef.current?.abort(); }, []);
@@ -107,6 +108,7 @@ export function ConversationalAccelerator({
 
     setInput('');
     setBusy(true);
+    setChatError(null);
 
     const userTurn: ChatTurn = { role: 'user', content: trimmed };
     // Append user turn first so the history passed to the LLM is up to date.
@@ -134,8 +136,10 @@ export function ConversationalAccelerator({
         setStreamingDraft(draft);
       }
 
-      // Commit the completed assistant message — draft cleared in finally.
+      // Commit the completed assistant message; clear the draft immediately so
+      // the committed message and the streaming draft are never both visible.
       setMessages((prev) => [...prev, { role: 'assistant', content: draft }]);
+      setStreamingDraft('');
 
       // ── Extract and flush life events ──────────────────────────────────
       const extracted = await gatherFn(trimmed, config, language);
@@ -165,7 +169,8 @@ export function ConversationalAccelerator({
         setCaptured((prev) => [...prev, ...extracted]);
       }
     } catch {
-      // Stream or gather error — draft is cleared and input re-enabled in finally.
+      // Stream or gather error — show inline error; draft + busy cleared in finally.
+      setChatError(t('chat.error'));
     } finally {
       setStreamingDraft('');
       setBusy(false);
@@ -207,6 +212,16 @@ export function ConversationalAccelerator({
             className="rounded-lg bg-surface-secondary px-3 py-2 text-sm text-text-primary"
           >
             {streamingDraft}
+          </div>
+        )}
+
+        {/* Inline error — transient, calm; cleared on next submit */}
+        {chatError && (
+          <div
+            role="status"
+            className="rounded-lg px-3 py-2 text-sm text-text-secondary"
+          >
+            {chatError}
           </div>
         )}
       </div>

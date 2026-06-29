@@ -103,7 +103,8 @@
     "input_placeholder": "Compartilhe um evento…",
     "input_label": "Sua mensagem",
     "send": "Enviar",
-    "transcript_label": "Conversa"
+    "transcript_label": "Conversa",
+    "error": "Não consegui contatar a IA agora — tente novamente ou adicione os eventos manualmente abaixo."
   },
   "back": "Voltar"
 }

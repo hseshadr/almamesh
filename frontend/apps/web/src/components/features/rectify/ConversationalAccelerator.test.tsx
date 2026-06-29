@@ -247,11 +247,52 @@ describe('ConversationalAccelerator', () => {
       // Streaming draft must be gone — "partial…" should not be rendered anywhere.
       expect(screen.queryByText('partial…')).toBeNull();
 
+      // An inline error status must be visible (M1 fix).
+      const errorEl = screen.getByRole('status');
+      expect(errorEl).toBeTruthy();
+      expect(errorEl.textContent).toMatch(/couldn't reach the AI/i);
+
       // Component must still be alive (no crash).
       expect(screen.getByRole('textbox')).toBeTruthy();
 
       // No events flushed on a pure stream error.
       expect(useLifeEventsStore.getState().getEvents(PROFILE_ID).length).toBe(0);
+    });
+
+    it('clears the error message on the next submit attempt', async () => {
+      // First submit triggers error; second submit succeeds — error must disappear.
+      let useErrorStream = true;
+      const switchableStream: NonNullable<ConversationalAcceleratorProps['streamFn']> =
+        async function* (_params) {
+          if (useErrorStream) {
+            yield 'partial…';
+            throw new Error('stream failure');
+          } else {
+            yield 'All good!';
+          }
+        };
+
+      render(
+        <ConversationalAccelerator
+          profileId={PROFILE_ID}
+          streamFn={switchableStream}
+          gatherFn={makeStubGather([])}
+        />,
+      );
+
+      // First submit — triggers error.
+      fireEvent.change(screen.getByRole('textbox'), { target: { value: 'first message' } });
+      fireEvent.click(screen.getByRole('button', { name: /send/i }));
+      await waitFor(() => expect(screen.getByRole('status')).toBeTruthy());
+
+      // Second submit — error must be cleared at the start.
+      useErrorStream = false;
+      fireEvent.change(screen.getByRole('textbox'), { target: { value: 'second message' } });
+      fireEvent.click(screen.getByRole('button', { name: /send/i }));
+
+      await waitFor(() => {
+        expect(screen.queryByRole('status')).toBeNull();
+      });
     });
 
     it('does not add to the store when gather returns no events', async () => {
