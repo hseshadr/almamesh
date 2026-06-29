@@ -11,7 +11,8 @@
     "all_periods": "Todos los períodos",
     "pada": "pada {{pada}}",
     "unavailable": "No disponible",
-    "rectified": "Hora de nacimiento rectificada: introducida {{entered}} → usando {{rectified}} ({{sign}}{{minutes}} min)"
+    "rectified": "Hora de nacimiento rectificada: introducida {{entered}} → usando {{rectified}} ({{sign}}{{minutes}} min)",
+    "refine_cta": "¿Recordaste un evento de tu vida? Precisa tu hora de nacimiento"
   },
   "atlas": {
     "heading": "Atlas de Vida",
