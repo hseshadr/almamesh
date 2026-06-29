@@ -161,4 +161,35 @@ describe('GatheredTray', () => {
     fireEvent.click(screen.getByRole('button', { name: /rising sign/i }));
     expect(onContinue).toHaveBeenCalledOnce();
   });
+
+  it('expanded: clicking "Add event" calls addEvent for the profile', () => {
+    seedEvents([STRUCTURED_1]);
+    const spy = vi.spyOn(useLifeEventsStore.getState(), 'addEvent');
+    render(
+      <GatheredTray
+        profileId={PROFILE_ID}
+        expanded={true}
+        onToggle={vi.fn()}
+        onContinue={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: /add event/i }));
+    expect(spy).toHaveBeenCalledWith(PROFILE_ID, expect.objectContaining({ description: 'new' }));
+    spy.mockRestore();
+  });
+
+  it('expanded: continueDisabled=true disables CTA even with ≥1 structured event', () => {
+    seedEvents([STRUCTURED_1]);
+    render(
+      <GatheredTray
+        profileId={PROFILE_ID}
+        expanded={true}
+        onToggle={vi.fn()}
+        onContinue={vi.fn()}
+        continueDisabled={true}
+      />,
+    );
+    const cta = screen.getByRole('button', { name: /rising sign/i }) as HTMLButtonElement;
+    expect(cta.disabled).toBe(true);
+  });
 });

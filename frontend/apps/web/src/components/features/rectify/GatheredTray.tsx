@@ -30,6 +30,13 @@ export interface GatheredTrayProps {
   readonly onToggle: () => void;
   /** Called when the user clicks the "Find my rising sign" CTA (≥1 structured event required). */
   readonly onContinue: () => void;
+  /**
+   * Optional external gate: when true the "Find my rising sign" CTA is disabled
+   * regardless of the internal structured-event count.  Used by the parent (e.g.
+   * Task 5) to suppress the CTA while the interview is still streaming.
+   * Never enables the CTA — only adds an additional reason to disable it.
+   */
+  readonly continueDisabled?: boolean;
 }
 
 export function GatheredTray({
@@ -37,6 +44,7 @@ export function GatheredTray({
   expanded,
   onToggle,
   onContinue,
+  continueDisabled = false,
 }: GatheredTrayProps): ReactElement {
   const { t } = useTranslation('rectify');
 
@@ -114,11 +122,11 @@ export function GatheredTray({
           {/* Honesty note */}
           <p className="text-xs text-text-tertiary">{t('tray.honesty')}</p>
 
-          {/* Primary CTA — disabled until ≥1 structured event */}
+          {/* Primary CTA — disabled until ≥1 structured event, or externally gated */}
           <button
             type="button"
             onClick={onContinue}
-            disabled={!hasStructured}
+            disabled={!hasStructured || continueDisabled}
             className="w-fit rounded-lg bg-accent-primary px-6 py-2 text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-accent-primary focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40"
           >
             {t('tray.cta')}
