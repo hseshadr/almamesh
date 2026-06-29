@@ -30,7 +30,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from typing import TypeVar
 
 from almamesh.calculations import SkyfieldAstronomy
@@ -41,6 +41,7 @@ from almamesh.constants.astrology import ZODIAC_SIGNS, EventType, PlanetName, Zo
 from almamesh.dasha.vimshottari import _active_pratyantardasha
 from almamesh.rectification.houses import category_houses
 from almamesh.rectification.models import (
+    EventDatePrecision,
     EventEvidence,
     RectificationBand,
     RectificationCandidate,
@@ -92,10 +93,37 @@ _SIGN_INDEX: dict[ZodiacSign, int] = {sign: i for i, sign in enumerate(ZodiacSig
 
 _PeriodT = TypeVar("_PeriodT", bound=DashaPeriod)
 
+# --- Per-precision instant grid constants (Task 2) ----------------------------
+# Half-width in days for each precision level; EXACT collapses to a single point.
+_PRECISION_HALF_DAYS: dict[EventDatePrecision, int] = {
+    EventDatePrecision.EXACT: 0,
+    EventDatePrecision.MONTH: 15,
+    EventDatePrecision.YEAR: 182,
+    EventDatePrecision.APPROX: 730,
+}
+# Number of evenly-spaced noon-UTC samples (inclusive of both endpoints).
+_PRECISION_SAMPLES: dict[EventDatePrecision, int] = {
+    EventDatePrecision.EXACT: 1,
+    EventDatePrecision.MONTH: 3,
+    EventDatePrecision.YEAR: 13,
+    EventDatePrecision.APPROX: 25,
+}
+
 
 def _event_instant(event_date: date) -> datetime:
     """Pin an event date to 12:00 UTC — deterministic, never the wall clock."""
     return datetime(event_date.year, event_date.month, event_date.day, 12, tzinfo=UTC)
+
+
+def _event_instants(event_date: date, precision: EventDatePrecision) -> tuple[datetime, ...]:
+    """Evenly-spaced noon-UTC instants spanning the precision window (inclusive)."""
+    half = _PRECISION_HALF_DAYS[precision]
+    count = _PRECISION_SAMPLES[precision]
+    if count == 1:
+        return (_event_instant(event_date),)
+    step = (2 * half) / (count - 1)
+    offsets = [round(step * i) - half for i in range(count)]
+    return tuple(_event_instant(event_date + timedelta(days=o)) for o in offsets)
 
 
 def _period_containing(periods: Sequence[_PeriodT], when: datetime) -> _PeriodT | None:
@@ -153,19 +181,24 @@ def compute_transit_signs(
     events: Sequence[RectificationEventInput],
     *,
     astronomy: SkyfieldAstronomy | None = None,
-) -> dict[date, dict[PlanetName, ZodiacSign]]:
-    """Slow-graha signs per DISTINCT event date — computed ONCE (candidate-invariant).
+) -> dict[datetime, dict[PlanetName, ZodiacSign]]:
+    """Slow-graha signs per DISTINCT window instant (candidate-invariant).
 
-    The transiting Jupiter/Saturn SIGNS at an event date do not depend on the
-    candidate ascendant (only ``house_from_lagna`` rotates, by arithmetic). So the
-    orchestrator calls this once and passes the result to every ``score_candidate``,
-    collapsing the old O(events x candidates) ephemeris work to O(distinct dates).
-    Deterministic: one ``SkyfieldAstronomy``, each instant pinned to 12:00 UTC.
-    Pass a warm ``astronomy`` instance to skip an extra de421 load (callers that
-    already hold one, e.g. ``compute_rectification_result``).
+    Covers every noon-UTC instant of every non-``APPROX`` event's precision window.
+    ``APPROX`` events contribute no instants — their transit signal is zeroed
+    downstream (Task 4). The transiting slow-graha SIGNS at each instant are
+    candidate- and natal-invariant; only the rotation into house-from-lagna changes
+    per candidate (pure arithmetic). Deterministic: each instant is pinned to noon UTC.
+    Pass a warm ``astronomy`` instance to skip an extra de421 load.
     """
     astro = astronomy if astronomy is not None else SkyfieldAstronomy()
-    return {d: _slow_signs_at(astro, _event_instant(d)) for d in {event.date for event in events}}
+    instants = {
+        instant
+        for event in events
+        if event.precision is not EventDatePrecision.APPROX
+        for instant in _event_instants(event.date, event.precision)
+    }
+    return {instant: _slow_signs_at(astro, instant) for instant in instants}
 
 
 def _fallback_signs(when: datetime) -> dict[PlanetName, ZodiacSign]:
@@ -183,6 +216,19 @@ def _transit_houses(
         for graha, sign in transit_signs.items()
         if graha in _SLOW_GRAHAS
     )
+
+
+def _transit_houses_at(
+    context: SiderealContext,
+    when: datetime,
+    transit_signs: Mapping[datetime, Mapping[PlanetName, ZodiacSign]] | None,
+) -> frozenset[int]:
+    """Whole-sign transit houses at one instant: look up the precomputed map or fall back."""
+    per_instant = transit_signs.get(when) if transit_signs is not None else None
+    signs: Mapping[PlanetName, ZodiacSign] = (
+        per_instant if per_instant is not None else _fallback_signs(when)
+    )
+    return _transit_houses(context, signs)
 
 
 def _collect_signals(
@@ -205,31 +251,58 @@ def _signal_weight(signal: str) -> float:
     return W_TRANSIT if signal.startswith("slow_transit") else W_PRIMARY
 
 
+def _instant_signals(
+    context: SiderealContext,
+    houses: Sequence[int],
+    when: datetime,
+    transit_houses: frozenset[int],
+) -> list[str]:
+    """Fired signal keys at one instant (dasha + transit) for the event's houses."""
+    active_lords = _active_lords_at(context.dashas, when)
+    return _collect_signals(context, houses, active_lords, transit_houses)
+
+
 def extract_event_signals(
     context: SiderealContext,
     event: RectificationEventInput,
     *,
     event_index: int = 0,
-    transit_signs: Mapping[PlanetName, ZodiacSign] | None = None,
+    transit_signs: Mapping[datetime, Mapping[PlanetName, ZodiacSign]] | None = None,
 ) -> EventEvidence:
-    """Score one life event against ONE candidate chart (ascendant-dependent).
+    """Marginalize one event's dasha + transit contribution across its precision window.
 
-    ``transit_signs`` are the precomputed slow-graha signs for this event's date
-    (``compute_transit_signs``); ``None`` triggers an internal fallback that yields
-    the identical result. ``event_index`` defaults to 0; ``score_candidate`` sets
-    the real position.
+    ``transit_signs`` is the orchestrator's per-instant map (``compute_transit_signs``,
+    keyed by ``datetime``); ``None`` triggers an internal fallback. For ``APPROX``
+    precision the transit contribution is hard-zeroed — slow planets move too slowly
+    relative to a ±2-year window to provide reliable per-instant evidence. For
+    ``EXACT`` (1-instant window) the result is byte-identical to the pre-Task-4
+    single-noon-instant code path. ``event_index`` defaults to 0; ``score_candidate``
+    sets the real position.
     """
-    when = _event_instant(event.date)
-    active_lords = _active_lords_at(context.dashas, when)
-    signs = transit_signs if transit_signs is not None else _fallback_signs(when)
     houses = category_houses(event.category)
-    signals = _collect_signals(context, houses, active_lords, _transit_houses(context, signs))
+    instants = _event_instants(event.date, event.precision)
+    zero_transit = event.precision is EventDatePrecision.APPROX
+    dasha_sum = 0.0
+    transit_sum = 0.0
+    for when in instants:
+        t_houses = frozenset() if zero_transit else _transit_houses_at(context, when, transit_signs)
+        for signal in _instant_signals(context, houses, when, t_houses):
+            if signal.startswith("slow_transit"):
+                transit_sum += _signal_weight(signal)
+            else:
+                dasha_sum += _signal_weight(signal)
+    n = len(instants)
+    central = instants[n // 2]
+    central_transit = (
+        frozenset() if zero_transit else _transit_houses_at(context, central, transit_signs)
+    )
+    signals = _instant_signals(context, houses, central, central_transit)
     return EventEvidence(
         event_index=event_index,
         category=event.category,
         date=event.date,
         signals=signals,
-        contribution=sum(_signal_weight(signal) for signal in signals),
+        contribution=(dasha_sum + transit_sum) / n,
     )
 
 
@@ -260,14 +333,6 @@ def _decorrelated_total(evidences: Sequence[EventEvidence]) -> float:
     return sum(_category_total(contributions) for contributions in by_category.values())
 
 
-def _signs_for(
-    event: RectificationEventInput,
-    transit_signs: Mapping[date, Mapping[PlanetName, ZodiacSign]] | None,
-) -> Mapping[PlanetName, ZodiacSign] | None:
-    """Precomputed signs for this event's date, or None to use the fallback."""
-    return None if transit_signs is None else transit_signs.get(event.date)
-
-
 def _build_candidate(
     context: SiderealContext,
     birth_dt: datetime,
@@ -292,19 +357,17 @@ def score_candidate(
     events: Sequence[RectificationEventInput],
     *,
     birth_dt: datetime,
-    transit_signs: Mapping[date, Mapping[PlanetName, ZodiacSign]] | None = None,
+    transit_signs: Mapping[datetime, Mapping[PlanetName, ZodiacSign]] | None = None,
 ) -> RectificationCandidate:
     """Score every event against one candidate chart into a de-correlated candidate.
 
     ``birth_dt`` supplies the candidate's wall-clock ``representative_time_local``
     (rendered ``HH:MM``); pass it in the zone you want shown. ``transit_signs`` is
-    the orchestrator's per-date precompute (``compute_transit_signs``); when absent
-    each event computes its own signs.
+    the orchestrator's per-instant precompute (``compute_transit_signs``, keyed by
+    ``datetime``); when absent each event computes its own signs on demand.
     """
     evidences = [
-        extract_event_signals(
-            context, event, event_index=index, transit_signs=_signs_for(event, transit_signs)
-        )
+        extract_event_signals(context, event, event_index=index, transit_signs=transit_signs)
         for index, event in enumerate(events)
     ]
     return _build_candidate(context, birth_dt, _decorrelated_total(evidences), evidences)

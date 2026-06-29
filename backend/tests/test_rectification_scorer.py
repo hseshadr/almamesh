@@ -14,7 +14,7 @@ The fixture is a SYNTHETIC Bengaluru cusp native — never the owner's real data
 
 from __future__ import annotations
 
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 
 import pytest
 
@@ -22,6 +22,7 @@ from almamesh.calculations import calculate_sidereal_context
 from almamesh.constants.astrology import EventType, PlanetName, ZodiacSign
 from almamesh.rectification.houses import category_houses
 from almamesh.rectification.models import (
+    EventDatePrecision,
     EventEvidence,
     RectificationBand,
     RectificationCandidate,
@@ -38,6 +39,7 @@ from almamesh.rectification.scorer import (
     _active_lords_at,
     _decorrelated_total,
     _event_instant,
+    _event_instants,
     _transit_houses,
     compute_transit_signs,
     extract_event_signals,
@@ -352,8 +354,9 @@ def test_precomputed_transit_signs_match_internal_path(ctx_a: SiderealContext) -
     # Given a date where a slow graha transits candidate A's 7th house
     when = date(2023, 2, 1)
     signs = compute_transit_signs([_marriage(when)])
-    # When scored via the orchestrator's PRECOMPUTED signs vs the internal fallback
-    ev_precomp = extract_event_signals(ctx_a, _marriage(when), transit_signs=signs[when])
+    # When scored via the orchestrator's PRECOMPUTED signs (whole per-instant map)
+    # vs the internal fallback — results must be signal-for-signal identical
+    ev_precomp = extract_event_signals(ctx_a, _marriage(when), transit_signs=signs)
     ev_fallback = extract_event_signals(ctx_a, _marriage(when))
     # Then the two paths are identical, signal-for-signal
     assert ev_precomp.signals == ev_fallback.signals
@@ -404,3 +407,142 @@ def test_fast_graha_transit_is_ignored_by_transit_houses(ctx_a: SiderealContext)
         "Fast graha (Sun in Scorpio) must not contribute a slow_transit house; "
         f"got {houses_wide!r}, expected {houses_slow!r}"
     )
+
+
+# ---------------------------------------------------------------------------
+# Task 2: _event_instants — deterministic per-precision instant grid
+# ---------------------------------------------------------------------------
+
+
+def test_event_instants_exact_is_single_noon_instant() -> None:
+    d = date(2005, 6, 15)
+    instants = _event_instants(d, EventDatePrecision.EXACT)
+    assert instants == (_event_instant(d),)
+
+
+def test_event_instants_counts_and_span() -> None:
+    d = date(2005, 6, 15)
+    assert len(_event_instants(d, EventDatePrecision.MONTH)) == 3
+    year = _event_instants(d, EventDatePrecision.YEAR)
+    assert len(year) == 13
+    assert all(t.tzinfo == UTC and t.hour == 12 for t in year)
+    # inclusive span = ±182 days
+    assert year[0].date() == d - timedelta(days=182)
+    assert year[-1].date() == d + timedelta(days=182)
+    assert len(_event_instants(d, EventDatePrecision.APPROX)) == 25
+
+
+def test_event_instants_are_sorted_and_deterministic() -> None:
+    d = date(2010, 1, 1)
+    a = _event_instants(d, EventDatePrecision.APPROX)
+    assert list(a) == sorted(a)
+    assert a == _event_instants(d, EventDatePrecision.APPROX)  # pure
+
+
+# ---------------------------------------------------------------------------
+# Task 3: compute_transit_signs — per-instant, window-aware, skips APPROX
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="module")
+def rect_astronomy():  # type: ignore[return]
+    from almamesh.rectification.candidates import make_astronomy
+
+    return make_astronomy()
+
+
+def test_compute_transit_signs_keyed_by_instant_covers_window(
+    rect_astronomy: object,
+) -> None:
+    # Given a MONTH-precision event (3 instants in its window)
+    ev = RectificationEventInput(
+        date=date(2005, 6, 15),
+        category=EventType.MARRIAGE,
+        precision=EventDatePrecision.MONTH,
+    )
+    signs = compute_transit_signs([ev], astronomy=rect_astronomy)  # type: ignore[arg-type]
+    # Then the result is keyed by datetime and covers every window instant
+    for instant in _event_instants(ev.date, EventDatePrecision.MONTH):
+        assert instant in signs, f"missing instant {instant} in transit-signs map"
+    assert len(signs) == len(_event_instants(ev.date, EventDatePrecision.MONTH))
+
+
+def test_compute_transit_signs_skips_approx_events(
+    rect_astronomy: object,
+) -> None:
+    # APPROX events contribute zero instants — transit signal is zeroed downstream
+    ev = RectificationEventInput(
+        date=date(2005, 6, 15),
+        category=EventType.MARRIAGE,
+        precision=EventDatePrecision.APPROX,
+    )
+    assert compute_transit_signs([ev], astronomy=rect_astronomy) == {}  # type: ignore[arg-type]
+
+
+# ---------------------------------------------------------------------------
+# Task 4: precision-aware marginalization in extract_event_signals
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="module")
+def rect_context(ctx_a: SiderealContext) -> SiderealContext:
+    """Module-scoped context for Task-4 back-compat tests — delegates to ctx_a.
+
+    Reuses the same _BIRTH_A / _LAT / _LON / _REF synthetic native so the
+    back-compat assertion is anchored to an already-trusted fixture.
+    """
+    return ctx_a
+
+
+@pytest.fixture(scope="module")
+def rect_signs_exact() -> dict:  # type: ignore[type-arg]
+    """Transit-signs map for the EXACT back-compat probe (date 2005-06-15).
+
+    Extra string sentinel keys carry the pre-Task-4 probed values so the
+    back-compat test is self-contained.  Datetime lookups inside
+    ``extract_event_signals`` never match string keys, so they are invisible
+    to the production code path.
+
+    Probed from the pre-Task-4 single-noon-instant code:
+        ctx_a (Leo rising, _BIRTH_A), ev date=2005-06-15, category=MARRIAGE
+        → contribution=1.0, signals={'dasha_lord_in_h7'}
+    """
+    ev = RectificationEventInput(date=date(2005, 6, 15), category=EventType.MARRIAGE)
+    signs = compute_transit_signs([ev])  # single noon-UTC instant for EXACT
+    return {
+        **signs,
+        "__legacy_contribution__": 1.0,
+        "__legacy_signals__": {"dasha_lord_in_h7"},
+    }
+
+
+def test_exact_precision_matches_legacy_single_instant(
+    rect_context: SiderealContext,
+    rect_signs_exact: dict,  # type: ignore[type-arg]
+) -> None:
+    """EXACT-precision marginalization is byte-identical to the pre-Task-4 single-noon path.
+
+    For n=1 window, mean-over-1-instant == the single value, so the new
+    marginalization must reproduce the legacy contribution and signals exactly.
+    """
+    ev = RectificationEventInput(date=date(2005, 6, 15), category=EventType.MARRIAGE)
+    ev_default = extract_event_signals(rect_context, ev, transit_signs=rect_signs_exact)
+    assert ev_default.contribution == rect_signs_exact["__legacy_contribution__"]
+    assert set(ev_default.signals) == rect_signs_exact["__legacy_signals__"]
+
+
+def test_approx_zeros_transit_contribution(rect_context: SiderealContext) -> None:
+    """APPROX events must never emit slow_transit signals, even when transit signs would fire.
+
+    2023-02-01 is chosen because Saturn transits ctx_a's 7th house on that date
+    (confirmed by ``test_slow_transit_signal_matches_gochara``).  Before Task-4
+    the code falls back to ``_fallback_signs`` for APPROX with an empty map and
+    would fire 'slow_transit_h7'; after Task-4 APPROX hard-zeroes transit.
+    """
+    ev = RectificationEventInput(
+        date=date(2023, 2, 1),
+        category=EventType.MARRIAGE,
+        precision=EventDatePrecision.APPROX,
+    )
+    evidence = extract_event_signals(rect_context, ev, transit_signs={})
+    assert all(not s.startswith("slow_transit") for s in evidence.signals)

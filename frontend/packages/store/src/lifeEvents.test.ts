@@ -5,6 +5,7 @@ import {
   isStructuredLifeEvent,
   lifeEventsStoreCreator,
   migrateLifeEventsPersistedState,
+  LIFE_EVENTS_PERSIST_VERSION,
   type LifeEvent,
   type LifeEventsStore,
 } from './lifeEvents';
@@ -99,31 +100,33 @@ describe('migrateLifeEventsPersistedState (defensive hydration)', () => {
     expect(event.category).toBeUndefined();
   });
 
-  it('v2 blobs (fromVersion >= 2) pass through without re-migration (event with note)', () => {
-    const v2event: LifeEvent = {
+  it('v3 blobs (fromVersion >= 3) pass through without re-migration (event with note)', () => {
+    const v3event: LifeEvent = {
       id: 'e3',
       note: 'Already structured',
       date: '2022-01-01',
       category: 'relocation',
+      precision: 'exact',
       createdAt: '2022-01-01T00:00:00.000Z',
     };
-    const blob = { eventsByProfile: { p1: [v2event] } };
-    const result = migrateLifeEventsPersistedState(blob, 2);
-    expect(result.eventsByProfile['p1']?.[0]).toEqual(v2event);
+    const blob = { eventsByProfile: { p1: [v3event] } };
+    const result = migrateLifeEventsPersistedState(blob, 3);
+    expect(result.eventsByProfile['p1']?.[0]).toEqual(v3event);
   });
 
-  it('v2 clean structured event (no note, no needsStructuring) passes through unchanged when fromVersion >= 2', () => {
+  it('v3 clean structured event passes through unchanged when fromVersion >= 3', () => {
     // Guards against regression where the migration would wrongly demote a
-    // fully-structured v2 event that has neither `note` nor `needsStructuring`.
-    const cleanV2: LifeEvent = {
+    // fully-structured v3 event that has neither `note` nor `needsStructuring`.
+    const cleanV3: LifeEvent = {
       id: 'e5',
       date: '2022-06-15',
       category: 'marriage',
+      precision: 'exact',
       createdAt: '2022-06-15T10:00:00.000Z',
     };
-    const blob = { eventsByProfile: { p1: [cleanV2] } };
-    const result = migrateLifeEventsPersistedState(blob, 2);
-    expect(result.eventsByProfile['p1']?.[0]).toEqual(cleanV2);
+    const blob = { eventsByProfile: { p1: [cleanV3] } };
+    const result = migrateLifeEventsPersistedState(blob, 3);
+    expect(result.eventsByProfile['p1']?.[0]).toEqual(cleanV3);
   });
 });
 
@@ -287,5 +290,49 @@ describe('removeEvent', () => {
   it('is a no-op for an unknown profileId', () => {
     store.getState().removeEvent('other-profile', 'any-id');
     expect(store.getState().getEvents('other-profile')).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// precision (v3) migration
+// ---------------------------------------------------------------------------
+
+describe('precision (v3) migration', () => {
+  it('LIFE_EVENTS_PERSIST_VERSION is 3', () => {
+    expect(LIFE_EVENTS_PERSIST_VERSION).toBe(3);
+  });
+
+  it('v2→v3 backfills precision="exact" on existing structured events', () => {
+    const v2 = { eventsByProfile: { p1: [
+      { id: 'a', date: '2005-06-01', category: 'marriage', createdAt: '2024-01-01T00:00:00Z' },
+    ] } };
+    const out = migrateLifeEventsPersistedState(v2, 2);
+    expect(out.eventsByProfile.p1[0].precision).toBe('exact');
+    expect(out.eventsByProfile.p1[0].date).toBe('2005-06-01'); // untouched
+  });
+
+  it('v1→v2 path still promotes legacy events to drafts', () => {
+    const v1 = { eventsByProfile: { p1: [{ id: 'a', description: 'got married', createdAt: '2024-01-01T00:00:00Z' }] } };
+    const out = migrateLifeEventsPersistedState(v1, 1);
+    expect(out.eventsByProfile.p1[0].needsStructuring).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// editEvent precision patch
+// ---------------------------------------------------------------------------
+
+describe('editEvent precision', () => {
+  let store: ReturnType<typeof newStore>;
+
+  beforeEach(() => {
+    store = newStore();
+  });
+
+  it('patches precision', () => {
+    store.getState().addEvent('p1', { description: 'x' });
+    const id = store.getState().getEvents('p1')[0].id;
+    store.getState().editEvent('p1', id, { precision: 'year' });
+    expect(store.getState().getEvents('p1')[0].precision).toBe('year');
   });
 });

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 
 from almamesh.calculations import SkyfieldAstronomy, calculate_sidereal_context
 from almamesh.constants.astrology import PlanetName, ZodiacSign
@@ -14,6 +14,7 @@ from almamesh.rectification.candidates import (
     window_candidate_times,
 )
 from almamesh.rectification.models import (
+    EventDatePrecision,
     RectificationBand,
     RectificationCandidate,
     RectificationEventInput,
@@ -29,7 +30,7 @@ def _score_all_candidates(
     longitude: float,
     events: Sequence[RectificationEventInput],
     utc_offset_minutes: int,
-    transit_signs: Mapping[date, Mapping[PlanetName, ZodiacSign]],
+    transit_signs: Mapping[datetime, Mapping[PlanetName, ZodiacSign]],
     reference_date: datetime,
     astronomy: SkyfieldAstronomy | None = None,
 ) -> list[RectificationCandidate]:
@@ -165,5 +166,6 @@ def compute_rectification_result(
 
 __all__ = [
     "compute_rectification_result",
+    "EventDatePrecision",
     "RectificationBand",
 ]

@@ -17,6 +17,8 @@ Cusp case 2 (``near_tie``): no events → NEAR_TIE forced.
 Window case 1 (``main``): six diverse events → top ranked sign + honest band.
 Window case 2 (``near_tie``): no events → NEAR_TIE forced.
 Window case 3 (``discriminating``): crafted events → band=leans, top=Virgo.
+Window case 4 (``precision``): Tokyo native, mixed YEAR/APPROX-precision events →
+    engine applies widened transit windows and confirms output is deterministic.
 
 Regenerate golden fixtures (ONLY when the orchestrator intentionally changes):
     cd backend && uv run python -m tests.test_rectification_golden
@@ -31,6 +33,7 @@ from pathlib import Path
 from almamesh.constants.astrology import EventType
 from almamesh.rectification import compute_rectification_result
 from almamesh.rectification.models import (
+    EventDatePrecision,
     RectificationBand,
     RectificationEventInput,
     RectificationMode,
@@ -89,6 +92,23 @@ _WIN_EVENTS_DISC: list[RectificationEventInput] = [
     RectificationEventInput(date=date(2003, 5, 12), category=EventType.MARRIAGE),
     RectificationEventInput(date=date(2018, 2, 28), category=EventType.CHILDBIRTH),
     RectificationEventInput(date=date(2008, 11, 10), category=EventType.RELOCATION),
+]
+
+# ── Precision scenario: Tokyo native, year/approx precision events ────────────
+# Exercises the widened transit-window path introduced in Task 2-4.  Two events:
+# one with YEAR precision (engine widens transit search to ±6 months) and one
+# with APPROX precision (engine widens to ±18 months).  Determinism is the gate.
+_WIN_PRECISION_EVENTS: list[RectificationEventInput] = [
+    RectificationEventInput(
+        date=date(2010, 1, 1),
+        category=EventType.RELOCATION,
+        precision=EventDatePrecision.YEAR,
+    ),
+    RectificationEventInput(
+        date=date(2012, 1, 1),
+        category=EventType.MARRIAGE,
+        precision=EventDatePrecision.APPROX,
+    ),
 ]
 
 # ── Near-tie cases: zero events → forced NEAR_TIE ─────────────────────────────
@@ -217,6 +237,20 @@ def test_window_discriminating_leans() -> None:
     assert result["candidates"][0]["ascendant_sign"] == "Virgo"
 
 
+def test_window_precision_golden() -> None:
+    """Window mode with YEAR/APPROX-precision events matches the committed golden.
+
+    Confirms that widened transit windows (Tasks 1-4 precision path) produce
+    byte-identical output on repeat invocations — the core determinism gate for
+    imprecise-date event inputs.
+    """
+    golden = _load_window_golden()
+    result = _run_window(_WIN_PRECISION_EVENTS)
+    assert result == golden["precision"]
+    assert isinstance(result, dict)
+    assert result["mode"] == RectificationMode.WINDOW.value
+
+
 def _generate_golden() -> None:
     """Generate and write both committed goldens (run as ``__main__``)."""
     golden = {
@@ -230,6 +264,7 @@ def _generate_golden() -> None:
         "discriminating": _run_discriminating(_WIN_EVENTS_DISC),
         "main": _run_window(_WIN_EVENTS_MAIN),
         "near_tie": _run_window(_EVENTS_EMPTY),
+        "precision": _run_window(_WIN_PRECISION_EVENTS),
     }
     WINDOW_GOLDEN_PATH.write_text(json.dumps(window_golden, indent=2, sort_keys=True) + "\n")
     print(f"Wrote {WINDOW_GOLDEN_PATH} ({WINDOW_GOLDEN_PATH.stat().st_size} bytes)")

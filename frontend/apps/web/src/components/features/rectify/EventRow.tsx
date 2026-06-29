@@ -11,7 +11,7 @@
 import type { ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { LifeEvent } from '@almamesh/store';
-import type { LifeEventCategory } from '@almamesh/shared-types';
+import type { EventDatePrecision, LifeEventCategory } from '@almamesh/shared-types';
 import { LIFE_EVENT_CATEGORIES } from '@almamesh/shared-types';
 
 export interface EventRowProps {
@@ -19,6 +19,7 @@ export interface EventRowProps {
   readonly onDateChange: (date: string) => void;
   readonly onCategoryChange: (category: LifeEventCategory | undefined) => void;
   readonly onNoteChange: (note: string) => void;
+  readonly onPrecisionChange: (precision: EventDatePrecision) => void;
   readonly onDelete: () => void;
 }
 
@@ -27,6 +28,7 @@ export function EventRow({
   onDateChange,
   onCategoryChange,
   onNoteChange,
+  onPrecisionChange,
   onDelete,
 }: EventRowProps): ReactElement {
   const { t } = useTranslation('rectify');
@@ -38,11 +40,11 @@ export function EventRow({
 
   return (
     <div
-      className="flex flex-wrap items-start gap-3 rounded-lg border border-border-subtle bg-surface-secondary p-3"
+      className="grid grid-cols-1 sm:grid-cols-[8rem_minmax(0,1fr)_8rem_minmax(0,1.5fr)_auto] sm:items-end gap-3 rounded-lg border border-border-subtle bg-surface-secondary p-3"
       data-testid="event-row"
     >
       {/* Date */}
-      <div className="flex min-w-[10rem] flex-col gap-1">
+      <div className="flex flex-col gap-1">
         <label
           htmlFor={`date-${event.id}`}
           className="text-xs font-medium uppercase tracking-wider text-text-tertiary"
@@ -60,7 +62,7 @@ export function EventRow({
       </div>
 
       {/* Category */}
-      <div className="flex min-w-[12rem] flex-1 flex-col gap-1">
+      <div className="flex flex-col gap-1">
         <label
           htmlFor={`category-${event.id}`}
           className="text-xs font-medium uppercase tracking-wider text-text-tertiary"
@@ -83,8 +85,30 @@ export function EventRow({
         </select>
       </div>
 
-      {/* Note */}
-      <div className="flex min-w-[12rem] flex-1 flex-col gap-1">
+      {/* Precision — fixed-width column, sits between Category and Note */}
+      <div className="flex flex-col gap-1">
+        <label
+          htmlFor={`precision-${event.id}`}
+          className="text-xs font-medium uppercase tracking-wider text-text-tertiary"
+        >
+          {t('entry.precision_label')}
+        </label>
+        <select
+          id={`precision-${event.id}`}
+          value={event.precision ?? 'exact'}
+          onChange={(e) => onPrecisionChange(e.target.value as EventDatePrecision)}
+          aria-label={t('entry.precision_label')}
+          className="rounded border border-border-subtle bg-surface-primary px-2 py-1 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-accent-primary"
+        >
+          <option value="exact">{t('entry.precision_exact')}</option>
+          <option value="month">{t('entry.precision_month')}</option>
+          <option value="year">{t('entry.precision_year')}</option>
+          <option value="approx">{t('entry.precision_approx')}</option>
+        </select>
+      </div>
+
+      {/* Note — flexible column, takes remaining width */}
+      <div className="flex flex-col gap-1">
         <label
           htmlFor={`note-${event.id}`}
           className="text-xs font-medium uppercase tracking-wider text-text-tertiary"
@@ -102,8 +126,8 @@ export function EventRow({
         />
       </div>
 
-      {/* Delete */}
-      <div className="flex items-end pb-1">
+      {/* Delete — auto-width, bottom-aligned via sm:items-end on the grid */}
+      <div className="flex items-end">
         <button
           type="button"
           onClick={onDelete}

@@ -10,7 +10,8 @@
     "all_periods": "All periods",
     "pada": "pada {{pada}}",
     "unavailable": "Not available",
-    "rectified": "Birth time rectified: entered {{entered}} → using {{rectified}} ({{sign}}{{minutes}} min)"
+    "rectified": "Birth time rectified: entered {{entered}} → using {{rectified}} ({{sign}}{{minutes}} min)",
+    "refine_cta": "Remembered a life event? Refine your birth time"
   },
   "atlas": {
     "heading": "Life Atlas",

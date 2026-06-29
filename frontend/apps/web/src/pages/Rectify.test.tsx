@@ -5,7 +5,12 @@ import React from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
-import { useChartLibraryStore, useProfilesStore, appEvents } from '@almamesh/store';
+import {
+  useChartLibraryStore,
+  useLifeEventsStore,
+  useProfilesStore,
+  appEvents,
+} from '@almamesh/store';
 import { useRectification } from '../hooks/useRectification';
 import { RectifyPage } from '../pages/Rectify';
 
@@ -240,6 +245,7 @@ describe('RectifyPage', () => {
   afterEach(() => {
     vi.restoreAllMocks();
     useChartLibraryStore.setState({ charts: {} });
+    useLifeEventsStore.setState({ eventsByProfile: {} });
   });
 
   /** Navigate from fit step to results by updating the mock and rerendering. */
@@ -268,6 +274,33 @@ describe('RectifyPage', () => {
     expect(await screen.findByText('Refine Your Birth Time')).toBeTruthy();
     expect(screen.getByText('Narrow your rising sign')).toBeTruthy();
     expect(screen.getByTestId('intro-start-btn')).toBeTruthy();
+  });
+
+  it('first-time user with no events starts on the intro step', async () => {
+    // No events seeded — store default is empty
+    renderRectify();
+    expect(await screen.findByTestId('intro-start-btn')).toBeTruthy();
+    expect(screen.queryByTestId('event-entry-step')).toBeNull();
+  });
+
+  it('returning user with existing structured events starts on the events step', async () => {
+    // Seed one structured event for the profile so the wizard skips the intro
+    useLifeEventsStore.setState({
+      eventsByProfile: {
+        [PROFILE_ID]: [
+          {
+            id: 'evt-1',
+            label: 'Got a job',
+            date: '2010-06-01',
+            category: 'career',
+            needsStructuring: false,
+          } as never,
+        ],
+      },
+    });
+    renderRectify();
+    expect(await screen.findByTestId('event-entry-step')).toBeTruthy();
+    expect(screen.queryByTestId('intro-start-btn')).toBeNull();
   });
 
   it('Start navigates to events step', async () => {

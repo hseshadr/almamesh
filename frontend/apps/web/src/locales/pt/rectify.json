@@ -20,15 +20,19 @@
   },
   "entry": {
     "title": "Seus eventos de vida",
-    "subtitle": "Adicione datas de eventos importantes. Quanto mais específico, melhor.",
+    "subtitle": "Revisitá-los pode ser difícil, mas cada evento datado ajuda a precisar seu horário de nascimento, o que refina as partes mais sensíveis ao tempo do seu gráfico. Quanto mais específica a data, melhor.",
     "add": "Adicionar evento",
     "date_label": "Data",
     "category_label": "Categoria",
     "category_placeholder": "Selecione uma categoria",
     "note_label": "Observação (opcional)",
     "delete": "Excluir",
-    "continue": "Continuar",
-    "min_events_hint": "Adicione pelo menos um evento com data e categoria para continuar."
+    "precision_label": "Precisão da data",
+    "precision_exact": "Data exata",
+    "precision_month": "Apenas o mês",
+    "precision_year": "Apenas o ano",
+    "precision_approx": "Aproximada",
+    "manual_toggle": "Inserir eventos manualmente"
   },
   "band": {
     "near_tie": "Empate próximo",
@@ -83,14 +87,22 @@
     "results": "Resultados"
   },
   "accelerator": {
-    "title": "Cole Sua História",
-    "warning": "O que você escrever aqui — incluindo nomes ou lugares — é enviado para o seu endpoint de IA configurado. Apenas as datas e tipos de evento extraídos ficam no seu dispositivo.",
-    "textarea_placeholder": "Descreva eventos importantes da sua vida em texto simples — datas e o que aconteceu…",
-    "submit": "Extrair Eventos",
-    "gated_note": "Configure um endpoint de IA na nuvem nas Configurações para usar este recurso.",
-    "empty_result": "Não foi possível extrair eventos — adicione-os manualmente com o botão abaixo.",
-    "error": "Algo deu errado — a chamada à IA falhou. Verifique sua conexão ou configurações do endpoint e tente novamente.",
-    "loading": "Extraindo eventos…"
+    "warning": "O que você escrever aqui — incluindo nomes ou lugares — é enviado para o seu endpoint de IA configurado. Apenas as datas e tipos de evento extraídos ficam no seu dispositivo."
+  },
+  "chat": {
+    "opening": "Olá! Vou perguntar sobre um evento de vida por vez — um casamento, uma mudança, uma mudança de carreira. Comece com qualquer evento que você se lembre bem e me diga aproximadamente quando aconteceu.",
+    "gated_note": "O chat de IA requer um endpoint na nuvem. Você ainda pode adicionar eventos manualmente abaixo.",
+    "input_placeholder": "Compartilhe um evento…",
+    "input_label": "Sua mensagem",
+    "send": "Enviar",
+    "transcript_label": "Conversa",
+    "error": "Não consegui contatar a IA agora — tente novamente ou adicione os eventos manualmente abaixo."
+  },
+  "tray": {
+    "review_one": "{{count}} evento coletado · revisar",
+    "review_other": "{{count}} eventos coletados · revisar",
+    "honesty": "O motor classifica os signos ascendentes candidatos e atribui uma faixa de confiança — não um veredicto definitivo. Todo o cálculo é executado no seu dispositivo; nenhum dado de nascimento o deixa.",
+    "cta": "Encontrar meu signo ascendente"
   },
   "back": "Voltar"
 }

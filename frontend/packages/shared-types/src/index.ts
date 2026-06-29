@@ -1310,10 +1310,14 @@ export type RectificationMode = 'cusp' | 'window';
 // Confidence band for a rectification result (how near the tie between candidates)
 export type RectificationBand = 'near_tie' | 'leans' | 'consistent';
 
+// How precisely the user knows an event's date (drives engine weighting).
+export type EventDatePrecision = 'exact' | 'month' | 'year' | 'approx';
+
 /** Life event input for rectification analysis. */
 export interface RectificationEventInput {
   readonly date: string;
   readonly category: LifeEventCategory;
+  readonly precision: EventDatePrecision;
 }
 
 /** Supporting evidence for a life event in the rectification result. */

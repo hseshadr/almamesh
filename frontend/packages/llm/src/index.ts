@@ -75,6 +75,12 @@ export { ANTI_SCAM_RELATIONSHIP_FENCE, RECTIFICATION_FENCE } from "./prompt";
 export { structureLifeEvents } from "./structure-life-events";
 
 export {
+  buildInterviewMessages,
+  streamRectificationInterview,
+  gatherEventsFromTurn,
+} from "./rectification-interview";
+
+export {
   isLocalEndpoint,
   ensurePrivacy,
   resolveProviderConfig,

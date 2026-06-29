@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import type { LifeEventCategory } from './index';
+import { describe, it, expect, expectTypeOf } from 'vitest';
+import type { LifeEventCategory, EventDatePrecision, RectificationEventInput } from './index';
 import { LIFE_EVENT_CATEGORIES } from './index';
 
 describe('rectification types', () => {
@@ -33,5 +33,15 @@ describe('rectification types', () => {
     expectedCategories.forEach((category) => {
       expect(LIFE_EVENT_CATEGORIES).toContain(category);
     });
+  });
+});
+
+describe('EventDatePrecision contract', () => {
+  it('is the four-member union', () => {
+    expectTypeOf<EventDatePrecision>().toEqualTypeOf<'exact' | 'month' | 'year' | 'approx'>();
+  });
+  it('RectificationEventInput carries precision', () => {
+    const ev: RectificationEventInput = { date: '2005-06-01', category: 'marriage', precision: 'year' };
+    expectTypeOf(ev.precision).toEqualTypeOf<EventDatePrecision>();
   });
 });

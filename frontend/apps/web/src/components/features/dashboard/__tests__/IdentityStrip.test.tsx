@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { useLanguageStore } from '@almamesh/store';
+import { useLanguageStore, useProfilesStore } from '@almamesh/store';
 import type { VimshottariDashaData } from '@almamesh/shared-types';
 
 import '../../../../i18n/config';
@@ -150,6 +150,24 @@ describe('IdentityStrip', () => {
   it('renders the actions slot', () => {
     renderStrip({ actions: <button type="button">Mode</button> });
     expect(screen.getByRole('button', { name: 'Mode' })).toBeTruthy();
+  });
+});
+
+describe('IdentityStrip — unconditional refine-birth-time CTA', () => {
+  beforeEach(() => {
+    useLanguageStore.setState({ language: 'en' });
+    useProfilesStore.setState({ activeProfileId: 'p1' });
+  });
+
+  afterEach(() => {
+    useProfilesStore.setState({ activeProfileId: null });
+  });
+
+  it('shows the always-available refine-birth-time CTA even when not near a cusp', () => {
+    // mid-sign lagna: 15° into Aquarius — BirthTimeSensitivity renders null (no cusp callout)
+    renderStrip({ lagna: { sign: 'Aquarius', longitude: 315.0, nakshatra: 'Shatabhisha' } });
+    const link = screen.getByRole('link', { name: /refine your birth time/i });
+    expect(link.getAttribute('href')).toBe('/rectify/p1');
   });
 });
 

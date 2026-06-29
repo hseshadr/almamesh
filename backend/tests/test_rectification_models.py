@@ -143,3 +143,28 @@ def test_rectification_event_input_json_round_trip() -> None:
 def test_models_are_frozen() -> None:
     with pytest.raises((TypeError, Exception)):
         _RESULT.mode = RectificationMode.WINDOW  # type: ignore[misc]
+
+
+# ---------------------------------------------------------------------------
+# EventDatePrecision enum + precision field (Task 1)
+# ---------------------------------------------------------------------------
+
+
+def test_event_precision_defaults_to_exact() -> None:
+    from almamesh.rectification.models import EventDatePrecision
+
+    ev = RectificationEventInput(date=datetime.date(2005, 6, 1), category=EventType.MARRIAGE)
+    assert ev.precision is EventDatePrecision.EXACT
+
+
+def test_event_precision_is_settable_and_frozen() -> None:
+    from almamesh.rectification.models import EventDatePrecision
+
+    ev = RectificationEventInput(
+        date=datetime.date(2005, 6, 1),
+        category=EventType.MARRIAGE,
+        precision=EventDatePrecision.YEAR,
+    )
+    assert ev.precision is EventDatePrecision.YEAR
+    with pytest.raises(Exception):
+        ev.precision = EventDatePrecision.EXACT  # type: ignore[misc]  # frozen

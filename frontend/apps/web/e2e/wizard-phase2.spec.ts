@@ -157,8 +157,15 @@ test.describe('Phase-2 Rectification Wizard', () => {
     await page.locator('[data-testid="intro-start-btn"]').click();
     await page.waitForTimeout(500);
 
+    // ── 6b. Open GatheredTray via manual toggle ────────────────────────────
+    // EventEntryStep now uses ConversationalAccelerator as the primary path.
+    // EventRows + the "Find my rising sign" CTA live inside GatheredTray,
+    // which is collapsed by default. Expand it via the manual toggle.
+    await page.locator('button').filter({ hasText: /enter events manually instead/i }).click();
+    await page.waitForTimeout(300);
+
     // ── 7. UNHAPPY PATH: 0 events → Continue disabled ─────────────────────
-    const continueBtn = page.locator('button').filter({ hasText: /continue/i });
+    const continueBtn = page.locator('button').filter({ hasText: /find my rising sign/i });
     await expect(continueBtn, 'Continue must be disabled with 0 structured events').toBeDisabled({
       timeout: 5_000,
     });
@@ -178,7 +185,8 @@ test.describe('Phase-2 Rectification Wizard', () => {
       const lastRow = page.locator('[data-testid="event-row"]').last();
       await lastRow.locator('input[type="date"]').fill(ev.date);
       await page.waitForTimeout(120);
-      await lastRow.locator('select').selectOption({ value: ev.category });
+      // EventRow has two <select>s (Category + Date precision); target Category by aria-label.
+      await lastRow.locator('select[aria-label="Category"]').selectOption({ value: ev.category });
       await page.waitForTimeout(120);
       await lastRow.locator('input[type="text"]').fill(ev.note);
       await page.waitForTimeout(120);
@@ -342,8 +350,12 @@ test.describe('Phase-2 Rectification Wizard', () => {
 
     // ── 15. UNHAPPY PATH 2: wizard re-navigable (no dead-end) ────────────
     await spaNav(page, `/rectify/${profileId}`);
+    // The wizard h1 title (t('wizard.title') = "Refine Your Birth Time") is present
+    // regardless of which step renders — it's the reliable "no dead-end / no crash"
+    // signal. (Return-aware wizard opens on the events step when events exist, so
+    // intro-step testid is absent; event-entry-step testid only exists in unit mocks.)
     await expect(
-      page.locator('[data-testid="intro-step"]'),
+      page.locator('h1').filter({ hasText: /refine your birth time/i }),
       'wizard must be re-navigable without crash',
     ).toBeVisible({ timeout: 8_000 });
 
@@ -515,6 +527,13 @@ test.describe('Phase-2 Rectification Wizard', () => {
     await page.locator('[data-testid="intro-start-btn"]').click();
     await page.waitForTimeout(500);
 
+    // ── 6b. Open GatheredTray via manual toggle ────────────────────────────
+    // EventEntryStep now uses ConversationalAccelerator as the primary path.
+    // EventRows + the "Find my rising sign" CTA live inside GatheredTray,
+    // which is collapsed by default. Expand it via the manual toggle.
+    await page.locator('button').filter({ hasText: /enter events manually instead/i }).click();
+    await page.waitForTimeout(300);
+
     // ── 7. Add ≥3 structured events ───────────────────────────────────────
     const windowEvents = [
       { date: '2008-07-10', category: 'higher_studies', note: 'Started college' },
@@ -529,7 +548,8 @@ test.describe('Phase-2 Rectification Wizard', () => {
       const lastRow = page.locator('[data-testid="event-row"]').last();
       await lastRow.locator('input[type="date"]').fill(ev.date);
       await page.waitForTimeout(120);
-      await lastRow.locator('select').selectOption({ value: ev.category });
+      // EventRow has two <select>s (Category + Date precision); target Category by aria-label.
+      await lastRow.locator('select[aria-label="Category"]').selectOption({ value: ev.category });
       await page.waitForTimeout(120);
       await lastRow.locator('input[type="text"]').fill(ev.note);
       await page.waitForTimeout(120);
@@ -537,7 +557,7 @@ test.describe('Phase-2 Rectification Wizard', () => {
     }
 
     await page.screenshot({ path: `${SCRATCHPAD}/window-04-events.png`, fullPage: true });
-    const wContinueBtn = page.locator('button').filter({ hasText: /continue/i });
+    const wContinueBtn = page.locator('button').filter({ hasText: /find my rising sign/i });
     await expect(wContinueBtn, 'Continue must be enabled after ≥1 event').toBeEnabled({
       timeout: 5_000,
     });

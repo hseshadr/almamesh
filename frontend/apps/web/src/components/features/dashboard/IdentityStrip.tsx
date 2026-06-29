@@ -383,6 +383,7 @@ export function IdentityStrip({
   actions,
 }: IdentityStripProps): ReactElement {
   const { t } = useTranslation('life');
+  const profileId = useProfilesStore((s) => s.activeProfileId);
   return (
     <section className="border-b border-ui-border pb-6" data-testid="identity-strip">
       <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
@@ -402,6 +403,17 @@ export function IdentityStrip({
       </dl>
 
       <RectificationNote rectification={rectification} />
+
+      {profileId != null && (
+        <p className="mt-2 text-xs text-text-muted">
+          <Link
+            to={`/rectify/${profileId}`}
+            className="font-medium text-text-secondary underline underline-offset-2 hover:text-text-primary"
+          >
+            {t('identity.refine_cta')}
+          </Link>
+        </p>
+      )}
 
       <BirthTimeSensitivity lagna={lagna} />
     </section>
