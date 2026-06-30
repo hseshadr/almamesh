@@ -192,13 +192,35 @@ describe("gatherEventsFromTurn", () => {
     expect(result).toEqual([]);
   });
 
-  it("returns typed events (with precision) when structureLifeEvents succeeds", async () => {
+  it("returns typed events (with precision) and attaches the user's own text as each event's summary", async () => {
     const events = [
       { date: "2004-06-15", category: "marriage" as const, precision: "month" as const },
     ];
     mockStructure.mockResolvedValue({ status: "ok", events });
     const result = await gatherEventsFromTurn("I married in June 2004", HTTP_CFG);
-    expect(result).toEqual(events);
+    expect(result).toEqual([
+      { date: "2004-06-15", category: "marriage", precision: "month", summary: "I married in June 2004" },
+    ]);
+  });
+
+  it("attaches the SAME user text as summary to every event from a multi-event turn", async () => {
+    const events = [
+      { date: "2004-06-15", category: "marriage" as const, precision: "month" as const },
+      { date: "2008-03-01", category: "relocation" as const, precision: "year" as const },
+    ];
+    mockStructure.mockResolvedValue({ status: "ok", events });
+    const userText = "Married in June 2004, then moved cities in 2008";
+    const result = await gatherEventsFromTurn(userText, HTTP_CFG);
+    expect(result.map((e) => e.summary)).toEqual([userText, userText]);
+  });
+
+  it("trims surrounding whitespace from the attached summary", async () => {
+    mockStructure.mockResolvedValue({
+      status: "ok",
+      events: [{ date: "2004-06-15", category: "marriage", precision: "exact" }],
+    });
+    const result = await gatherEventsFromTurn("   I married in 2004  ", HTTP_CFG);
+    expect(result[0]?.summary).toBe("I married in 2004");
   });
 
   it("returns [] for status:'ok' with an empty events array", async () => {

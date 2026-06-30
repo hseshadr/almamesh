@@ -91,6 +91,13 @@ export async function* streamRectificationInterview(params: {
  *
  * Thin wrapper over `structureLifeEvents`. Returns `[]` on any failure
  * (network error, parse failure, or `status:'error'`) — never throws.
+ *
+ * Each extracted event is annotated with a `summary` set to the user's OWN turn
+ * text, so the gathered list is human-readable and events with the same
+ * date+category stay distinguishable. This adds ZERO new egress: `userText` was
+ * already supplied to this function (and already sent to the endpoint by
+ * `structureLifeEvents`); we only copy it into the returned rows. The
+ * `structureLifeEvents` output itself remains strictly PII-free.
  */
 export async function gatherEventsFromTurn(
   userText: string,
@@ -99,7 +106,11 @@ export async function gatherEventsFromTurn(
 ): Promise<RectificationEventInput[]> {
   try {
     const res = await structureLifeEvents(userText, config, language);
-    return res.status === "ok" ? res.events : [];
+    if (res.status !== "ok") {
+      return [];
+    }
+    const summary = userText.trim();
+    return summary ? res.events.map((e) => ({ ...e, summary })) : res.events;
   } catch {
     return [];
   }

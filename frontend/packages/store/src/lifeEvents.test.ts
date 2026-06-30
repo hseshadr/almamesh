@@ -100,7 +100,7 @@ describe('migrateLifeEventsPersistedState (defensive hydration)', () => {
     expect(event.category).toBeUndefined();
   });
 
-  it('v3 blobs (fromVersion >= 3) pass through without re-migration (event with note)', () => {
+  it('v3→v4: backfills summary from an existing note, preserving all other fields (no data loss)', () => {
     const v3event: LifeEvent = {
       id: 'e3',
       note: 'Already structured',
@@ -111,12 +111,17 @@ describe('migrateLifeEventsPersistedState (defensive hydration)', () => {
     };
     const blob = { eventsByProfile: { p1: [v3event] } };
     const result = migrateLifeEventsPersistedState(blob, 3);
-    expect(result.eventsByProfile['p1']?.[0]).toEqual(v3event);
+    const out = result.eventsByProfile['p1']?.[0] as LifeEvent;
+    // The human-readable summary is derived from the legacy note so the event
+    // becomes distinguishable at a glance.
+    expect(out.summary).toBe('Already structured');
+    // No data loss — every original field survives the upgrade.
+    expect(out).toMatchObject(v3event);
   });
 
-  it('v3 clean structured event passes through unchanged when fromVersion >= 3', () => {
+  it('v3 clean structured event (no note/description) gains no summary when fromVersion >= 3', () => {
     // Guards against regression where the migration would wrongly demote a
-    // fully-structured v3 event that has neither `note` nor `needsStructuring`.
+    // fully-structured v3 event, and confirms no spurious empty summary is added.
     const cleanV3: LifeEvent = {
       id: 'e5',
       date: '2022-06-15',
@@ -127,6 +132,7 @@ describe('migrateLifeEventsPersistedState (defensive hydration)', () => {
     const blob = { eventsByProfile: { p1: [cleanV3] } };
     const result = migrateLifeEventsPersistedState(blob, 3);
     expect(result.eventsByProfile['p1']?.[0]).toEqual(cleanV3);
+    expect(result.eventsByProfile['p1']?.[0].summary).toBeUndefined();
   });
 });
 
@@ -298,8 +304,8 @@ describe('removeEvent', () => {
 // ---------------------------------------------------------------------------
 
 describe('precision (v3) migration', () => {
-  it('LIFE_EVENTS_PERSIST_VERSION is 3', () => {
-    expect(LIFE_EVENTS_PERSIST_VERSION).toBe(3);
+  it('LIFE_EVENTS_PERSIST_VERSION is 4', () => {
+    expect(LIFE_EVENTS_PERSIST_VERSION).toBe(4);
   });
 
   it('v2→v3 backfills precision="exact" on existing structured events', () => {
@@ -334,5 +340,68 @@ describe('editEvent precision', () => {
     const id = store.getState().getEvents('p1')[0].id;
     store.getState().editEvent('p1', id, { precision: 'year' });
     expect(store.getState().getEvents('p1')[0].precision).toBe('year');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// summary (v4) — the human-readable "what happened" description
+// ---------------------------------------------------------------------------
+
+describe('summary (v4)', () => {
+  it('v3→v4 derives summary from a legacy description when note is absent', () => {
+    const legacy = {
+      id: 'e6',
+      description: 'Moved abroad for work',
+      date: '2019-09-01',
+      category: 'relocation',
+      precision: 'exact',
+      createdAt: '2019-09-01T00:00:00.000Z',
+    };
+    const out = migrateLifeEventsPersistedState({ eventsByProfile: { p1: [legacy] } }, 3);
+    expect(out.eventsByProfile.p1[0].summary).toBe('Moved abroad for work');
+  });
+
+  it('v2→v4 upgrade backfills precision AND a summary in one pass (cumulative chain)', () => {
+    const v2 = {
+      eventsByProfile: {
+        p1: [{ id: 'a', note: 'Big move', date: '2005-06-01', category: 'relocation', createdAt: '2024-01-01T00:00:00Z' }],
+      },
+    };
+    const out = migrateLifeEventsPersistedState(v2, 2);
+    expect(out.eventsByProfile.p1[0].precision).toBe('exact');
+    expect(out.eventsByProfile.p1[0].summary).toBe('Big move');
+    expect(out.eventsByProfile.p1[0].date).toBe('2005-06-01');
+  });
+
+  it('setEvents persists a summary', () => {
+    const store = newStore();
+    store.getState().setEvents('p', [
+      { description: 'marriage', date: '2020-01-01', summary: 'Married Priya in Pune' },
+    ]);
+    expect(store.getState().getEvents('p')[0].summary).toBe('Married Priya in Pune');
+  });
+
+  it('addEvent persists a summary (trimmed)', () => {
+    const store = newStore();
+    store.getState().addEvent('p', {
+      description: 'relocation',
+      date: '2021-01-01',
+      summary: '  Moved to Bangalore for a job  ',
+    });
+    expect(store.getState().getEvents('p')[0].summary).toBe('Moved to Bangalore for a job');
+  });
+
+  it('omits an empty/whitespace summary rather than storing a blank string', () => {
+    const store = newStore();
+    store.getState().addEvent('p', { description: 'x', date: '2020-01-01', summary: '   ' });
+    expect(store.getState().getEvents('p')[0].summary).toBeUndefined();
+  });
+
+  it('editEvent patches the summary field', () => {
+    const store = newStore();
+    store.getState().addEvent('p', { description: 'x', date: '2020-01-01', summary: 'old' });
+    const id = store.getState().getEvents('p')[0].id;
+    store.getState().editEvent('p', id, { summary: 'Moved to Pune' });
+    expect(store.getState().getEvents('p')[0].summary).toBe('Moved to Pune');
   });
 });

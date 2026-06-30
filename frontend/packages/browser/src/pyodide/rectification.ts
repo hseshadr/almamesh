@@ -42,10 +42,17 @@ export type RectificationMode = 'cusp' | 'window';
 /** Confidence band for the ranked result. */
 export type RectificationBand = 'near_tie' | 'leans' | 'consistent';
 
+/** How precisely the user knows an event's date (drives the engine's transit window). */
+export type EventDatePrecision = 'exact' | 'month' | 'year' | 'approx';
+
 /** One life event supplied to the rectification engine (camelCase, caller-side). */
 export interface RectificationEventInputWire {
   readonly date: string; // ISO date "YYYY-MM-DD"
   readonly category: LifeEventCategory;
+  // Optional on the wire: the Python glue defaults a missing value to "exact"
+  // (matching the engine's `RectificationEventInput.precision` default), so older
+  // callers stay byte-stable while precision-aware callers thread the real value.
+  readonly precision?: EventDatePrecision;
 }
 
 // ---------------------------------------------------------------------------

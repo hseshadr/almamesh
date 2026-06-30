@@ -21,7 +21,7 @@
  *  - `hasEnoughEvents`: false → prompt user to add a structured life event.
  */
 
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
@@ -154,6 +154,16 @@ function detectRectificationMode(
   return 'cusp';
 }
 
+/**
+ * How long to wait (ms) for a cold engine boot before we stop saying "warming
+ * up" and offer an explicit reset-and-reload. A first-time cold boot (sync the
+ * ~38 MB bundle + boot Pyodide + heavy compute) can legitimately take a minute
+ * or two, so this is intentionally generous — past it, something is likely
+ * wrong and the user should be given a recovery action rather than an endless
+ * spinner.
+ */
+const ENGINE_WARM_TIMEOUT_MS = 75_000;
+
 // ---------------------------------------------------------------------------
 // Public types
 // ---------------------------------------------------------------------------
@@ -168,6 +178,32 @@ export interface UseRectificationResult {
   readonly state: UseRectificationState;
   /** True when the Pyodide engine is booted and ready. */
   readonly engineReady: boolean;
+  /**
+   * The engine bootstrap failure message, if the engine failed to boot (from
+   * the runtime provider's `error`). Distinct from `state.error`, which is a
+   * rectification COMPUTE failure. Non-null here means the warming surface must
+   * offer a reset-and-reload, never a silent permanent spinner.
+   */
+  readonly engineError: string | null;
+  /**
+   * The current bootstrap stage (`'syncing' | 'reassembling' | 'booting-engine'
+   * | …`) for an honest "what's happening" sub-label while warming, or null.
+   */
+  readonly engineStage: string | null;
+  /**
+   * True when no stored chart with birth-location details could be found for
+   * this profile (e.g. a legacy chart missing `profile_id`). The wizard must
+   * show an explicit "we couldn't find your birth details" message instead of
+   * spinning forever.
+   */
+  readonly missingBirth: boolean;
+  /**
+   * True once the engine has been warming for longer than is reasonable
+   * (`ENGINE_WARM_TIMEOUT_MS`) without becoming ready — the cue to surface a
+   * reset-and-reload recovery action. Resets to false the moment the engine
+   * becomes ready.
+   */
+  readonly warmingTimedOut: boolean;
   /** True when the profile has ≥ 1 life event with both a date and a category. */
   readonly hasEnoughEvents: boolean;
   /**
@@ -196,10 +232,18 @@ export interface UseRectificationResult {
 export function useRectification(profileId: string): UseRectificationResult {
   const engineCtx = useOptionalChartEngine();
   const engine = engineCtx?.engine ?? null;
+  const engineError = engineCtx?.error?.message ?? null;
+  const engineStage = engineCtx?.stage?.kind ?? null;
+
+  // Latest engine context, mirrored into a ref so the one-shot mount effect
+  // (eager warm / recover) can read it without re-subscribing.
+  const engineCtxRef = useRef(engineCtx);
+  engineCtxRef.current = engineCtx;
 
   // Birth description from the chart library (reactive: re-derives if charts update).
   const charts = useChartLibraryStore((s) => s.charts);
   const birth = useMemo(() => birthDescForProfile(charts, profileId), [charts, profileId]);
+  const missingBirth = birth === null;
 
   // Mode auto-detection: derived from birth_time_confidence in the stored chart.
   const detectedMode = useMemo(
@@ -223,14 +267,49 @@ export function useRectification(profileId: string): UseRectificationResult {
   // Track the last mode so retry() can re-run with the same argument.
   const lastModeRef = useRef<RectificationMode | null>(null);
 
-  // Gate + cancel-on-unmount lifecycle.
+  // warmingTimedOut: true once the engine has been warming past the generous
+  // timeout without booting — the cue to offer reset-and-reload. The single
+  // serial Pyodide worker can take a minute or two on a cold first boot, so the
+  // wait is honest until this flips.
+  const [warmingTimedOut, setWarmingTimedOut] = useState(false);
+  useEffect(() => {
+    if (engine !== null) {
+      setWarmingTimedOut(false);
+      return;
+    }
+    const id = setTimeout(() => setWarmingTimedOut(true), ENGINE_WARM_TIMEOUT_MS);
+    return () => clearTimeout(id);
+  }, [engine]);
+
+  // Gate + cancel-on-unmount lifecycle + fresh-visit hygiene + eager warm.
   useEffect(() => {
     cancelledRef.current = false;
     useRectificationGate.getState().setActive(true);
+
+    // Fresh wizard ⇒ fresh computation. The rectification store is a global,
+    // transient singleton: a previous completed run leaves it `ready` with that
+    // run's result. Clear it on mount so a later visit (new profile / new
+    // events) recomputes instead of flashing the previous result.
+    useRectificationStore.getState().reset();
+
+    // Eagerly warm the engine the moment the wizard opens, so it is likely
+    // ready by the time the user finishes entering events — never wait for the
+    // Run click. A pre-existing failed boot is recovered in-app via reboot().
+    const ctx = engineCtxRef.current;
+    if (ctx !== null && ctx.engine === null) {
+      if (ctx.error !== null) {
+        void ctx.reboot().catch(() => {});
+      } else {
+        ctx.startBootstrap();
+      }
+    }
+
     return () => {
       cancelledRef.current = true;
       useRectificationGate.getState().setActive(false);
     };
+    // One-shot on mount: deps intentionally empty; engine context is read via a
+    // ref so this never re-subscribes.
   }, []);
 
   /**
@@ -264,8 +343,11 @@ export function useRectification(profileId: string): UseRectificationResult {
 
   const run = useCallback(
     async (mode: RectificationMode): Promise<void> => {
-      if (engine === null) return; // guard: engine not ready
+      // Record the requested mode FIRST — even if the engine is still warming —
+      // so a later retry() (after the engine recovers) re-runs with this mode
+      // rather than no-opping because it was never captured.
       lastModeRef.current = mode;
+      if (engine === null) return; // guard: engine not ready
       await executeRun(engine, mode);
     },
     [engine, executeRun],
@@ -276,7 +358,11 @@ export function useRectification(profileId: string): UseRectificationResult {
   }, []);
 
   const retry = useCallback(async (): Promise<void> => {
-    if (engineCtx === null || lastModeRef.current === null) return;
+    if (engineCtx === null) return;
+    // Fall back to the detected mode when the user never managed to trigger a
+    // run (engine errored before the Run button became live) — there is always
+    // a mode to recompute with, so recovery is never a dead-end.
+    const mode = lastModeRef.current ?? detectedMode;
     let freshEngine: RectificationRuntime;
     try {
       // reboot() resets the provider state to { engine: null, error: null }
@@ -287,12 +373,16 @@ export function useRectification(profileId: string): UseRectificationResult {
       return;
     }
     if (cancelledRef.current) return;
-    await executeRun(freshEngine, lastModeRef.current);
-  }, [engineCtx, executeRun]);
+    await executeRun(freshEngine, mode);
+  }, [engineCtx, executeRun, detectedMode]);
 
   return {
     state: { status, result, error: storeError },
     engineReady: engine !== null,
+    engineError,
+    engineStage,
+    missingBirth,
+    warmingTimedOut,
     hasEnoughEvents,
     detectedMode,
     run,

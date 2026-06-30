@@ -40,7 +40,10 @@ const LOAD_PACKAGES = [
 
 // Defines `_almamesh_generate_chart(birth_json)` once; the engine is the
 // unchanged package, called with an explicit reference_date for reproducibility.
-const PY_BOOTSTRAP = `
+//
+// Exported so the offline parity/precision integration gates can run the EXACT
+// same glue under Pyodide (rather than a drifting copy).
+export const PY_BOOTSTRAP = `
 import json
 from datetime import UTC, datetime
 from almamesh.calculations import calculate_sidereal_context
@@ -118,7 +121,11 @@ def _almamesh_compute_rectification(input_json):
     raw_ref = data.get("referenceDate")
     reference_date = datetime.fromisoformat(raw_ref) if raw_ref else datetime.now(UTC)
     events = [
-        RectificationEventInput(date=e["date"], category=e["category"])
+        # precision drives the approximate-date engine (exact|month|year|approx);
+        # default "exact" keeps older callers (no precision key) byte-stable.
+        RectificationEventInput(
+            date=e["date"], category=e["category"], precision=e.get("precision", "exact")
+        )
         for e in data["events"]
     ]
     result = compute_rectification_result(
@@ -271,9 +278,16 @@ async function handle(request: ChartWorkerRequest): Promise<ChartWorkerResponse>
   }
 }
 
-const scope = self as unknown as DedicatedWorkerGlobalScope;
-scope.addEventListener("message", (event: MessageEvent<ChartWorkerRequest>) => {
-  void handle(event.data).then((response) => {
-    scope.postMessage(response);
+// Register the message handler only inside a real Worker scope. Outside one
+// (Node/Bun test harnesses, the offline parity gate) `self` is absent, so this
+// module stays importable for its exported `PY_BOOTSTRAP` glue without spawning
+// a listener.
+const workerScope =
+  typeof self !== "undefined" ? (self as unknown as DedicatedWorkerGlobalScope) : undefined;
+if (workerScope) {
+  workerScope.addEventListener("message", (event: MessageEvent<ChartWorkerRequest>) => {
+    void handle(event.data).then((response) => {
+      workerScope.postMessage(response);
+    });
   });
-});
+}

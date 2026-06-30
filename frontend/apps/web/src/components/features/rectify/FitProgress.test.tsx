@@ -9,7 +9,7 @@
  *  - NEVER a "%" character anywhere in the output (no fake progress bar)
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, act } from '@testing-library/react';
+import { render, screen, act, fireEvent } from '@testing-library/react';
 
 import '../../../i18n/config';
 import { FitProgress } from './FitProgress';
@@ -60,5 +60,32 @@ describe('FitProgress', () => {
       vi.advanceTimersByTime(10000);
     });
     expect(container.textContent).not.toContain('%');
+  });
+
+  it('surfaces a retry affordance once the spinner stalls past the threshold', () => {
+    const onRetry = vi.fn();
+    render(<FitProgress onRetry={onRetry} />);
+
+    // Below the stall threshold: no retry yet (sub-second compute is normal).
+    act(() => {
+      vi.advanceTimersByTime(5000);
+    });
+    expect(screen.queryByTestId('fit-retry')).toBeNull();
+
+    // Past the threshold: a bounded fallback appears so it can't spin forever.
+    act(() => {
+      vi.advanceTimersByTime(20000);
+    });
+    const retry = screen.getByTestId('fit-retry');
+    fireEvent.click(retry);
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+
+  it('never shows a retry affordance when no onRetry is provided', () => {
+    render(<FitProgress />);
+    act(() => {
+      vi.advanceTimersByTime(60000);
+    });
+    expect(screen.queryByTestId('fit-retry')).toBeNull();
   });
 });

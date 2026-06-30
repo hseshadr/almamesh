@@ -77,7 +77,25 @@
     "error_heading": "Analysis failed",
     "retry": "Retry",
     "elapsed": "{{seconds}}s elapsed",
-    "device_note": "Fitting your events against candidate charts. This runs entirely on your device."
+    "device_note": "Fitting your events against candidate charts. This runs entirely on your device.",
+    "stalled_note": "Still working — this usually finishes within seconds. If it doesn't, you can retry."
+  },
+  "status": {
+    "warming_title": "Warming up the chart engine",
+    "warming_body": "The first analysis loads the astronomy engine onto your device. This can take a minute or two the first time, then it's near-instant — {{elapsed}} elapsed.",
+    "stage_syncing": "Downloading the engine bundle…",
+    "stage_reassembling": "Preparing the engine…",
+    "stage_booting": "Starting the engine…",
+    "stalled_title": "This is taking longer than usual",
+    "stalled_body": "The engine still hasn't finished starting up. You can reset and reload it to try again.",
+    "reset_reload": "Reset & reload engine"
+  },
+  "error": {
+    "engine_failed_title": "The chart engine couldn't start",
+    "engine_failed_body": "Something went wrong while loading the engine on your device. Reset and reload to try again.",
+    "missing_birth": "We couldn't find saved birth details for this profile. Open this profile's settings to add a birth date, time and place, then try again.",
+    "no_events": "Add at least one dated life event to begin — each event helps the engine compare candidate birth times.",
+    "back_to_events": "Back to events"
   },
   "steps": {
     "intro": "Introduction",
@@ -96,6 +114,10 @@
     "send": "Send",
     "transcript_label": "Conversation",
     "error": "I couldn't reach the AI just now — please try again, or enter events manually below."
+  },
+  "summary": {
+    "label": "What happened",
+    "placeholder": "e.g. Moved to a new city for a job"
   },
   "tray": {
     "review_one": "{{count}} event gathered · review",

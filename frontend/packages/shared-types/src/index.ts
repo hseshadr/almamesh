@@ -1318,6 +1318,12 @@ export interface RectificationEventInput {
   readonly date: string;
   readonly category: LifeEventCategory;
   readonly precision: EventDatePrecision;
+  /**
+   * Optional human-readable description of what happened, in the user's own
+   * words. Used only for on-device display (so gathered events are
+   * distinguishable); never required and never sent to the engine.
+   */
+  readonly summary?: string;
 }
 
 /** Supporting evidence for a life event in the rectification result. */

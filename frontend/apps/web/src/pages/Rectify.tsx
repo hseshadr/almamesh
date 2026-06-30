@@ -23,6 +23,7 @@ import type { TimeConfidence } from '@almamesh/constants';
 import { useRectification } from '../hooks/useRectification';
 import { EventEntryStep } from '../components/features/rectify/EventEntryStep';
 import { FitProgress } from '../components/features/rectify/FitProgress';
+import { EngineWarming } from '../components/features/rectify/EngineWarming';
 import { RectifyResults } from '../components/features/rectify/RectifyResults';
 import { RegenerationConfirmModal } from '../components/features/settings/RegenerationConfirmModal';
 
@@ -33,7 +34,18 @@ export function RectifyPage(): ReactElement {
   const navigate = useNavigate();
   const { t } = useTranslation('rectify');
 
-  const { state, engineReady, detectedMode, run, retry } = useRectification(profileId);
+  const {
+    state,
+    engineReady,
+    engineError,
+    engineStage,
+    missingBirth,
+    warmingTimedOut,
+    hasEnoughEvents,
+    detectedMode,
+    run,
+    retry,
+  } = useRectification(profileId);
 
   const initialStep: WizardStep =
     useLifeEventsStore.getState().getEvents(profileId).some(isStructuredLifeEvent)
@@ -48,10 +60,15 @@ export function RectifyPage(): ReactElement {
   //   'unknown'/'rough' → 'window' (whole-day sign ranking)
   //   'exact'/'approximate' → 'cusp' (two-candidate comparison)
   useEffect(() => {
-    if (step === 'fit' && state.status === 'idle') {
+    // Only kick the compute when the inputs are actually valid. When birth
+    // details are missing or there are no structured events, the fit step shows
+    // an explicit message instead — never a silent spinner waiting on a run that
+    // can't happen. (run() records the mode even while the engine warms, so a
+    // later retry recovers; the hook re-fires this once the engine is ready.)
+    if (step === 'fit' && state.status === 'idle' && !missingBirth && hasEnoughEvents) {
       void run(detectedMode);
     }
-  }, [step, state.status, run, detectedMode]);
+  }, [step, state.status, missingBirth, hasEnoughEvents, run, detectedMode]);
 
   // Transition fit → results once the engine finishes.
   useEffect(() => {
@@ -183,10 +200,15 @@ export function RectifyPage(): ReactElement {
 
       {step === 'fit' && state.status !== 'ready' && (
         <div data-testid="fit-step" className="flex flex-col gap-4">
-          <h2 className="text-xl font-semibold text-text-primary">{t('fit.heading')}</h2>
+          {!missingBirth && hasEnoughEvents && (
+            <h2 className="text-xl font-semibold text-text-primary">{t('fit.heading')}</h2>
+          )}
           {state.status === 'error' ? (
             <>
               <p className="text-sm text-status-error">{t('fit.error_heading')}</p>
+              {state.error != null && (
+                <p className="break-words text-xs text-text-tertiary">{state.error}</p>
+              )}
               <button
                 type="button"
                 onClick={() => void retry()}
@@ -195,10 +217,33 @@ export function RectifyPage(): ReactElement {
                 {t('fit.retry')}
               </button>
             </>
-          ) : !engineReady ? (
-            <p className="text-sm text-text-secondary">{t('fit.engine_warming')}</p>
+          ) : missingBirth ? (
+            <p
+              data-testid="fit-missing-birth"
+              className="text-sm leading-relaxed text-text-secondary"
+            >
+              {t('error.missing_birth')}
+            </p>
+          ) : !hasEnoughEvents ? (
+            <div data-testid="fit-no-events" className="flex flex-col gap-3">
+              <p className="text-sm leading-relaxed text-text-secondary">{t('error.no_events')}</p>
+              <button
+                type="button"
+                onClick={() => setStep('events')}
+                className="w-fit rounded-lg border border-ui-border px-4 py-2 text-sm"
+              >
+                {t('error.back_to_events')}
+              </button>
+            </div>
+          ) : engineError !== null || !engineReady ? (
+            <EngineWarming
+              engineError={engineError}
+              timedOut={warmingTimedOut}
+              engineStage={engineStage}
+              onRetry={() => void retry()}
+            />
           ) : (
-            <FitProgress />
+            <FitProgress onRetry={() => void retry()} />
           )}
         </div>
       )}

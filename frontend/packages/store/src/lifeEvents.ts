@@ -34,6 +34,17 @@ export interface LifeEvent {
    */
   readonly note?: string;
   /**
+   * Human-readable description of WHAT happened on this date, in the user's own
+   * words (e.g. "Moved to Bangalore for a job"). This is the headline shown for
+   * each gathered event so otherwise-identical rows (same date + category) are
+   * distinguishable at a glance. Stays fully on-device.
+   *
+   * Sources: the conversational interview attaches the user's own message text;
+   * the manual tray lets the user type/edit it directly; the v3→v4 migration
+   * backfills it from any legacy `note`/`description`. Absent ⇒ no summary yet.
+   */
+  readonly summary?: string;
+  /**
    * ISO `YYYY-MM-DD` date of the event.
    * Empty string `""` for migrated/unstructured (needsStructuring) events.
    */
@@ -64,13 +75,15 @@ export interface LifeEvent {
 export interface LifeEventInput {
   readonly description: string;
   readonly date?: string;
+  /** Human-readable "what happened" summary in the user's own words (optional). */
+  readonly summary?: string;
 }
 
 /** A single IndexedDB key holding all profiles' life events, persisted by zustand. */
 const PERSIST_NAME = 'almamesh-life-events';
 
 /** Bump when the persisted `LifeEvent` shape changes; always pair with `migrate`. */
-export const LIFE_EVENTS_PERSIST_VERSION = 3;
+export const LIFE_EVENTS_PERSIST_VERSION = 4;
 
 /** The slice of the store that `partialize` actually persists. */
 export interface PersistedLifeEventsState {
@@ -115,13 +128,33 @@ function migrateEventToV3(e: unknown): LifeEvent {
 }
 
 /**
+ * Coerce a single persisted blob into a valid v4 `LifeEvent`.
+ * Called for every event when migrating from v3 (or earlier, via the chain).
+ *
+ * Backfills the human-readable `summary` from any legacy `note`/`description`
+ * so existing events become distinguishable in the gathered list — without
+ * losing any other field. Events that already have a `summary` (or have no text
+ * to derive one from) pass through unchanged.
+ */
+function migrateEventToV4(e: unknown): LifeEvent {
+  const base = e as LifeEvent;
+  if (typeof base.summary === 'string') {
+    return base;
+  }
+  const derived = base.note ?? base.description;
+  return typeof derived === 'string' && derived.length > 0 ? { ...base, summary: derived } : base;
+}
+
+/**
  * Defensive hydration: tolerate ANY old/unknown/corrupt persisted blob and
  * always return a valid `{ eventsByProfile }`. A returning visitor whose stored
  * notes are malformed must never crash the app — we fall back to an empty map.
  *
- * Migration chain:
+ * The migration chain is CUMULATIVE: an old store is carried forward through
+ * every intermediate step in order, not just the first matching one.
  *   v0/v1 → v2: legacy `{ description }` events become `{ note, date: "", needsStructuring: true }` drafts.
  *   v2 → v3: backfill `precision: 'exact'` on all existing structured events.
+ *   v3 → v4: backfill the human-readable `summary` from any legacy `note`/`description`.
  */
 export function migrateLifeEventsPersistedState(
   persisted: unknown,
@@ -135,25 +168,21 @@ export function migrateLifeEventsPersistedState(
     return { eventsByProfile: {} };
   }
 
-  // v0/v1 → v2: promote legacy free-text events to structured drafts.
-  if (fromVersion < 2) {
-    const migrated: Record<string, readonly LifeEvent[]> = {};
-    for (const [profileId, events] of Object.entries(byProfile)) {
-      migrated[profileId] = Array.isArray(events) ? events.map(migrateEventToV2) : [];
+  const migrated: Record<string, readonly LifeEvent[]> = {};
+  for (const [profileId, events] of Object.entries(byProfile)) {
+    let list: readonly LifeEvent[] = Array.isArray(events) ? (events as LifeEvent[]) : [];
+    if (fromVersion < 2) {
+      list = list.map(migrateEventToV2);
     }
-    return { eventsByProfile: migrated };
-  }
-
-  // v2 → v3: backfill precision='exact' on all existing events.
-  if (fromVersion < 3) {
-    const migrated: Record<string, readonly LifeEvent[]> = {};
-    for (const [profileId, events] of Object.entries(byProfile)) {
-      migrated[profileId] = Array.isArray(events) ? (events as LifeEvent[]).map(migrateEventToV3) : [];
+    if (fromVersion < 3) {
+      list = list.map(migrateEventToV3);
     }
-    return { eventsByProfile: migrated };
+    if (fromVersion < 4) {
+      list = list.map(migrateEventToV4);
+    }
+    migrated[profileId] = list;
   }
-
-  return { eventsByProfile: byProfile as PersistedLifeEventsState['eventsByProfile'] };
+  return { eventsByProfile: migrated };
 }
 
 /** True only where IndexedDB exists (real browsers / workers), not in SSR/tests. */
@@ -197,11 +226,13 @@ function toLifeEvent(input: LifeEventInput): LifeEvent | null {
   if (description.length === 0) {
     return null;
   }
+  const summary = input.summary?.trim();
   return {
     id: nextEventId(),
     description,
     date: input.date?.trim() ?? '',
     createdAt: new Date().toISOString(),
+    ...(summary ? { summary } : {}),
   };
 }
 
@@ -232,12 +263,14 @@ export interface LifeEventsStore {
   clearEvents: (profileId: string) => void;
   /**
    * Patch mutable fields on one event. A no-op when `id` is not found.
-   * Patchable fields: `date`, `category`, `note`, `needsStructuring`, `precision`.
+   * Patchable fields: `date`, `category`, `note`, `summary`, `needsStructuring`, `precision`.
    */
   editEvent: (
     profileId: string,
     id: string,
-    patch: Partial<Pick<LifeEvent, 'date' | 'category' | 'note' | 'needsStructuring' | 'precision'>>,
+    patch: Partial<
+      Pick<LifeEvent, 'date' | 'category' | 'note' | 'summary' | 'needsStructuring' | 'precision'>
+    >,
   ) => void;
   /** Remove a single event by id. A no-op when `id` is not found. */
   removeEvent: (profileId: string, id: string) => void;

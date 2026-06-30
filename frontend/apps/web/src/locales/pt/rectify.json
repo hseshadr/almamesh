@@ -78,7 +78,25 @@
     "error_heading": "Análise falhou",
     "retry": "Tentar novamente",
     "elapsed": "{{seconds}}s decorridos",
-    "device_note": "Ajustando seus eventos com os gráficos candidatos. Isso é executado inteiramente no seu dispositivo."
+    "device_note": "Ajustando seus eventos com os gráficos candidatos. Isso é executado inteiramente no seu dispositivo.",
+    "stalled_note": "Ainda processando — isso geralmente termina em segundos. Se não terminar, você pode tentar novamente."
+  },
+  "status": {
+    "warming_title": "Aquecendo o motor de gráfico",
+    "warming_body": "A primeira análise carrega o motor astronômico no seu dispositivo. Na primeira vez pode levar um minuto ou dois; depois é quase instantâneo — {{elapsed}} decorridos.",
+    "stage_syncing": "Baixando o pacote do motor…",
+    "stage_reassembling": "Preparando o motor…",
+    "stage_booting": "Iniciando o motor…",
+    "stalled_title": "Isso está demorando mais que o normal",
+    "stalled_body": "O motor ainda não terminou de iniciar. Você pode redefini-lo e recarregá-lo para tentar de novo.",
+    "reset_reload": "Redefinir e recarregar o motor"
+  },
+  "error": {
+    "engine_failed_title": "O motor de gráfico não pôde iniciar",
+    "engine_failed_body": "Algo deu errado ao carregar o motor no seu dispositivo. Redefina e recarregue para tentar de novo.",
+    "missing_birth": "Não encontramos os dados de nascimento salvos para este perfil. Abra as configurações deste perfil para adicionar a data, a hora e o local de nascimento, e tente novamente.",
+    "no_events": "Adicione ao menos um evento de vida com data para começar — cada evento ajuda o motor a comparar horários de nascimento candidatos.",
+    "back_to_events": "Voltar aos eventos"
   },
   "steps": {
     "intro": "Introdução",
@@ -97,6 +115,10 @@
     "send": "Enviar",
     "transcript_label": "Conversa",
     "error": "Não consegui contatar a IA agora — tente novamente ou adicione os eventos manualmente abaixo."
+  },
+  "summary": {
+    "label": "O que aconteceu",
+    "placeholder": "ex.: Mudei-me para outra cidade por trabalho"
   },
   "tray": {
     "review_one": "{{count}} evento coletado · revisar",
