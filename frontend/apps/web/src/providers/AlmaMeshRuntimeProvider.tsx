@@ -58,6 +58,27 @@ function readRuntimeConfig(): RuntimeConfig {
   }
 }
 
+/**
+ * Drop the MUTABLE runtime caches that can fail-close a boot: the verify key
+ * (`almamesh-pubkey`) and the update pointer (`almamesh-signals`). A stale key
+ * here — e.g. a dev-signed key pinned by the old CacheFirst strategy — makes the
+ * current prod-signed bundle fail ed25519 verification ("signature verification
+ * failed"). Clearing it forces the next boot to re-fetch the CURRENT server key.
+ * Immutable, content-addressed caches (pyodide/bundle chunks) are intentionally
+ * left intact to avoid a needless ~38 MB re-download. Best-effort + guarded so
+ * recovery never hard-fails (CacheStorage is absent in some test/SSR contexts).
+ */
+export async function clearStaleEngineCaches(): Promise<void> {
+  try {
+    if (typeof caches === 'undefined') return
+    await Promise.all(
+      ['almamesh-pubkey', 'almamesh-signals'].map((name) => caches.delete(name)),
+    )
+  } catch {
+    // ignore — recovery must never fail on cache cleanup
+  }
+}
+
 // Observability/test hooks are installed only in dev, or in a build explicitly
 // opted in via VITE_EXIT_GATE_HOOKS=1 (the P3 exit-gate verification build).
 // They are NEVER present in a normal production build.
@@ -171,7 +192,10 @@ export function AlmaMeshRuntimeProvider({ children, runtime }: ProviderProps) {
     setEngine(null)
     setError(null)
     setStage(null)
-    return runBootstrap()
+    // Drop the stale verify key / update pointer first: a CacheFirst-pinned dev
+    // key is the classic cause of a fail-closed "signature verification failed",
+    // and a plain reboot would just re-read the same stale key. Best-effort.
+    return clearStaleEngineCaches().then(() => runBootstrap())
   }, [runBootstrap])
 
   // Initial mount bootstrap — auto-run once, EXCEPT on the marketing landing
