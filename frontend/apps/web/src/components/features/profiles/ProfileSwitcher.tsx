@@ -110,7 +110,7 @@ export function ProfileSwitcher() {
         {activeProfile ? (
           <>
             <AvatarChip tint={activeProfile.avatarTint} name={activeProfile.name} />
-            <span className="max-w-[8rem] truncate pr-1">{activeProfile.name}</span>
+            <span className="max-w-[5rem] truncate pr-1 sm:max-w-[8rem]">{activeProfile.name}</span>
           </>
         ) : (
           <>

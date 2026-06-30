@@ -976,3 +976,67 @@
   max-width: none;
 }
 
+/* ---- Mobile (≤640px) — keep the A4 sheet readable on a phone -------------- *
+ * Additive only: the fixed millimetre page geometry above stays EXACTLY as-is
+ * on tablet/desktop. On narrow screens we trade the print-faithful padding for
+ * legibility: smaller page margins, a shrunk cover, the paper grids stack, and
+ * wide data tables scroll horizontally instead of widening the whole sheet
+ * (which was pushing the page to ~631px on a 390px device). */
+@media (max-width: 640px) {
+  .report-screen {
+    padding: 16px 8px 56px;
+  }
+
+  .report-document {
+    padding: 24px 16px 22px;
+    font-size: 10pt;
+  }
+
+  .report-document::before {
+    inset: 10px;
+  }
+
+  .report-cover {
+    padding-top: 6mm;
+  }
+
+  .report-cover-name {
+    font-size: 2.1rem;
+  }
+
+  .report-section-title {
+    font-size: 1.4rem;
+  }
+
+  /* Framed kundli plates, life-domain panels, and the 2-up data panels
+     (birth details, ascendant, current dasha) read better full-width. */
+  .report-charts-grid,
+  .report-domain-grid,
+  .report-cover-birth,
+  .report-ascendant,
+  .report-dasha-current {
+    grid-template-columns: 1fr;
+  }
+
+  /* SAV bindu grid: 6 cells across is too tight — go three across. */
+  .report-sign-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .report-sign-cell:nth-child(6n) {
+    border-right: 0.5px solid var(--report-rule-soft);
+  }
+
+  .report-sign-cell:nth-child(3n) {
+    border-right: none;
+  }
+
+  /* Wide tables (planet roster, dasha sequence) scroll within the sheet rather
+     than forcing the document past the viewport. */
+  .report-table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+

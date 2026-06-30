@@ -26,7 +26,7 @@ export function LandingNav(): ReactElement {
       <nav className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-5 md:px-8">
         <Link
           to="/welcome"
-          className="font-display text-2xl tracking-tight text-text-primary transition-colors hover:text-accent-gold-bright"
+          className="font-display text-xl tracking-tight text-text-primary transition-colors hover:text-accent-gold-bright sm:text-2xl"
           aria-label="AlmaMesh"
         >
           Alma<span className="text-accent-gold">Mesh</span>

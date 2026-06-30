@@ -935,7 +935,7 @@ export default function OnboardingPage() {
       {/* Minimal Header - transparent, no border */}
       <Header variant="transparent" showBorder={false} />
 
-      <main className="flex-1 flex flex-col items-center justify-center p-8 relative z-10">
+      <main className="flex-1 flex flex-col items-center justify-center p-4 sm:p-8 relative z-10">
         <div className="w-full max-w-lg">
           {/* Logo - Larger and more prominent */}
           <div className="text-center mb-8">
@@ -977,7 +977,7 @@ export default function OnboardingPage() {
             <div className="absolute -inset-[1px] bg-gradient-to-b from-accent-purple/40 via-accent-purple/15 to-transparent rounded-xl blur-[1px]" />
 
             {/* Card content */}
-            <div className="relative bg-background-secondary border border-accent-purple/20 rounded-xl p-8">
+            <div className="relative bg-background-secondary border border-accent-purple/20 rounded-xl p-6 sm:p-8">
               {renderStep()}
 
               {/* Error Message */}

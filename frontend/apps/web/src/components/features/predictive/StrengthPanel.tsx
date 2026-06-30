@@ -104,7 +104,8 @@ function ShadbalaTable({ ctx }: { ctx: StrengthCtx }): ReactElement {
       subtitle={t('strength.shadbala_subtitle')}
       data-testid="shadbala-card"
     >
-      <table className="w-full text-sm" data-testid="shadbala-table">
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm" data-testid="shadbala-table">
         <thead>
           <tr className="border-b border-ui-border text-left text-xs uppercase tracking-wider text-text-tertiary">
             <th scope="col" className="py-2 pr-3 font-medium">{t('strength.col_graha')}</th>
@@ -138,7 +139,8 @@ function ShadbalaTable({ ctx }: { ctx: StrengthCtx }): ReactElement {
             </tr>
           ))}
         </tbody>
-      </table>
+        </table>
+      </div>
       <div className="mt-3 space-y-1">
         {anyApprox && (
           <p className="text-xs leading-relaxed text-text-tertiary" data-testid="shadbala-approx-note">

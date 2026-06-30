@@ -297,7 +297,7 @@ export function NorthIndianChartSVG({
       viewBox={`0 0 ${size} ${size}`}
       role="img"
       aria-label={t('chart.north_aria')}
-      className="select-none"
+      className="select-none max-w-full h-auto"
       data-testid="north-indian-chart"
     >
       {/* Outer square. */}

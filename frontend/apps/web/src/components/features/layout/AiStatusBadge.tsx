@@ -52,9 +52,9 @@ export function AiStatusBadge() {
     >
       <span
         aria-hidden
-        className={`h-1.5 w-1.5 rounded-full ${ready ? 'bg-accent-gold' : 'bg-amber-400'}`}
+        className={`h-1.5 w-1.5 shrink-0 rounded-full ${ready ? 'bg-accent-gold' : 'bg-amber-400'}`}
       />
-      {label}
+      <span className="hidden truncate sm:inline">{label}</span>
     </Link>
   );
 }

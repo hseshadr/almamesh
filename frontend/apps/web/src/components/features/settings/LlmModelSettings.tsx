@@ -91,15 +91,15 @@ export default function LlmModelSettings() {
         {/* Primary path: one-click OpenRouter. Prefills the cloud preset + reveals
             the key field; the user pastes a key and Saves. */}
         <div className="rounded-lg border border-accent-gold/30 bg-accent-gold/5 p-4">
-          <div className="flex items-center justify-between gap-3">
-            <div>
+          <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
               <p className="text-text-primary text-sm font-medium">{t('ai.use_openrouter_title')}</p>
               <p className="text-text-secondary text-xs mt-0.5">{t('ai.use_openrouter_description')}</p>
             </div>
             <button
               type="button"
               onClick={useOpenRouter}
-              className="flex-shrink-0 rounded-md bg-accent-gold px-4 py-2 text-sm font-medium text-background-primary transition-colors hover:bg-accent-gold-bright"
+              className="w-full flex-shrink-0 rounded-md bg-accent-gold px-4 py-2 text-sm font-medium text-background-primary transition-colors hover:bg-accent-gold-bright sm:w-auto"
               data-testid="llm-use-openrouter"
             >
               {t('ai.use_openrouter_button')}
@@ -109,15 +109,15 @@ export default function LlmModelSettings() {
 
         {/* Tiered-model recommendation: set both models to the advised pair. */}
         <div className="rounded-lg border border-ui-border bg-background-secondary p-4">
-          <div className="flex items-center justify-between gap-3">
-            <div>
+          <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
               <p className="text-text-primary text-sm font-medium">{t('aiModels.recommended_title')}</p>
               <p className="text-text-secondary text-xs mt-0.5">{t('aiModels.recommended_description')}</p>
             </div>
             <button
               type="button"
               onClick={useRecommended}
-              className="flex-shrink-0 rounded-md border border-accent-gold/40 px-4 py-2 text-sm font-medium text-accent-gold transition-colors hover:bg-accent-gold/10"
+              className="w-full flex-shrink-0 rounded-md border border-accent-gold/40 px-4 py-2 text-sm font-medium text-accent-gold transition-colors hover:bg-accent-gold/10 sm:w-auto"
               data-testid="llm-use-recommended"
             >
               {t('aiModels.recommended_button')}

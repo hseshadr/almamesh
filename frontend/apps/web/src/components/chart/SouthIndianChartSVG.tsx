@@ -309,7 +309,7 @@ export function SouthIndianChartSVG({
       viewBox={`0 0 ${size} ${size}`}
       role="img"
       aria-label={t('chart.south_aria')}
-      className="max-w-full"
+      className="max-w-full h-auto"
     >
       <rect
         x={0}

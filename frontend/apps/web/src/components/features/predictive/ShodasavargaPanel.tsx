@@ -169,7 +169,8 @@ export function ShodasavargaPanel({ vargaCtxFull }: ShodasavargaPanelProps): Rea
           subtitle={t('vargas.vimshopaka_subtitle')}
           data-testid="vimshopaka-card"
         >
-          <table className="w-full text-sm" data-testid="vimshopaka-table">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm" data-testid="vimshopaka-table">
             <thead>
               <tr className="border-b border-ui-border text-left text-xs uppercase tracking-wider text-text-tertiary">
                 <th scope="col" className="py-2 pr-3 font-medium">{t('vargas.col_graha')}</th>
@@ -206,7 +207,8 @@ export function ShodasavargaPanel({ vargaCtxFull }: ShodasavargaPanelProps): Rea
                 );
               })}
             </tbody>
-          </table>
+            </table>
+          </div>
           {anyApproximated && (
             <p className="mt-3 text-xs leading-relaxed text-text-tertiary" data-testid="vimshopaka-approx-note">
               {t('vargas.approx_note')}
