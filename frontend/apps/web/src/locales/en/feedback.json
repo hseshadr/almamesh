@@ -1,0 +1,16 @@
+{
+  "title": "Was this helpful?",
+  "subtitle": "A quick, anonymous signal helps shape what comes next.",
+  "helpful_yes": "Yes, helpful",
+  "helpful_no": "Not really",
+  "message_label": "What would make this better? (optional)",
+  "message_placeholder": "Share a thought — what's missing, what to add next…",
+  "anonymous_note": "Anonymous — no account, no tracking. Please don't include personal info.",
+  "send": "Send feedback",
+  "sending": "Sending…",
+  "dismiss": "Not now",
+  "thanks_title": "Thank you",
+  "thanks_body": "Your signal was received — anonymously. It helps shape what we build next.",
+  "error": "Couldn't send your feedback. Please try again.",
+  "retry": "Try again"
+}

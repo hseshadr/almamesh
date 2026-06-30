@@ -1,0 +1,29 @@
+{
+  // Isolated tsconfig for the Cloudflare Pages Functions in this directory.
+  // It pulls in @cloudflare/workers-types (D1Database, PagesFunction, the
+  // Workers `fetch`/`Request`/`Response` globals, etc.) WITHOUT touching the
+  // React app build: the app's tsconfig (../tsconfig.json) only includes
+  // `src` + `vite.config.ts`, so these Workers types never leak into it, and
+  // @cloudflare/workers-types is not under node_modules/@types so it is not
+  // auto-included anywhere it isn't explicitly referenced.
+  //
+  // Typecheck just the functions with:
+  //   bunx tsc -p functions/tsconfig.json --noEmit
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "WebWorker"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "types": ["@cloudflare/workers-types"],
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "noEmit": true
+  },
+  "include": ["api/**/*.ts"],
+  "exclude": ["node_modules", "api/**/__tests__/**"]
+}

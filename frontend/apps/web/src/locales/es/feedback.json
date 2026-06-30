@@ -1,0 +1,17 @@
+{
+  "_meta": { "review": "machine-translated" },
+  "title": "¿Te resultó útil?",
+  "subtitle": "Una señal rápida y anónima ayuda a decidir lo que viene a continuación.",
+  "helpful_yes": "Sí, útil",
+  "helpful_no": "La verdad que no",
+  "message_label": "¿Qué lo mejoraría? (opcional)",
+  "message_placeholder": "Comparte una idea — qué falta, qué añadir a continuación…",
+  "anonymous_note": "Anónimo — sin cuenta, sin seguimiento. Por favor, no incluyas datos personales.",
+  "send": "Enviar comentarios",
+  "sending": "Enviando…",
+  "dismiss": "Ahora no",
+  "thanks_title": "Gracias",
+  "thanks_body": "Recibimos tu señal — de forma anónima. Ayuda a decidir lo que construimos a continuación.",
+  "error": "No pudimos enviar tus comentarios. Inténtalo de nuevo.",
+  "retry": "Reintentar"
+}
