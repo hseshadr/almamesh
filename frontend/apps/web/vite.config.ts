@@ -133,11 +133,17 @@ function pwaPlugin(): Plugin[] {
           },
         },
         {
-          // The pinned verify key — small, same-origin, needed offline to boot.
+          // The verify key MUST match the CURRENTLY deployed bundle, so it has to
+          // track the server — never be frozen at first-visit time. CacheFirst here
+          // pinned a stale (e.g. dev-signed) key forever, so a later prod-signed
+          // bundle failed ed25519 verification ("signature verification failed",
+          // 0 chunks synced). NetworkFirst always revalidates the key against the
+          // server and keeps the cached copy only as an offline fallback.
           urlPattern: ({ url }) => url.pathname === '/public.key',
-          handler: 'CacheFirst',
+          handler: 'NetworkFirst',
           options: {
             cacheName: 'almamesh-pubkey',
+            networkTimeoutSeconds: 5,
             expiration: { maxEntries: 2, maxAgeSeconds: 60 * 60 * 24 * 365 },
             cacheableResponse: { statuses: [0, 200] },
           },
