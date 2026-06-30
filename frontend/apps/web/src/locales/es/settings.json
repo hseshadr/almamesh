@@ -78,6 +78,26 @@
     "processing_title": "Regenerando tu carta",
     "processing_description": "Calculando en el dispositivo — solo toma un momento."
   },
+  "rectification_record": {
+    "title": "Tu rectificación",
+    "confirmed_on": "Confirmada el {{date}}",
+    "sign_label": "Signo ascendente:",
+    "sign_change": "{{from}} → {{to}}",
+    "sign_from_unknown": "desconocido → {{to}}",
+    "time_label": "Hora de nacimiento:",
+    "time_change": "{{from}} → {{to}}",
+    "time_from_unknown": "desconocida → {{to}}",
+    "band_label": "Confianza:",
+    "band_near_tie": "Casi empate: trátalo como una hipótesis",
+    "band_leans": "Se inclina hacia un lado",
+    "band_consistent": "Coherente con tus eventos",
+    "method_label": "Método:",
+    "mode_cusp": "Comparación de cúspide",
+    "mode_window": "Barrido de todo el día",
+    "events_informed_one": "Basada en {{count}} evento de tu vida que registraste.",
+    "events_informed_other": "Basada en {{count}} eventos de tu vida que registraste.",
+    "rerun_link": "Volver a ejecutar la rectificación →"
+  },
   "people": {
     "title": "Personas",
     "description": "Las almas de tu malla: tú, tu familia y tus amistades. Cada persona conserva su propia carta, calculada en este dispositivo.",
@@ -177,6 +197,16 @@
     "notify_product": "Novedades del producto",
     "info_title": "Los cambios de preferencias se guardan automáticamente",
     "info_description": "Los cambios en tus preferencias se guardan de inmediato y no afectan a tu carta ni consumen tokens."
+  },
+  "reset": {
+    "title": "Restablecer carta / empezar de cero",
+    "description": "Borra tu carta y empieza de nuevo desde el onboarding. Esto elimina todas las cartas, perfiles, eventos de vida, chats e interpretaciones guardadas en este dispositivo. Tu idioma y los ajustes del endpoint de IA — y el motor ya descargado — se conservan.",
+    "button": "Restablecer carta / empezar de cero",
+    "modal_title": "¿Empezar de cero?",
+    "modal_body": "Esto borra de forma permanente todo lo que hay en este dispositivo: todas las cartas y perfiles, tus eventos de vida, todo el historial de chat y las interpretaciones guardadas.",
+    "modal_preserved": "Se conservan: el idioma elegido, los ajustes del endpoint de IA y el motor de cartas ya descargado, para que una nueva carta sea rápida.",
+    "modal_confirm": "Borrar y empezar de cero",
+    "modal_cancel": "Cancelar"
   },
   "regen_modal": {
     "title": "Confirmar cambios",

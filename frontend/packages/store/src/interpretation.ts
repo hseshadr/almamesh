@@ -55,6 +55,8 @@ export interface InterpretationStore {
   getEntry: (chartId: string) => ChartInterpretationEntry | undefined;
   /** Drop one chart's entry entirely. */
   reset: (chartId: string) => void;
+  /** Drop every chart's entry — the "start fresh" reset. */
+  clearAll: () => void;
 }
 
 /** A single localStorage key holding every interpretation, persisted by zustand. */
@@ -219,6 +221,10 @@ export const interpretationStoreCreator: StateCreator<InterpretationStore> = (se
       delete byChart[chartId];
       return { byChart };
     });
+  },
+
+  clearAll: () => {
+    set({ byChart: {} });
   },
 });
 

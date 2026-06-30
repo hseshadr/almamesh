@@ -91,22 +91,43 @@ export function GatheredTray({
       {/* Expanded content */}
       {expanded && (
         <div className="flex flex-col gap-4 px-4 pb-5 pt-1">
-          {/* Event rows — same mapping as EventEntryStep */}
-          <div className="flex flex-col gap-3">
+          {/* Event rows — same mapping as EventEntryStep, each led by a
+              prominent, editable "what happened" summary so events with the
+              same date + category are distinguishable at a glance. */}
+          <div className="flex flex-col gap-4">
             {events.map((event) => (
-              <EventRow
-                key={event.id}
-                event={event}
-                onDateChange={(date) => editEvent(profileId, event.id, { date })}
-                onCategoryChange={(category: LifeEventCategory | undefined) =>
-                  editEvent(profileId, event.id, { category })
-                }
-                onNoteChange={(note) => editEvent(profileId, event.id, { note })}
-                onPrecisionChange={(precision) =>
-                  editEvent(profileId, event.id, { precision })
-                }
-                onDelete={() => removeEvent(profileId, event.id)}
-              />
+              <div key={event.id} className="flex flex-col gap-2">
+                <div className="flex flex-col gap-1">
+                  <label
+                    htmlFor={`summary-${event.id}`}
+                    className="text-xs font-medium uppercase tracking-wider text-text-tertiary"
+                  >
+                    {t('summary.label')}
+                  </label>
+                  <input
+                    id={`summary-${event.id}`}
+                    type="text"
+                    value={event.summary ?? ''}
+                    onChange={(e) => editEvent(profileId, event.id, { summary: e.target.value })}
+                    aria-label={t('summary.label')}
+                    placeholder={t('summary.placeholder')}
+                    data-testid="event-summary-input"
+                    className="rounded border border-border-subtle bg-surface-primary px-3 py-2 text-sm font-medium text-text-primary placeholder:font-normal placeholder:text-text-tertiary focus:outline-none focus:ring-1 focus:ring-accent-primary"
+                  />
+                </div>
+                <EventRow
+                  event={event}
+                  onDateChange={(date) => editEvent(profileId, event.id, { date })}
+                  onCategoryChange={(category: LifeEventCategory | undefined) =>
+                    editEvent(profileId, event.id, { category })
+                  }
+                  onNoteChange={(note) => editEvent(profileId, event.id, { note })}
+                  onPrecisionChange={(precision) =>
+                    editEvent(profileId, event.id, { precision })
+                  }
+                  onDelete={() => removeEvent(profileId, event.id)}
+                />
+              </div>
             ))}
           </div>
 

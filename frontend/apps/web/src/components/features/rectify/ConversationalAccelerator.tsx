@@ -147,11 +147,17 @@ export function ConversationalAccelerator({
         // Snapshot the current event count so we can identify newly added rows.
         const beforeCount = useLifeEventsStore.getState().getEvents(profileId).length;
 
-        // addEvent accepts LifeEventInput (description + date) — category and
-        // precision are patched via editEvent because LifeEventInput has no
-        // category field.
+        // addEvent accepts LifeEventInput (description + date + summary) —
+        // category and precision are patched via editEvent because
+        // LifeEventInput has no category field. The summary is the user's own
+        // words: prefer one the extractor returned, else fall back to the raw
+        // turn text so the gathered row is always human-readable.
         for (const ev of extracted) {
-          addEvent(profileId, { description: ev.category, date: ev.date });
+          addEvent(profileId, {
+            description: ev.category,
+            date: ev.date,
+            summary: ev.summary ?? trimmed,
+          });
         }
 
         const after = useLifeEventsStore.getState().getEvents(profileId);

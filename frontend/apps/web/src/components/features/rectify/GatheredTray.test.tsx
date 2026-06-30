@@ -162,6 +162,37 @@ describe('GatheredTray', () => {
     expect(onContinue).toHaveBeenCalledOnce();
   });
 
+  it('expanded: renders the summary text for an event so events are distinguishable at a glance', () => {
+    seedEvents([{ ...STRUCTURED_1, summary: 'Moved to Bangalore in 1991' }]);
+    render(
+      <GatheredTray
+        profileId={PROFILE_ID}
+        expanded={true}
+        onToggle={vi.fn()}
+        onContinue={vi.fn()}
+      />,
+    );
+    expect(screen.getByDisplayValue('Moved to Bangalore in 1991')).toBeTruthy();
+  });
+
+  it('expanded: editing the summary field calls editEvent with the new summary', () => {
+    seedEvents([{ ...STRUCTURED_1, summary: 'old text' }]);
+    const spy = vi.spyOn(useLifeEventsStore.getState(), 'editEvent');
+    render(
+      <GatheredTray
+        profileId={PROFILE_ID}
+        expanded={true}
+        onToggle={vi.fn()}
+        onContinue={vi.fn()}
+      />,
+    );
+    fireEvent.change(screen.getByDisplayValue('old text'), {
+      target: { value: 'Moved to Pune for a new role' },
+    });
+    expect(spy).toHaveBeenCalledWith(PROFILE_ID, 'e1', { summary: 'Moved to Pune for a new role' });
+    spy.mockRestore();
+  });
+
   it('expanded: clicking "Add event" calls addEvent for the profile', () => {
     seedEvents([STRUCTURED_1]);
     const spy = vi.spyOn(useLifeEventsStore.getState(), 'addEvent');

@@ -161,6 +161,13 @@ export interface ChartLibraryStore {
   /** Assign all profile-less (orphan) charts to a profile — idempotent migration. */
   assignOrphanChartsToProfile: (profileId: string) => number;
   getPrimaryChart: () => StoredChart | undefined;
+  /**
+   * Wipe every chart on the device and clear the route-guard flag — the
+   * "start fresh" reset. Unlike `deleteChartsForProfile` this is unconditional
+   * and profile-agnostic; pair it with the other stores' `clearAll` to return a
+   * returning visitor to a clean onboarding.
+   */
+  clearAll: () => void;
 }
 
 export const chartLibraryStoreCreator: StateCreator<ChartLibraryStore> = (set, get) => ({
@@ -235,6 +242,11 @@ export const chartLibraryStoreCreator: StateCreator<ChartLibraryStore> = (set, g
   getPrimaryChart: () => {
     const inScope = get().listCharts();
     return inScope.find((c) => c.is_primary) ?? inScope[0];
+  },
+
+  clearAll: () => {
+    set({ charts: {} });
+    setLibraryFlag(false);
   },
 });
 

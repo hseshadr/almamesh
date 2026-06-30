@@ -78,6 +78,26 @@
     "processing_title": "Regenerando o seu mapa",
     "processing_description": "Calculando no dispositivo — leva apenas um instante."
   },
+  "rectification_record": {
+    "title": "Sua retificação",
+    "confirmed_on": "Confirmada em {{date}}",
+    "sign_label": "Signo ascendente:",
+    "sign_change": "{{from}} → {{to}}",
+    "sign_from_unknown": "desconhecido → {{to}}",
+    "time_label": "Hora de nascimento:",
+    "time_change": "{{from}} → {{to}}",
+    "time_from_unknown": "desconhecida → {{to}}",
+    "band_label": "Confiança:",
+    "band_near_tie": "Quase empate — trate como uma hipótese",
+    "band_leans": "Pende para um lado",
+    "band_consistent": "Consistente com os seus eventos",
+    "method_label": "Método:",
+    "mode_cusp": "Comparação de cúspide",
+    "mode_window": "Varredura do dia inteiro",
+    "events_informed_one": "Baseada em {{count}} evento da sua vida que você registrou.",
+    "events_informed_other": "Baseada em {{count}} eventos da sua vida que você registrou.",
+    "rerun_link": "Executar a retificação novamente →"
+  },
   "people": {
     "title": "Pessoas",
     "description": "As almas da sua malha: você, sua família e seus amigos. Cada pessoa conserva o próprio mapa, calculado neste dispositivo.",
@@ -177,6 +197,16 @@
     "notify_product": "Novidades do produto",
     "info_title": "As alterações de preferências são salvas automaticamente",
     "info_description": "As alterações nas suas preferências são salvas imediatamente e não afetam o seu mapa nem consomem tokens."
+  },
+  "reset": {
+    "title": "Redefinir mapa / começar do zero",
+    "description": "Apague o seu mapa e comece de novo a partir do onboarding. Isso remove todos os mapas, perfis, eventos de vida, conversas e interpretações salvas neste dispositivo. O seu idioma e as configurações do endpoint de IA — e o motor já baixado — são mantidos.",
+    "button": "Redefinir mapa / começar do zero",
+    "modal_title": "Começar do zero?",
+    "modal_body": "Isso apaga permanentemente tudo neste dispositivo: todos os mapas e perfis, os seus eventos de vida, todo o histórico de conversas e as interpretações salvas.",
+    "modal_preserved": "Mantidos: o idioma escolhido, as configurações do endpoint de IA e o motor de mapas já baixado — para que um novo mapa seja rápido.",
+    "modal_confirm": "Apagar e começar do zero",
+    "modal_cancel": "Cancelar"
   },
   "regen_modal": {
     "title": "Confirmar alterações",

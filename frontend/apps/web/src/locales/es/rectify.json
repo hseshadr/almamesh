@@ -78,7 +78,25 @@
     "error_heading": "El análisis falló",
     "retry": "Reintentar",
     "elapsed": "{{seconds}}s transcurridos",
-    "device_note": "Ajustando tus eventos con los gráficos candidatos. Esto se ejecuta completamente en tu dispositivo."
+    "device_note": "Ajustando tus eventos con los gráficos candidatos. Esto se ejecuta completamente en tu dispositivo.",
+    "stalled_note": "Aún trabajando — esto suele terminar en segundos. Si no, puedes reintentar."
+  },
+  "status": {
+    "warming_title": "Iniciando el motor de gráfico",
+    "warming_body": "El primer análisis carga el motor astronómico en tu dispositivo. La primera vez puede tardar un minuto o dos; después es casi instantáneo — {{elapsed}} transcurridos.",
+    "stage_syncing": "Descargando el paquete del motor…",
+    "stage_reassembling": "Preparando el motor…",
+    "stage_booting": "Arrancando el motor…",
+    "stalled_title": "Esto está tardando más de lo habitual",
+    "stalled_body": "El motor aún no ha terminado de iniciarse. Puedes restablecerlo y recargarlo para intentarlo de nuevo.",
+    "reset_reload": "Restablecer y recargar el motor"
+  },
+  "error": {
+    "engine_failed_title": "El motor de gráfico no pudo iniciarse",
+    "engine_failed_body": "Algo salió mal al cargar el motor en tu dispositivo. Restablece y recarga para intentarlo de nuevo.",
+    "missing_birth": "No encontramos los datos de nacimiento guardados para este perfil. Abre la configuración de este perfil para agregar la fecha, la hora y el lugar de nacimiento, y vuelve a intentarlo.",
+    "no_events": "Agrega al menos un evento de vida con fecha para comenzar — cada evento ayuda al motor a comparar horas de nacimiento candidatas.",
+    "back_to_events": "Volver a los eventos"
   },
   "steps": {
     "intro": "Introducción",
@@ -98,11 +116,21 @@
     "transcript_label": "Conversación",
     "error": "No pude comunicarme con la IA en este momento — por favor, inténtalo de nuevo o agrega los eventos manualmente a continuación."
   },
+  "summary": {
+    "label": "Qué pasó",
+    "placeholder": "p. ej. Me mudé a otra ciudad por trabajo"
+  },
   "tray": {
     "review_one": "{{count}} evento recopilado · revisar",
     "review_other": "{{count}} eventos recopilados · revisar",
     "honesty": "El motor clasifica los signos ascendentes candidatos y asigna una banda de confianza — no un veredicto definitivo. Todo el cálculo se ejecuta en tu dispositivo; ningún dato de nacimiento lo abandona.",
     "cta": "Encontrar mi signo ascendente"
+  },
+  "reset": {
+    "start_over": "Restablecer y empezar de nuevo",
+    "warning": "Esto borra tu carta, perfiles, eventos de vida, chat y lecturas guardadas, y luego te devuelve al inicio. Tu idioma, los ajustes de IA y el motor ya descargado se conservan.",
+    "confirm": "Borrar todo y empezar de nuevo",
+    "cancel": "Cancelar"
   },
   "back": "Atrás"
 }

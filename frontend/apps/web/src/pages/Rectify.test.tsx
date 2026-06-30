@@ -9,9 +9,10 @@ import {
   useChartLibraryStore,
   useLifeEventsStore,
   useProfilesStore,
+  useRectificationRecordsStore,
   appEvents,
 } from '@almamesh/store';
-import { useRectification } from '../hooks/useRectification';
+import { useRectification, type UseRectificationResult } from '../hooks/useRectification';
 import { RectifyPage } from '../pages/Rectify';
 
 // ---------------------------------------------------------------------------
@@ -210,21 +211,33 @@ function renderRectify() {
 describe('RectifyPage', () => {
   let mockRun: ReturnType<typeof vi.fn>;
   let mockReset: ReturnType<typeof vi.fn>;
+  let mockRetry: ReturnType<typeof vi.fn>;
+
+  /** Build a full useRectification return value with sensible defaults. */
+  function hookState(overrides: Partial<UseRectificationResult> = {}): UseRectificationResult {
+    return {
+      state: { status: 'idle', result: null, error: null },
+      engineReady: true,
+      engineError: null,
+      engineStage: null,
+      missingBirth: false,
+      warmingTimedOut: false,
+      hasEnoughEvents: true,
+      detectedMode: 'cusp',
+      run: mockRun as never,
+      reset: mockReset as never,
+      retry: mockRetry as never,
+      ...overrides,
+    };
+  }
 
   beforeEach(() => {
     mockRun = vi.fn().mockResolvedValue(undefined);
     mockReset = vi.fn();
+    mockRetry = vi.fn();
     mockNavigate.mockReset();
 
-    vi.mocked(useRectification).mockReturnValue({
-      state: { status: 'idle', result: null, error: null },
-      engineReady: true,
-      hasEnoughEvents: true,
-      detectedMode: 'cusp' as const,
-      run: mockRun as never,
-      reset: mockReset as never,
-      retry: vi.fn() as never,
-    });
+    vi.mocked(useRectification).mockReturnValue(hookState());
 
     useChartLibraryStore.setState({ charts: { 'chart-1': MOCK_CHART as never } });
     useProfilesStore.setState({
@@ -246,19 +259,14 @@ describe('RectifyPage', () => {
     vi.restoreAllMocks();
     useChartLibraryStore.setState({ charts: {} });
     useLifeEventsStore.setState({ eventsByProfile: {} });
+    useRectificationRecordsStore.setState({ recordsByProfile: {} });
   });
 
   /** Navigate from fit step to results by updating the mock and rerendering. */
   async function navigateToResults(rerender: ReturnType<typeof renderRectify>['rerender']) {
-    vi.mocked(useRectification).mockReturnValue({
-      state: { status: 'ready', result: MOCK_RESULT as never, error: null },
-      engineReady: true,
-      hasEnoughEvents: true,
-      detectedMode: 'cusp' as const,
-      run: mockRun as never,
-      reset: mockReset as never,
-      retry: vi.fn() as never,
-    });
+    vi.mocked(useRectification).mockReturnValue(
+      hookState({ state: { status: 'ready', result: MOCK_RESULT as never, error: null } }),
+    );
     rerender(
       <MemoryRouter initialEntries={['/rectify/profile-abc']}>
         <Routes>
@@ -379,6 +387,42 @@ describe('RectifyPage', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
   });
 
+  it('confirm persists a RectificationRecord (chosen sign/time, band, original, event ids)', async () => {
+    // Seed the structured life events that inform the fit (synthetic — no PII).
+    useLifeEventsStore.setState({
+      eventsByProfile: {
+        [PROFILE_ID]: [
+          { id: 'evt-1', date: '2010-06-01', category: 'career', createdAt: '2024-01-01T00:00:00Z' } as never,
+          { id: 'evt-2', date: '2015-01-01', category: 'marriage', createdAt: '2024-01-02T00:00:00Z' } as never,
+        ],
+      },
+    });
+
+    // Existing structured events make the wizard open on the events step.
+    const { rerender } = renderRectify();
+    fireEvent.click(await screen.findByTestId('events-continue-btn'));
+    await navigateToResults(rerender);
+
+    fireEvent.click(screen.getByTestId('confirm-candidate-btn'));
+    await screen.findByTestId('regen-modal');
+    fireEvent.click(screen.getByRole('checkbox')); // ack the sign flip
+    fireEvent.click(screen.getByTestId('regen-confirm-btn'));
+
+    const record = useRectificationRecordsStore.getState().getRecord(PROFILE_ID);
+    expect(record).toMatchObject({
+      profileId: PROFILE_ID,
+      mode: 'cusp',
+      band: 'leans',
+      margin: 0.04,
+      originalTime: '07:30',
+      originalSign: 'aquarius',
+      rectifiedTime: '07:45',
+      rectifiedSign: 'pisces',
+      supportingEventIds: ['evt-1', 'evt-2'],
+    });
+    expect(typeof record?.confirmedAt).toBe('string');
+  });
+
   it('keep recorded fires no emit and navigates back', async () => {
     const { rerender } = renderRectify();
     fireEvent.click(await screen.findByTestId('intro-start-btn'));
@@ -392,15 +436,7 @@ describe('RectifyPage', () => {
   });
 
   it('window mode: run is called with "window" when detectedMode is window', async () => {
-    vi.mocked(useRectification).mockReturnValue({
-      state: { status: 'idle', result: null, error: null },
-      engineReady: true,
-      hasEnoughEvents: true,
-      detectedMode: 'window' as const,
-      run: mockRun as never,
-      reset: mockReset as never,
-      retry: vi.fn() as never,
-    });
+    vi.mocked(useRectification).mockReturnValue(hookState({ detectedMode: 'window' }));
 
     renderRectify();
     fireEvent.click(await screen.findByTestId('intro-start-btn'));
@@ -417,15 +453,12 @@ describe('RectifyPage', () => {
     async function navigateToResultsUnknown(
       rerender: ReturnType<typeof renderRectify>['rerender'],
     ) {
-      vi.mocked(useRectification).mockReturnValue({
-        state: { status: 'ready', result: MOCK_RESULT as never, error: null },
-        engineReady: true,
-        hasEnoughEvents: true,
-        detectedMode: 'window' as const,
-        run: mockRun as never,
-        reset: mockReset as never,
-        retry: vi.fn() as never,
-      });
+      vi.mocked(useRectification).mockReturnValue(
+        hookState({
+          state: { status: 'ready', result: MOCK_RESULT as never, error: null },
+          detectedMode: 'window',
+        }),
+      );
       rerender(
         <MemoryRouter initialEntries={['/rectify/profile-abc']}>
           <Routes>
@@ -492,6 +525,63 @@ describe('RectifyPage', () => {
   });
 
   // ---------------------------------------------------------------------------
+  // Fit step: honest warming + recoverable dead-ends (the primary defect)
+  // ---------------------------------------------------------------------------
+
+  describe('fit step — warming + dead-end recovery', () => {
+    /** Click through intro → events → fit. */
+    async function gotoFit() {
+      renderRectify();
+      fireEvent.click(await screen.findByTestId('intro-start-btn'));
+      fireEvent.click(await screen.findByTestId('events-continue-btn'));
+    }
+
+    it('shows the honest warming surface (timer) when the engine is not ready', async () => {
+      vi.mocked(useRectification).mockReturnValue(hookState({ engineReady: false }));
+      await gotoFit();
+      expect(await screen.findByTestId('engine-warming')).toBeTruthy();
+      // NOT a bare permanent spinner with no context
+      expect(screen.queryByText('Warming up the chart engine')).toBeTruthy();
+    });
+
+    it('shows the engine-failed surface with a reset button that calls retry', async () => {
+      vi.mocked(useRectification).mockReturnValue(
+        hookState({ engineReady: false, engineError: 'Boot failed' }),
+      );
+      await gotoFit();
+      const reset = await screen.findByTestId('engine-reset-btn');
+      fireEvent.click(reset);
+      expect(mockRetry).toHaveBeenCalledTimes(1);
+    });
+
+    it('shows the stalled reset button after a warming timeout, calling retry', async () => {
+      vi.mocked(useRectification).mockReturnValue(
+        hookState({ engineReady: false, warmingTimedOut: true }),
+      );
+      await gotoFit();
+      const reset = await screen.findByTestId('engine-reset-btn');
+      fireEvent.click(reset);
+      expect(mockRetry).toHaveBeenCalledTimes(1);
+    });
+
+    it('shows an explicit missing-birth message instead of an infinite spinner', async () => {
+      vi.mocked(useRectification).mockReturnValue(hookState({ missingBirth: true }));
+      await gotoFit();
+      expect(await screen.findByText(/couldn't find saved birth details/i)).toBeTruthy();
+      // The silent dead-end spinner must NOT be shown
+      expect(screen.queryByTestId('fit-progress')).toBeNull();
+      expect(screen.queryByTestId('engine-warming')).toBeNull();
+    });
+
+    it('shows an explicit no-events message (with a back action) instead of spinning', async () => {
+      vi.mocked(useRectification).mockReturnValue(hookState({ hasEnoughEvents: false }));
+      await gotoFit();
+      expect(await screen.findByText(/at least one dated life event/i)).toBeTruthy();
+      expect(screen.queryByTestId('fit-progress')).toBeNull();
+    });
+  });
+
+  // ---------------------------------------------------------------------------
   // rough birth time — comparison + flip-ack still required (existing behavior)
   // ---------------------------------------------------------------------------
 
@@ -513,15 +603,9 @@ describe('RectifyPage', () => {
       fireEvent.click(await screen.findByTestId('intro-start-btn'));
       fireEvent.click(await screen.findByTestId('events-continue-btn'));
       // Rerender in ready/cusp state
-      vi.mocked(useRectification).mockReturnValue({
-        state: { status: 'ready', result: MOCK_RESULT as never, error: null },
-        engineReady: true,
-        hasEnoughEvents: true,
-        detectedMode: 'cusp' as const,
-        run: mockRun as never,
-        reset: mockReset as never,
-        retry: vi.fn() as never,
-      });
+      vi.mocked(useRectification).mockReturnValue(
+        hookState({ state: { status: 'ready', result: MOCK_RESULT as never, error: null } }),
+      );
       rerender(
         <MemoryRouter initialEntries={['/rectify/profile-abc']}>
           <Routes>
@@ -539,15 +623,9 @@ describe('RectifyPage', () => {
       const { rerender } = renderRectify();
       fireEvent.click(await screen.findByTestId('intro-start-btn'));
       fireEvent.click(await screen.findByTestId('events-continue-btn'));
-      vi.mocked(useRectification).mockReturnValue({
-        state: { status: 'ready', result: MOCK_RESULT as never, error: null },
-        engineReady: true,
-        hasEnoughEvents: true,
-        detectedMode: 'cusp' as const,
-        run: mockRun as never,
-        reset: mockReset as never,
-        retry: vi.fn() as never,
-      });
+      vi.mocked(useRectification).mockReturnValue(
+        hookState({ state: { status: 'ready', result: MOCK_RESULT as never, error: null } }),
+      );
       rerender(
         <MemoryRouter initialEntries={['/rectify/profile-abc']}>
           <Routes>

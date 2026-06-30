@@ -20,6 +20,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:parity": "node integration/parity.mjs",
+    "test:parity-rectify": "node integration/rectification-precision.mjs",
     "clean": "rm -rf dist"
   },
   "dependencies": {

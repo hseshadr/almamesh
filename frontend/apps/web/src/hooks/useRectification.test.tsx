@@ -386,6 +386,144 @@ describe('detectedMode', () => {
   });
 });
 
+// ---------------------------------------------------------------------------
+// Engine warming + recovery (the primary UX defect this fix targets)
+// ---------------------------------------------------------------------------
+
+/**
+ * A context whose engine is NOT yet ready (warming / errored). `reboot()` and
+ * `whenReady()` resolve to a working engine so the recovery path can be tested.
+ */
+function makeWarmingCtx(
+  overrides: Partial<ChartEngineContextValue> = {},
+): ChartEngineContextValue {
+  const computeRectification = vi.fn(() => Promise.resolve(SYNTHETIC_RAW));
+  const readyEngine = { computeRectification } as unknown as ChartEngine;
+  return {
+    engine: null,
+    stage: null,
+    error: null,
+    meta: null,
+    reboot: vi.fn(() => Promise.resolve(readyEngine)),
+    whenReady: vi.fn(() => Promise.resolve(readyEngine)),
+    startBootstrap: vi.fn(),
+    ...overrides,
+  };
+}
+
+describe('useRectification — engine warming + recovery', () => {
+  it('exposes engineError from the engine context error', () => {
+    const ctx = makeWarmingCtx({ error: new Error('Boot failed') });
+    const { result } = renderHook(() => useRectification(PROFILE_ID), {
+      wrapper: makeWrapper(ctx),
+    });
+    expect(result.current.engineError).toBe('Boot failed');
+  });
+
+  it('engineError is null when the engine context reports no error', () => {
+    const ctx = makeEngineCtx();
+    const { result } = renderHook(() => useRectification(PROFILE_ID), {
+      wrapper: makeWrapper(ctx),
+    });
+    expect(result.current.engineError).toBeNull();
+  });
+
+  it('missingBirth is true when no stored chart matches the profile', () => {
+    useChartLibraryStore.setState({ charts: {}, hydrated: true });
+    const ctx = makeEngineCtx();
+    const { result } = renderHook(() => useRectification(PROFILE_ID), {
+      wrapper: makeWrapper(ctx),
+    });
+    expect(result.current.missingBirth).toBe(true);
+  });
+
+  it('missingBirth is false when the profile has a stored chart with a location', () => {
+    const ctx = makeEngineCtx();
+    const { result } = renderHook(() => useRectification(PROFILE_ID), {
+      wrapper: makeWrapper(ctx),
+    });
+    expect(result.current.missingBirth).toBe(false);
+  });
+
+  it('eagerly warms the engine on mount via startBootstrap when no engine yet', () => {
+    const ctx = makeWarmingCtx();
+    renderHook(() => useRectification(PROFILE_ID), { wrapper: makeWrapper(ctx) });
+    expect(ctx.startBootstrap).toHaveBeenCalled();
+  });
+
+  it('attempts an in-app reboot on mount when the engine arrived already errored', () => {
+    const ctx = makeWarmingCtx({ error: new Error('stale bundle') });
+    renderHook(() => useRectification(PROFILE_ID), { wrapper: makeWrapper(ctx) });
+    expect(ctx.reboot).toHaveBeenCalled();
+    expect(ctx.startBootstrap).not.toHaveBeenCalled();
+  });
+
+  it('warmingTimedOut flips true after the warm timeout when the engine never boots', () => {
+    vi.useFakeTimers();
+    try {
+      const ctx = makeWarmingCtx();
+      const { result } = renderHook(() => useRectification(PROFILE_ID), {
+        wrapper: makeWrapper(ctx),
+      });
+      expect(result.current.warmingTimedOut).toBe(false);
+      act(() => {
+        vi.advanceTimersByTime(90_000);
+      });
+      expect(result.current.warmingTimedOut).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('warmingTimedOut stays false when the engine is already ready', () => {
+    vi.useFakeTimers();
+    try {
+      const ctx = makeEngineCtx(); // engine present
+      const { result } = renderHook(() => useRectification(PROFILE_ID), {
+        wrapper: makeWrapper(ctx),
+      });
+      act(() => {
+        vi.advanceTimersByTime(120_000);
+      });
+      expect(result.current.warmingTimedOut).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('retry() recovers even when run() was never called (engine errored before any run)', async () => {
+    // Engine never came up; reboot() resolves to a working engine. The user never
+    // managed to click Run (the button was disabled / no-op), so lastMode is unset
+    // — retry must fall back to the detected mode and still recompute.
+    const ctx = makeWarmingCtx({ error: new Error('boot failed') });
+    const { result } = renderHook(() => useRectification(PROFILE_ID), {
+      wrapper: makeWrapper(ctx),
+    });
+
+    await act(async () => {
+      await result.current.retry();
+    });
+
+    expect(ctx.reboot).toHaveBeenCalled();
+    expect(useRectificationStore.getState().status).toBe('ready');
+  });
+
+  it('resets a stale ready store on mount so a new visit recomputes', () => {
+    // Simulate a previous, completed run left in the global (transient) store.
+    useRectificationStore.setState({
+      status: 'ready',
+      result: { mode: 'cusp' } as never,
+      error: null,
+    });
+
+    const ctx = makeEngineCtx();
+    renderHook(() => useRectification(PROFILE_ID), { wrapper: makeWrapper(ctx) });
+
+    expect(useRectificationStore.getState().status).toBe('idle');
+    expect(useRectificationStore.getState().result).toBeNull();
+  });
+});
+
 describe('toWireEvents', () => {
   it('wire events default precision to exact, and carry the stored precision', () => {
     const events = [

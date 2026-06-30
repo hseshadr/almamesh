@@ -185,6 +185,56 @@ describe('ConversationalAccelerator', () => {
       expect(events[1]?.precision).toBe('year');
     });
 
+    it("stores the user's own typed text as each flushed event's summary (fallback when extractor omits it)", async () => {
+      const extracted: RectificationEventInput[] = [
+        { date: '2004-04-15', category: 'marriage', precision: 'month' },
+      ];
+      render(
+        <ConversationalAccelerator
+          profileId={PROFILE_ID}
+          streamFn={makeStubStream(['Got it!'])}
+          gatherFn={makeStubGather(extracted)}
+        />,
+      );
+
+      fireEvent.change(screen.getByRole('textbox'), {
+        target: { value: 'I got married in April 2004 in Pune' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: /send/i }));
+
+      await waitFor(() => {
+        expect(useLifeEventsStore.getState().getEvents(PROFILE_ID).length).toBe(1);
+      });
+
+      expect(useLifeEventsStore.getState().getEvents(PROFILE_ID)[0]?.summary).toBe(
+        'I got married in April 2004 in Pune',
+      );
+    });
+
+    it('prefers a summary returned by the extractor over the raw input text', async () => {
+      const extracted: RectificationEventInput[] = [
+        { date: '2004-04-15', category: 'marriage', precision: 'month', summary: 'Married Priya' },
+      ];
+      render(
+        <ConversationalAccelerator
+          profileId={PROFILE_ID}
+          streamFn={makeStubStream(['Got it!'])}
+          gatherFn={makeStubGather(extracted)}
+        />,
+      );
+
+      fireEvent.change(screen.getByRole('textbox'), {
+        target: { value: 'a long rambly message about my wedding day' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: /send/i }));
+
+      await waitFor(() => {
+        expect(useLifeEventsStore.getState().getEvents(PROFILE_ID).length).toBe(1);
+      });
+
+      expect(useLifeEventsStore.getState().getEvents(PROFILE_ID)[0]?.summary).toBe('Married Priya');
+    });
+
     it('preserves pre-existing store events and only appends new ones', async () => {
       useLifeEventsStore.setState({
         eventsByProfile: {

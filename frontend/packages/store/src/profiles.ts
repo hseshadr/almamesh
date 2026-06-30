@@ -206,6 +206,15 @@ export interface ProfilesStore {
   listMembers: () => Profile[];
   /** True when an anchor AND at least one member exist — the mesh can form. */
   isMeshReady: () => boolean;
+
+  /**
+   * Wipe every profile and reset active focus — the "start fresh" reset.
+   * Unlike `deleteProfile` this is unconditional (no last-profile guard) and
+   * pushes the now-empty scope into the chart library so listing resolves to
+   * nothing. Pair with the other stores' `clearAll`; the user re-onboards from
+   * a clean slate.
+   */
+  clearAll: () => void;
 }
 
 /** The anchor (`relationship === 'self'`) in a profiles record, if any. */
@@ -395,6 +404,11 @@ export const profilesStoreCreator: StateCreator<ProfilesStore> = (set, get) => (
   listMembers: () => listMembersOf(get().profiles),
 
   isMeshReady: () => meshReadyOf(get().profiles),
+
+  clearAll: () => {
+    set({ profiles: {}, activeProfileId: null });
+    setActiveProfileScope(null);
+  },
 });
 
 export const useProfilesStore = create<ProfilesStore>()(

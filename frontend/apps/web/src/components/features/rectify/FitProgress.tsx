@@ -7,12 +7,31 @@
  *  - NO percentage bar — we do not know how long the fit will take
  *  - Copy is localized via the `rectify` i18n namespace
  *  - Resets to 0s on mount; cleans up the interval on unmount
+ *  - BOUNDED: the actual rectification compute is sub-second, so if the spinner
+ *    runs past `stalledAfterSeconds` something is wrong — surface a retry
+ *    affordance (when `onRetry` is supplied) rather than spinning forever.
  */
 
 import { useState, useEffect, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 
-export function FitProgress(): ReactElement {
+/** Seconds after which the in-compute spinner is treated as stalled. */
+const DEFAULT_STALLED_AFTER_SECONDS = 20;
+
+export interface FitProgressProps {
+  /**
+   * Recovery callback for the bounded fallback. When provided and the spinner
+   * stalls past `stalledAfterSeconds`, a retry button is shown that calls this.
+   */
+  readonly onRetry?: () => void;
+  /** Stall threshold in seconds (default 20). */
+  readonly stalledAfterSeconds?: number;
+}
+
+export function FitProgress({
+  onRetry,
+  stalledAfterSeconds = DEFAULT_STALLED_AFTER_SECONDS,
+}: FitProgressProps = {}): ReactElement {
   const { t } = useTranslation('rectify');
   const [seconds, setSeconds] = useState(0);
 
@@ -22,6 +41,8 @@ export function FitProgress(): ReactElement {
     }, 1000);
     return () => clearInterval(id);
   }, []);
+
+  const stalled = seconds >= stalledAfterSeconds;
 
   return (
     <div data-testid="fit-progress" className="flex flex-col gap-3">
@@ -62,6 +83,23 @@ export function FitProgress(): ReactElement {
       >
         {t('fit.device_note')}
       </p>
+
+      {/* Bounded fallback: a stalled sub-second compute gets a recovery action */}
+      {stalled && onRetry && (
+        <div data-testid="fit-stalled" className="flex flex-col gap-2">
+          <p className="text-sm leading-relaxed text-text-tertiary">
+            {t('fit.stalled_note')}
+          </p>
+          <button
+            type="button"
+            data-testid="fit-retry"
+            onClick={onRetry}
+            className="w-fit rounded-lg border border-ui-border px-4 py-2 text-sm"
+          >
+            {t('fit.retry')}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
