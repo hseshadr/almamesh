@@ -125,5 +125,11 @@
     "honesty": "The engine ranks candidate rising signs and assigns a confidence band — not a definitive verdict. All computation runs on your device; no birth data leaves it.",
     "cta": "Find my rising sign"
   },
+  "reset": {
+    "start_over": "Reset & start over",
+    "warning": "This erases your chart, profiles, life events, chat and saved readings, then returns you to the start. Your language, AI settings and the already-downloaded engine are kept.",
+    "confirm": "Erase everything & start over",
+    "cancel": "Cancel"
+  },
   "back": "Back"
 }

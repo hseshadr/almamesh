@@ -261,6 +261,8 @@ export interface LifeEventsStore {
   getEvents: (profileId: string) => readonly LifeEvent[];
   /** Remove every note for a profile (e.g. when the person is deleted). */
   clearEvents: (profileId: string) => void;
+  /** Wipe every profile's notes — the "start fresh" reset. */
+  clearAll: () => void;
   /**
    * Patch mutable fields on one event. A no-op when `id` is not found.
    * Patchable fields: `date`, `category`, `note`, `summary`, `needsStructuring`, `precision`.
@@ -311,6 +313,10 @@ export const lifeEventsStoreCreator: StateCreator<LifeEventsStore> = (set, get) 
       delete next[profileId];
       return { eventsByProfile: next };
     });
+  },
+
+  clearAll: () => {
+    set({ eventsByProfile: {} });
   },
 
   editEvent: (profileId, id, patch) => {

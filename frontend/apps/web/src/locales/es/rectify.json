@@ -126,5 +126,11 @@
     "honesty": "El motor clasifica los signos ascendentes candidatos y asigna una banda de confianza — no un veredicto definitivo. Todo el cálculo se ejecuta en tu dispositivo; ningún dato de nacimiento lo abandona.",
     "cta": "Encontrar mi signo ascendente"
   },
+  "reset": {
+    "start_over": "Restablecer y empezar de nuevo",
+    "warning": "Esto borra tu carta, perfiles, eventos de vida, chat y lecturas guardadas, y luego te devuelve al inicio. Tu idioma, los ajustes de IA y el motor ya descargado se conservan.",
+    "confirm": "Borrar todo y empezar de nuevo",
+    "cancel": "Cancelar"
+  },
   "back": "Atrás"
 }

@@ -75,6 +75,26 @@
     "processing_title": "Regenerating Your Chart",
     "processing_description": "Computing on-device — this only takes a moment."
   },
+  "rectification_record": {
+    "title": "Your rectification",
+    "confirmed_on": "Confirmed {{date}}",
+    "sign_label": "Rising sign:",
+    "sign_change": "{{from}} → {{to}}",
+    "sign_from_unknown": "unknown → {{to}}",
+    "time_label": "Birth time:",
+    "time_change": "{{from}} → {{to}}",
+    "time_from_unknown": "unknown → {{to}}",
+    "band_label": "Confidence:",
+    "band_near_tie": "Near tie — treat as a hypothesis",
+    "band_leans": "Leans one way",
+    "band_consistent": "Consistent across your events",
+    "method_label": "Method:",
+    "mode_cusp": "Cusp comparison",
+    "mode_window": "Whole-day scan",
+    "events_informed_one": "Informed by {{count}} life event you recorded.",
+    "events_informed_other": "Informed by {{count}} life events you recorded.",
+    "rerun_link": "Re-run rectification →"
+  },
   "people": {
     "title": "People",
     "description": "The souls in your mesh — you, family, friends. Each person keeps their own chart, computed on this device.",
@@ -174,6 +194,16 @@
     "notify_product": "Product updates",
     "info_title": "Preference changes save automatically",
     "info_description": "Changes to your preferences are saved immediately and do not affect your chart or use any tokens."
+  },
+  "reset": {
+    "title": "Reset chart / start fresh",
+    "description": "Erase your chart and start over from onboarding. This removes every chart, profile, life event, chat and saved interpretation on this device. Your language and AI-endpoint settings — and the already-downloaded engine — are kept.",
+    "button": "Reset chart / start fresh",
+    "modal_title": "Start fresh?",
+    "modal_body": "This permanently erases everything on this device: every chart and profile, your life events, all chat history, and saved interpretations.",
+    "modal_preserved": "Kept: your chosen language, your AI-endpoint settings, and the already-downloaded chart engine — so a new chart is fast.",
+    "modal_confirm": "Erase & start fresh",
+    "modal_cancel": "Cancel"
   },
   "regen_modal": {
     "title": "Confirm Changes",

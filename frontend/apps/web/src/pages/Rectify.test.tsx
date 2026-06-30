@@ -9,6 +9,7 @@ import {
   useChartLibraryStore,
   useLifeEventsStore,
   useProfilesStore,
+  useRectificationRecordsStore,
   appEvents,
 } from '@almamesh/store';
 import { useRectification, type UseRectificationResult } from '../hooks/useRectification';
@@ -258,6 +259,7 @@ describe('RectifyPage', () => {
     vi.restoreAllMocks();
     useChartLibraryStore.setState({ charts: {} });
     useLifeEventsStore.setState({ eventsByProfile: {} });
+    useRectificationRecordsStore.setState({ recordsByProfile: {} });
   });
 
   /** Navigate from fit step to results by updating the mock and rerendering. */
@@ -383,6 +385,42 @@ describe('RectifyPage', () => {
       }),
     );
     expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
+  });
+
+  it('confirm persists a RectificationRecord (chosen sign/time, band, original, event ids)', async () => {
+    // Seed the structured life events that inform the fit (synthetic — no PII).
+    useLifeEventsStore.setState({
+      eventsByProfile: {
+        [PROFILE_ID]: [
+          { id: 'evt-1', date: '2010-06-01', category: 'career', createdAt: '2024-01-01T00:00:00Z' } as never,
+          { id: 'evt-2', date: '2015-01-01', category: 'marriage', createdAt: '2024-01-02T00:00:00Z' } as never,
+        ],
+      },
+    });
+
+    // Existing structured events make the wizard open on the events step.
+    const { rerender } = renderRectify();
+    fireEvent.click(await screen.findByTestId('events-continue-btn'));
+    await navigateToResults(rerender);
+
+    fireEvent.click(screen.getByTestId('confirm-candidate-btn'));
+    await screen.findByTestId('regen-modal');
+    fireEvent.click(screen.getByRole('checkbox')); // ack the sign flip
+    fireEvent.click(screen.getByTestId('regen-confirm-btn'));
+
+    const record = useRectificationRecordsStore.getState().getRecord(PROFILE_ID);
+    expect(record).toMatchObject({
+      profileId: PROFILE_ID,
+      mode: 'cusp',
+      band: 'leans',
+      margin: 0.04,
+      originalTime: '07:30',
+      originalSign: 'aquarius',
+      rectifiedTime: '07:45',
+      rectifiedSign: 'pisces',
+      supportingEventIds: ['evt-1', 'evt-2'],
+    });
+    expect(typeof record?.confirmedAt).toBe('string');
   });
 
   it('keep recorded fires no emit and navigates back', async () => {

@@ -136,6 +136,8 @@ export interface ChatStore {
   deleteThread: (threadId: string) => void;
   /** Assign all profile-less (orphan) threads to a profile — idempotent migration. */
   assignOrphanThreadsToProfile: (profileId: string) => number;
+  /** Wipe all threads and messages — the "start fresh" reset. */
+  clearAll: () => void;
 }
 
 /** Newest-updated first (stable thread ordering for listing + active resolution). */
@@ -253,6 +255,10 @@ export const chatStoreCreator: StateCreator<ChatStore> = (set, get) => ({
       return { threads: next };
     });
     return claimed;
+  },
+
+  clearAll: () => {
+    set({ threads: {}, messages: {} });
   },
 });
 

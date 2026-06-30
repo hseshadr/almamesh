@@ -1357,6 +1357,40 @@ export interface RectificationResult {
   readonly honestyNoteKey: string;
 }
 
+/**
+ * A persisted, display-only record of a CONFIRMED birth-time rectification.
+ *
+ * Written when the user confirms a candidate in the `/rectify` wizard so
+ * Settings can show "you rectified your birth time on <date>: was X, now Y".
+ * It is pure metadata for display — it NEVER feeds the engine and carries NO
+ * raw life-event narrative (only opaque event ids + their count), preserving
+ * the project's privacy posture. Reuses the engine's own
+ * `RectificationMode`/`RectificationBand` so the band stays a convention, never
+ * a verdict.
+ */
+export interface RectificationRecord {
+  /** Owning profile id (also the persisted store map key). */
+  readonly profileId: string;
+  /** ISO-8601 timestamp the user confirmed this rectification. */
+  readonly confirmedAt: string;
+  /** Engine fit mode that produced the chosen candidate. */
+  readonly mode: RectificationMode;
+  /** Qualitative confidence band of the result (a convention, never a verdict). */
+  readonly band: RectificationBand;
+  /** Numeric margin between the leading candidates (display-only). */
+  readonly margin: number;
+  /** The originally-entered birth time (`HH:MM`), or "" when the time was unknown. */
+  readonly originalTime: string;
+  /** Rising sign at the originally-entered time, or null when no time was recorded. */
+  readonly originalSign: string | null;
+  /** The chosen rectified birth time (`HH:MM`, local). */
+  readonly rectifiedTime: string;
+  /** Rising sign of the chosen candidate. */
+  readonly rectifiedSign: string;
+  /** Opaque ids of the structured life events that informed the fit (no PII). */
+  readonly supportingEventIds: readonly string[];
+}
+
 export type LifeEventType =
   | 'marriage' | 'child_birth' | 'parent_death'
   | 'career_start' | 'career_promotion' | 'business_start'

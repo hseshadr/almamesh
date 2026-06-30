@@ -17,11 +17,12 @@
  * Both paths call `onRetry`, which reboots the engine and re-runs.
  */
 
-import type { ReactElement } from 'react';
+import { useState, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { Button, Spinner } from '../../ui';
 import { useElapsedSeconds, formatElapsed } from '../../../hooks/useElapsedSeconds';
+import { resetEverything } from '../../../lib/resetEverything';
 
 export interface EngineWarmingProps {
   /** Engine boot failure message, or null while still warming. */
@@ -59,6 +60,19 @@ export function EngineWarming({
   // Honest live timer — only running while we are genuinely still warming.
   const elapsed = useElapsedSeconds(!needsRecovery);
 
+  // Secondary escape hatch: a user whose engine is permanently wedged can wipe
+  // their data and re-enter onboarding (the engine bundle in OPFS is preserved,
+  // so the reload is fast). Two-step inline confirm — visually secondary.
+  const [confirmingReset, setConfirmingReset] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const handleStartOver = async (): Promise<void> => {
+    setResetting(true);
+    await resetEverything();
+    // Hard navigation to the landing splash: the most reliable escape from a
+    // wedged boot, and `resetEverything` cleared the chart flag so it re-onboards.
+    window.location.assign('/');
+  };
+
   if (needsRecovery) {
     const title = engineError !== null ? t('error.engine_failed_title') : t('status.stalled_title');
     const body = engineError !== null ? t('error.engine_failed_body') : t('status.stalled_body');
@@ -83,6 +97,40 @@ export function EngineWarming({
         >
           {t('status.reset_reload')}
         </Button>
+        {!confirmingReset ? (
+          <button
+            type="button"
+            data-testid="rectify-start-over"
+            onClick={() => setConfirmingReset(true)}
+            className="w-fit text-xs text-text-tertiary underline-offset-2 hover:text-text-secondary hover:underline"
+          >
+            {t('reset.start_over')}
+          </button>
+        ) : (
+          <div className="flex flex-col gap-2 rounded-md border border-status-error/30 bg-status-error/5 p-3">
+            <p className="text-xs leading-relaxed text-text-secondary">{t('reset.warning')}</p>
+            <div className="flex gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setConfirmingReset(false)}
+                disabled={resetting}
+                className="w-fit"
+              >
+                {t('reset.cancel')}
+              </Button>
+              <button
+                type="button"
+                data-testid="rectify-start-over-confirm"
+                onClick={() => void handleStartOver()}
+                disabled={resetting}
+                className="w-fit rounded-md border border-status-error/50 px-3 text-xs font-medium text-status-error hover:bg-status-error/10 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {t('reset.confirm')}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     );
   }

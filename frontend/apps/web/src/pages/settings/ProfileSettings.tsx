@@ -17,6 +17,7 @@ import {
   type PendingChanges,
   type RegenerationScope,
   useProfilesStore,
+  useRectificationRecordsStore,
 } from '@almamesh/store';
 import { TIME_CONFIDENCE, type TimeConfidence } from '@almamesh/constants';
 import { LocationSearch } from '../../components/shared/LocationSearch';
@@ -56,6 +57,14 @@ function titleCaseSign(sign: string): string {
   return sign.length === 0 ? sign : sign[0].toUpperCase() + sign.slice(1).toLowerCase();
 }
 
+/** Format an ISO confirmed-at timestamp as a localized date (falls back to raw). */
+function formatRecordDate(iso: string, locale: string): string {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime())
+    ? iso
+    : d.toLocaleDateString(locale, { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
 /**
  * Shift an `HH:MM` clock by `deltaMinutes`, clamped to 00:00..23:59. Does NOT
  * roll the date — rectification nudges minutes within the birth day only.
@@ -73,9 +82,15 @@ function shiftClockMinutes(clock: string, deltaMinutes: number): string {
 
 export default function ProfileSettings() {
   const navigate = useNavigate();
-  const { t } = useTranslation(['settings', 'common']);
+  const { t, i18n } = useTranslation(['settings', 'common']);
   const { engine, error: engineError } = useChartEngine();
   const activeProfileId = useProfilesStore((s) => s.activeProfileId);
+
+  // The standing read-only record of a CONFIRMED rectification for this profile
+  // (written by the /rectify wizard). Null until one is confirmed; display-only.
+  const rectificationRecord = useRectificationRecordsStore((s) =>
+    activeProfileId ? (s.recordsByProfile[activeProfileId] ?? null) : null,
+  );
 
   // Stores
   const {
@@ -550,6 +565,88 @@ export default function ProfileSettings() {
             </p>
           )}
         </div>
+
+        {/* Your rectification — a read-only account of the last CONFIRMED
+            rectification (was X → now Y), shown only once one exists. Pure
+            display metadata: no engine input, no life-event narrative. */}
+        {rectificationRecord && (
+          <div
+            data-testid="rectification-record"
+            className="rounded-lg border border-ui-border bg-background-secondary/40 p-4"
+          >
+            <h3 className="text-sm font-medium text-text-primary">
+              {t('settings:rectification_record.title')}
+            </h3>
+            <p className="mt-1 text-xs text-text-muted">
+              {t('settings:rectification_record.confirmed_on', {
+                date: formatRecordDate(rectificationRecord.confirmedAt, i18n.language),
+              })}
+            </p>
+            <dl className="mt-3 space-y-1.5 text-sm">
+              <div className="flex flex-wrap items-baseline gap-1.5">
+                <dt className="text-text-muted">
+                  {t('settings:rectification_record.sign_label')}
+                </dt>
+                <dd className="font-medium text-text-primary">
+                  {rectificationRecord.originalSign
+                    ? t('settings:rectification_record.sign_change', {
+                        from: titleCaseSign(rectificationRecord.originalSign),
+                        to: titleCaseSign(rectificationRecord.rectifiedSign),
+                      })
+                    : t('settings:rectification_record.sign_from_unknown', {
+                        to: titleCaseSign(rectificationRecord.rectifiedSign),
+                      })}
+                </dd>
+              </div>
+              <div className="flex flex-wrap items-baseline gap-1.5">
+                <dt className="text-text-muted">
+                  {t('settings:rectification_record.time_label')}
+                </dt>
+                <dd className="font-medium text-text-primary">
+                  {rectificationRecord.originalTime
+                    ? t('settings:rectification_record.time_change', {
+                        from: rectificationRecord.originalTime,
+                        to: rectificationRecord.rectifiedTime,
+                      })
+                    : t('settings:rectification_record.time_from_unknown', {
+                        to: rectificationRecord.rectifiedTime,
+                      })}
+                </dd>
+              </div>
+              <div className="flex flex-wrap items-baseline gap-1.5">
+                <dt className="text-text-muted">
+                  {t('settings:rectification_record.band_label')}
+                </dt>
+                <dd className="font-medium text-text-primary">
+                  {t(`settings:rectification_record.band_${rectificationRecord.band}`)}
+                </dd>
+              </div>
+              <div className="flex flex-wrap items-baseline gap-1.5">
+                <dt className="text-text-muted">
+                  {t('settings:rectification_record.method_label')}
+                </dt>
+                <dd className="font-medium text-text-primary">
+                  {t(`settings:rectification_record.mode_${rectificationRecord.mode}`)}
+                </dd>
+              </div>
+            </dl>
+            <p className="mt-3 text-xs text-text-muted">
+              {t('settings:rectification_record.events_informed', {
+                count: rectificationRecord.supportingEventIds.length,
+              })}
+            </p>
+            {activeProfileId != null && (
+              <p className="mt-3 text-xs">
+                <Link
+                  to={`/rectify/${activeProfileId}`}
+                  className="font-medium text-accent-primary underline underline-offset-2 hover:text-accent-gold-bright"
+                >
+                  {t('settings:rectification_record.rerun_link')}
+                </Link>
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Location */}
         <div>

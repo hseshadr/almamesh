@@ -36,6 +36,7 @@ export * from './adapters/rectification';
 export * from './predictive';
 export * from './mesh';
 export * from './rectification';
+export * from './rectificationRecords';
 export * from './contentMode';
 export * from './language';
 export * from './interpretation';

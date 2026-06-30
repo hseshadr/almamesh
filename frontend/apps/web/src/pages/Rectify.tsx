@@ -13,10 +13,12 @@ import { useTranslation } from 'react-i18next';
 import {
   appEvents,
   type BirthMeta,
+  buildRectificationRecord,
   isStructuredLifeEvent,
   useChartLibraryStore,
   useLifeEventsStore,
   useProfilesStore,
+  useRectificationRecordsStore,
 } from '@almamesh/store';
 import type { ProcessedBirthData, RectificationCandidate } from '@almamesh/shared-types';
 import type { TimeConfidence } from '@almamesh/constants';
@@ -161,6 +163,29 @@ export function RectifyPage(): ReactElement {
       timezone: loc.timezone ?? 'UTC',
       location_name: loc.location_name ?? '',
     };
+
+    // Persist a display-only record of THIS rectification before changing the
+    // birth time, so Settings can show a standing "was X, now Y" account. The
+    // chosen candidate's sign/time + the result's band/margin/mode are captured
+    // alongside the opaque ids of the structured events that informed the fit —
+    // no life-event narrative is ever stored (privacy posture).
+    if (state.result != null) {
+      const structuredEventIds = useLifeEventsStore
+        .getState()
+        .getEvents(profileId)
+        .filter(isStructuredLifeEvent)
+        .map((e) => e.id);
+      useRectificationRecordsStore.getState().setRecord(
+        buildRectificationRecord({
+          profileId,
+          result: state.result,
+          candidate: pendingCandidate,
+          originalTime: enteredTime,
+          structuredEventIds,
+          confirmedAt: Date.now(),
+        }),
+      );
+    }
 
     appEvents.emit('birth-info-changed', { birth, profileId });
     setShowModal(false);
