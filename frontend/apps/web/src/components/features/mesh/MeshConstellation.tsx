@@ -86,7 +86,7 @@ function NodeCaption({
 }): ReactElement {
   const { t } = useTranslation(['mesh', 'predictive']);
   return (
-    <span className="mt-1.5 flex max-w-[7.5rem] flex-col items-center text-center">
+    <span className="mt-1.5 flex max-w-[5.5rem] sm:max-w-[7.5rem] flex-col items-center text-center">
       <span className="truncate text-sm font-medium text-text-primary">{node.profile.name}</span>
       <span className="text-[10px] uppercase tracking-[0.18em] text-text-tertiary">
         {relationshipLabel}
@@ -238,7 +238,7 @@ export function MeshConstellation({
 
   return (
     <div
-      className="relative mx-auto aspect-square w-full max-w-2xl"
+      className="relative mx-auto aspect-square w-full max-w-2xl overflow-hidden"
       data-testid="mesh-constellation"
     >
       <ThreadCanvas members={members} positions={positions} hoveredId={hoveredId} />

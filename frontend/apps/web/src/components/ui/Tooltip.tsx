@@ -37,7 +37,7 @@ export function Tooltip({ content, children, side = 'top', className }: TooltipP
           role="tooltip"
           id={id}
           className={cn(
-            'pointer-events-none absolute z-50 whitespace-nowrap rounded-md border border-ui-border',
+            'pointer-events-none absolute z-50 max-w-[min(16rem,calc(100vw-1rem))] whitespace-normal rounded-md border border-ui-border sm:whitespace-nowrap',
             'bg-background-elevated px-2.5 py-1.5 font-sans text-xs text-text-body',
             'shadow-[0_8px_24px_-10px_rgba(0,0,0,0.7)]',
             sidePos,

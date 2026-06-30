@@ -29,7 +29,7 @@ export function AppLayout({ children, showFooter = false }: AppLayoutProps) {
     <div className="flex min-h-screen flex-col bg-observatory">
       <header className="sticky top-0 z-40 border-b border-ui-border bg-background-primary/80 backdrop-blur-sm">
         <div className="mx-auto flex h-14 w-full max-w-7xl items-center justify-between px-4 md:px-6">
-          <div className="flex items-baseline gap-5">
+          <div className="flex items-baseline gap-3 sm:gap-5">
             {/* Wordmark — manuscript display face. Links to the shareable
                 `/welcome` splash so a returning visitor can always revisit the
                 landing (the bare `/` would just bounce them to /dashboard). */}
@@ -52,7 +52,7 @@ export function AppLayout({ children, showFooter = false }: AppLayoutProps) {
             </Link>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
             {/* Named-profile switcher — multi-user on a shared device, no login. */}
             <ProfileSwitcher />
 

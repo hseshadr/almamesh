@@ -421,7 +421,7 @@ export default function ProfileSettings() {
         </div>
 
         {/* Birth Date & Time Row */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label className="block text-sm font-medium text-text-primary mb-2">{t('settings:profile.birth_date_label')}</label>
             <input
@@ -446,7 +446,7 @@ export default function ProfileSettings() {
         <div className="rounded-lg border border-ui-border bg-background-secondary/40 p-4">
           <h3 className="text-sm font-medium text-text-primary">{t('settings:profile.rectification_title')}</h3>
           <p className="text-text-muted text-xs mt-1 mb-3">{t('settings:profile.rectification_description')}</p>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="block text-xs font-medium text-text-secondary mb-2">{t('settings:profile.rectified_time_label')}</label>
               <input

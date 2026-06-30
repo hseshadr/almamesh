@@ -45,7 +45,10 @@ export function TabsList({ children, className }: TabsListProps) {
   return (
     <div
       role="tablist"
-      className={cn('inline-flex items-center gap-1 border-b border-ui-border', className)}
+      className={cn(
+        'inline-flex max-w-full items-center gap-1 overflow-x-auto border-b border-ui-border [scrollbar-width:thin]',
+        className,
+      )}
     >
       {children}
     </div>

@@ -75,8 +75,10 @@ export function MarkdownContent({
         'hover:prose-a:text-accent-gold hover:prose-a:underline',
         // Code blocks - using accent gold for inline code
         'prose-code:text-accent-gold prose-code:bg-background-darker prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded',
-        // Pre blocks - using darkest background
+        // Pre blocks - using darkest background; scroll long code lines and
+        // break long inline tokens/URLs so they never overflow a 390px column.
         'prose-pre:bg-background-darkest prose-pre:border prose-pre:border-ui-border-dark',
+        'prose-pre:overflow-x-auto break-words',
         // Compact mode — tighter vertical rhythm, but still 16px and readable
         // (NOT prose-sm). Used inside dense cards/disclosures.
         compact && 'prose-p:my-2.5 prose-ul:my-2.5 prose-ol:my-2.5 prose-h2:mt-4 prose-h3:mt-3',

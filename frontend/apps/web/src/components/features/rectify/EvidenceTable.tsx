@@ -53,11 +53,12 @@ export function EvidenceTable({ events }: EvidenceTableProps): ReactElement | nu
   }
 
   return (
-    <table
-      className="w-full border-collapse text-xs"
-      aria-label={t('results.evidence_table_label')}
-      data-testid="evidence-table"
-    >
+    <div className="overflow-x-auto">
+      <table
+        className="w-full border-collapse text-xs"
+        aria-label={t('results.evidence_table_label')}
+        data-testid="evidence-table"
+      >
       <tbody>
         {events.map((ev) => (
           <tr
@@ -81,6 +82,7 @@ export function EvidenceTable({ events }: EvidenceTableProps): ReactElement | nu
           </tr>
         ))}
       </tbody>
-    </table>
+      </table>
+    </div>
   );
 }

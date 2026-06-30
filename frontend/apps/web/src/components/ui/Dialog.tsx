@@ -63,7 +63,7 @@ export function Dialog({ open, onClose, title, children, className }: DialogProp
             aria-modal="true"
             aria-labelledby={title != null ? titleId : undefined}
             className={cn(
-              'relative z-10 w-full max-w-lg rounded-lg border border-ui-border',
+              'relative z-10 max-h-[85dvh] w-full max-w-lg overflow-y-auto rounded-lg border border-ui-border',
               'bg-background-secondary shadow-[0_24px_64px_-16px_rgba(0,0,0,0.8)]',
               className,
             )}

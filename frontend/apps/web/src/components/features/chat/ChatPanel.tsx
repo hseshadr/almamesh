@@ -245,7 +245,7 @@ export function ChatPanel({
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={t('input.placeholder')}
-            className="flex-1 px-4 py-3 bg-background-primary border border-ui-border rounded-xl text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-accent-gold/50 resize-none text-sm disabled:opacity-50"
+            className="flex-1 min-w-0 px-4 py-3 bg-background-primary border border-ui-border rounded-xl text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-accent-gold/50 resize-none text-sm disabled:opacity-50"
             rows={1}
             disabled={isStreaming}
             data-testid="chat-input"
