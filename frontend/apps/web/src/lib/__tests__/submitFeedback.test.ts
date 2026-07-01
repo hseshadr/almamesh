@@ -24,6 +24,7 @@ describe('submitFeedback', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it('POSTs the exact contract shape as JSON to /api/feedback', async () => {
@@ -43,6 +44,27 @@ describe('submitFeedback', () => {
       message: 'More divisional charts please',
       turnstileToken: 'tok-123',
     });
+  });
+
+  it('sends the X-App-Version header (falls back to "dev" outside a production build)', async () => {
+    const fetchMock = mockFetchResponse(200);
+    vi.stubGlobal('fetch', fetchMock);
+
+    await submitFeedback(PAYLOAD);
+
+    const [, init] = (fetchMock as unknown as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(init.headers['X-App-Version']).toBe('dev');
+  });
+
+  it('sends the build-injected app version as the X-App-Version header', async () => {
+    vi.stubGlobal('__APP_VERSION__', '9.9.9');
+    const fetchMock = mockFetchResponse(200);
+    vi.stubGlobal('fetch', fetchMock);
+
+    await submitFeedback(PAYLOAD);
+
+    const [, init] = (fetchMock as unknown as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(init.headers['X-App-Version']).toBe('9.9.9');
   });
 
   it('maps a 200 response to a success result', async () => {
