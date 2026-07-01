@@ -28,6 +28,9 @@ export type {
 // Includes `PlanetName` (canonical lowercase planet id) — the single source.
 export * from './energy';
 
+// Backup & Restore envelope contract (export/import all user data — Spec 061).
+export * from './backup';
+
 // Mesh relationship vocabulary (anchor "self" + backend-aligned member values).
 export * from './mesh';
 

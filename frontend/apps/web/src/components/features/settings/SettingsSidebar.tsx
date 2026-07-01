@@ -83,6 +83,22 @@ const SETTINGS_NAV_ITEMS: SettingsNavItem[] = [
       </svg>
     ),
   },
+  {
+    path: '/settings/data',
+    testid: 'data',
+    labelKey: 'nav.data',
+    descriptionKey: 'nav.data_description',
+    icon: (
+      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M4 7v10c0 1.657 3.582 3 8 3s8-1.343 8-3V7M4 7c0 1.657 3.582 3 8 3s8-1.343 8-3M4 7c0-1.657 3.582-3 8-3s8 1.343 8 3"
+        />
+      </svg>
+    ),
+  },
 ];
 
 export function SettingsSidebar() {

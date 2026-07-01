@@ -14,7 +14,9 @@
     "ai": "AI Model",
     "ai_description": "Connect OpenRouter or your own AI endpoint",
     "preferences": "Preferences",
-    "preferences_description": "Display and interpretation options"
+    "preferences_description": "Display and interpretation options",
+    "data": "Data",
+    "data_description": "Back up or restore your data"
   },
   "layout": {
     "breadcrumb_aria": "Breadcrumb",
@@ -223,5 +225,31 @@
     "processing": "Processing...",
     "confirm": "Confirm & Regenerate",
     "flip_ack": "This changes your rising sign {{from}} → {{to}} and shifts every house in your chart. I understand and want to continue."
+  },
+  "backup": {
+    "title": "Backup & Restore",
+    "subtitle": "Move all your data — profiles, charts, chat, and settings — to another browser. Nothing is uploaded; you save one file and carry it yourself.",
+    "export_heading": "Export",
+    "export_button": "Export my data",
+    "export_hint": "Downloads a single file with your profiles, charts, and chat history.",
+    "passphrase_label": "Protect with a password (optional)",
+    "passphrase_placeholder": "Leave blank for no encryption",
+    "sensitivity_note": "This file contains your birth data and chat history — keep it private.",
+    "import_heading": "Restore",
+    "import_button": "Restore from a backup",
+    "import_hint": "Replaces this browser's data with a backup file. A copy of your current data is saved first.",
+    "confirm_title": "Replace all data on this browser?",
+    "confirm_body": "This replaces your current profiles, charts, and chat with the backup. A copy of your current data was downloaded first, so you can undo this.",
+    "confirm_ok": "Replace & restore",
+    "cancel": "Cancel",
+    "passphrase_prompt_title": "Password required",
+    "passphrase_prompt_body": "This backup is password-protected. Enter its password to restore.",
+    "passphrase_prompt_submit": "Unlock",
+    "status_exported": "Backup downloaded.",
+    "status_imported": "Restored. Reloading…",
+    "error_bad_format": "That file isn't an AlmaMesh backup.",
+    "error_too_new": "This backup is from a newer version of AlmaMesh. Update the app first.",
+    "error_bad_passphrase": "Wrong password. Please try again.",
+    "error_generic": "Something went wrong. Please try again."
   }
 }
