@@ -16,7 +16,9 @@
  *   is computed in TypeScript.
  */
 
-import { create } from 'zustand';
+import { create, type StateCreator } from 'zustand';
+import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware';
+import { get as idbGet, set as idbSet, del as idbDel } from 'idb-keyval';
 import type {
   DomainsCtx,
   StrengthCtx,
@@ -84,7 +86,136 @@ const EMPTY_CONTEXTS = {
 const requestKeyOf = (input: EnsurePredictiveInput): string =>
   `${input.profileKey}@${input.referenceInstant}`;
 
-export const usePredictiveStore = create<PredictiveStore>()((set, get) => ({
+// --- Persistence (IndexedDB via idb-keyval) ---------------------------------
+//
+// The predictive superset takes ~30s under Pyodide. Without persistence the
+// store reset to `idle` on every page reload / PWA relaunch, so the auto-kickoff
+// re-ran the whole compute even though the chart + reference day were unchanged
+// ("Life Atlas keeps regenerating"). We persist ONLY a completed (`ready`)
+// result keyed by `${profileKey}@${referenceInstant}`, so a reload with the same
+// chart + day rehydrates to `ready` and `ensurePredictive` short-circuits.
+
+/** Bump when the persisted predictive shape changes; always pair with `migrate`. */
+export const PREDICTIVE_PERSIST_VERSION = 1;
+
+/** The single IndexedDB key holding the persisted predictive slice. */
+export const PREDICTIVE_PERSIST_NAME = 'almamesh-predictive';
+
+/**
+ * The slice `partialize` persists. Written ONLY when `status === 'ready'` (a
+ * completed result); a `loading`/`error` state is flattened to `idle` so a
+ * reload mid-compute or a cached failure never re-serves a broken/half state.
+ */
+export interface PersistedPredictiveState {
+  status: PredictiveStatus;
+  error?: string;
+  transitCtx?: TransitCtx;
+  vargaCtxFull?: VargaCtxFull;
+  strengthCtx?: StrengthCtx;
+  domainsCtx?: DomainsCtx;
+  profileKey?: string;
+  requestKey?: string;
+}
+
+/** The clean idle snapshot both `migrate` and the rehydration coercer fall back to. */
+const IDLE_PERSISTED: PersistedPredictiveState = {
+  status: 'idle',
+  error: undefined,
+  ...EMPTY_CONTEXTS,
+  profileKey: undefined,
+  requestKey: undefined,
+};
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+/** True only where IndexedDB exists (browsers/workers), not in SSR/unit tests. */
+function hasIndexedDb(): boolean {
+  return typeof indexedDB !== 'undefined';
+}
+
+/**
+ * zustand `StateStorage` backed by IndexedDB (`idb-keyval`) — the exact pattern
+ * the chart library uses. Outside a browser (SSR, unit tests) IndexedDB is
+ * absent, so every op is a benign no-op and the store simply runs in-memory;
+ * persistence is a browser-only enhancement, not a correctness requirement.
+ */
+const idbStorage: StateStorage = {
+  getItem: async (name) => (hasIndexedDb() ? ((await idbGet<string>(name)) ?? null) : null),
+  setItem: async (name, value) => {
+    if (hasIndexedDb()) {
+      await idbSet(name, value);
+    }
+  },
+  removeItem: async (name) => {
+    if (hasIndexedDb()) {
+      await idbDel(name);
+    }
+  },
+};
+
+/** Persist ONLY a completed (`ready`) result + its identity; else persist idle. */
+function partializePredictive(state: PredictiveStore): PersistedPredictiveState {
+  if (state.status !== 'ready') {
+    return IDLE_PERSISTED;
+  }
+  return {
+    status: 'ready',
+    error: undefined,
+    transitCtx: state.transitCtx,
+    vargaCtxFull: state.vargaCtxFull,
+    strengthCtx: state.strengthCtx,
+    domainsCtx: state.domainsCtx,
+    profileKey: state.profileKey,
+    requestKey: state.requestKey,
+  };
+}
+
+/**
+ * Coerce ANY persisted blob into a SAFE snapshot. Only a fully-formed `ready`
+ * result (its contexts plus a `requestKey` identity) survives a reload; a
+ * persisted `loading`/`error`/unknown shape is flattened to a clean `idle` so a
+ * reload mid-compute or a cached failure never wedges the store or serves stale
+ * or half-computed data.
+ */
+export function coercePersistedPredictive(persisted: unknown): PersistedPredictiveState {
+  if (
+    !isPlainRecord(persisted) ||
+    persisted.status !== 'ready' ||
+    typeof persisted.requestKey !== 'string'
+  ) {
+    return IDLE_PERSISTED;
+  }
+  return {
+    status: 'ready',
+    error: undefined,
+    transitCtx: persisted.transitCtx as TransitCtx | undefined,
+    vargaCtxFull: persisted.vargaCtxFull as VargaCtxFull | undefined,
+    strengthCtx: persisted.strengthCtx as StrengthCtx | undefined,
+    domainsCtx: persisted.domainsCtx as DomainsCtx | undefined,
+    profileKey: typeof persisted.profileKey === 'string' ? persisted.profileKey : undefined,
+    requestKey: persisted.requestKey,
+  };
+}
+
+/**
+ * Any old/unknown persisted VERSION → a clean idle slate (forcing a fresh
+ * compute). On the CURRENT version the untouched blob flows through `merge`.
+ */
+export function migratePredictivePersistedState(
+  _persisted: unknown,
+  _fromVersion: number,
+): PersistedPredictiveState {
+  return IDLE_PERSISTED;
+}
+
+/** Merge the (coerced) persisted slice onto the live store, keeping its actions. */
+function mergePredictivePersisted(persisted: unknown, current: PredictiveStore): PredictiveStore {
+  return { ...current, ...coercePersistedPredictive(persisted) };
+}
+
+export const predictiveStoreCreator: StateCreator<PredictiveStore> = (set, get) => ({
   status: 'idle',
   error: undefined,
   ...EMPTY_CONTEXTS,
@@ -144,4 +275,15 @@ export const usePredictiveStore = create<PredictiveStore>()((set, get) => ({
       requestKey: undefined,
     });
   },
-}));
+});
+
+export const usePredictiveStore = create<PredictiveStore>()(
+  persist<PredictiveStore, [], [], PersistedPredictiveState>(predictiveStoreCreator, {
+    name: PREDICTIVE_PERSIST_NAME,
+    version: PREDICTIVE_PERSIST_VERSION,
+    storage: createJSONStorage(() => idbStorage),
+    partialize: partializePredictive,
+    migrate: migratePredictivePersistedState,
+    merge: mergePredictivePersisted,
+  }),
+);
