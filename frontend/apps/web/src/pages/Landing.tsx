@@ -24,7 +24,7 @@ import {
  * `@almamesh/browser` at runtime — the signature hero force-field is driven by a
  * static `DEMO_CHART` fixture, so a bouncing visitor downloads nothing of the
  * ~38 MB engine. The bootstrap is deferred and only prewarmed once the visitor
- * shows intent on a "Draw my chart" CTA (see `usePrewarmEngineOnIntent`).
+ * shows intent on a "Generate my chart" CTA (see `usePrewarmEngineOnIntent`).
  */
 export default function Landing(): ReactElement {
   // Establish the `landing` namespace as the page default so nested sections

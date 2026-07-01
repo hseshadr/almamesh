@@ -15,7 +15,16 @@ vi.mock('../../forcefield', () => ({
   ForceFieldExperience: () => <div data-testid="forcefield-stub" />,
 }));
 
+// The CTA routes on whether a chart already exists — control that signal.
+vi.mock('../../../lib/localChart', () => ({
+  hasLocalChart: vi.fn(() => false),
+}));
+
+import { hasLocalChart } from '../../../lib/localChart';
+import { GITHUB_URL } from './LandingFooter';
 import { Hero } from './Hero';
+
+const mockHasLocalChart = vi.mocked(hasLocalChart);
 
 function renderHero() {
   return render(
@@ -28,6 +37,7 @@ function renderHero() {
 describe('Hero', () => {
   beforeEach(() => {
     useLanguageStore.setState({ language: 'en' });
+    mockHasLocalChart.mockReturnValue(false);
   });
 
   it('renders the approved headline', () => {
@@ -40,13 +50,45 @@ describe('Hero', () => {
     ).toBeTruthy();
   });
 
-  it('renders the CTA as a link to /onboarding', () => {
-    renderHero();
-    expect(screen.getByTestId('hero-cta').getAttribute('href')).toBe('/onboarding');
-  });
-
   it('renders the microcopy', () => {
     renderHero();
     expect(screen.getByText(/Works offline · 3 languages · open engine\./i)).toBeTruthy();
+  });
+
+  describe('first-time visitor (no local chart)', () => {
+    it('routes the CTA to /onboarding', () => {
+      renderHero();
+      expect(screen.getByTestId('hero-cta').getAttribute('href')).toBe('/onboarding');
+    });
+
+    it('labels the CTA "Generate my chart — free"', () => {
+      renderHero();
+      expect(screen.getByTestId('hero-cta').textContent).toContain('Generate my chart — free');
+    });
+  });
+
+  describe('returning visitor (a chart already exists locally)', () => {
+    beforeEach(() => {
+      mockHasLocalChart.mockReturnValue(true);
+    });
+
+    it('routes the CTA straight to /dashboard', () => {
+      renderHero();
+      expect(screen.getByTestId('hero-cta').getAttribute('href')).toBe('/dashboard');
+    });
+
+    it('labels the CTA "Open my chart"', () => {
+      renderHero();
+      expect(screen.getByTestId('hero-cta').textContent).toContain('Open my chart');
+    });
+  });
+
+  it('surfaces a prominent "free & open source" GitHub badge pointing at the repo', () => {
+    renderHero();
+    const badge = screen.getByTestId('hero-github-badge');
+    expect(badge.getAttribute('href')).toBe(GITHUB_URL);
+    expect(badge.textContent).toContain('Free & open source on GitHub');
+    // A real inline octocat SVG — no external icon CDN (project zero-egress rule).
+    expect(badge.querySelector('svg')).toBeTruthy();
   });
 });

@@ -6,11 +6,11 @@ import { useChartEngine } from '../providers/chartEngineContext'
  *
  * The marketing landing page does NOT auto-boot the ~38 MB engine (see
  * `AlmaMeshRuntimeProvider` — it gates the mount auto-boot off the landing
- * route). To keep the actual "Draw my chart" click from feeling like a cold
+ * route). To keep the actual "Generate my chart" click from feeling like a cold
  * wait, spread these onto the CTA (a `<Link>`/`<button>`):
  *
  * ```tsx
- * <Link to="/onboarding" {...usePrewarmEngineOnIntent()}>Draw my chart</Link>
+ * <Link to="/onboarding" {...usePrewarmEngineOnIntent()}>Generate my chart</Link>
  * ```
  *
  * Each handler calls the context's idempotent `startBootstrap()`, so the boot
