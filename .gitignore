@@ -97,5 +97,8 @@ frontend/apps/web/*.config.cs.ts
 # Claude Code session scratch
 docs/superpowers/
 
+# Local-only docs (owner runbooks / private notes — never committed)
+docs/*.local.md
+
 # Skyfield ephemeris (downloaded at runtime, ~17MB)
 *.bsp
