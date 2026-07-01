@@ -33,6 +33,19 @@ export type FeedbackResult =
 
 const FEEDBACK_ENDPOINT = '/api/feedback';
 
+/**
+ * The app version, injected at build time by Vite `define` (see vite.config.ts)
+ * from `package.json`. Outside a production build — unit tests, `vite dev` — the
+ * global is absent, so we fall back to `'dev'` (mirrors the `'dev'` turnstile
+ * token). Read per-call so tests can stub it. The server records this verbatim
+ * as `app_version`, letting feedback be correlated to the release it came from.
+ */
+declare const __APP_VERSION__: string | undefined;
+
+function appVersion(): string {
+  return typeof __APP_VERSION__ === 'string' && __APP_VERSION__.length > 0 ? __APP_VERSION__ : 'dev';
+}
+
 function reasonForStatus(status: number): FeedbackFailureReason {
   if (status === 400) return 'bad_request';
   if (status === 403) return 'forbidden';
@@ -44,7 +57,7 @@ export async function submitFeedback(payload: FeedbackPayload): Promise<Feedback
   try {
     const response = await fetch(FEEDBACK_ENDPOINT, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-App-Version': appVersion() },
       body: JSON.stringify(payload),
     });
     if (response.ok) return { ok: true };

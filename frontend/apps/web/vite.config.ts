@@ -2,8 +2,15 @@ import { createLogger, defineConfig, Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import path from 'path'
-import { writeFileSync } from 'fs'
+import { writeFileSync, readFileSync } from 'fs'
 import { createHash } from 'crypto'
+
+// App version injected into the bundle (see `define` below) so client code can
+// report which release it is — e.g. submitFeedback's `X-App-Version` header.
+// Read from package.json at config load; the single source of truth for version.
+const APP_VERSION: string = JSON.parse(
+  readFileSync(path.resolve(__dirname, 'package.json'), 'utf-8'),
+).version
 
 // Pyodide's `pyodide.mjs` statically imports Node builtins (`node:fs`, `node:url`,
 // …) behind runtime environment guards that NEVER execute in the browser. Vite
@@ -203,6 +210,12 @@ function pwaPlugin(): Plugin[] {
 export default defineConfig({
   customLogger: quietLogger,
   plugins: [react(), versionPlugin(), ...pwaPlugin()],
+  // Inline the app version at build time so client code (e.g. the feedback
+  // widget's X-App-Version header) reports the running release. Absent in
+  // `vite dev` / unit tests, where the reader falls back to 'dev'.
+  define: {
+    __APP_VERSION__: JSON.stringify(APP_VERSION),
+  },
   // Pyodide must NOT be pre-bundled: optimizeDeps rewrites the worker entry and
   // breaks `new Worker(new URL('./chartWorker.ts', import.meta.url))` resolution.
   optimizeDeps: {
