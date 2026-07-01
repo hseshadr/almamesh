@@ -17,7 +17,9 @@
     "ai": "Modelo de IA",
     "ai_description": "Conecte o OpenRouter ou o seu próprio endpoint de IA",
     "preferences": "Preferências",
-    "preferences_description": "Opções de exibição e interpretação"
+    "preferences_description": "Opções de exibição e interpretação",
+    "data": "Dados",
+    "data_description": "Faça backup ou restaure seus dados"
   },
   "layout": {
     "breadcrumb_aria": "Trilha de navegação",
@@ -226,5 +228,31 @@
     "processing": "Processando...",
     "confirm": "Confirmar e regenerar",
     "flip_ack": "Isto muda o seu signo ascendente de {{from}} → {{to}} e desloca todas as casas do seu mapa. Eu entendo e quero continuar."
+  },
+  "backup": {
+    "title": "Backup e Restauração",
+    "subtitle": "Mova todos os seus dados — perfis, mapas, chat e configurações — para outro navegador. Nada é enviado; você salva um único arquivo e o leva com você.",
+    "export_heading": "Exportar",
+    "export_button": "Exportar meus dados",
+    "export_hint": "Baixa um único arquivo com seus perfis, mapas e histórico de chat.",
+    "passphrase_label": "Proteger com uma senha (opcional)",
+    "passphrase_placeholder": "Deixe em branco para não criptografar",
+    "sensitivity_note": "Este arquivo contém seus dados de nascimento e histórico de chat — mantenha-o privado.",
+    "import_heading": "Restaurar",
+    "import_button": "Restaurar de um backup",
+    "import_hint": "Substitui os dados deste navegador por um arquivo de backup. Primeiro é salva uma cópia dos seus dados atuais.",
+    "confirm_title": "Substituir todos os dados neste navegador?",
+    "confirm_body": "Isto substitui seus perfis, mapas e chat atuais pelo backup. Primeiro foi baixada uma cópia dos seus dados atuais, então você pode desfazer isso.",
+    "confirm_ok": "Substituir e restaurar",
+    "cancel": "Cancelar",
+    "passphrase_prompt_title": "Senha necessária",
+    "passphrase_prompt_body": "Este backup é protegido por senha. Digite a senha para restaurar.",
+    "passphrase_prompt_submit": "Desbloquear",
+    "status_exported": "Backup baixado.",
+    "status_imported": "Restaurado. Recarregando…",
+    "error_bad_format": "Esse arquivo não é um backup do AlmaMesh.",
+    "error_too_new": "Este backup é de uma versão mais recente do AlmaMesh. Atualize o app primeiro.",
+    "error_bad_passphrase": "Senha incorreta. Tente novamente.",
+    "error_generic": "Algo deu errado. Tente novamente."
   }
 }

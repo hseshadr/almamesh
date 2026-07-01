@@ -17,7 +17,9 @@
     "ai": "Modelo de IA",
     "ai_description": "Conecta OpenRouter o tu propio endpoint de IA",
     "preferences": "Preferencias",
-    "preferences_description": "Opciones de visualización e interpretación"
+    "preferences_description": "Opciones de visualización e interpretación",
+    "data": "Datos",
+    "data_description": "Haz una copia de seguridad o restaura tus datos"
   },
   "layout": {
     "breadcrumb_aria": "Ruta de navegación",
@@ -226,5 +228,31 @@
     "processing": "Procesando...",
     "confirm": "Confirmar y regenerar",
     "flip_ack": "Esto cambia tu signo ascendente de {{from}} → {{to}} y desplaza todas las casas de tu carta. Lo entiendo y quiero continuar."
+  },
+  "backup": {
+    "title": "Copia de seguridad y restauración",
+    "subtitle": "Mueve todos tus datos — perfiles, cartas, chat y ajustes — a otro navegador. No se sube nada; guardas un único archivo y lo llevas contigo.",
+    "export_heading": "Exportar",
+    "export_button": "Exportar mis datos",
+    "export_hint": "Descarga un único archivo con tus perfiles, cartas e historial de chat.",
+    "passphrase_label": "Proteger con una contraseña (opcional)",
+    "passphrase_placeholder": "Déjalo en blanco para no cifrar",
+    "sensitivity_note": "Este archivo contiene tus datos de nacimiento y tu historial de chat — mantenlo privado.",
+    "import_heading": "Restaurar",
+    "import_button": "Restaurar desde una copia",
+    "import_hint": "Reemplaza los datos de este navegador con un archivo de copia. Primero se guarda una copia de tus datos actuales.",
+    "confirm_title": "¿Reemplazar todos los datos de este navegador?",
+    "confirm_body": "Esto reemplaza tus perfiles, cartas y chat actuales con la copia. Primero se descargó una copia de tus datos actuales, así que puedes deshacerlo.",
+    "confirm_ok": "Reemplazar y restaurar",
+    "cancel": "Cancelar",
+    "passphrase_prompt_title": "Se requiere contraseña",
+    "passphrase_prompt_body": "Esta copia está protegida con contraseña. Introduce su contraseña para restaurar.",
+    "passphrase_prompt_submit": "Desbloquear",
+    "status_exported": "Copia de seguridad descargada.",
+    "status_imported": "Restaurado. Recargando…",
+    "error_bad_format": "Ese archivo no es una copia de seguridad de AlmaMesh.",
+    "error_too_new": "Esta copia es de una versión más reciente de AlmaMesh. Actualiza la app primero.",
+    "error_bad_passphrase": "Contraseña incorrecta. Inténtalo de nuevo.",
+    "error_generic": "Algo salió mal. Inténtalo de nuevo."
   }
 }

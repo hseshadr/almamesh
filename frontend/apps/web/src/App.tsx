@@ -35,6 +35,7 @@ const ProfileSettings = lazy(() => import('./pages/settings/ProfileSettings'))
 const PeopleSettings = lazy(() => import('./pages/settings/PeopleSettings'))
 const PreferencesSettings = lazy(() => import('./pages/settings/PreferencesSettings'))
 const AiSettings = lazy(() => import('./pages/settings/AiSettings'))
+const DataSettings = lazy(() => import('./pages/settings/DataSettings'))
 
 /**
  * Loading fallback component for Suspense boundaries
@@ -113,6 +114,7 @@ function AppRoutes() {
           <Route path="people" element={<PeopleSettings />} />
           <Route path="ai" element={<AiSettings />} />
           <Route path="preferences" element={<PreferencesSettings />} />
+          <Route path="data" element={<DataSettings />} />
         </Route>
 
         {/* Legal pages - publicly accessible */}
