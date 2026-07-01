@@ -166,4 +166,43 @@ describe('pickBackupFile', () => {
 
     await expect(pickBackupFile()).resolves.toBeNull();
   });
+
+  // ITEM 5c — some browsers never fire `cancel`; the only signal that the dialog
+  // closed with no selection is the window regaining focus. Resolve null then.
+  it('resolves null from the <input> fallback when the window refocuses without a change', async () => {
+    vi.useFakeTimers();
+    // A fake input that emits NO event on click (mimics a no-`cancel` browser).
+    const silentInput = {
+      type: '',
+      accept: '',
+      files: [] as File[],
+      addEventListener() {},
+      click() {},
+    };
+    vi.spyOn(document, 'createElement').mockReturnValue(
+      silentInput as unknown as HTMLElement,
+    );
+
+    const promise = pickBackupFile();
+    // The dialog closes → the window regains focus with no `change` fired.
+    window.dispatchEvent(new Event('focus'));
+    await vi.advanceTimersByTimeAsync(0);
+
+    await expect(promise).resolves.toBeNull();
+    vi.useRealTimers();
+  });
+
+  it('still returns the file text when a real selection races the refocus (no double-resolve)', async () => {
+    const file = new File(['REAL'], 'backup.json', { type: 'application/json' });
+    const fakeInput = makeFakeFileInput({ file, event: 'change' });
+    vi.spyOn(document, 'createElement').mockReturnValue(
+      fakeInput as unknown as HTMLElement,
+    );
+
+    const promise = pickBackupFile();
+    // The window also refocuses as the dialog closes; the `change` path must win.
+    window.dispatchEvent(new Event('focus'));
+
+    await expect(promise).resolves.toBe('REAL');
+  });
 });

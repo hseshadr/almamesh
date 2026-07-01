@@ -96,7 +96,8 @@ export interface StagedImport {
  * only then calls {@link commitBackupImport}.
  *
  * Failure modes are typed so the UI can message the exact reason:
- *  - not JSON, or not an AlmaMesh backup ⇒ {@link BackupError} `bad_format`
+ *  - not JSON, not an AlmaMesh backup, or a below-range `formatVersion` (< 1)
+ *    ⇒ {@link BackupError} `bad_format`
  *  - made by a newer app (`formatVersion > 1`) ⇒ {@link BackupError} `too_new`
  *  - encrypted but no passphrase given ⇒ {@link BackupCryptoError}
  *    `bad_passphrase` (so the UI knows to prompt), and a wrong passphrase
@@ -127,6 +128,9 @@ export async function stageBackupImport(
       'too_new',
       'This backup was made by a newer version of AlmaMesh. Update the app first.',
     );
+  }
+  if (record.formatVersion < 1) {
+    throw new BackupError('bad_format', 'This backup has an invalid format version.');
   }
 
   const wasEncrypted = record.encryption === 'aes-gcm';

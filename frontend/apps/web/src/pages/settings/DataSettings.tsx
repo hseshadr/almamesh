@@ -61,6 +61,7 @@ export default function DataSettings() {
       const result = await saveBackupFile(filename, text);
       if (result === 'saved') {
         setStatus(t('backup.status_exported'));
+        setPassword(''); // don't leave the passphrase lingering in the field
       }
     } catch {
       setError(t('backup.error_generic'));
@@ -121,7 +122,14 @@ export default function DataSettings() {
     try {
       // Safety net FIRST: download a copy of the CURRENT data so Replace is undoable.
       const current = await buildBackupExport();
-      await saveBackupFile('almamesh-backup-before-import.json', current.text);
+      const saved = await saveBackupFile('almamesh-backup-before-import.json', current.text);
+      if (saved !== 'saved') {
+        // The user cancelled the safety-net save — abort WITHOUT touching any
+        // data (no commit, no reload), so the promised undo backup is never skipped.
+        setConfirmOpen(false);
+        setError(t('backup.error_safety_cancelled'));
+        return;
+      }
       await commitBackupImport(staged.envelope);
       setConfirmOpen(false);
       setStatus(t('backup.status_imported'));

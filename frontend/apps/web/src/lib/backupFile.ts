@@ -124,25 +124,51 @@ export async function pickBackupFile(): Promise<string | null> {
   return pickTextFileViaInput();
 }
 
-/** Fallback open: read a file chosen through a transient `<input type=file>`. */
+/**
+ * Fallback open: read a file chosen through a transient `<input type=file>`.
+ *
+ * Resolves the file text on `change`, or `null` on cancel. Not every browser
+ * fires the `cancel` event, so we ALSO treat the window regaining focus (which
+ * happens when the file dialog closes) as a cancel signal — deferred to the next
+ * tick so a real `change` gets to win first. A single-settle guard makes the two
+ * paths (and a `change` that races the refocus) idempotent, so the promise can
+ * never hang or double-resolve.
+ */
 function pickTextFileViaInput(): Promise<string | null> {
   return new Promise<string | null>((resolve, reject) => {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'application/json,.json';
 
+    let settled = false;
+    const settle = (value: string | null) => {
+      if (settled) return;
+      settled = true;
+      window.removeEventListener('focus', onFocus);
+      resolve(value);
+    };
+
     const onChange = () => {
       const file = input.files && input.files[0];
       if (!file) {
-        resolve(null);
+        settle(null);
         return;
       }
-      file.text().then(resolve, reject);
+      // A real selection wins — read its text, then settle with it.
+      file.text().then((text) => settle(text), reject);
+    };
+
+    // When the file dialog closes, the window refocuses. If `change` never fired
+    // (a browser that doesn't emit `cancel`), resolve null — but on the NEXT tick
+    // so a pending `change`/`file.text()` gets to settle first.
+    const onFocus = () => {
+      setTimeout(() => settle(null), 0);
     };
 
     input.addEventListener('change', onChange, { once: true });
     // Chromium fires `cancel` when the dialog is dismissed with no selection.
-    input.addEventListener('cancel', () => resolve(null), { once: true });
+    input.addEventListener('cancel', () => settle(null), { once: true });
+    window.addEventListener('focus', onFocus);
     input.click();
   });
 }

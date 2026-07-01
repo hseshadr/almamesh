@@ -119,11 +119,21 @@ interface StagedWrite {
 
 /**
  * Restore an envelope (Replace). Validates the envelope shape, then stages every
- * known store fully in memory before touching storage — so a corrupt/partial
- * file NEVER half-restores. Unknown store keys are ignored (forward-compatible).
- * After the writes it re-sets the chart route-guard flag (iff charts came back)
- * and deletes the stale RAG vectors so they rebuild from restored chat history.
- * Zustand `persist` + each store's `migrate` run on the next app load.
+ * known store fully in memory BEFORE touching storage.
+ *
+ * The all-or-nothing guarantee is real for VALIDATION and STAGING: an invalid,
+ * too-new, or corrupt-to-serialize file is rejected up front, so a bad file never
+ * begins a write. The WRITES themselves are NOT transactional — `localStorage`
+ * and idb-keyval cannot be rolled back together, so a mid-write storage failure
+ * (e.g. an IDB quota error on the third store) can leave a partial replace. That
+ * failure is surfaced to the caller (rejected), never swallowed.
+ *
+ * This is a TRUE "Replace all": a known store the envelope OMITS is DELETED, so
+ * no stale local data survives an import of a sparse backup. Unknown store keys
+ * are ignored (forward-compatible). After the writes it sets the chart route-guard
+ * flag iff charts came back (else clears it) and deletes the stale RAG vectors so
+ * they rebuild from restored chat history. Zustand `persist` + each store's
+ * `migrate` run on the next app load.
  */
 export async function applyBackup(envelope: BackupEnvelopePlain, deps: BackupDeps): Promise<void> {
   if (envelope.format !== 'almamesh-backup') {
@@ -134,6 +144,9 @@ export async function applyBackup(envelope: BackupEnvelopePlain, deps: BackupDep
       'too_new',
       'This backup was made by a newer version of AlmaMesh. Update the app first.',
     );
+  }
+  if (envelope.formatVersion < 1) {
+    throw new BackupError('bad_format', 'This backup has an invalid format version.');
   }
 
   const tierByKey = new Map<string, BackupTier>(BACKUP_STORES.map((e) => [e.key, e.tier]));
@@ -152,13 +165,21 @@ export async function applyBackup(envelope: BackupEnvelopePlain, deps: BackupDep
     if (key === 'almamesh-chart-library') chartLibraryPresent = true;
   }
 
-  // WRITE — only reached once all stores staged cleanly (all-or-nothing).
+  // WRITE — reached only once every present store staged cleanly. Not atomic
+  // against a mid-write storage failure (see docstring); such a failure rejects.
   for (const item of staged) {
     await deps.tiers[item.tier].set(item.key, item.serialized);
   }
 
-  // Post-write housekeeping.
+  // REPLACE — a known store the backup omitted must not keep stale local data.
+  const presentKeys = new Set(Object.keys(envelope.stores));
+  for (const entry of BACKUP_STORES) {
+    if (!presentKeys.has(entry.key)) await deps.tiers[entry.tier].del(entry.key);
+  }
+
+  // Post-write housekeeping: the route-guard flag tracks charts-present.
   if (chartLibraryPresent) await deps.tiers.local.set(CHART_FLAG_KEY, '1');
+  else await deps.tiers.local.del(CHART_FLAG_KEY);
   await deps.tiers.idb.del(CHAT_VECTORS_KEY);
 }
 
