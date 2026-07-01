@@ -11,7 +11,7 @@ export default defineConfig({
     // ESM-only modules that fail with "require() of ES Module not supported".
     environment: 'happy-dom',
     setupFiles: ['./src/test/setup.ts'],
-    include: ['src/**/*.{test,spec}.{ts,tsx}'],
+    include: ['src/**/*.{test,spec}.{ts,tsx}', 'functions/**/*.{test,spec}.ts'],
     exclude: ['node_modules', 'e2e'],
     coverage: {
       provider: 'v8',

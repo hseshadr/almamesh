@@ -27,6 +27,7 @@ import { Card, Spinner } from "../components/ui";
 import { ContentModeToggle } from "../components/ui/ContentModeToggle";
 import { MarkdownContent } from "../components/ui/MarkdownContent";
 import { FloatingChatPanel } from "../components/features/chat/FloatingChatPanel";
+import { FeedbackWidget } from "../components/features/feedback/FeedbackWidget";
 import { ProvenanceFooter } from "../components/ProvenanceFooter";
 import {
   ChartVisualization,
@@ -619,6 +620,10 @@ export default function DashboardPage() {
             </div>
           </Card>
         </div>
+
+        {/* Quiet, anonymous signal: is this valuable? (no identity, no tracking;
+               device-local dismiss guard so a returning visitor isn't nagged twice.) */}
+        <FeedbackWidget page="dashboard" />
 
         {/* Trust-through-transparency: how this chart was produced (on-device). */}
         <ProvenanceFooter />
