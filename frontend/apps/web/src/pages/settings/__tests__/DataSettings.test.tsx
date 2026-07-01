@@ -113,6 +113,19 @@ describe('DataSettings — Backup & Restore panel', () => {
     );
   });
 
+  // ITEM 5a — the passphrase must not linger in the field after a saved export.
+  it('clears the passphrase field after a successful export', async () => {
+    render(<DataSettings />);
+    const input = screen.getByTestId('backup-passphrase-input') as HTMLInputElement;
+
+    fireEvent.change(input, { target: { value: 'hunter2' } });
+    expect(input.value).toBe('hunter2');
+
+    fireEvent.click(screen.getByTestId('backup-export-button'));
+
+    await waitFor(() => expect(input.value).toBe(''));
+  });
+
   it('imports: pick → stage → confirm downloads a safety-net, commits, and reloads', async () => {
     vi.mocked(pickBackupFile).mockResolvedValue('FILE_TEXT');
     render(<DataSettings />);
@@ -135,6 +148,34 @@ describe('DataSettings — Backup & Restore panel', () => {
       'BACKUP_TEXT',
     );
     expect(reloadSpy).toHaveBeenCalled();
+  });
+
+  // ITEM 1 — if the user cancels the safety-net save, the import must ABORT: no
+  // commit, no reload, and a clear "nothing was changed" message.
+  it('aborts the import when the safety-net save is cancelled', async () => {
+    vi.mocked(pickBackupFile).mockResolvedValue('FILE_TEXT');
+    // The safety-net save (the only saveBackupFile call in this flow) is cancelled.
+    vi.mocked(saveBackupFile).mockResolvedValue('cancelled');
+    render(<DataSettings />);
+
+    fireEvent.click(screen.getByTestId('backup-import-button'));
+    const confirmBtn = await screen.findByTestId('backup-confirm-import');
+    fireEvent.click(confirmBtn);
+
+    // The safety net was attempted, then the import bailed out entirely.
+    await waitFor(() =>
+      expect(vi.mocked(saveBackupFile)).toHaveBeenCalledWith(
+        'almamesh-backup-before-import.json',
+        'BACKUP_TEXT',
+      ),
+    );
+    expect(
+      await screen.findByText(
+        "Import cancelled — we couldn't save a backup of your current data first, so nothing was changed.",
+      ),
+    ).toBeTruthy();
+    expect(vi.mocked(commitBackupImport)).not.toHaveBeenCalled();
+    expect(reloadSpy).not.toHaveBeenCalled();
   });
 
   it('prompts for a passphrase on an encrypted backup and retries staging with it', async () => {

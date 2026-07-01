@@ -191,6 +191,22 @@ describe('stageBackupImport (validation)', () => {
       code: 'too_new',
     });
   });
+
+  // ITEM 5b — only formatVersion 1 is valid today; below-range is malformed.
+  it('refuses a below-range formatVersion with BackupError bad_format', async () => {
+    const text = JSON.stringify({
+      format: 'almamesh-backup',
+      formatVersion: 0,
+      app: { version: 'x' },
+      exportedAt: FIXED_NOW,
+      encryption: 'none',
+      stores: {},
+    });
+    await expect(stageBackupImport(text)).rejects.toMatchObject({
+      name: 'BackupError',
+      code: 'bad_format',
+    });
+  });
 });
 
 // --- full commit round-trip via injected tiers -------------------------------

@@ -153,6 +153,26 @@ describe('applyBackup', () => {
     };
   }
 
+  /** An envelope carrying all 7 known stores (fresh, non-stale replacement data). */
+  function fullSevenStoreEnvelope(): BackupEnvelopePlain {
+    return {
+      format: 'almamesh-backup',
+      formatVersion: 1,
+      app: { version: 'test-1.2.3' },
+      exportedAt: '2026-07-01T12:00:00.000Z',
+      encryption: 'none',
+      stores: {
+        'almamesh-profiles': { version: 1, state: { activeProfileId: 'p2' } },
+        'almamesh-chart-library': { version: 1, state: { charts: { c2: {} } } },
+        'almamesh-life-events': { version: 4, state: { byProfile: {} } },
+        'almamesh-rectification-records': { version: 1, state: { records: {} } },
+        'almamesh-chat-history': { version: 1, state: { threads: {} } },
+        'almamesh-interpretations': { version: 2, state: { readings: {} } },
+        'almamesh-language': { version: 1, state: { language: 'es' } },
+      },
+    };
+  }
+
   it('round-trips: collect -> clear -> apply reproduces each store byte-for-byte', async () => {
     const idbA = makeTier({
       'almamesh-profiles': persisted({ activeProfileId: 'p1' }, 1),
@@ -254,5 +274,100 @@ describe('applyBackup', () => {
     expect(local.map.size).toBe(0);
     expect(idb.map.get(CHAT_VECTORS_KEY)).toBe('still-here');
     expect(idb.map.size).toBe(1);
+  });
+
+  // ITEM 4 — Restore is a TRUE "Replace all": stores the backup OMITS must not
+  // keep stale local data; the chart route-guard flag tracks charts-present.
+  it('replace: deletes a known store the backup omits (clears stale local data)', async () => {
+    // All 7 stores seeded with pre-existing (stale) data.
+    const idb = makeTier({
+      'almamesh-profiles': persisted({ activeProfileId: 'old' }, 1),
+      'almamesh-chart-library': persisted({ charts: { old: {} } }, 1),
+      'almamesh-life-events': persisted({ byProfile: {} }, 4),
+      'almamesh-rectification-records': persisted({ records: {} }, 1),
+      'almamesh-chat-history': persisted({ threads: { stale: {} } }, 1),
+    });
+    const local = makeTier({
+      'almamesh-interpretations': persisted({ readings: {} }, 2),
+      'almamesh-language': persisted({ language: 'en' }, 1),
+    });
+
+    const env = fullSevenStoreEnvelope();
+    delete env.stores['almamesh-chat-history'];
+
+    await applyBackup(env, makeDeps({ idb, local }));
+
+    // The omitted store's stale data is gone (true Replace).
+    expect(idb.map.has('almamesh-chat-history')).toBe(false);
+    // A present store was restored from the backup.
+    expect(idb.map.get('almamesh-profiles')).toBe(persisted({ activeProfileId: 'p2' }, 1));
+  });
+
+  it('replace: deletes the chart route-guard flag when chart-library is absent', async () => {
+    const idb = makeTier({ 'almamesh-chart-library': persisted({ charts: { old: {} } }, 1) });
+    const local = makeTier({ [CHART_FLAG_KEY]: '1' });
+
+    const env = fullSevenStoreEnvelope();
+    delete env.stores['almamesh-chart-library'];
+
+    await applyBackup(env, makeDeps({ idb, local }));
+
+    // No charts after the replace → the route-guard flag is cleared.
+    expect(local.map.has(CHART_FLAG_KEY)).toBe(false);
+    // The stale chart-library store itself is cleared too.
+    expect(idb.map.has('almamesh-chart-library')).toBe(false);
+  });
+
+  // ITEM 3 — the writes are NOT atomic: a mid-write storage failure must surface
+  // (be rejected), not be swallowed.
+  it('surfaces a mid-write storage failure (writes are not transactional)', async () => {
+    const map = new Map<string, string>();
+    let calls = 0;
+    const idb: FakeTier = {
+      map,
+      get: () => Promise.resolve(map.has('x') ? (map.get('x') as string) : null),
+      set: (key, value) => {
+        calls += 1;
+        if (calls === 2) return Promise.reject(new Error('IDB quota exceeded'));
+        map.set(key, value);
+        return Promise.resolve();
+      },
+      del: (key) => {
+        map.delete(key);
+        return Promise.resolve();
+      },
+    };
+    const local = makeTier();
+    const env: BackupEnvelopePlain = {
+      format: 'almamesh-backup',
+      formatVersion: 1,
+      app: { version: 'x' },
+      exportedAt: '2026-07-01T12:00:00.000Z',
+      encryption: 'none',
+      stores: {
+        // Both land in the idb tier, so the 2nd set() is the one that throws.
+        'almamesh-profiles': { version: 1, state: { a: 1 } },
+        'almamesh-chart-library': { version: 1, state: { b: 2 } },
+      },
+    };
+
+    await expect(applyBackup(env, makeDeps({ idb, local }))).rejects.toThrow(
+      'IDB quota exceeded',
+    );
+  });
+
+  // ITEM 5b — only formatVersion 1 is valid today; a below-range version is
+  // malformed (bad_format), not "too new".
+  it('refuses a below-range formatVersion (bad_format) and writes nothing', async () => {
+    const env = { ...seededEnvelope(), formatVersion: 0 } as unknown as BackupEnvelopePlain;
+    const idb = makeTier();
+    const local = makeTier();
+
+    await expect(applyBackup(env, makeDeps({ idb, local }))).rejects.toMatchObject({
+      name: 'BackupError',
+      code: 'bad_format',
+    });
+    expect(idb.map.size).toBe(0);
+    expect(local.map.size).toBe(0);
   });
 });

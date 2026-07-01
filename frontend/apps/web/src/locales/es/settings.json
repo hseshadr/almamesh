@@ -253,6 +253,7 @@
     "error_bad_format": "Ese archivo no es una copia de seguridad de AlmaMesh.",
     "error_too_new": "Esta copia es de una versión más reciente de AlmaMesh. Actualiza la app primero.",
     "error_bad_passphrase": "Contraseña incorrecta. Inténtalo de nuevo.",
-    "error_generic": "Algo salió mal. Inténtalo de nuevo."
+    "error_generic": "Algo salió mal. Inténtalo de nuevo.",
+    "error_safety_cancelled": "Importación cancelada — no pudimos guardar primero una copia de tus datos actuales, así que no se cambió nada."
   }
 }

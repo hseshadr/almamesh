@@ -250,6 +250,7 @@
     "error_bad_format": "That file isn't an AlmaMesh backup.",
     "error_too_new": "This backup is from a newer version of AlmaMesh. Update the app first.",
     "error_bad_passphrase": "Wrong password. Please try again.",
-    "error_generic": "Something went wrong. Please try again."
+    "error_generic": "Something went wrong. Please try again.",
+    "error_safety_cancelled": "Import cancelled — we couldn't save a backup of your current data first, so nothing was changed."
   }
 }
