@@ -18,7 +18,10 @@ _HOUSE_MAP: dict[EventType, tuple[int, ...]] = {
     EventType.HEALTH_ISSUE: (6,),
     EventType.SURGERY: (6, 8),
     EventType.HIGHER_STUDIES: (4, 5, 9),
-    EventType.LITIGATION: (6,),
+    # Spec 062 E6: litigation is 6th; confinement/incarceration is classically 12th.
+    EventType.LITIGATION: (6, 12),
+    # Spec 062 E6: estrangement/rupture with parents or household (4th = home/parents).
+    EventType.FAMILY_RUPTURE: (4,),
 }
 
 

@@ -15,7 +15,8 @@
     "health_issue": "Health Issue",
     "surgery": "Surgery",
     "higher_studies": "Higher Studies",
-    "litigation": "Litigation / Legal Action"
+    "litigation": "Litigation / Legal Action",
+    "family_rupture": "Family rupture / estrangement"
   },
   "entry": {
     "title": "Your Life Events",
@@ -46,8 +47,26 @@
   "signals": {
     "dasha_lord_rules": "Dasha lord rules the {{houseOrdinal}} house",
     "dasha_lord_in": "Dasha lord is placed in the {{houseOrdinal}} house",
+    "md_lord_rules": "Major-period (maha dasha) lord rules the {{houseOrdinal}} house",
+    "md_lord_in": "Major-period (maha dasha) lord sits in the {{houseOrdinal}} house",
+    "ad_lord_rules": "Sub-period (antar dasha) lord rules the {{houseOrdinal}} house",
+    "ad_lord_in": "Sub-period (antar dasha) lord sits in the {{houseOrdinal}} house",
+    "pd_lord_rules": "Timed to the sub-sub-period (pratyantar): its lord rules the {{houseOrdinal}} house",
+    "pd_lord_in": "Timed to the sub-sub-period (pratyantar): its lord sits in the {{houseOrdinal}} house",
     "slow_transit": "Slow planet transiting the {{houseOrdinal}} house",
+    "d9_lord_rules_d9_h7": "The active period lord rules the partnership (7th) house of the navamsa (D9) chart",
+    "d9_lord_in_d9_h7": "The active period lord sits in the partnership (7th) house of the navamsa (D9) chart",
+    "d9_lord_is_d9_lagna_lord": "The active period lord rules the navamsa (D9) rising sign itself",
+    "miss_unexplained": "No active period explains this event — it counts against this candidate",
+    "miss_silent": "Predicted a strong {{category}} window with nothing reported",
+    "prior_anchor": "Closest to the recorded time — a gentle nudge, never a substitute for events",
+    "qualifier_afflicted": "the lord's weakened (afflicted) state matches this difficult event",
+    "qualifier_dignified": "the lord's dignified strength matches this fortunate event",
     "unknown": "A timing signal"
+  },
+  "honesty_qualifier": {
+    "prior_influenced": "One caveat: this lead depends on the gentle recorded-time nudge — on the events alone it would be a tie.",
+    "penalty_driven": "One caveat: this lead comes mostly from quiet periods counting against the other candidate, not from direct event matches."
   },
   "results": {
     "title": "Rectification Results",
@@ -59,7 +78,38 @@
     "recorded_reference_label": "Your recorded time",
     "candidate_label": "Candidate {{rank}}",
     "evidence_table_label": "Supporting life events",
-    "window_caveat": "Events narrow the rising sign only, not the exact minute. The representative time shown is illustrative — it places you within the sign, not at a precise birth moment."
+    "window_caveat": "Events narrow the rising sign only, not the exact minute. The representative time shown is illustrative — it places you within the sign, not at a precise birth moment.",
+    "navamsa_rising_label": "Navamsa rising",
+    "fit_supporting_one": "{{count}} supporting fit",
+    "fit_supporting_other": "{{count}} supporting fits",
+    "fit_unexplained_one": "{{count}} unexplained event",
+    "fit_unexplained_other": "{{count}} unexplained events",
+    "fit_quiet_one": "{{count}} quiet-period miss",
+    "fit_quiet_other": "{{count}} quiet-period misses",
+    "prior_label": "Recorded-time nudge",
+    "misses_label": "Counting against this candidate",
+    "evidence_supports": "Supports",
+    "evidence_against": "Counts against",
+    "decided_line": "What decided it: {{reasons}}.",
+    "reason_pd": "day-precise period timing (pratyantar)",
+    "reason_ad": "sub-period (antar) timing",
+    "reason_md": "major-period (maha) timing",
+    "reason_dasha": "period-lord timing",
+    "reason_d9": "the navamsa (D9) rising-sign test",
+    "reason_transit": "slow-planet transits",
+    "reason_balance": "the balance of evidence between the candidates",
+    "d9_flip_callout": "The navamsa (D9) rising sign changes roughly every 13 minutes — it helped separate these candidates."
+  },
+  "window": {
+    "heading": "How sure are you about the recorded time?",
+    "body": "Choose an honest window around the recorded time. A tighter window sharpens the search — and if you are not sure, let the engine scan the whole day instead.",
+    "as_recorded": "It's exact, or within a few minutes",
+    "quarter": "Within about 15 minutes either way",
+    "half": "Within about 30 minutes either way",
+    "hour": "Within about an hour either way",
+    "two_hours": "Within about two hours either way",
+    "whole_day": "I don't really know — search the whole day",
+    "start": "Start the analysis"
   },
   "wizard": {
     "title": "Refine Your Birth Time"
@@ -114,6 +164,7 @@
     "send": "Send",
     "transcript_label": "Conversation",
     "error": "I couldn't reach the AI just now — please try again, or enter events manually below.",
+    "gather_error": "I couldn't read that message for dated events, so it may not have been counted — please send it again, or add the event manually below.",
     "thinking": "Thinking…",
     "reading": "Reading your message…"
   },

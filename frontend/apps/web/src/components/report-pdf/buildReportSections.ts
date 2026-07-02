@@ -20,9 +20,11 @@ import { formatDegree } from '../../lib/reportData';
 import { buildGuidanceSections, personaText, type ReportAudience } from '../../lib/reportSelectors';
 import { glyphSafe } from './glyphSafe';
 import type {
+  ReportPdfAntarTable,
   ReportPdfCharts,
   ReportPdfDasha,
   ReportPdfDashaPeriod,
+  ReportPdfHouseRow,
   ReportPdfNarrativeSection,
   ReportPdfPlanetRow,
   ReportPdfYoga,
@@ -111,8 +113,35 @@ export function buildPlanetRows(geometry: ChartGeometry): ReadonlyArray<ReportPd
   return [lagnaRow, ...rows];
 }
 
+/**
+ * The 12 whole-sign house rows: sign + lord from the engine's `houses` map,
+ * occupants grouped purely from each planet's emitted `house` field. NO cusp
+ * degree: whole-sign house `longitude` is a sign-start (a 30° multiple), so a
+ * degree column would print a fabricated-looking "0°00′" on every row.
+ */
+export function buildHouses(chart: SiderealChart): ReadonlyArray<ReportPdfHouseRow> {
+  const planets = [...Object.values(chart.planets)].sort(
+    (a, b) => PLANET_ORDER.indexOf(a.name) - PLANET_ORDER.indexOf(b.name),
+  );
+  return Object.values(chart.houses)
+    .slice()
+    .sort((a, b) => a.house - b.house)
+    .map((cusp) => {
+      const occupants = planets
+        .filter((planet) => planet.house === cusp.house)
+        .map((planet) => PLANET_NAMES[planet.name] ?? titleCase(planet.name))
+        .join(', ');
+      return {
+        house: String(cusp.house),
+        sign: glyphSafe(titleCase(cusp.sign)),
+        signLord: glyphSafe(titleCase(cusp.sign_lord)),
+        occupants: glyphSafe(occupants || '—'),
+      };
+    });
+}
+
 /** Re-tint each geometry planet to its paper-legible ink (for the kundli cells). */
-function paperTint(geometry: ChartGeometry): ChartGeometry {
+export function paperTint(geometry: ChartGeometry): ChartGeometry {
   const tint = (p: ChartPlanet): ChartPlanet => ({ ...p, color: planetInk(p.color, 'paper') });
   return {
     ...geometry,
@@ -147,13 +176,22 @@ export function buildCharts(
   };
 }
 
-/** A short "Mon YYYY" label from an ISO date string (epoch-safe). */
+/**
+ * A short "Mon YYYY" label from an ISO date string (epoch-safe). Date-safe:
+ * parses the WRITTEN Y/M/D parts and formats at local noon — `new Date(iso)`
+ * would reparse a date-only string as UTC midnight and roll the label back a
+ * month at month boundaries for every viewer west of GMT (the life-event
+ * date bug class, flagged in Spec 062).
+ */
 function shortMonthYear(iso: string): string {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime()) || date.getTime() === 0) {
+  const datePart = iso.split('T')[0] ?? '';
+  const [year, month, day] = datePart.split('-').map(Number);
+  if (!year || !month || !day || Date.UTC(year, month - 1, day) === 0) {
     return '';
   }
-  return new Intl.DateTimeFormat('en-US', { month: 'short', year: 'numeric' }).format(date);
+  return new Intl.DateTimeFormat('en-US', { month: 'short', year: 'numeric' }).format(
+    new Date(year, month - 1, day, 12, 0, 0),
+  );
 }
 
 function spanLabel(years: number): string {
@@ -164,10 +202,20 @@ function spanLabel(years: number): string {
   return `${rounded} yr`;
 }
 
-/** Build the dasha timeline (maha sequence + current focus + running antars). */
-export function buildDasha(chart: SiderealChart): ReportPdfDasha {
+/**
+ * Build the dasha timeline: the maha sequence, the current focus line, and the
+ * antar drill-down of EVERY mahā (in mahā order — the definitive reference
+ * tables; empty on older payloads without period depth). `formatAntarHeading`
+ * binds the localized "Antar-daśās of the {lord} Mahā-daśā" template from the
+ * React layer; without it the title-cased lord alone heads each table.
+ */
+export function buildDasha(
+  chart: SiderealChart,
+  formatAntarHeading?: (lord: string) => string,
+): ReportPdfDasha {
   const { dashas } = chart;
   const currentLord = dashas.current_maha?.lord ?? null;
+  const currentStart = dashas.current_maha?.start_date ?? null;
 
   const mahaSequence: ReadonlyArray<ReportPdfDashaPeriod> = dashas.maha_dasha_sequence.map(
     (period) => ({
@@ -175,7 +223,7 @@ export function buildDasha(chart: SiderealChart): ReportPdfDasha {
       start: shortMonthYear(period.start_date),
       end: shortMonthYear(period.end_date),
       span: spanLabel(period.duration_years),
-      isCurrent: period.lord === currentLord && period.start_date === dashas.current_maha?.start_date,
+      isCurrent: period.lord === currentLord && period.start_date === currentStart,
     }),
   );
 
@@ -184,19 +232,36 @@ export function buildDasha(chart: SiderealChart): ReportPdfDasha {
     .map((p) => titleCase(p.lord));
   const currentFocus = glyphSafe(focusParts.join(' · '));
 
-  const antarLord = dashas.current_antar?.lord ?? null;
-  const currentMaha = dashas.maha_dasha_sequence.find((m) => m.lord === currentLord);
-  const currentAntars: ReadonlyArray<ReportPdfDashaPeriod> = (currentMaha?.antar_sequence ?? []).map(
-    (period) => ({
-      lord: titleCase(period.lord),
-      start: shortMonthYear(period.start_date),
-      end: shortMonthYear(period.end_date),
-      span: spanLabel(period.duration_years),
-      isCurrent: period.lord === antarLord,
-    }),
+  const currentAntar = dashas.current_antar ?? null;
+  const antarTables: ReadonlyArray<ReportPdfAntarTable> = dashas.maha_dasha_sequence.flatMap(
+    (maha) => {
+      const antars = maha.antar_sequence ?? [];
+      if (antars.length === 0) {
+        return [];
+      }
+      // A running antar can only live inside the running mahā.
+      const isRunningMaha = maha.lord === currentLord && maha.start_date === currentStart;
+      const lord = titleCase(maha.lord);
+      return [
+        {
+          heading: glyphSafe(formatAntarHeading ? formatAntarHeading(lord) : lord),
+          periods: antars.map((period) => ({
+            lord: titleCase(period.lord),
+            start: shortMonthYear(period.start_date),
+            end: shortMonthYear(period.end_date),
+            span: spanLabel(period.duration_years),
+            isCurrent:
+              isRunningMaha &&
+              currentAntar !== null &&
+              period.lord === currentAntar.lord &&
+              period.start_date === currentAntar.start_date,
+          })),
+        },
+      ];
+    },
   );
 
-  return { mahaSequence, currentFocus, currentAntars };
+  return { mahaSequence, currentFocus, antarTables };
 }
 
 const GRADE_TITLE: Readonly<Record<string, string>> = {

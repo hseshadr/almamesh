@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DatePicker as MuiDatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -152,26 +153,60 @@ const calendarSx = {
   },
 };
 
+const MIN_DATE = dayjs('1900-01-01');
+
 /**
  * Birth date picker component using MUI X DatePicker
  * Accepts and returns Date objects (native JavaScript Date)
  * Displays in MM/DD/YYYY format
+ *
+ * The picker holds an internal DRAFT Dayjs value and only propagates
+ * complete, in-range dates to the parent (MUI emits null for ANY incomplete
+ * state — mid-typing and cleared sections alike — so null never propagates;
+ * the parent keeps the last committed date, matching the previous product
+ * behavior where Onboarding dropped nulls). Fully controlling MUI's field
+ * from the parent caused a real-browser day-1 bug:
+ * while the year is half-typed the field emits "complete" values with bogus
+ * years (0001/0019/0198 for 1988); echoing those back as the controlled
+ * `value` prop forces MUI to resync its sections mid-edit, which corrupted
+ * the day section (typed 08 -> committed 07) and swallowed the first
+ * Continue click via the forced re-render. jsdom's synchronous flush hides
+ * the race; the Playwright probe against a preview build reproduces it.
  */
 export function BirthDatePicker({ value, onChange, className }: BirthDatePickerProps) {
-  // Convert Date to Dayjs for the picker
-  const dateToDayjs = (date: Date | null): Dayjs | null => {
-    if (!date) return null;
-    return dayjs(date);
-  };
+  // Draft buffer: the field renders from this, never from a mid-edit echo.
+  const [draft, setDraft] = useState<Dayjs | null>(() => (value ? dayjs(value) : null));
+  // Timestamp of the last value THIS picker emitted upward, so a parent
+  // re-render echoing our own emission is never treated as an external reset.
+  const lastEmittedMs = useRef<number | null>(value ? value.getTime() : null);
 
-  // Convert Dayjs to Date
-  const dayjsToDate = (d: Dayjs | null): Date | null => {
-    if (!d || !d.isValid()) return null;
-    return d.toDate();
-  };
+  // Sync parent -> draft ONLY for genuine external changes (profile reset,
+  // store rehydration), i.e. when the parent value differs from what we
+  // last emitted. Our own echoes are ignored, so in-progress typing is
+  // never clobbered.
+  useEffect(() => {
+    const incomingMs = value ? value.getTime() : null;
+    if (incomingMs !== lastEmittedMs.current) {
+      lastEmittedMs.current = incomingMs;
+      setDraft(value ? dayjs(value) : null);
+    }
+  }, [value]);
+
+  // A date is committable when it is parseable AND within the picker's own
+  // bounds; mid-typing years like 0198 fail this and stay draft-only.
+  const isCommittable = (d: Dayjs): boolean =>
+    d.isValid() && !d.isBefore(MIN_DATE, 'day') && !d.isAfter(dayjs(), 'day');
 
   const handleChange = (newValue: Dayjs | null) => {
-    onChange(dayjsToDate(newValue));
+    setDraft(newValue);
+    // Only complete, in-range dates propagate up. MUI emits null for any
+    // incomplete state (mid-typing, a cleared section, a full clear) and
+    // "complete" values with half-typed years — both stay in the draft.
+    if (newValue !== null && isCommittable(newValue)) {
+      const date = newValue.toDate();
+      lastEmittedMs.current = date.getTime();
+      onChange(date);
+    }
   };
 
   return (
@@ -179,11 +214,11 @@ export function BirthDatePicker({ value, onChange, className }: BirthDatePickerP
       <LocalizationProvider dateAdapter={AdapterDayjs}>
         <div className={className || "w-full"}>
           <MuiDatePicker
-            value={dateToDayjs(value)}
+            value={draft}
             onChange={handleChange}
             format="MM/DD/YYYY"
             maxDate={dayjs()}
-            minDate={dayjs('1900-01-01')}
+            minDate={MIN_DATE}
             openTo="year"
             views={['year', 'month', 'day']}
             yearsOrder="desc"

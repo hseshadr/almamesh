@@ -1,20 +1,25 @@
 /**
  * render-report-pdf.mjs — eye-inspection harness for the @react-pdf report.
  *
- * Renders the FULL document (cover · birth details · planetary positions · D1+D9
- * kundli · Vimshottari dasha · yogas · interpretation) to a real PDF using a
- * realistic fixture, WITHOUT a browser. @react-pdf runs natively under Node, so
- * this writes `.report-out/sample-report.pdf` for visual review at every stage.
+ * Renders the FULL COMPREHENSIVE document (cover · birth details · planets ·
+ * houses · D1+D9 kundli · Vimshottari daśā with every mahā's antars · yogas ·
+ * interpretation · transits · all sixteen varga plates · strength · domains ·
+ * Birth Time Authority) to a real PDF using realistic fixtures, WITHOUT a
+ * browser. @react-pdf runs natively under Node, so this writes
+ * `.report-out/sample-report.pdf` for visual review at every stage.
  *
  *   bun run report:pdf:sample
  *
- * The fixture is built from a REAL engine chart for the reference native,
+ * The natal fixture is built from a REAL engine chart for the reference native,
  * 08 Aug 1988, RECTIFIED to 06:14 IST, Bengaluru (`.report-out/reference_chart.json`,
  * produced by `uv run almamesh-chart "1988-08-08T06:14:00+05:30" 12.9716 77.5946`).
  * The chart is reshaped by the SAME `buildReportSections` helpers the React app
- * uses, so the kundli geometry, planet table, dasha, and yogas are authentic — not
- * hand-mocked. The cover / birth-details / interpretation strings are authored
- * literals (the narrative would otherwise come from the optional LLM).
+ * uses, so the kundli geometry, planet table, houses, dasha, and yogas are
+ * authentic — not hand-mocked. The comprehensive sections render from the shared
+ * SYNTHETIC predictive fixtures (`src/test/predictiveFixtures.ts`) through the
+ * SAME `buildComprehensiveSections` builders + the REAL en catalogs, so the
+ * layout under inspection is the shipping one. The cover / birth-details /
+ * interpretation strings are authored literals.
  *
  * Fonts are registered from the on-disk `public/fonts/*.ttf` (the same files the
  * browser serves from `/fonts/*`) — zero network egress, byte-identical glyphs.
@@ -29,16 +34,34 @@ import { dirname, resolve } from 'node:path';
 import { mkdir, readFile } from 'node:fs/promises';
 import { createElement } from 'react';
 import { Font, renderToFile } from '@react-pdf/renderer';
+import i18next from 'i18next';
 import { ReportDocument } from '../src/components/report-pdf/ReportDocument.tsx';
 import {
   buildCharts,
   buildD1Geometry,
   buildDasha,
+  buildHouses,
   buildNarrative,
   buildPlanetRows,
   buildYogas,
 } from '../src/components/report-pdf/buildReportSections.ts';
+import {
+  buildDomainsSection,
+  buildStrengthSection,
+  buildTransitsSection,
+  buildVargasSection,
+} from '../src/components/report-pdf/buildComprehensiveSections.ts';
+import { buildRectificationPdf } from '../src/components/report-pdf/buildRectificationPdf.ts';
 import { glyphSafe } from '../src/components/report-pdf/glyphSafe.ts';
+import {
+  DOMAINS_CTX,
+  STRENGTH_CTX,
+  TRANSIT_CTX,
+  VARGA_CTX_FULL,
+} from '../src/test/predictiveFixtures.ts';
+import enReport from '../src/locales/en/report.json';
+import enPredictive from '../src/locales/en/predictive.json';
+import enRectify from '../src/locales/en/rectify.json';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const APP_ROOT = resolve(HERE, '..');
@@ -188,28 +211,40 @@ const LABELS = {
   colDignity: 'Dignity',
   lagnaRowName: 'Ascendant',
 
-  chartsEyebrow: 'Section III',
+  housesEyebrow: 'Section III',
+  housesTitle: 'Houses (Bhāva)',
+  housesIntro:
+    "The twelve whole-sign houses counted from the Ascendant — each house's sign, its ruling " +
+    'planet, and the grahas placed within it.',
+  colHouseNumber: 'House',
+  colHouseSign: 'Sign',
+  colHouseLord: 'Sign Lord',
+  colOccupants: 'Occupants',
+  housesNote:
+    'Whole-sign houses: each house spans one full sign, counted from the Ascendant. House 1 ' +
+    'carries the Ascendant.',
+
+  chartsEyebrow: 'Section IV',
   chartsTitle: 'The Kundli',
   chartsIntro:
     'The birth chart (D1 Rāśi) and the navamsa (D9), the divisional chart of marriage, dharma, ' +
     'and inner strength — both in the classical North-Indian diamond, houses fixed, signs rotating.',
 
-  dashaEyebrow: 'Section IV',
+  dashaEyebrow: 'Section V',
   dashaTitle: 'Vimshottari Daśā',
   dashaIntro:
     'The 120-year planetary period system keyed to the Moon’s nakshatra at birth. Each maha-daśā ' +
     'colours a long chapter of life; the current period is marked in brass.',
   dashaCurrentLabel: 'Currently Running — Maha · Antar · Pratyantar',
   dashaSequenceLabel: 'Maha-Daśā Sequence',
-  dashaAntarLabel: 'Antar-Daśā within the Current Maha',
 
-  yogasEyebrow: 'Section V',
+  yogasEyebrow: 'Section VI',
   yogasTitle: 'Yogas & Combinations',
   yogasIntro:
     'The named planetary combinations the engine identifies in this chart, with their classical ' +
     'grade. A yoga is a tendency, never a verdict.',
 
-  narrativeEyebrow: 'Section VI',
+  narrativeEyebrow: 'Section VII',
   narrativeTitle: 'Interpretation',
   narrativeIntro:
     'A reading woven from the placements above — strengths, challenges, life themes, and ' +
@@ -221,10 +256,69 @@ function safeRecord(record) {
   return Object.fromEntries(Object.entries(record).map(([k, v]) => [k, glyphSafe(v)]));
 }
 
+/**
+ * A bare i18next instance over the REAL en catalogs — the same `t` functions
+ * the page injects into the comprehensive builders (no app side effects).
+ */
+async function buildTranslators() {
+  const instance = i18next.createInstance();
+  await instance.init({
+    lng: 'en',
+    ns: ['report', 'predictive', 'rectify'],
+    defaultNS: 'report',
+    resources: { en: { report: enReport, predictive: enPredictive, rectify: enRectify } },
+    interpolation: { escapeValue: false },
+  });
+  return { tr: instance.getFixedT(null, 'report'), tp: instance.getFixedT(null, 'predictive') };
+}
+
+/** All sixteen varga charts (synthetic sign placements) for the plate grid. */
+function fullSixteenVargaCtx() {
+  const ids = [
+    'D1', 'D2', 'D3', 'D4', 'D7', 'D9', 'D10', 'D12',
+    'D16', 'D20', 'D24', 'D27', 'D30', 'D40', 'D45', 'D60',
+  ];
+  const charts = Object.fromEntries(
+    ids.map((id, index) => [
+      id,
+      VARGA_CTX_FULL.charts[id] ?? {
+        chart: id,
+        lagna_sign: ['aries', 'taurus', 'gemini', 'cancer'][index % 4],
+        lagna_sign_lord: 'mars',
+        placements: {
+          saturn: { graha: 'saturn', sign: 'capricorn', sign_lord: 'saturn', is_combust: false },
+          jupiter: { graha: 'jupiter', sign: 'pisces', sign_lord: 'jupiter', is_combust: false },
+        },
+      },
+    ]),
+  );
+  return { ...VARGA_CTX_FULL, charts };
+}
+
+/** A synthetic confirmed rectification for the Birth Time Authority section. */
+const SAMPLE_RECTIFICATION_RECORD = {
+  profileId: 'reference-native',
+  confirmedAt: '2026-06-20T09:00:00.000Z',
+  mode: 'cusp',
+  band: 'leans',
+  margin: 0.62,
+  originalTime: '06:30',
+  originalSign: 'cancer',
+  rectifiedTime: '06:14',
+  rectifiedSign: 'cancer',
+  supportingEventIds: ['evt-1', 'evt-2'],
+};
+
+const SAMPLE_RECTIFICATION_EVENTS = [
+  { date: '2012-11-19', category: 'marriage', summary: 'Married in Bengaluru' },
+  { date: '2016-04-02', category: 'career_change', summary: 'Left engineering to teach' },
+];
+
 async function main() {
   registerLocalFonts();
   const chart = JSON.parse(await readFile(CHART_FILE, 'utf8'));
   const d1Geometry = buildD1Geometry(chart);
+  const translators = await buildTranslators();
 
   const data = {
     personName: glyphSafe('Reference Native'),
@@ -249,12 +343,29 @@ async function main() {
       { label: 'House System', value: glyphSafe('Whole Sign') },
     ],
     planets: buildPlanetRows(d1Geometry),
+    houses: buildHouses(chart),
     charts: buildCharts(chart, d1Geometry, { rasi: 'Rāśi · D1', navamsa: 'Navāṁśa · D9' }),
-    dasha: buildDasha(chart),
+    dasha: buildDasha(chart, (lord) => `Antar-daśās of the ${lord} Mahā-daśā`),
     yogas: buildYogas(chart),
     // Natal-only fixture omits the narrative entirely (undefined) — the document
     // then drops the Interpretation page; the full fixture builds it as usual.
     narrative: NATAL_ONLY ? undefined : buildNarrative(SAMPLE_INTERPRETATION, 'you'),
+    // The comprehensive sections (transits · all 16 vargas · strength · domains ·
+    // Birth Time Authority) render only on the full fixture — the natal-only
+    // fixture proves they are cleanly omitted, exactly like the app.
+    ...(NATAL_ONLY
+      ? {}
+      : {
+          transits: buildTransitsSection(TRANSIT_CTX, translators),
+          vargas: buildVargasSection(fullSixteenVargaCtx(), translators),
+          strength: buildStrengthSection(STRENGTH_CTX, translators),
+          domains: buildDomainsSection(DOMAINS_CTX, translators),
+          rectification: buildRectificationPdf({
+            record: SAMPLE_RECTIFICATION_RECORD,
+            events: SAMPLE_RECTIFICATION_EVENTS,
+            t: translators.tr,
+          }),
+        }),
     labels: safeRecord(LABELS),
   };
 
@@ -262,10 +373,12 @@ async function main() {
   await renderToFile(createElement(ReportDocument, { data }), OUT_FILE);
   console.log(`✅ Wrote ${OUT_FILE} (fixture=${FIXTURE})`);
   console.log(
-    `   planets=${data.planets.length} yogas=${data.yogas.length} ` +
-      `maha=${data.dasha.mahaSequence.length} antar=${data.dasha.currentAntars.length} ` +
+    `   planets=${data.planets.length} houses=${data.houses.length} yogas=${data.yogas.length} ` +
+      `maha=${data.dasha.mahaSequence.length} antarTables=${data.dasha.antarTables.length} ` +
       `narrative=${data.narrative ? data.narrative.length : 'omitted'} ` +
-      `navamsa=${data.charts.navamsa ? 'yes' : 'no'}`,
+      `navamsa=${data.charts.navamsa ? 'yes' : 'no'} ` +
+      `vargaPlates=${data.vargas ? data.vargas.plates.length : 'omitted'} ` +
+      `rectification=${data.rectification ? 'yes' : 'omitted'}`,
   );
 }
 

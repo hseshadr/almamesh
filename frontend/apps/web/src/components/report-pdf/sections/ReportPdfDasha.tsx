@@ -1,8 +1,9 @@
 /**
  * ReportPdfDasha — the Vimshottari daśā timeline: a brass-marked "current period"
  * card (Maha · Antar · Pratyantar), the nine maha-daśā rows with dated spans, and
- * the running antar's sub-periods. All dates/spans arrive pre-formatted
- * (epoch-safe) on `ReportPdfDasha` — no recomputation in the PDF layer.
+ * the antar-daśā drill-down of EVERY mahā (the definitive reference tables; the
+ * running antar stays brass-marked inside its mahā). All dates/spans arrive
+ * pre-formatted (epoch-safe) on `ReportPdfDasha` — no recomputation here.
  */
 
 import type { ReactElement } from 'react';
@@ -54,16 +55,17 @@ export function ReportPdfDasha({ data }: ReportPdfDashaProps): ReactElement {
         ))}
       </View>
 
-      {dasha.currentAntars.length > 0 ? (
-        <>
-          <Text style={styles.subLabel}>{labels.dashaAntarLabel}</Text>
+      {/* Antar-daśās of every mahā, in mahā order (empty on older payloads). */}
+      {dasha.antarTables.map((table) => (
+        <View key={table.heading}>
+          <Text style={styles.subLabel}>{table.heading}</Text>
           <View>
-            {dasha.currentAntars.map((period) => (
-              <PeriodRow key={`antar-${period.lord}-${period.start}`} period={period} />
+            {table.periods.map((period) => (
+              <PeriodRow key={`${table.heading}-${period.lord}-${period.start}`} period={period} />
             ))}
           </View>
-        </>
-      ) : null}
+        </View>
+      ))}
     </View>
   );
 }

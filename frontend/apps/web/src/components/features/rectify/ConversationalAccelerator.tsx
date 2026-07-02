@@ -25,6 +25,7 @@ import {
   streamRectificationInterview as defaultStreamFn,
   gatherEventsFromTurn as defaultGatherFn,
   type ChatTurn,
+  type InterviewGatheredEvent,
 } from '@almamesh/llm';
 import type { RectificationEventInput } from '@almamesh/shared-types';
 import { MessageBubble } from '../chat/MessageBubble';
@@ -49,6 +50,23 @@ export interface ConversationalAcceleratorProps {
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
+
+/**
+ * The PII-safe interview state (Spec 062, LLM delta 2): every STRUCTURED
+ * life event already gathered for this profile — manual rows included — as
+ * `{date, category, precision}` ONLY. Summaries/notes never cross; the
+ * `InterviewGatheredEvent` type is the boundary.
+ */
+function gatheredInterviewState(profileId: string): InterviewGatheredEvent[] {
+  return useLifeEventsStore
+    .getState()
+    .getEvents(profileId)
+    .flatMap((e) =>
+      e.date && e.category
+        ? [{ date: e.date, category: e.category, precision: e.precision ?? ('exact' as const) }]
+        : [],
+    );
+}
 
 /** Format a captured event as a human-readable chip label. */
 function formatChip(ev: RectificationEventInput): string {
@@ -134,6 +152,9 @@ export function ConversationalAccelerator({
         history: updatedHistory,
         config,
         language,
+        // PII-safe gathered-state block (dates + categories + precision only)
+        // so the interviewer seeks missing categories instead of re-asking.
+        state: gatheredInterviewState(profileId),
         signal: abortRef.current.signal,
       })) {
         draft += token;
@@ -149,8 +170,16 @@ export function ConversationalAccelerator({
       // Surface a distinct "reading your message…" indicator while the
       // extractor works (the streaming phase is already done here).
       setGathering(true);
-      const extracted = await gatherFn(trimmed, config, language);
+      const gathered = await gatherFn(trimmed, config, language);
       setGathering(false);
+      if (gathered.status === 'error') {
+        // A REAL extraction failure (network/parse) — distinct from a turn with
+        // nothing datable. Say so, or the user's dated milestone silently
+        // wouldn't count toward the rectification.
+        setChatError(t('chat.gather_error'));
+        return;
+      }
+      const extracted = gathered.events;
       if (extracted.length > 0) {
         // Snapshot the current event count so we can identify newly added rows.
         const beforeCount = useLifeEventsStore.getState().getEvents(profileId).length;

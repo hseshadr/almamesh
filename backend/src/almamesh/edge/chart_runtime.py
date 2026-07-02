@@ -28,6 +28,7 @@ from almamesh.mesh import compute_mesh_edge
 from almamesh.predictive import compute_predictive_contexts
 from almamesh.rectification import compute_rectification_result
 from almamesh.rectification.models import (
+    AnchorConfidence,
     EventDatePrecision,
     RectificationEventInput,
     RectificationMode,
@@ -138,12 +139,16 @@ def compute_rectification(payload: Mapping[str, object]) -> dict[str, JsonValue]
     When absent, wall-clock time is used (non-deterministic, fine for live use).
     ``span_minutes`` (int, optional) bounds the window search in WINDOW mode;
     absent or null means the full birth day is scanned.
+    ``anchor_confidence`` ("about" | "unknown", optional) sets the E5 anchor
+    prior; absent or null defaults per mode (cusp → "about", window → "unknown").
     """
     dt_utc = datetime.fromisoformat(str(payload["datetime_utc"]))
     raw_ref = payload.get("reference_date")
     reference_date = datetime.fromisoformat(str(raw_ref)) if raw_ref else datetime.now(UTC)
     raw_span = payload.get("span_minutes")
     span_minutes = int(str(raw_span)) if raw_span is not None else None
+    raw_anchor = payload.get("anchor_confidence")
+    anchor_confidence = AnchorConfidence(str(raw_anchor)) if raw_anchor is not None else None
     result = compute_rectification_result(
         dt_utc=dt_utc,
         latitude=float(payload["latitude"]),  # type: ignore[arg-type]
@@ -153,6 +158,7 @@ def compute_rectification(payload: Mapping[str, object]) -> dict[str, JsonValue]
         mode=RectificationMode(str(payload["mode"])),
         reference_date=reference_date,
         span_minutes=span_minutes,
+        anchor_confidence=anchor_confidence,
     )
     return result.model_dump(mode="json")
 

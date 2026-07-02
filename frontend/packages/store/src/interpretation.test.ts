@@ -118,6 +118,37 @@ describe('interpretationStore', () => {
     expect(entry?.status).toBe('idle');
   });
 
+  it('markSectionFailed records the failed section without ending the run', () => {
+    const store = newStore();
+    store.getState().startInterpretation('c1');
+    store.getState().markSectionFailed('c1', 'yoga');
+    const entry = store.getState().getEntry('c1');
+    expect(entry?.failedSections).toEqual({ yoga: true });
+    // A per-section failure degrades that section only — the run continues.
+    expect(entry?.status).toBe('generating');
+  });
+
+  it('a section can complete while another fails (partial success)', () => {
+    const store = newStore();
+    store.getState().startInterpretation('c1');
+    store.getState().markSectionComplete('c1', 'core');
+    store.getState().markSectionFailed('c1', 'remedial');
+    store.getState().setInterpretation('c1', makeInterpretation(), '2026-07-01T00:00:00Z');
+    const entry = store.getState().getEntry('c1');
+    expect(entry?.status).toBe('complete');
+    expect(entry?.sections).toEqual({ core: true });
+    // Failed sections SURVIVE completion so the UI can stay honest about gaps.
+    expect(entry?.failedSections).toEqual({ remedial: true });
+  });
+
+  it('startInterpretation clears any prior failed sections', () => {
+    const store = newStore();
+    store.getState().startInterpretation('c1');
+    store.getState().markSectionFailed('c1', 'yoga');
+    store.getState().startInterpretation('c1');
+    expect(store.getState().getEntry('c1')?.failedSections).toBeUndefined();
+  });
+
   it('setInterpretation stores the object and marks complete', () => {
     const store = newStore();
     store.getState().startInterpretation('c1');

@@ -4,19 +4,25 @@
     "candidates": [
       {
         "ascendant_sign": "Leo",
-        "fit_score": 6.5,
+        "fit_score": 6.7,
         "is_near_cusp": true,
         "lagna_cusp_distance_deg": 0.042964,
         "lagna_longitude_deg": 120.042964,
+        "misses": [],
+        "navamsa_lagna_sign": "Aries",
+        "penalty_total": 0.0,
+        "positive_total": 6.2,
+        "prior_bonus": 0.5,
         "representative_time_local": "06:44",
         "supporting_events": [
           {
             "category": "marriage",
-            "contribution": 1.0,
+            "contribution": 1.3,
             "date": "2012-06-15",
             "event_index": 0,
             "signals": [
-              "dasha_lord_rules_h7"
+              "ad_lord_rules_h7",
+              "d9_lord_rules_d9_h7"
             ]
           },
           {
@@ -25,7 +31,7 @@
             "date": "2014-03-20",
             "event_index": 1,
             "signals": [
-              "dasha_lord_rules_h5"
+              "md_lord_rules_h5"
             ]
           },
           {
@@ -34,17 +40,17 @@
             "date": "2016-09-10",
             "event_index": 2,
             "signals": [
-              "dasha_lord_in_h10"
+              "pd_lord_in_h10"
             ]
           },
           {
             "category": "promotion",
-            "contribution": 2.0,
+            "contribution": 1.7,
             "date": "2018-05-05",
             "event_index": 3,
             "signals": [
-              "dasha_lord_rules_h10",
-              "dasha_lord_in_h10"
+              "ad_lord_rules_h10",
+              "md_lord_in_h10"
             ]
           },
           {
@@ -58,52 +64,64 @@
           },
           {
             "category": "relocation",
-            "contribution": 1.0,
+            "contribution": 0.7,
             "date": "2022-04-12",
             "event_index": 5,
             "signals": [
-              "dasha_lord_rules_h4"
+              "ad_lord_rules_h4"
             ]
           }
         ]
       },
       {
         "ascendant_sign": "Cancer",
-        "fit_score": 2.0,
+        "fit_score": 1.56511,
         "is_near_cusp": true,
         "lagna_cusp_distance_deg": 0.95391,
         "lagna_longitude_deg": 119.04609,
+        "misses": [],
+        "navamsa_lagna_sign": "Pisces",
+        "penalty_total": 1.0,
+        "positive_total": 2.1,
+        "prior_bonus": 0.46511,
         "representative_time_local": "06:39",
         "supporting_events": [
           {
             "category": "marriage",
-            "contribution": 1.0,
+            "contribution": 1.1,
             "date": "2012-06-15",
             "event_index": 0,
             "signals": [
-              "dasha_lord_rules_h7"
+              "ad_lord_rules_h7",
+              "d9_lord_is_d9_lagna_lord"
             ]
           },
           {
             "category": "childbirth",
-            "contribution": 0.0,
+            "contribution": -0.25,
             "date": "2014-03-20",
             "event_index": 1,
-            "signals": []
+            "signals": [
+              "miss_unexplained"
+            ]
           },
           {
             "category": "career_change",
-            "contribution": 0.0,
+            "contribution": -0.25,
             "date": "2016-09-10",
             "event_index": 2,
-            "signals": []
+            "signals": [
+              "miss_unexplained"
+            ]
           },
           {
             "category": "promotion",
-            "contribution": 0.0,
+            "contribution": -0.25,
             "date": "2018-05-05",
             "event_index": 3,
-            "signals": []
+            "signals": [
+              "miss_unexplained"
+            ]
           },
           {
             "category": "health_issue",
@@ -111,22 +129,24 @@
             "date": "2020-11-30",
             "event_index": 4,
             "signals": [
-              "dasha_lord_rules_h6"
+              "pd_lord_rules_h6"
             ]
           },
           {
             "category": "relocation",
-            "contribution": 0.0,
+            "contribution": -0.25,
             "date": "2022-04-12",
             "event_index": 5,
-            "signals": []
+            "signals": [
+              "miss_unexplained"
+            ]
           }
         ]
       }
     ],
-    "discriminating_event_count": 5,
+    "discriminating_event_count": 6,
     "honesty_note_key": "rectify.honesty.consistent",
-    "margin": 0.529412,
+    "margin": 0.621273,
     "mode": "cusp",
     "recorded_time_sign": "Leo"
   },
@@ -135,26 +155,36 @@
     "candidates": [
       {
         "ascendant_sign": "Leo",
-        "fit_score": 0.0,
+        "fit_score": 0.5,
         "is_near_cusp": true,
         "lagna_cusp_distance_deg": 0.042964,
         "lagna_longitude_deg": 120.042964,
+        "misses": [],
+        "navamsa_lagna_sign": "Aries",
+        "penalty_total": 0.0,
+        "positive_total": 0.0,
+        "prior_bonus": 0.5,
         "representative_time_local": "06:44",
         "supporting_events": []
       },
       {
         "ascendant_sign": "Cancer",
-        "fit_score": 0.0,
+        "fit_score": 0.46511,
         "is_near_cusp": true,
         "lagna_cusp_distance_deg": 0.95391,
         "lagna_longitude_deg": 119.04609,
+        "misses": [],
+        "navamsa_lagna_sign": "Pisces",
+        "penalty_total": 0.0,
+        "positive_total": 0.0,
+        "prior_bonus": 0.46511,
         "representative_time_local": "06:39",
         "supporting_events": []
       }
     ],
     "discriminating_event_count": 0,
-    "honesty_note_key": "rectify.honesty.near_tie",
-    "margin": 0.0,
+    "honesty_note_key": "rectify.honesty.near_tie.prior_influenced",
+    "margin": 0.036151,
     "mode": "cusp",
     "recorded_time_sign": "Leo"
   }

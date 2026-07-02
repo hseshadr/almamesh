@@ -31,6 +31,14 @@ export interface ChartInterpretationEntry {
   readonly error?: string;
   /** Section key -> completed. Lets the dashboard show progressive progress. */
   readonly sections: Readonly<Record<string, boolean>>;
+  /**
+   * Section key -> failed. Per-section LLM failures degrade that section to
+   * empty while the run still completes; recording them here lets the UI stay
+   * honest about the gap (and offer a regenerate) instead of rendering a blank
+   * section with no signal. Optional so pre-existing persisted entries load
+   * unchanged; cleared by `startInterpretation`.
+   */
+  readonly failedSections?: Readonly<Record<string, boolean>>;
   /** ISO-8601 timestamp of the last mutation; supplied by the caller. */
   readonly updatedAt?: string;
 }
@@ -43,6 +51,8 @@ export interface InterpretationStore {
   startInterpretation: (chartId: string) => void;
   /** Record that one named section finished (progressive progress). */
   markSectionComplete: (chartId: string, section: string) => void;
+  /** Record that one named section FAILED (degraded to empty; run continues). */
+  markSectionFailed: (chartId: string, section: string) => void;
   /** Store the finished reading: status -> 'complete'. */
   setInterpretation: (
     chartId: string,
@@ -187,6 +197,14 @@ export const interpretationStoreCreator: StateCreator<InterpretationStore> = (se
       const current = entryOf(state.byChart, chartId);
       const sections = { ...current.sections, [section]: true };
       return { byChart: withEntry(state.byChart, chartId, { ...current, sections }) };
+    });
+  },
+
+  markSectionFailed: (chartId, section) => {
+    set((state) => {
+      const current = entryOf(state.byChart, chartId);
+      const failedSections = { ...current.failedSections, [section]: true };
+      return { byChart: withEntry(state.byChart, chartId, { ...current, failedSections }) };
     });
   },
 

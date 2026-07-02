@@ -14,12 +14,20 @@ The fixture is a SYNTHETIC Bengaluru cusp native — never the owner's real data
 
 from __future__ import annotations
 
+import re
 from datetime import UTC, date, datetime, timedelta
 
 import pytest
 
 from almamesh.calculations import calculate_sidereal_context
-from almamesh.constants.astrology import EventType, PlanetName, ZodiacSign
+from almamesh.constants.astrology import (
+    SIGN_LORDS,
+    ZODIAC_SIGNS,
+    Dignity,
+    EventType,
+    PlanetName,
+    ZodiacSign,
+)
 from almamesh.rectification.houses import category_houses
 from almamesh.rectification.models import (
     EventDatePrecision,
@@ -33,11 +41,19 @@ from almamesh.rectification.scorer import (
     CONSISTENT_MARGIN,
     EPS,
     MIN_DISCRIMINATING_EVENTS,
+    MISS_SILENT,
+    MISS_UNEXPLAINED,
     NEAR_TIE_MARGIN,
+    PENALTY_CLAMP_RATIO,
+    VALENCE_BOOST,
+    VALENCE_MISMATCH_DAMP,
+    W_ANTAR,
+    W_D9_H7,
+    W_D9_LAGNA_LORD,
+    W_PRATYANTAR,
     W_PRIMARY,
-    W_TRANSIT,
     _active_lords_at,
-    _decorrelated_total,
+    _decorrelate_by_category,
     _event_instant,
     _event_instants,
     _transit_houses,
@@ -45,9 +61,41 @@ from almamesh.rectification.scorer import (
     extract_event_signals,
     rank_candidates,
     score_candidate,
+    silent_activation_misses,
 )
-from almamesh.schemas.astrology import MahaDashaPeriod, SiderealContext, VimshottariDashaData
+from almamesh.schemas.astrology import DashaPeriod as _DashaPeriod
+from almamesh.schemas.astrology import (
+    HouseCuspData,
+    LagnaData,
+    MahaDashaPeriod,
+    NavamsaChart,
+    PlanetPosition,
+    SiderealContext,
+    VargaPlanet,
+    VimshottariDashaData,
+)
 from almamesh.transits import calculate_transit_context
+
+# The full Spec-062 signal-key grammar (mirrors the scorer module docstring).
+_GRAMMAR_RE = re.compile(
+    r"^(?:(?:md|ad|pd)_lord_(?:rules|in)_h(?:[1-9]|1[0-2])"
+    r"|slow_transit_h(?:[1-9]|1[0-2])"
+    r"|d9_lord_rules_d9_h7|d9_lord_in_d9_h7|d9_lord_is_d9_lagna_lord)"
+    r"(?:#(?:afflicted|dignified)_fit)?$"
+    r"|^miss_unexplained$"
+)
+
+_DEPTH_HOUSE_RE = re.compile(r"^(md|ad|pd)_lord_(rules|in)_h(\d+)(?:#\w+)?$")
+
+
+def _depth_keys(signals: list[str], kind: str, house: int) -> list[str]:
+    """All depth-qualified dasha keys of one kind (rules/in) for one house."""
+    return [
+        s
+        for s in signals
+        if (m := _DEPTH_HOUSE_RE.match(s)) and m.group(2) == kind and int(m.group(3)) == house
+    ]
+
 
 # Two birth TIMES of one synthetic cusp native that rotate the ascendant a full
 # sign (Leo rising vs Virgo rising) — and with it the 7th-house lordship.
@@ -128,9 +176,9 @@ def test_active_seventh_lord_fires_rules_h7(ctx_a: SiderealContext) -> None:
     when = _first_date_with_active_lord(ctx_a, seventh_lord)
     # When the event is scored against candidate A
     evidence = extract_event_signals(ctx_a, _marriage(when))
-    # Then the 7th-rulership signal fires and contributes the primary weight
-    assert "dasha_lord_rules_h7" in evidence.signals
-    assert evidence.contribution >= W_PRIMARY
+    # Then a depth-qualified 7th-rulership signal fires with positive weight
+    assert _depth_keys(evidence.signals, "rules", 7)
+    assert evidence.contribution > 0
     assert evidence.category == EventType.MARRIAGE
     assert evidence.date == when
     assert evidence.event_index == 0  # default; Task 8 overrides
@@ -152,8 +200,8 @@ def test_inactive_seventh_lord_yields_no_dasha_h7(ctx_a: SiderealContext) -> Non
     when = _quiet_seventh_date(ctx_a)
     # When scored, the dasha-house signals must stay silent (transit may differ)
     evidence = extract_event_signals(ctx_a, _marriage(when))
-    assert "dasha_lord_rules_h7" not in evidence.signals
-    assert "dasha_lord_in_h7" not in evidence.signals
+    assert not _depth_keys(evidence.signals, "rules", 7)
+    assert not _depth_keys(evidence.signals, "in", 7)
 
 
 def _discriminating_date(
@@ -180,32 +228,27 @@ def test_ascendant_rotation_discriminates_candidates(
     ev_a = extract_event_signals(ctx_a, _marriage(when))
     ev_b = extract_event_signals(ctx_b, _marriage(when))
     # Then the inverse scorer separates the candidates on the identical input
-    assert "dasha_lord_rules_h7" in ev_a.signals
-    assert "dasha_lord_rules_h7" not in ev_b.signals
+    assert _depth_keys(ev_a.signals, "rules", 7)
+    assert not _depth_keys(ev_b.signals, "rules", 7)
     assert ev_a.contribution > 0
     assert ev_a != ev_b
 
 
-def test_signal_keys_and_contribution_math(ctx_a: SiderealContext) -> None:
+def test_signal_keys_match_grammar(ctx_a: SiderealContext) -> None:
     # Given any firing event, with an explicit event_index from the caller
     when = _first_date_with_active_lord(ctx_a, ctx_a.houses[7].sign_lord)
     evidence = extract_event_signals(ctx_a, _marriage(when), event_index=3)
-    # The caller's index is preserved and the rulership signal explicitly fired
+    # The caller's index is preserved and a depth-qualified rulership fired
     assert evidence.event_index == 3
-    assert "dasha_lord_rules_h7" in evidence.signals
-    # Every key is a valid machine key for one of MARRIAGE's classical houses
-    # (built from category_houses so the test tracks any future house-map change)
-    valid_keys = {
-        f"{prefix}_h{h}"
-        for h in category_houses(EventType.MARRIAGE)
-        for prefix in ("dasha_lord_rules", "dasha_lord_in", "slow_transit")
-    }
-    assert all(s in valid_keys for s in evidence.signals)
-    # Contribution is exactly the sum of per-signal weights
-    expected = sum(
-        W_TRANSIT if s.startswith("slow_transit") else W_PRIMARY for s in evidence.signals
-    )
-    assert evidence.contribution == pytest.approx(expected)
+    assert _depth_keys(evidence.signals, "rules", 7)
+    # Every emitted key parses under the documented Spec-062 grammar
+    assert all(_GRAMMAR_RE.match(s) for s in evidence.signals), evidence.signals
+    # And every house-scoped key targets one of MARRIAGE's classical houses
+    houses = {str(h) for h in category_houses(EventType.MARRIAGE)}
+    for s in evidence.signals:
+        m = _DEPTH_HOUSE_RE.match(s)
+        if m:
+            assert m.group(3) in houses, s
 
 
 def test_slow_transit_signal_matches_gochara(ctx_a: SiderealContext) -> None:
@@ -242,17 +285,6 @@ def _candidate(fit: float) -> RectificationCandidate:
         is_near_cusp=False,
         fit_score=fit,
         supporting_events=[],
-    )
-
-
-def _evidence(contribution: float, category: EventType = EventType.MARRIAGE) -> EventEvidence:
-    """Synthetic evidence with a fixed contribution for de-correlation math."""
-    return EventEvidence(
-        event_index=0,
-        category=category,
-        date=date(2020, 1, 1),
-        signals=[],
-        contribution=contribution,
     )
 
 
@@ -308,9 +340,10 @@ def test_min_evidence_gate_forces_near_tie_despite_large_margin() -> None:
 
 
 def test_decorrelation_caps_stacked_same_category_events() -> None:
-    # Given five identical same-category events vs a single one
-    total_one = _decorrelated_total([_evidence(1.0)])
-    total_five = _decorrelated_total([_evidence(1.0) for _ in range(5)])
+    # Given five identical same-category contributions vs a single one
+    # (exercised through the LIVE aggregation path used by score_candidate)
+    total_one = _decorrelate_by_category([(EventType.MARRIAGE, 1.0)])
+    total_five = _decorrelate_by_category([(EventType.MARRIAGE, 1.0)] * 5)
     # Then a single event scores its full weight
     assert total_one == pytest.approx(1.0)
     # And five duplicates are hard-capped (never the naive 5.0) and sub-linear
@@ -320,10 +353,10 @@ def test_decorrelation_caps_stacked_same_category_events() -> None:
 
 
 def test_decorrelation_is_per_category_not_global() -> None:
-    # Given two events in DIFFERENT categories (independent evidence)
-    mixed = [_evidence(1.0, EventType.MARRIAGE), _evidence(1.0, EventType.PROMOTION)]
+    # Given two contributions in DIFFERENT categories (independent evidence)
+    mixed = [(EventType.MARRIAGE, 1.0), (EventType.PROMOTION, 1.0)]
     # Then they add up fully — de-correlation only damps same-category clusters
-    assert _decorrelated_total(mixed) == pytest.approx(2.0)
+    assert _decorrelate_by_category(mixed) == pytest.approx(2.0)
 
 
 def test_score_candidate_fills_candidate_from_context(ctx_a: SiderealContext) -> None:
@@ -494,41 +527,26 @@ def rect_context(ctx_a: SiderealContext) -> SiderealContext:
     return ctx_a
 
 
-@pytest.fixture(scope="module")
-def rect_signs_exact() -> dict:  # type: ignore[type-arg]
-    """Transit-signs map for the EXACT back-compat probe (date 2005-06-15).
+def test_exact_precision_is_deterministic_and_grammar_valid(
+    rect_context: SiderealContext,
+) -> None:
+    """EXACT (n=1 instant): the evidence is pure and its snapshot obeys the grammar.
 
-    Extra string sentinel keys carry the pre-Task-4 probed values so the
-    back-compat test is self-contained.  Datetime lookups inside
-    ``extract_event_signals`` never match string keys, so they are invisible
-    to the production code path.
-
-    Probed from the pre-Task-4 single-noon-instant code:
-        ctx_a (Leo rising, _BIRTH_A), ev date=2005-06-15, category=MARRIAGE
-        → contribution=1.0, signals={'dasha_lord_in_h7'}
+    Under Spec 062 the pre-062 pooled ``dasha_lord_*`` keys are replaced by
+    depth-qualified keys, so the old byte-level legacy probe no longer applies;
+    the invariants that remain are determinism and grammar validity, plus the
+    sign convention: a silent event reads exactly ``-MISS_UNEXPLAINED``.
     """
     ev = RectificationEventInput(date=date(2005, 6, 15), category=EventType.MARRIAGE)
     signs = compute_transit_signs([ev])  # single noon-UTC instant for EXACT
-    return {
-        **signs,
-        "__legacy_contribution__": 1.0,
-        "__legacy_signals__": {"dasha_lord_in_h7"},
-    }
-
-
-def test_exact_precision_matches_legacy_single_instant(
-    rect_context: SiderealContext,
-    rect_signs_exact: dict,  # type: ignore[type-arg]
-) -> None:
-    """EXACT-precision marginalization is byte-identical to the pre-Task-4 single-noon path.
-
-    For n=1 window, mean-over-1-instant == the single value, so the new
-    marginalization must reproduce the legacy contribution and signals exactly.
-    """
-    ev = RectificationEventInput(date=date(2005, 6, 15), category=EventType.MARRIAGE)
-    ev_default = extract_event_signals(rect_context, ev, transit_signs=rect_signs_exact)
-    assert ev_default.contribution == rect_signs_exact["__legacy_contribution__"]
-    assert set(ev_default.signals) == rect_signs_exact["__legacy_signals__"]
+    first = extract_event_signals(rect_context, ev, transit_signs=signs)
+    second = extract_event_signals(rect_context, ev, transit_signs=signs)
+    assert first == second
+    assert all(_GRAMMAR_RE.match(s) for s in first.signals), first.signals
+    if first.signals == ["miss_unexplained"]:
+        assert first.contribution == pytest.approx(-MISS_UNEXPLAINED)
+    else:
+        assert first.contribution > 0
 
 
 def test_approx_zeros_transit_contribution(rect_context: SiderealContext) -> None:
@@ -546,3 +564,627 @@ def test_approx_zeros_transit_contribution(rect_context: SiderealContext) -> Non
     )
     evidence = extract_event_signals(rect_context, ev, transit_signs={})
     assert all(not s.startswith("slow_transit") for s in evidence.signals)
+
+
+# =============================================================================
+# Spec 062 (E1–E4): fully synthetic contexts — every lordship, occupancy,
+# dignity, and dasha depth is test-controlled; zero astronomy involved.
+# SYNTHETIC natives only — never real birth data.
+# =============================================================================
+
+_SIGN_IDX: dict[ZodiacSign, int] = {sign: i for i, sign in enumerate(ZodiacSign)}
+
+
+def _wsign(i: int) -> ZodiacSign:
+    return ZodiacSign(ZODIAC_SIGNS[i % 12])
+
+
+def _mk_dashas(
+    maha_lord: PlanetName,
+    antars: list[tuple[PlanetName, datetime, datetime]],
+) -> VimshottariDashaData:
+    """One synthetic maha whose antar rows are given verbatim (dates arbitrary)."""
+    start = antars[0][1]
+    end = antars[-1][2]
+    rows = [
+        _DashaPeriod(lord=lord, start_date=s, end_date=e, duration_years=1.0)
+        for lord, s, e in antars
+    ]
+    maha = MahaDashaPeriod(
+        lord=maha_lord, start_date=start, end_date=end, duration_years=10.0, antar_sequence=rows
+    )
+    return VimshottariDashaData(maha_dasha_sequence=[maha])
+
+
+def _mk_context(
+    lagna_sign: ZodiacSign,
+    dashas: VimshottariDashaData,
+    *,
+    planet_houses: dict[PlanetName, int] | None = None,
+    dignities: dict[PlanetName, Dignity] | None = None,
+    combust: frozenset[PlanetName] = frozenset(),
+    navamsa: NavamsaChart | None = None,
+) -> SiderealContext:
+    """Whole-sign synthetic context: houses derive from the lagna; rest defaulted."""
+    lagna_idx = _SIGN_IDX[lagna_sign]
+    houses = {
+        h: HouseCuspData(
+            house=h,
+            longitude=((lagna_idx + h - 1) % 12) * 30.0,
+            sign=_wsign(lagna_idx + h - 1),
+            sign_lord=SIGN_LORDS[_wsign(lagna_idx + h - 1)],
+        )
+        for h in range(1, 13)
+    }
+    planets = {}
+    for p in PlanetName:
+        house = (planet_houses or {}).get(p, 1)
+        sign = _wsign(lagna_idx + house - 1)
+        planets[p] = PlanetPosition(
+            name=p,
+            longitude=((lagna_idx + house - 1) % 12) * 30.0 + 15.0,
+            sign=sign,
+            sign_degrees=15.0,
+            sign_lord=SIGN_LORDS[sign],
+            nakshatra="Ashwini",
+            nakshatra_pada=1,
+            nakshatra_lord=PlanetName.KETU,
+            house=house,
+            dignity=(dignities or {}).get(p, Dignity.NEUTRAL),
+            is_combust=p in combust,
+        )
+    lagna = LagnaData(
+        longitude=lagna_idx * 30.0 + 15.0,
+        sign=lagna_sign,
+        sign_degrees=15.0,
+        sign_lord=SIGN_LORDS[lagna_sign],
+        nakshatra="Ashwini",
+        nakshatra_pada=1,
+        nakshatra_lord=PlanetName.KETU,
+    )
+    return SiderealContext(
+        ayanamsa_value=24.0,
+        lagna=lagna,
+        planets=planets,
+        houses=houses,
+        dashas=dashas,
+        yogas=[],
+        navamsa=navamsa,
+    )
+
+
+def _mk_navamsa(
+    lagna_sign: ZodiacSign, placements: dict[PlanetName, ZodiacSign] | None = None
+) -> NavamsaChart:
+    default = ZodiacSign.ARIES
+    planets = {
+        p: VargaPlanet(
+            name=p,
+            sign=(placements or {}).get(p, default),
+            sign_lord=SIGN_LORDS[(placements or {}).get(p, default)],
+        )
+        for p in PlanetName
+    }
+    return NavamsaChart(
+        lagna_sign=lagna_sign, lagna_sign_lord=SIGN_LORDS[lagna_sign], planets=planets
+    )
+
+
+def _noon_scan(
+    dashas: VimshottariDashaData,
+    lo: date,
+    hi: date,
+    predicate,  # type: ignore[no-untyped-def]
+) -> date:
+    """First date in [lo, hi] whose noon-UTC active (md, ad, pd) satisfies predicate."""
+    day = lo
+    while day <= hi:
+        lords = _active_lords_at(dashas, _event_instant(day))
+        if lords and predicate(lords):
+            return day
+        day += timedelta(days=1)
+    raise AssertionError("no instant satisfying predicate in scan range")
+
+
+def _empty_signs(
+    events: list[RectificationEventInput],
+) -> dict[datetime, dict[PlanetName, ZodiacSign]]:
+    """A transit map that silences the transit channel for every window instant."""
+    return {instant: {} for ev in events for instant in _event_instants(ev.date, ev.precision)}
+
+
+def _score_one(ctx: SiderealContext, event: RectificationEventInput) -> EventEvidence:
+    return extract_event_signals(ctx, event, transit_signs=_empty_signs([event]))
+
+
+_Y = datetime  # brevity for dasha rows
+
+
+# --------------------------- E1: depth-aware keys ----------------------------
+
+
+def test_md_only_rules_hit_emits_md_key_full_weight() -> None:
+    # Aries lagna → h7 = Libra → lord VENUS. Venus is ONLY the maha lord.
+    dashas = _mk_dashas(
+        PlanetName.VENUS,
+        [(PlanetName.SUN, _Y(2014, 1, 1, tzinfo=UTC), _Y(2016, 1, 1, tzinfo=UTC))],
+    )
+    ctx = _mk_context(ZodiacSign.ARIES, dashas)
+    when = date(2014, 1, 2)  # early antar → pd == ad == SUN, md == VENUS
+    assert _active_lords_at(dashas, _event_instant(when)) == (
+        PlanetName.VENUS,
+        PlanetName.SUN,
+        PlanetName.SUN,
+    )
+    evidence = _score_one(ctx, _marriage(when))
+    assert evidence.signals == ["md_lord_rules_h7"]
+    assert evidence.contribution == pytest.approx(W_PRIMARY)
+
+
+def test_ad_only_rules_hit_emits_ad_key_antar_weight() -> None:
+    # Venus is ONLY the antar lord: scan for a pd != VENUS instant inside its antar.
+    dashas = _mk_dashas(
+        PlanetName.SUN,
+        [(PlanetName.VENUS, _Y(2014, 1, 1, tzinfo=UTC), _Y(2016, 1, 1, tzinfo=UTC))],
+    )
+    ctx = _mk_context(ZodiacSign.ARIES, dashas)
+    when = _noon_scan(
+        dashas,
+        date(2014, 1, 1),
+        date(2015, 12, 31),
+        lambda lords: lords[1] == PlanetName.VENUS
+        and lords[2]
+        not in (
+            PlanetName.VENUS,
+            PlanetName.SUN,
+        ),
+    )
+    evidence = _score_one(ctx, _marriage(when))
+    assert evidence.signals == ["ad_lord_rules_h7"]
+    assert evidence.contribution == pytest.approx(W_ANTAR)
+
+
+def test_pd_only_rules_hit_emits_pd_key_timing_weight() -> None:
+    # Venus is ONLY the pratyantar lord at the scanned instant.
+    dashas = _mk_dashas(
+        PlanetName.SUN,
+        [(PlanetName.MOON, _Y(2014, 1, 1, tzinfo=UTC), _Y(2016, 1, 1, tzinfo=UTC))],
+    )
+    ctx = _mk_context(ZodiacSign.ARIES, dashas)
+    when = _noon_scan(
+        dashas,
+        date(2014, 1, 1),
+        date(2015, 12, 31),
+        lambda lords: lords[2] == PlanetName.VENUS,
+    )
+    evidence = _score_one(ctx, _marriage(when))
+    assert evidence.signals == ["pd_lord_rules_h7"]
+    assert evidence.contribution == pytest.approx(W_PRATYANTAR)
+
+
+def test_same_lord_md_and_pd_counts_once_deepest_key_max_weight() -> None:
+    # Venus is maha lord AND pratyantar lord: ONE signal, keyed at the deepest
+    # matching depth (pd), weighted at the highest matching depth (md = 1.0).
+    dashas = _mk_dashas(
+        PlanetName.VENUS,
+        [(PlanetName.MOON, _Y(2014, 1, 1, tzinfo=UTC), _Y(2016, 1, 1, tzinfo=UTC))],
+    )
+    ctx = _mk_context(ZodiacSign.ARIES, dashas)
+    when = _noon_scan(
+        dashas,
+        date(2014, 1, 1),
+        date(2015, 12, 31),
+        lambda lords: lords[2] == PlanetName.VENUS,
+    )
+    evidence = _score_one(ctx, _marriage(when))
+    assert evidence.signals == ["pd_lord_rules_h7"]
+    assert evidence.contribution == pytest.approx(W_PRIMARY)  # max weight, once
+
+
+def test_distinct_lords_occupying_house_fire_once_per_lord() -> None:
+    # Jupiter (md) and Mars (ad == pd early in antar) BOTH occupy h7: two
+    # occupancy signals, each deduped to its lord's deepest depth.
+    dashas = _mk_dashas(
+        PlanetName.JUPITER,
+        [(PlanetName.MARS, _Y(2014, 1, 1, tzinfo=UTC), _Y(2016, 1, 1, tzinfo=UTC))],
+    )
+    ctx = _mk_context(
+        ZodiacSign.ARIES,
+        dashas,
+        planet_houses={PlanetName.JUPITER: 7, PlanetName.MARS: 7},
+    )
+    when = date(2014, 1, 2)
+    assert _active_lords_at(dashas, _event_instant(when)) == (
+        PlanetName.JUPITER,
+        PlanetName.MARS,
+        PlanetName.MARS,
+    )
+    evidence = _score_one(ctx, _marriage(when))
+    assert sorted(evidence.signals) == ["md_lord_in_h7", "pd_lord_in_h7"]
+    # Jupiter counts at md weight; Mars once at max(ad, pd) weight.
+    assert evidence.contribution == pytest.approx(W_PRIMARY + W_ANTAR)
+
+
+# --------------------------- E2: D9 navamsa-lagna ----------------------------
+
+
+def _d9_dashas() -> VimshottariDashaData:
+    """maha JUPITER, antar MERCURY; early instants give (JUPITER, MERCURY, MERCURY)."""
+    return _mk_dashas(
+        PlanetName.JUPITER,
+        [(PlanetName.MERCURY, _Y(2014, 1, 1, tzinfo=UTC), _Y(2016, 1, 1, tzinfo=UTC))],
+    )
+
+
+def test_d9_signals_fire_for_relationship_event() -> None:
+    # D9 lagna Gemini → D9-h7 = Sagittarius (lord JUPITER = active md lord).
+    # Mercury (ad/pd) OCCUPIES D9 Sagittarius and RULES the D9 lagna (Gemini).
+    navamsa = _mk_navamsa(
+        ZodiacSign.GEMINI, placements={PlanetName.MERCURY: ZodiacSign.SAGITTARIUS}
+    )
+    ctx = _mk_context(ZodiacSign.ARIES, _d9_dashas(), navamsa=navamsa)
+    evidence = _score_one(ctx, _marriage(date(2014, 1, 2)))
+    assert sorted(evidence.signals) == [
+        "d9_lord_in_d9_h7",
+        "d9_lord_is_d9_lagna_lord",
+        "d9_lord_rules_d9_h7",
+    ]
+    assert evidence.contribution == pytest.approx(W_D9_H7 + W_D9_H7 + W_D9_LAGNA_LORD)
+
+
+def test_d9_signals_silent_for_non_relationship_event() -> None:
+    # Same chart, CAREER_CHANGE (h10): D1 silent AND D9 must not fire → the
+    # event is unexplained for this candidate and reads -MISS_UNEXPLAINED (E4.1).
+    navamsa = _mk_navamsa(
+        ZodiacSign.GEMINI, placements={PlanetName.MERCURY: ZodiacSign.SAGITTARIUS}
+    )
+    ctx = _mk_context(ZodiacSign.ARIES, _d9_dashas(), navamsa=navamsa)
+    ev = RectificationEventInput(date=date(2014, 1, 2), category=EventType.CAREER_CHANGE)
+    evidence = _score_one(ctx, ev)
+    assert evidence.signals == ["miss_unexplained"]
+    assert evidence.contribution == pytest.approx(-MISS_UNEXPLAINED)
+
+
+def test_d9_childbirth_conservatively_excluded() -> None:
+    navamsa = _mk_navamsa(
+        ZodiacSign.GEMINI, placements={PlanetName.MERCURY: ZodiacSign.SAGITTARIUS}
+    )
+    ctx = _mk_context(ZodiacSign.ARIES, _d9_dashas(), navamsa=navamsa)
+    ev = RectificationEventInput(date=date(2014, 1, 2), category=EventType.CHILDBIRTH)
+    evidence = _score_one(ctx, ev)
+    assert not any(s.startswith("d9_") for s in evidence.signals)
+
+
+# ------------------------ E3: dignity-conditioned fit -------------------------
+
+
+def _saturn_md_dashas() -> VimshottariDashaData:
+    """maha SATURN, antar SUN; early instants give (SATURN, SUN, SUN)."""
+    return _mk_dashas(
+        PlanetName.SATURN,
+        [(PlanetName.SUN, _Y(2014, 1, 1, tzinfo=UTC), _Y(2016, 1, 1, tzinfo=UTC))],
+    )
+
+
+def _career_event(category: EventType) -> RectificationEventInput:
+    return RectificationEventInput(date=date(2014, 1, 2), category=category)
+
+
+def test_valence_afflicted_lord_boosts_collapse_event() -> None:
+    # Aries lagna → h10 = Capricorn → lord SATURN (the md lord), DEBILITATED.
+    ctx = _mk_context(
+        ZodiacSign.ARIES,
+        _saturn_md_dashas(),
+        dignities={PlanetName.SATURN: Dignity.DEBILITATED},
+    )
+    evidence = _score_one(ctx, _career_event(EventType.JOB_LOSS))
+    assert evidence.signals == ["md_lord_rules_h10#afflicted_fit"]
+    assert evidence.contribution == pytest.approx(W_PRIMARY * VALENCE_BOOST)
+
+
+def test_valence_afflicted_lord_dampens_gain_event() -> None:
+    ctx = _mk_context(
+        ZodiacSign.ARIES,
+        _saturn_md_dashas(),
+        dignities={PlanetName.SATURN: Dignity.DEBILITATED},
+    )
+    evidence = _score_one(ctx, _career_event(EventType.PROMOTION))
+    assert evidence.signals == ["md_lord_rules_h10"]  # mismatch: damped, no suffix
+    assert evidence.contribution == pytest.approx(W_PRIMARY * VALENCE_MISMATCH_DAMP)
+
+
+def test_valence_dignified_lord_boosts_gain_event() -> None:
+    ctx = _mk_context(
+        ZodiacSign.ARIES,
+        _saturn_md_dashas(),
+        dignities={PlanetName.SATURN: Dignity.EXALTED},
+    )
+    evidence = _score_one(ctx, _career_event(EventType.PROMOTION))
+    assert evidence.signals == ["md_lord_rules_h10#dignified_fit"]
+    assert evidence.contribution == pytest.approx(W_PRIMARY * VALENCE_BOOST)
+
+
+def test_valence_combustion_counts_as_afflicted() -> None:
+    ctx = _mk_context(
+        ZodiacSign.ARIES,
+        _saturn_md_dashas(),
+        combust=frozenset({PlanetName.SATURN}),
+    )
+    evidence = _score_one(ctx, _career_event(EventType.JOB_LOSS))
+    assert evidence.signals == ["md_lord_rules_h10#afflicted_fit"]
+    assert evidence.contribution == pytest.approx(W_PRIMARY * VALENCE_BOOST)
+
+
+def test_valence_neutral_event_never_multiplied() -> None:
+    ctx = _mk_context(
+        ZodiacSign.ARIES,
+        _saturn_md_dashas(),
+        dignities={PlanetName.SATURN: Dignity.DEBILITATED},
+    )
+    evidence = _score_one(ctx, _career_event(EventType.CAREER_CHANGE))
+    assert evidence.signals == ["md_lord_rules_h10"]
+    assert evidence.contribution == pytest.approx(W_PRIMARY)
+
+
+# -------------------- E4.1: unexplained-event miss penalty --------------------
+
+
+def test_unexplained_event_reads_minus_quarter() -> None:
+    # Nothing rules/occupies h7 among active lords; transit silenced; no navamsa.
+    dashas = _mk_dashas(
+        PlanetName.SUN,
+        [(PlanetName.MOON, _Y(2014, 1, 1, tzinfo=UTC), _Y(2014, 3, 1, tzinfo=UTC))],
+    )
+    ctx = _mk_context(ZodiacSign.ARIES, dashas)
+    when = date(2014, 1, 2)  # active = SUN/MOON/MOON; none touches Libra h7
+    evidence = _score_one(ctx, _marriage(when))
+    assert evidence.signals == ["miss_unexplained"]
+    assert evidence.contribution == pytest.approx(-MISS_UNEXPLAINED)
+
+
+def test_unexplained_month_precision_marginalizes_misses() -> None:
+    # All 3 MONTH-grid instants silent → mean of three -0.25 samples = -0.25.
+    dashas = _mk_dashas(
+        PlanetName.SUN,
+        [(PlanetName.MOON, _Y(2013, 1, 1, tzinfo=UTC), _Y(2015, 1, 1, tzinfo=UTC))],
+    )
+    ctx = _mk_context(ZodiacSign.ARIES, dashas)
+    ev = RectificationEventInput(
+        date=date(2014, 1, 2),
+        category=EventType.MARRIAGE,
+        precision=EventDatePrecision.MONTH,
+    )
+    evidence = extract_event_signals(ctx, ev, transit_signs=_empty_signs([ev]))
+    assert evidence.signals == ["miss_unexplained"]
+    assert evidence.contribution == pytest.approx(-MISS_UNEXPLAINED)
+
+
+# ------------------- E4.2: silent-activation miss penalties -------------------
+
+
+def _venus_h7_context(venus_house: int, antars: list[tuple[PlanetName, datetime, datetime]]):
+    """Aries-lagna context where VENUS rules h7 and occupies ``venus_house``."""
+    dashas = _mk_dashas(PlanetName.SUN, antars)
+    return _mk_context(ZodiacSign.ARIES, dashas, planet_houses={PlanetName.VENUS: venus_house})
+
+
+_SILENT_ANTARS: list[tuple[PlanetName, datetime, datetime]] = [
+    (PlanetName.VENUS, _Y(2012, 3, 1, tzinfo=UTC), _Y(2013, 3, 1, tzinfo=UTC)),  # explained
+    (PlanetName.MOON, _Y(2013, 3, 1, tzinfo=UTC), _Y(2014, 6, 1, tzinfo=UTC)),
+    (PlanetName.VENUS, _Y(2014, 6, 1, tzinfo=UTC), _Y(2015, 6, 1, tzinfo=UTC)),  # silent
+    (PlanetName.MARS, _Y(2015, 6, 1, tzinfo=UTC), _Y(2016, 6, 1, tzinfo=UTC)),
+    (PlanetName.VENUS, _Y(2016, 6, 1, tzinfo=UTC), _Y(2017, 6, 1, tzinfo=UTC)),  # silent
+    (PlanetName.VENUS, _Y(2019, 1, 1, tzinfo=UTC), _Y(2020, 1, 1, tzinfo=UTC)),  # silent (3rd)
+    (PlanetName.SUN, _Y(2020, 1, 1, tzinfo=UTC), _Y(2022, 1, 1, tzinfo=UTC)),
+]
+
+_SILENT_EVENTS = [
+    RectificationEventInput(date=date(2012, 6, 1), category=EventType.MARRIAGE),
+    RectificationEventInput(date=date(2021, 6, 1), category=EventType.MARRIAGE),
+]
+
+
+def test_silent_activation_detected_and_capped_at_two_per_category() -> None:
+    # Venus rules AND occupies h7 → every Venus antar is a strong h7 signature.
+    # The 2012 antar is explained by the reported marriage; three later Venus
+    # antars are silent, but at most TWO penalties per category may apply.
+    ctx = _venus_h7_context(7, _SILENT_ANTARS)
+    misses = silent_activation_misses(ctx, _SILENT_EVENTS)
+    assert misses == [
+        (EventType.MARRIAGE, "miss_silent_marriage_h7"),
+        (EventType.MARRIAGE, "miss_silent_marriage_h7"),
+    ]
+
+
+def test_silent_activation_requires_rules_and_occupies() -> None:
+    # Venus rules h7 but sits in h1: rules-only is NOT the strong conjunction.
+    ctx = _venus_h7_context(1, _SILENT_ANTARS)
+    assert silent_activation_misses(ctx, _SILENT_EVENTS) == []
+
+
+def test_silent_activation_respects_event_precision_tolerance() -> None:
+    # A YEAR-precision marriage dated 2015-01-01 (±182d) overlaps the 2014-06 →
+    # 2015-06 Venus antar, explaining it; only the later antars stay silent.
+    ctx = _venus_h7_context(7, _SILENT_ANTARS)
+    events = [
+        *_SILENT_EVENTS,
+        RectificationEventInput(
+            date=date(2015, 1, 1),
+            category=EventType.MARRIAGE,
+            precision=EventDatePrecision.YEAR,
+        ),
+    ]
+    misses = silent_activation_misses(ctx, events)
+    assert misses == [
+        (EventType.MARRIAGE, "miss_silent_marriage_h7"),
+        (EventType.MARRIAGE, "miss_silent_marriage_h7"),
+    ]
+
+
+def test_silent_activation_ignores_periods_outside_coverage_window() -> None:
+    # With only the 2012 event reported, the window ends 2012-06-01: the later
+    # silent Venus antars fall outside it and must not be penalized.
+    ctx = _venus_h7_context(7, _SILENT_ANTARS)
+    assert silent_activation_misses(ctx, [_SILENT_EVENTS[0]]) == []
+
+
+def test_no_events_no_silent_misses() -> None:
+    ctx = _venus_h7_context(7, _SILENT_ANTARS)
+    assert silent_activation_misses(ctx, []) == []
+
+
+# ------------- E7: candidate split (positive/penalty/clamp/misses) ------------
+
+
+def test_score_candidate_splits_positive_penalty_and_clamps() -> None:
+    # One pd-only marriage hit (positive 0.5) + two silent Venus activations +
+    # one unexplained career event. Raw penalties exceed the 50% clamp, so
+    # penalty_total must land EXACTLY at PENALTY_CLAMP_RATIO * positive_total.
+    antars = [
+        (PlanetName.MOON, _Y(2010, 1, 1, tzinfo=UTC), _Y(2012, 1, 1, tzinfo=UTC)),
+        *_SILENT_ANTARS,
+    ]
+    dashas = _mk_dashas(PlanetName.SUN, antars)
+    ctx = _mk_context(ZodiacSign.ARIES, dashas, planet_houses={PlanetName.VENUS: 7})
+    hit_day = _noon_scan(
+        dashas,
+        date(2010, 1, 1),
+        date(2011, 12, 31),
+        lambda lords: lords[2] == PlanetName.VENUS,
+    )
+    events = [
+        RectificationEventInput(date=hit_day, category=EventType.MARRIAGE),
+        RectificationEventInput(date=date(2021, 6, 1), category=EventType.CAREER_CHANGE),
+    ]
+    cand = score_candidate(
+        ctx, events, birth_dt=_Y(1990, 1, 1, 6, 0, tzinfo=UTC), transit_signs=_empty_signs(events)
+    )
+    # Positive: pd rules + pd occupies h7 (Venus does both) = 0.5 + 0.5 = 1.0
+    assert cand.positive_total == pytest.approx(2 * W_PRATYANTAR)
+    # Raw penalties: career unexplained 0.25 + silent marriage 0.15 + 0.075
+    # (decayed) = 0.475 < clamp 0.5 → NOT clamped here; misses listed.
+    assert cand.penalty_total == pytest.approx(0.25 + MISS_SILENT * 1.5)
+    assert cand.misses == ["miss_silent_marriage_h7", "miss_silent_marriage_h7"]
+    assert cand.fit_score == pytest.approx(
+        cand.positive_total - cand.penalty_total + cand.prior_bonus
+    )
+
+
+def test_penalties_never_exceed_half_of_positive_total() -> None:
+    # A candidate with a weak positive and heavy misses: clamp must bind.
+    ctx = _venus_h7_context(7, _SILENT_ANTARS)
+    events = [
+        RectificationEventInput(date=date(2012, 6, 1), category=EventType.MARRIAGE),
+        RectificationEventInput(date=date(2021, 6, 1), category=EventType.CAREER_CHANGE),
+        RectificationEventInput(date=date(2021, 7, 1), category=EventType.HEALTH_ISSUE),
+    ]
+    cand = score_candidate(
+        ctx, events, birth_dt=_Y(1990, 1, 1, 6, 0, tzinfo=UTC), transit_signs=_empty_signs(events)
+    )
+    assert cand.penalty_total <= PENALTY_CLAMP_RATIO * cand.positive_total + EPS
+    assert cand.fit_score == pytest.approx(
+        cand.positive_total - cand.penalty_total + cand.prior_bonus
+    )
+
+
+def test_zero_positive_candidate_never_goes_negative_on_misses() -> None:
+    # Every event unexplained → positive 0 → clamp forces penalty_total to 0.
+    dashas = _mk_dashas(
+        PlanetName.SUN,
+        [(PlanetName.MOON, _Y(2014, 1, 1, tzinfo=UTC), _Y(2014, 3, 1, tzinfo=UTC))],
+    )
+    ctx = _mk_context(ZodiacSign.ARIES, dashas)
+    events = [RectificationEventInput(date=date(2014, 1, 2), category=EventType.MARRIAGE)]
+    cand = score_candidate(
+        ctx, events, birth_dt=_Y(1990, 1, 1, 6, 0, tzinfo=UTC), transit_signs=_empty_signs(events)
+    )
+    assert cand.positive_total == 0.0
+    assert cand.penalty_total == 0.0
+    assert cand.fit_score == pytest.approx(cand.prior_bonus)
+
+
+def test_score_candidate_populates_navamsa_lagna_sign(ctx_a: SiderealContext) -> None:
+    when = _first_date_with_active_lord(ctx_a, ctx_a.houses[7].sign_lord)
+    cand = score_candidate(ctx_a, [_marriage(when)], birth_dt=_BIRTH_A)
+    assert ctx_a.navamsa is not None
+    assert cand.navamsa_lagna_sign == ctx_a.navamsa.lagna_sign
+
+
+# ---------------- Spec 062 synthetic scenarios (a)–(c) ------------------------
+
+
+def test_scenario_depth_discrimination_pd_lord_separates_candidates() -> None:
+    """(a) An exactly-dated event whose PD lord separates two candidates."""
+    dashas = _mk_dashas(
+        PlanetName.SUN,
+        [(PlanetName.MOON, _Y(2014, 1, 1, tzinfo=UTC), _Y(2016, 1, 1, tzinfo=UTC))],
+    )
+    when = _noon_scan(
+        dashas,
+        date(2014, 1, 1),
+        date(2015, 12, 31),
+        lambda lords: lords[2] == PlanetName.VENUS and PlanetName.MARS not in lords,
+    )
+    ctx_aries = _mk_context(ZodiacSign.ARIES, dashas)  # h7 = Libra → VENUS (pd hit)
+    ctx_taurus = _mk_context(ZodiacSign.TAURUS, dashas)  # h7 = Scorpio → MARS (silent)
+    events = [RectificationEventInput(date=when, category=EventType.MARRIAGE)]
+    signs = _empty_signs(events)
+    cand_a = score_candidate(
+        ctx_aries, events, birth_dt=_Y(1990, 1, 1, 6, 0, tzinfo=UTC), transit_signs=signs
+    )
+    cand_b = score_candidate(
+        ctx_taurus, events, birth_dt=_Y(1990, 1, 1, 6, 13, tzinfo=UTC), transit_signs=signs
+    )
+    assert "pd_lord_rules_h7" in cand_a.supporting_events[0].signals
+    assert cand_a.fit_score > cand_b.fit_score
+    ranked, _margin, _band = rank_candidates([cand_b, cand_a], discriminating_event_count=1)
+    assert ranked[0] is cand_a
+
+
+def test_scenario_d9_flip_marriage_decided_by_navamsa_lagna() -> None:
+    """(b) Same rasi lagna, different navamsa lagna → the D9 test decides."""
+    dashas = _mk_dashas(
+        PlanetName.JUPITER,
+        [(PlanetName.SUN, _Y(2014, 1, 1, tzinfo=UTC), _Y(2016, 1, 1, tzinfo=UTC))],
+    )
+    # Candidate A: D9 lagna Gemini → D9-h7 Sagittarius ruled by JUPITER (md) → hit.
+    ctx_flip_a = _mk_context(ZodiacSign.ARIES, dashas, navamsa=_mk_navamsa(ZodiacSign.GEMINI))
+    # Candidate B: D9 lagna Cancer → D9-h7 Capricorn ruled by SATURN (inactive).
+    ctx_flip_b = _mk_context(ZodiacSign.ARIES, dashas, navamsa=_mk_navamsa(ZodiacSign.CANCER))
+    events = [RectificationEventInput(date=date(2014, 1, 2), category=EventType.MARRIAGE)]
+    signs = _empty_signs(events)
+    cand_a = score_candidate(
+        ctx_flip_a, events, birth_dt=_Y(1990, 1, 1, 6, 0, tzinfo=UTC), transit_signs=signs
+    )
+    cand_b = score_candidate(
+        ctx_flip_b, events, birth_dt=_Y(1990, 1, 1, 6, 13, tzinfo=UTC), transit_signs=signs
+    )
+    assert "d9_lord_rules_d9_h7" in cand_a.supporting_events[0].signals
+    assert cand_a.navamsa_lagna_sign == ZodiacSign.GEMINI
+    assert cand_b.navamsa_lagna_sign == ZodiacSign.CANCER
+    assert cand_a.fit_score > cand_b.fit_score
+
+
+def test_scenario_miss_penalty_demotes_silent_activation_candidate() -> None:
+    """(c) Equal hits, but one candidate's chart is loudly silent → demoted,
+    while the clamp keeps penalties ≤ 50% of the positive total."""
+    # Both candidates score the SAME positive marriage hit (Venus antar 2012).
+    # Candidate NOISY additionally has Venus in h7 → its later Venus antars are
+    # strong-but-silent (miss); candidate QUIET has Venus in h1 → no misses.
+    antars = _SILENT_ANTARS
+    quiet = _venus_h7_context(1, antars)
+    noisy = _venus_h7_context(7, antars)
+    events = _SILENT_EVENTS
+    signs = _empty_signs(events)
+    cand_quiet = score_candidate(
+        quiet, events, birth_dt=_Y(1990, 1, 1, 6, 0, tzinfo=UTC), transit_signs=signs
+    )
+    cand_noisy = score_candidate(
+        noisy, events, birth_dt=_Y(1990, 1, 1, 6, 13, tzinfo=UTC), transit_signs=signs
+    )
+    assert cand_noisy.penalty_total > 0
+    assert cand_noisy.penalty_total <= PENALTY_CLAMP_RATIO * cand_noisy.positive_total + EPS
+    # Demoted relative to its own hit-only score — never below the 50% floor.
+    assert cand_noisy.fit_score < cand_noisy.positive_total + cand_noisy.prior_bonus
+    assert cand_noisy.misses  # the demotion is transparently attributed
+    assert cand_quiet.misses == []

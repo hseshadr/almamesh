@@ -95,7 +95,7 @@
     "band_consistent": "Coherente con tus eventos",
     "method_label": "Método:",
     "mode_cusp": "Comparación de cúspide",
-    "mode_window": "Barrido de todo el día",
+    "mode_window": "Barrido de ventana de tiempo",
     "events_informed_one": "Basada en {{count}} evento de tu vida que registraste.",
     "events_informed_other": "Basada en {{count}} eventos de tu vida que registraste.",
     "rerun_link": "Volver a ejecutar la rectificación →"

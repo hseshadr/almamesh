@@ -28,7 +28,8 @@
     "title_generating": "Gerando sua interpretação personalizada",
     "title_failed": "Não foi possível gerar a interpretação",
     "elapsed": "Gerando a partir do seu modelo — {{elapsed}} decorridos. Uma leitura completa pode levar de 1 a 3 minutos em um modelo na nuvem.",
-    "model_unavailable": "O modelo de IA nas suas configurações não está disponível no seu endpoint, então a leitura não pôde ser gerada. Mude para o modelo recomendado e tente novamente."
+    "model_unavailable": "O modelo de IA nas suas configurações não está disponível no seu endpoint, então a leitura não pôde ser gerada. Mude para o modelo recomendado e tente novamente.",
+    "partial_failure": "Algumas seções não puderam ser geradas desta vez: {{sections}}. O restante da leitura está completo — gere novamente para preencher a lacuna."
   },
   "sections": {
     "core": "Identidade e personalidade",

@@ -1,656 +1,149 @@
 {
   "discriminating": {
-    "band": "leans",
+    "band": "consistent",
     "candidates": [
       {
         "ascendant_sign": "Virgo",
-        "fit_score": 8.5,
+        "fit_score": 14.14,
         "is_near_cusp": false,
         "lagna_cusp_distance_deg": 13.883125,
         "lagna_longitude_deg": 166.116875,
+        "misses": [
+          "miss_silent_childbirth_h5"
+        ],
+        "navamsa_lagna_sign": "Taurus",
+        "penalty_total": 0.15,
+        "positive_total": 14.29,
+        "prior_bonus": 0.0,
         "representative_time_local": "12:30",
         "supporting_events": [
           {
             "category": "career_change",
-            "contribution": 1.5,
-            "date": "2005-03-15",
+            "contribution": 2.7,
+            "date": "2013-06-10",
             "event_index": 0,
             "signals": [
-              "dasha_lord_in_h10",
+              "pd_lord_rules_h10",
+              "md_lord_in_h10",
+              "ad_lord_in_h10",
               "slow_transit_h10"
             ]
           },
           {
             "category": "promotion",
-            "contribution": 2.0,
-            "date": "2010-07-01",
+            "contribution": 2.2,
+            "date": "2018-06-29",
             "event_index": 1,
             "signals": [
-              "dasha_lord_rules_h10",
-              "dasha_lord_in_h10"
+              "pd_lord_rules_h10",
+              "md_lord_in_h10",
+              "ad_lord_in_h10"
             ]
           },
           {
             "category": "business_start",
-            "contribution": 1.0,
-            "date": "2015-09-20",
+            "contribution": 2.05,
+            "date": "2010-08-10",
             "event_index": 2,
             "signals": [
-              "dasha_lord_in_h10"
+              "ad_lord_rules_h10",
+              "md_lord_in_h10",
+              "pd_lord_in_h10"
             ]
           },
           {
             "category": "marriage",
-            "contribution": 0.0,
-            "date": "2003-05-12",
-            "event_index": 3,
-            "signals": []
-          },
-          {
-            "category": "childbirth",
-            "contribution": 2.0,
-            "date": "2018-02-28",
-            "event_index": 4,
-            "signals": [
-              "dasha_lord_rules_h5",
-              "dasha_lord_in_h5"
-            ]
-          },
-          {
-            "category": "relocation",
-            "contribution": 2.0,
-            "date": "2008-11-10",
-            "event_index": 5,
-            "signals": [
-              "dasha_lord_in_h4",
-              "slow_transit_h4",
-              "slow_transit_h12"
-            ]
-          }
-        ]
-      },
-      {
-        "ascendant_sign": "Cancer",
-        "fit_score": 6.0,
-        "is_near_cusp": false,
-        "lagna_cusp_distance_deg": 13.388309,
-        "lagna_longitude_deg": 106.611691,
-        "representative_time_local": "08:15",
-        "supporting_events": [
-          {
-            "category": "career_change",
-            "contribution": 0.0,
-            "date": "2005-03-15",
-            "event_index": 0,
-            "signals": []
-          },
-          {
-            "category": "promotion",
-            "contribution": 0.0,
-            "date": "2010-07-01",
-            "event_index": 1,
-            "signals": []
-          },
-          {
-            "category": "business_start",
-            "contribution": 2.0,
-            "date": "2015-09-20",
-            "event_index": 2,
-            "signals": [
-              "dasha_lord_rules_h10",
-              "dasha_lord_in_h10"
-            ]
-          },
-          {
-            "category": "marriage",
-            "contribution": 2.0,
-            "date": "2003-05-12",
+            "contribution": 2.19,
+            "date": "2011-02-06",
             "event_index": 3,
             "signals": [
-              "dasha_lord_rules_h7",
-              "dasha_lord_in_h7"
+              "slow_transit_h7",
+              "d9_lord_rules_d9_h7#dignified_fit",
+              "d9_lord_in_d9_h7",
+              "d9_lord_is_d9_lagna_lord"
             ]
           },
           {
             "category": "childbirth",
-            "contribution": 0.0,
-            "date": "2018-02-28",
-            "event_index": 4,
-            "signals": []
-          },
-          {
-            "category": "relocation",
-            "contribution": 2.0,
-            "date": "2008-11-10",
-            "event_index": 5,
-            "signals": [
-              "dasha_lord_rules_h4",
-              "dasha_lord_in_h12"
-            ]
-          }
-        ]
-      },
-      {
-        "ascendant_sign": "Gemini",
-        "fit_score": 5.0,
-        "is_near_cusp": false,
-        "lagna_cusp_distance_deg": 3.477367,
-        "lagna_longitude_deg": 86.522633,
-        "representative_time_local": "06:45",
-        "supporting_events": [
-          {
-            "category": "career_change",
-            "contribution": 0.0,
-            "date": "2005-03-15",
-            "event_index": 0,
-            "signals": []
-          },
-          {
-            "category": "promotion",
-            "contribution": 0.5,
-            "date": "2010-07-01",
-            "event_index": 1,
-            "signals": [
-              "slow_transit_h10"
-            ]
-          },
-          {
-            "category": "business_start",
-            "contribution": 0.0,
-            "date": "2015-09-20",
-            "event_index": 2,
-            "signals": []
-          },
-          {
-            "category": "marriage",
-            "contribution": 2.0,
-            "date": "2003-05-12",
-            "event_index": 3,
-            "signals": [
-              "dasha_lord_rules_h7",
-              "dasha_lord_in_h7"
-            ]
-          },
-          {
-            "category": "childbirth",
-            "contribution": 0.5,
-            "date": "2018-02-28",
+            "contribution": 1.75,
+            "date": "2022-10-21",
             "event_index": 4,
             "signals": [
+              "pd_lord_rules_h5#dignified_fit",
+              "pd_lord_in_h5#dignified_fit",
               "slow_transit_h5"
             ]
           },
           {
             "category": "relocation",
-            "contribution": 2.0,
-            "date": "2008-11-10",
+            "contribution": 3.4,
+            "date": "2016-04-10",
             "event_index": 5,
             "signals": [
-              "dasha_lord_rules_h4",
-              "dasha_lord_rules_h12"
-            ]
-          }
-        ]
-      },
-      {
-        "ascendant_sign": "Pisces",
-        "fit_score": 5.0,
-        "is_near_cusp": false,
-        "lagna_cusp_distance_deg": 14.595659,
-        "lagna_longitude_deg": 345.404341,
-        "representative_time_local": "00:15",
-        "supporting_events": [
-          {
-            "category": "career_change",
-            "contribution": 1.0,
-            "date": "2005-03-15",
-            "event_index": 0,
-            "signals": [
-              "dasha_lord_rules_h10"
-            ]
-          },
-          {
-            "category": "promotion",
-            "contribution": 0.0,
-            "date": "2010-07-01",
-            "event_index": 1,
-            "signals": []
-          },
-          {
-            "category": "business_start",
-            "contribution": 0.0,
-            "date": "2015-09-20",
-            "event_index": 2,
-            "signals": []
-          },
-          {
-            "category": "marriage",
-            "contribution": 1.0,
-            "date": "2003-05-12",
-            "event_index": 3,
-            "signals": [
-              "dasha_lord_rules_h7"
-            ]
-          },
-          {
-            "category": "childbirth",
-            "contribution": 1.0,
-            "date": "2018-02-28",
-            "event_index": 4,
-            "signals": [
-              "dasha_lord_rules_h5"
-            ]
-          },
-          {
-            "category": "relocation",
-            "contribution": 2.0,
-            "date": "2008-11-10",
-            "event_index": 5,
-            "signals": [
-              "dasha_lord_rules_h4",
-              "dasha_lord_in_h4"
+              "ad_lord_rules_h4",
+              "pd_lord_in_h4",
+              "md_lord_rules_h12",
+              "ad_lord_in_h12",
+              "slow_transit_h12"
             ]
           }
         ]
       },
       {
         "ascendant_sign": "Scorpio",
-        "fit_score": 4.5,
+        "fit_score": 4.62,
         "is_near_cusp": false,
         "lagna_cusp_distance_deg": 14.449877,
         "lagna_longitude_deg": 224.449877,
+        "misses": [],
+        "navamsa_lagna_sign": "Scorpio",
+        "penalty_total": 0.25,
+        "positive_total": 4.87,
+        "prior_bonus": 0.0,
         "representative_time_local": "16:45",
         "supporting_events": [
           {
             "category": "career_change",
-            "contribution": 0.0,
-            "date": "2005-03-15",
-            "event_index": 0,
-            "signals": []
-          },
-          {
-            "category": "promotion",
-            "contribution": 0.0,
-            "date": "2010-07-01",
-            "event_index": 1,
-            "signals": []
-          },
-          {
-            "category": "business_start",
-            "contribution": 2.5,
-            "date": "2015-09-20",
-            "event_index": 2,
-            "signals": [
-              "dasha_lord_rules_h10",
-              "dasha_lord_in_h10",
-              "slow_transit_h10"
-            ]
-          },
-          {
-            "category": "marriage",
             "contribution": 1.0,
-            "date": "2003-05-12",
-            "event_index": 3,
-            "signals": [
-              "dasha_lord_rules_h7"
-            ]
-          },
-          {
-            "category": "childbirth",
-            "contribution": 0.0,
-            "date": "2018-02-28",
-            "event_index": 4,
-            "signals": []
-          },
-          {
-            "category": "relocation",
-            "contribution": 1.0,
-            "date": "2008-11-10",
-            "event_index": 5,
-            "signals": [
-              "dasha_lord_rules_h12"
-            ]
-          }
-        ]
-      },
-      {
-        "ascendant_sign": "Taurus",
-        "fit_score": 4.5,
-        "is_near_cusp": false,
-        "lagna_cusp_distance_deg": 14.300081,
-        "lagna_longitude_deg": 45.699919,
-        "representative_time_local": "03:45",
-        "supporting_events": [
-          {
-            "category": "career_change",
-            "contribution": 1.0,
-            "date": "2005-03-15",
+            "date": "2013-06-10",
             "event_index": 0,
             "signals": [
-              "dasha_lord_rules_h10"
-            ]
-          },
-          {
-            "category": "promotion",
-            "contribution": 0.0,
-            "date": "2010-07-01",
-            "event_index": 1,
-            "signals": []
-          },
-          {
-            "category": "business_start",
-            "contribution": 0.0,
-            "date": "2015-09-20",
-            "event_index": 2,
-            "signals": []
-          },
-          {
-            "category": "marriage",
-            "contribution": 0.0,
-            "date": "2003-05-12",
-            "event_index": 3,
-            "signals": []
-          },
-          {
-            "category": "childbirth",
-            "contribution": 0.0,
-            "date": "2018-02-28",
-            "event_index": 4,
-            "signals": []
-          },
-          {
-            "category": "relocation",
-            "contribution": 3.5,
-            "date": "2008-11-10",
-            "event_index": 5,
-            "signals": [
-              "dasha_lord_in_h4",
-              "slow_transit_h4",
-              "dasha_lord_rules_h12",
-              "dasha_lord_in_h12"
-            ]
-          }
-        ]
-      },
-      {
-        "ascendant_sign": "Sagittarius",
-        "fit_score": 3.5,
-        "is_near_cusp": false,
-        "lagna_cusp_distance_deg": 14.847835,
-        "lagna_longitude_deg": 255.152165,
-        "representative_time_local": "19:00",
-        "supporting_events": [
-          {
-            "category": "career_change",
-            "contribution": 0.5,
-            "date": "2005-03-15",
-            "event_index": 0,
-            "signals": [
-              "slow_transit_h10"
-            ]
-          },
-          {
-            "category": "promotion",
-            "contribution": 1.5,
-            "date": "2010-07-01",
-            "event_index": 1,
-            "signals": [
-              "dasha_lord_rules_h10",
-              "slow_transit_h10"
-            ]
-          },
-          {
-            "category": "business_start",
-            "contribution": 0.0,
-            "date": "2015-09-20",
-            "event_index": 2,
-            "signals": []
-          },
-          {
-            "category": "marriage",
-            "contribution": 1.5,
-            "date": "2003-05-12",
-            "event_index": 3,
-            "signals": [
-              "dasha_lord_in_h7",
-              "slow_transit_h7"
-            ]
-          },
-          {
-            "category": "childbirth",
-            "contribution": 0.0,
-            "date": "2018-02-28",
-            "event_index": 4,
-            "signals": []
-          },
-          {
-            "category": "relocation",
-            "contribution": 0.0,
-            "date": "2008-11-10",
-            "event_index": 5,
-            "signals": []
-          }
-        ]
-      },
-      {
-        "ascendant_sign": "Aquarius",
-        "fit_score": 3.5,
-        "is_near_cusp": false,
-        "lagna_cusp_distance_deg": 13.33078,
-        "lagna_longitude_deg": 316.66922,
-        "representative_time_local": "22:45",
-        "supporting_events": [
-          {
-            "category": "career_change",
-            "contribution": 0.0,
-            "date": "2005-03-15",
-            "event_index": 0,
-            "signals": []
-          },
-          {
-            "category": "promotion",
-            "contribution": 0.0,
-            "date": "2010-07-01",
-            "event_index": 1,
-            "signals": []
-          },
-          {
-            "category": "business_start",
-            "contribution": 0.5,
-            "date": "2015-09-20",
-            "event_index": 2,
-            "signals": [
-              "slow_transit_h10"
-            ]
-          },
-          {
-            "category": "marriage",
-            "contribution": 1.0,
-            "date": "2003-05-12",
-            "event_index": 3,
-            "signals": [
-              "dasha_lord_in_h7"
-            ]
-          },
-          {
-            "category": "childbirth",
-            "contribution": 2.0,
-            "date": "2018-02-28",
-            "event_index": 4,
-            "signals": [
-              "dasha_lord_rules_h5",
-              "dasha_lord_in_h5"
-            ]
-          },
-          {
-            "category": "relocation",
-            "contribution": 0.0,
-            "date": "2008-11-10",
-            "event_index": 5,
-            "signals": []
-          }
-        ]
-      },
-      {
-        "ascendant_sign": "Libra",
-        "fit_score": 3.0,
-        "is_near_cusp": false,
-        "lagna_cusp_distance_deg": 14.120421,
-        "lagna_longitude_deg": 194.120421,
-        "representative_time_local": "14:30",
-        "supporting_events": [
-          {
-            "category": "career_change",
-            "contribution": 0.0,
-            "date": "2005-03-15",
-            "event_index": 0,
-            "signals": []
-          },
-          {
-            "category": "promotion",
-            "contribution": 1.0,
-            "date": "2010-07-01",
-            "event_index": 1,
-            "signals": [
-              "dasha_lord_in_h10"
-            ]
-          },
-          {
-            "category": "business_start",
-            "contribution": 0.0,
-            "date": "2015-09-20",
-            "event_index": 2,
-            "signals": []
-          },
-          {
-            "category": "marriage",
-            "contribution": 0.0,
-            "date": "2003-05-12",
-            "event_index": 3,
-            "signals": []
-          },
-          {
-            "category": "childbirth",
-            "contribution": 0.0,
-            "date": "2018-02-28",
-            "event_index": 4,
-            "signals": []
-          },
-          {
-            "category": "relocation",
-            "contribution": 2.0,
-            "date": "2008-11-10",
-            "event_index": 5,
-            "signals": [
-              "dasha_lord_rules_h4",
-              "dasha_lord_in_h4"
-            ]
-          }
-        ]
-      },
-      {
-        "ascendant_sign": "Capricorn",
-        "fit_score": 3.0,
-        "is_near_cusp": false,
-        "lagna_cusp_distance_deg": 14.329807,
-        "lagna_longitude_deg": 285.670193,
-        "representative_time_local": "21:00",
-        "supporting_events": [
-          {
-            "category": "career_change",
-            "contribution": 1.0,
-            "date": "2005-03-15",
-            "event_index": 0,
-            "signals": [
-              "dasha_lord_rules_h10"
-            ]
-          },
-          {
-            "category": "promotion",
-            "contribution": 0.0,
-            "date": "2010-07-01",
-            "event_index": 1,
-            "signals": []
-          },
-          {
-            "category": "business_start",
-            "contribution": 0.0,
-            "date": "2015-09-20",
-            "event_index": 2,
-            "signals": []
-          },
-          {
-            "category": "marriage",
-            "contribution": 0.5,
-            "date": "2003-05-12",
-            "event_index": 3,
-            "signals": [
-              "slow_transit_h7"
-            ]
-          },
-          {
-            "category": "childbirth",
-            "contribution": 0.0,
-            "date": "2018-02-28",
-            "event_index": 4,
-            "signals": []
-          },
-          {
-            "category": "relocation",
-            "contribution": 1.5,
-            "date": "2008-11-10",
-            "event_index": 5,
-            "signals": [
-              "dasha_lord_in_h12",
-              "slow_transit_h12"
-            ]
-          }
-        ]
-      },
-      {
-        "ascendant_sign": "Leo",
-        "fit_score": 2.5,
-        "is_near_cusp": false,
-        "lagna_cusp_distance_deg": 14.160659,
-        "lagna_longitude_deg": 134.160659,
-        "representative_time_local": "10:15",
-        "supporting_events": [
-          {
-            "category": "career_change",
-            "contribution": 1.0,
-            "date": "2005-03-15",
-            "event_index": 0,
-            "signals": [
-              "dasha_lord_rules_h10"
+              "pd_lord_rules_h10"
             ]
           },
           {
             "category": "promotion",
             "contribution": 1.0,
-            "date": "2010-07-01",
+            "date": "2018-06-29",
             "event_index": 1,
             "signals": [
-              "dasha_lord_rules_h10"
+              "md_lord_in_h10"
             ]
           },
           {
             "category": "business_start",
-            "contribution": 0.0,
-            "date": "2015-09-20",
+            "contribution": -0.25,
+            "date": "2010-08-10",
             "event_index": 2,
-            "signals": []
+            "signals": [
+              "miss_unexplained"
+            ]
           },
           {
             "category": "marriage",
-            "contribution": 0.0,
-            "date": "2003-05-12",
+            "contribution": 1.87,
+            "date": "2011-02-06",
             "event_index": 3,
-            "signals": []
+            "signals": [
+              "md_lord_rules_h7",
+              "d9_lord_rules_d9_h7",
+              "d9_lord_in_d9_h7"
+            ]
           },
           {
             "category": "childbirth",
             "contribution": 0.5,
-            "date": "2018-02-28",
+            "date": "2022-10-21",
             "event_index": 4,
             "signals": [
               "slow_transit_h5"
@@ -658,71 +151,747 @@
           },
           {
             "category": "relocation",
-            "contribution": 0.0,
-            "date": "2008-11-10",
+            "contribution": 0.5,
+            "date": "2016-04-10",
             "event_index": 5,
-            "signals": []
+            "signals": [
+              "pd_lord_rules_h12"
+            ]
+          }
+        ]
+      },
+      {
+        "ascendant_sign": "Capricorn",
+        "fit_score": 3.095,
+        "is_near_cusp": false,
+        "lagna_cusp_distance_deg": 14.329807,
+        "lagna_longitude_deg": 285.670193,
+        "misses": [
+          "miss_silent_relocation_h4"
+        ],
+        "navamsa_lagna_sign": "Taurus",
+        "penalty_total": 0.4,
+        "positive_total": 3.495,
+        "prior_bonus": 0.0,
+        "representative_time_local": "21:00",
+        "supporting_events": [
+          {
+            "category": "career_change",
+            "contribution": 1.2,
+            "date": "2013-06-10",
+            "event_index": 0,
+            "signals": [
+              "ad_lord_rules_h10",
+              "slow_transit_h10"
+            ]
+          },
+          {
+            "category": "promotion",
+            "contribution": 0.5,
+            "date": "2018-06-29",
+            "event_index": 1,
+            "signals": [
+              "slow_transit_h10"
+            ]
+          },
+          {
+            "category": "business_start",
+            "contribution": -0.25,
+            "date": "2010-08-10",
+            "event_index": 2,
+            "signals": [
+              "miss_unexplained"
+            ]
+          },
+          {
+            "category": "marriage",
+            "contribution": 0.5,
+            "date": "2011-02-06",
+            "event_index": 3,
+            "signals": [
+              "pd_lord_rules_h7"
+            ]
+          },
+          {
+            "category": "childbirth",
+            "contribution": 0.595,
+            "date": "2022-10-21",
+            "event_index": 4,
+            "signals": [
+              "ad_lord_rules_h5"
+            ]
+          },
+          {
+            "category": "relocation",
+            "contribution": 0.7,
+            "date": "2016-04-10",
+            "event_index": 5,
+            "signals": [
+              "ad_lord_in_h12"
+            ]
+          }
+        ]
+      },
+      {
+        "ascendant_sign": "Leo",
+        "fit_score": 3.05,
+        "is_near_cusp": false,
+        "lagna_cusp_distance_deg": 14.160659,
+        "lagna_longitude_deg": 134.160659,
+        "misses": [],
+        "navamsa_lagna_sign": "Leo",
+        "penalty_total": 0.5,
+        "positive_total": 3.55,
+        "prior_bonus": 0.0,
+        "representative_time_local": "10:15",
+        "supporting_events": [
+          {
+            "category": "career_change",
+            "contribution": 1.0,
+            "date": "2013-06-10",
+            "event_index": 0,
+            "signals": [
+              "md_lord_rules_h10"
+            ]
+          },
+          {
+            "category": "promotion",
+            "contribution": -0.25,
+            "date": "2018-06-29",
+            "event_index": 1,
+            "signals": [
+              "miss_unexplained"
+            ]
+          },
+          {
+            "category": "business_start",
+            "contribution": 0.85,
+            "date": "2010-08-10",
+            "event_index": 2,
+            "signals": [
+              "md_lord_rules_h10"
+            ]
+          },
+          {
+            "category": "marriage",
+            "contribution": -0.25,
+            "date": "2011-02-06",
+            "event_index": 3,
+            "signals": [
+              "miss_unexplained"
+            ]
+          },
+          {
+            "category": "childbirth",
+            "contribution": 0.7,
+            "date": "2022-10-21",
+            "event_index": 4,
+            "signals": [
+              "ad_lord_in_h5"
+            ]
+          },
+          {
+            "category": "relocation",
+            "contribution": 1.0,
+            "date": "2016-04-10",
+            "event_index": 5,
+            "signals": [
+              "pd_lord_rules_h4",
+              "slow_transit_h4"
+            ]
+          }
+        ]
+      },
+      {
+        "ascendant_sign": "Sagittarius",
+        "fit_score": 2.9875,
+        "is_near_cusp": false,
+        "lagna_cusp_distance_deg": 14.847835,
+        "lagna_longitude_deg": 255.152165,
+        "misses": [
+          "miss_silent_childbirth_h5",
+          "miss_silent_childbirth_h5"
+        ],
+        "navamsa_lagna_sign": "Leo",
+        "penalty_total": 0.6125,
+        "positive_total": 3.6,
+        "prior_bonus": 0.0,
+        "representative_time_local": "19:00",
+        "supporting_events": [
+          {
+            "category": "career_change",
+            "contribution": 0.7,
+            "date": "2013-06-10",
+            "event_index": 0,
+            "signals": [
+              "ad_lord_rules_h10"
+            ]
+          },
+          {
+            "category": "promotion",
+            "contribution": -0.25,
+            "date": "2018-06-29",
+            "event_index": 1,
+            "signals": [
+              "miss_unexplained"
+            ]
+          },
+          {
+            "category": "business_start",
+            "contribution": 0.5,
+            "date": "2010-08-10",
+            "event_index": 2,
+            "signals": [
+              "slow_transit_h10"
+            ]
+          },
+          {
+            "category": "marriage",
+            "contribution": 1.9,
+            "date": "2011-02-06",
+            "event_index": 3,
+            "signals": [
+              "pd_lord_rules_h7",
+              "md_lord_in_h7",
+              "d9_lord_is_d9_lagna_lord"
+            ]
+          },
+          {
+            "category": "childbirth",
+            "contribution": -0.25,
+            "date": "2022-10-21",
+            "event_index": 4,
+            "signals": [
+              "miss_unexplained"
+            ]
+          },
+          {
+            "category": "relocation",
+            "contribution": 0.5,
+            "date": "2016-04-10",
+            "event_index": 5,
+            "signals": [
+              "slow_transit_h12"
+            ]
+          }
+        ]
+      },
+      {
+        "ascendant_sign": "Libra",
+        "fit_score": 2.675,
+        "is_near_cusp": false,
+        "lagna_cusp_distance_deg": 14.120421,
+        "lagna_longitude_deg": 194.120421,
+        "misses": [
+          "miss_silent_marriage_h7",
+          "miss_silent_marriage_h7"
+        ],
+        "navamsa_lagna_sign": "Aquarius",
+        "penalty_total": 0.725,
+        "positive_total": 3.4,
+        "prior_bonus": 0.0,
+        "representative_time_local": "14:30",
+        "supporting_events": [
+          {
+            "category": "career_change",
+            "contribution": 0.7,
+            "date": "2013-06-10",
+            "event_index": 0,
+            "signals": [
+              "ad_lord_rules_h10"
+            ]
+          },
+          {
+            "category": "promotion",
+            "contribution": -0.25,
+            "date": "2018-06-29",
+            "event_index": 1,
+            "signals": [
+              "miss_unexplained"
+            ]
+          },
+          {
+            "category": "business_start",
+            "contribution": 0.7,
+            "date": "2010-08-10",
+            "event_index": 2,
+            "signals": [
+              "ad_lord_in_h10"
+            ]
+          },
+          {
+            "category": "marriage",
+            "contribution": 0.6,
+            "date": "2011-02-06",
+            "event_index": 3,
+            "signals": [
+              "d9_lord_in_d9_h7"
+            ]
+          },
+          {
+            "category": "childbirth",
+            "contribution": -0.25,
+            "date": "2022-10-21",
+            "event_index": 4,
+            "signals": [
+              "miss_unexplained"
+            ]
+          },
+          {
+            "category": "relocation",
+            "contribution": 1.4,
+            "date": "2016-04-10",
+            "event_index": 5,
+            "signals": [
+              "ad_lord_rules_h4",
+              "ad_lord_in_h4"
+            ]
+          }
+        ]
+      },
+      {
+        "ascendant_sign": "Pisces",
+        "fit_score": 1.9,
+        "is_near_cusp": false,
+        "lagna_cusp_distance_deg": 14.595659,
+        "lagna_longitude_deg": 345.404341,
+        "misses": [],
+        "navamsa_lagna_sign": "Scorpio",
+        "penalty_total": 0.5,
+        "positive_total": 2.4,
+        "prior_bonus": 0.0,
+        "representative_time_local": "00:15",
+        "supporting_events": [
+          {
+            "category": "career_change",
+            "contribution": 0.7,
+            "date": "2013-06-10",
+            "event_index": 0,
+            "signals": [
+              "ad_lord_in_h10"
+            ]
+          },
+          {
+            "category": "promotion",
+            "contribution": 0.5,
+            "date": "2018-06-29",
+            "event_index": 1,
+            "signals": [
+              "slow_transit_h10"
+            ]
+          },
+          {
+            "category": "business_start",
+            "contribution": -0.25,
+            "date": "2010-08-10",
+            "event_index": 2,
+            "signals": [
+              "miss_unexplained"
+            ]
+          },
+          {
+            "category": "marriage",
+            "contribution": 0.5,
+            "date": "2011-02-06",
+            "event_index": 3,
+            "signals": [
+              "slow_transit_h7"
+            ]
+          },
+          {
+            "category": "childbirth",
+            "contribution": -0.25,
+            "date": "2022-10-21",
+            "event_index": 4,
+            "signals": [
+              "miss_unexplained"
+            ]
+          },
+          {
+            "category": "relocation",
+            "contribution": 0.7,
+            "date": "2016-04-10",
+            "event_index": 5,
+            "signals": [
+              "ad_lord_rules_h12"
+            ]
           }
         ]
       },
       {
         "ascendant_sign": "Aries",
-        "fit_score": 1.0,
+        "fit_score": 1.725,
         "is_near_cusp": false,
         "lagna_cusp_distance_deg": 12.444552,
         "lagna_longitude_deg": 17.555448,
+        "misses": [
+          "miss_silent_business_start_h10",
+          "miss_silent_business_start_h10",
+          "miss_silent_career_change_h10",
+          "miss_silent_promotion_h10",
+          "miss_silent_promotion_h10"
+        ],
+        "navamsa_lagna_sign": "Virgo",
+        "penalty_total": 1.375,
+        "positive_total": 3.1,
+        "prior_bonus": 0.0,
         "representative_time_local": "02:00",
         "supporting_events": [
           {
             "category": "career_change",
-            "contribution": 0.0,
-            "date": "2005-03-15",
+            "contribution": 1.4,
+            "date": "2013-06-10",
             "event_index": 0,
-            "signals": []
+            "signals": [
+              "pd_lord_rules_h10",
+              "pd_lord_in_h10"
+            ]
           },
           {
             "category": "promotion",
-            "contribution": 0.0,
-            "date": "2010-07-01",
+            "contribution": -0.25,
+            "date": "2018-06-29",
             "event_index": 1,
-            "signals": []
+            "signals": [
+              "miss_unexplained"
+            ]
           },
           {
             "category": "business_start",
-            "contribution": 0.0,
-            "date": "2015-09-20",
+            "contribution": -0.25,
+            "date": "2010-08-10",
             "event_index": 2,
-            "signals": []
+            "signals": [
+              "miss_unexplained"
+            ]
           },
           {
             "category": "marriage",
-            "contribution": 0.0,
-            "date": "2003-05-12",
+            "contribution": -0.25,
+            "date": "2011-02-06",
             "event_index": 3,
-            "signals": []
+            "signals": [
+              "miss_unexplained"
+            ]
           },
           {
             "category": "childbirth",
-            "contribution": 1.0,
-            "date": "2018-02-28",
+            "contribution": -0.25,
+            "date": "2022-10-21",
             "event_index": 4,
             "signals": [
-              "dasha_lord_in_h5"
+              "miss_unexplained"
             ]
           },
           {
             "category": "relocation",
-            "contribution": 0.0,
-            "date": "2008-11-10",
+            "contribution": 1.7,
+            "date": "2016-04-10",
             "event_index": 5,
-            "signals": []
+            "signals": [
+              "md_lord_rules_h4",
+              "ad_lord_in_h4"
+            ]
+          }
+        ]
+      },
+      {
+        "ascendant_sign": "Taurus",
+        "fit_score": 1.45,
+        "is_near_cusp": false,
+        "lagna_cusp_distance_deg": 14.300081,
+        "lagna_longitude_deg": 45.699919,
+        "misses": [
+          "miss_silent_relocation_h12"
+        ],
+        "navamsa_lagna_sign": "Taurus",
+        "penalty_total": 1.15,
+        "positive_total": 2.6,
+        "prior_bonus": 0.0,
+        "representative_time_local": "03:45",
+        "supporting_events": [
+          {
+            "category": "career_change",
+            "contribution": -0.25,
+            "date": "2013-06-10",
+            "event_index": 0,
+            "signals": [
+              "miss_unexplained"
+            ]
+          },
+          {
+            "category": "promotion",
+            "contribution": -0.25,
+            "date": "2018-06-29",
+            "event_index": 1,
+            "signals": [
+              "miss_unexplained"
+            ]
+          },
+          {
+            "category": "business_start",
+            "contribution": -0.25,
+            "date": "2010-08-10",
+            "event_index": 2,
+            "signals": [
+              "miss_unexplained"
+            ]
+          },
+          {
+            "category": "marriage",
+            "contribution": 0.6,
+            "date": "2011-02-06",
+            "event_index": 3,
+            "signals": [
+              "d9_lord_in_d9_h7"
+            ]
+          },
+          {
+            "category": "childbirth",
+            "contribution": -0.25,
+            "date": "2022-10-21",
+            "event_index": 4,
+            "signals": [
+              "miss_unexplained"
+            ]
+          },
+          {
+            "category": "relocation",
+            "contribution": 2.0,
+            "date": "2016-04-10",
+            "event_index": 5,
+            "signals": [
+              "md_lord_in_h4",
+              "pd_lord_in_h4",
+              "slow_transit_h4"
+            ]
+          }
+        ]
+      },
+      {
+        "ascendant_sign": "Gemini",
+        "fit_score": 1.09,
+        "is_near_cusp": false,
+        "lagna_cusp_distance_deg": 3.477367,
+        "lagna_longitude_deg": 86.522633,
+        "misses": [],
+        "navamsa_lagna_sign": "Taurus",
+        "penalty_total": 0.75,
+        "positive_total": 1.84,
+        "prior_bonus": 0.0,
+        "representative_time_local": "06:45",
+        "supporting_events": [
+          {
+            "category": "career_change",
+            "contribution": 0.5,
+            "date": "2013-06-10",
+            "event_index": 0,
+            "signals": [
+              "pd_lord_rules_h10"
+            ]
+          },
+          {
+            "category": "promotion",
+            "contribution": -0.25,
+            "date": "2018-06-29",
+            "event_index": 1,
+            "signals": [
+              "miss_unexplained"
+            ]
+          },
+          {
+            "category": "business_start",
+            "contribution": 0.5,
+            "date": "2010-08-10",
+            "event_index": 2,
+            "signals": [
+              "slow_transit_h10"
+            ]
+          },
+          {
+            "category": "marriage",
+            "contribution": 0.84,
+            "date": "2011-02-06",
+            "event_index": 3,
+            "signals": [
+              "pd_lord_rules_h7",
+              "d9_lord_is_d9_lagna_lord"
+            ]
+          },
+          {
+            "category": "childbirth",
+            "contribution": -0.25,
+            "date": "2022-10-21",
+            "event_index": 4,
+            "signals": [
+              "miss_unexplained"
+            ]
+          },
+          {
+            "category": "relocation",
+            "contribution": -0.25,
+            "date": "2016-04-10",
+            "event_index": 5,
+            "signals": [
+              "miss_unexplained"
+            ]
+          }
+        ]
+      },
+      {
+        "ascendant_sign": "Cancer",
+        "fit_score": 1.01,
+        "is_near_cusp": false,
+        "lagna_cusp_distance_deg": 13.388309,
+        "lagna_longitude_deg": 106.611691,
+        "misses": [
+          "miss_silent_business_start_h10",
+          "miss_silent_business_start_h10",
+          "miss_silent_career_change_h10",
+          "miss_silent_career_change_h10",
+          "miss_silent_marriage_h7",
+          "miss_silent_marriage_h7",
+          "miss_silent_promotion_h10",
+          "miss_silent_promotion_h10"
+        ],
+        "navamsa_lagna_sign": "Scorpio",
+        "penalty_total": 1.01,
+        "positive_total": 2.02,
+        "prior_bonus": 0.0,
+        "representative_time_local": "08:15",
+        "supporting_events": [
+          {
+            "category": "career_change",
+            "contribution": -0.25,
+            "date": "2013-06-10",
+            "event_index": 0,
+            "signals": [
+              "miss_unexplained"
+            ]
+          },
+          {
+            "category": "promotion",
+            "contribution": -0.25,
+            "date": "2018-06-29",
+            "event_index": 1,
+            "signals": [
+              "miss_unexplained"
+            ]
+          },
+          {
+            "category": "business_start",
+            "contribution": -0.25,
+            "date": "2010-08-10",
+            "event_index": 2,
+            "signals": [
+              "miss_unexplained"
+            ]
+          },
+          {
+            "category": "marriage",
+            "contribution": 1.02,
+            "date": "2011-02-06",
+            "event_index": 3,
+            "signals": [
+              "d9_lord_rules_d9_h7",
+              "d9_lord_in_d9_h7"
+            ]
+          },
+          {
+            "category": "childbirth",
+            "contribution": -0.25,
+            "date": "2022-10-21",
+            "event_index": 4,
+            "signals": [
+              "miss_unexplained"
+            ]
+          },
+          {
+            "category": "relocation",
+            "contribution": 1.0,
+            "date": "2016-04-10",
+            "event_index": 5,
+            "signals": [
+              "md_lord_in_h12"
+            ]
+          }
+        ]
+      },
+      {
+        "ascendant_sign": "Aquarius",
+        "fit_score": 0.85,
+        "is_near_cusp": false,
+        "lagna_cusp_distance_deg": 13.33078,
+        "lagna_longitude_deg": 316.66922,
+        "misses": [
+          "miss_silent_relocation_h12"
+        ],
+        "navamsa_lagna_sign": "Pisces",
+        "penalty_total": 0.85,
+        "positive_total": 1.7,
+        "prior_bonus": 0.0,
+        "representative_time_local": "22:45",
+        "supporting_events": [
+          {
+            "category": "career_change",
+            "contribution": 0.7,
+            "date": "2013-06-10",
+            "event_index": 0,
+            "signals": [
+              "ad_lord_rules_h10"
+            ]
+          },
+          {
+            "category": "promotion",
+            "contribution": -0.25,
+            "date": "2018-06-29",
+            "event_index": 1,
+            "signals": [
+              "miss_unexplained"
+            ]
+          },
+          {
+            "category": "business_start",
+            "contribution": -0.25,
+            "date": "2010-08-10",
+            "event_index": 2,
+            "signals": [
+              "miss_unexplained"
+            ]
+          },
+          {
+            "category": "marriage",
+            "contribution": 1.0,
+            "date": "2011-02-06",
+            "event_index": 3,
+            "signals": [
+              "md_lord_rules_h7"
+            ]
+          },
+          {
+            "category": "childbirth",
+            "contribution": -0.25,
+            "date": "2022-10-21",
+            "event_index": 4,
+            "signals": [
+              "miss_unexplained"
+            ]
+          },
+          {
+            "category": "relocation",
+            "contribution": -0.25,
+            "date": "2016-04-10",
+            "event_index": 5,
+            "signals": [
+              "miss_unexplained"
+            ]
           }
         ]
       }
     ],
     "discriminating_event_count": 6,
-    "honesty_note_key": "rectify.honesty.leans",
-    "margin": 0.172414,
+    "honesty_note_key": "rectify.honesty.consistent",
+    "margin": 0.507463,
     "mode": "window",
     "recorded_time_sign": "Virgo"
   },
@@ -730,55 +899,66 @@
     "band": "near_tie",
     "candidates": [
       {
-        "ascendant_sign": "Leo",
-        "fit_score": 5.5,
+        "ascendant_sign": "Aries",
+        "fit_score": 5.775,
         "is_near_cusp": false,
-        "lagna_cusp_distance_deg": 13.256578,
-        "lagna_longitude_deg": 136.743422,
-        "representative_time_local": "14:15",
+        "lagna_cusp_distance_deg": 9.788655,
+        "lagna_longitude_deg": 20.211345,
+        "misses": [
+          "miss_silent_career_change_h10",
+          "miss_silent_promotion_h10"
+        ],
+        "navamsa_lagna_sign": "Libra",
+        "penalty_total": 0.3,
+        "positive_total": 6.075,
+        "prior_bonus": 0.0,
+        "representative_time_local": "05:45",
         "supporting_events": [
           {
             "category": "marriage",
-            "contribution": 1.0,
+            "contribution": 1.7,
             "date": "2015-03-10",
             "event_index": 0,
             "signals": [
-              "dasha_lord_rules_h7"
+              "ad_lord_rules_h7",
+              "d9_lord_in_d9_h7",
+              "d9_lord_is_d9_lagna_lord"
             ]
           },
           {
             "category": "career_change",
-            "contribution": 1.5,
+            "contribution": 1.0,
             "date": "2000-06-20",
             "event_index": 1,
             "signals": [
-              "dasha_lord_rules_h10",
-              "slow_transit_h10"
+              "md_lord_in_h10"
             ]
           },
           {
             "category": "health_issue",
-            "contribution": 1.0,
+            "contribution": 0.5,
             "date": "2010-08-15",
             "event_index": 2,
             "signals": [
-              "dasha_lord_in_h6"
+              "slow_transit_h6"
             ]
           },
           {
             "category": "promotion",
-            "contribution": 0.0,
+            "contribution": 1.0,
             "date": "2005-04-01",
             "event_index": 3,
-            "signals": []
+            "signals": [
+              "md_lord_in_h10"
+            ]
           },
           {
             "category": "childbirth",
-            "contribution": 1.0,
+            "contribution": 0.875,
             "date": "2017-07-22",
             "event_index": 4,
             "signals": [
-              "dasha_lord_rules_h5"
+              "ad_lord_rules_h5#dignified_fit"
             ]
           },
           {
@@ -787,17 +967,243 @@
             "date": "2008-11-05",
             "event_index": 5,
             "signals": [
-              "dasha_lord_rules_h12"
+              "md_lord_rules_h12"
+            ]
+          }
+        ]
+      },
+      {
+        "ascendant_sign": "Leo",
+        "fit_score": 5.2,
+        "is_near_cusp": false,
+        "lagna_cusp_distance_deg": 13.256578,
+        "lagna_longitude_deg": 136.743422,
+        "misses": [
+          "miss_silent_health_issue_h6",
+          "miss_silent_health_issue_h6"
+        ],
+        "navamsa_lagna_sign": "Virgo",
+        "penalty_total": 0.475,
+        "positive_total": 5.675,
+        "prior_bonus": 0.0,
+        "representative_time_local": "14:15",
+        "supporting_events": [
+          {
+            "category": "marriage",
+            "contribution": 1.475,
+            "date": "2015-03-10",
+            "event_index": 0,
+            "signals": [
+              "ad_lord_rules_h7#dignified_fit",
+              "d9_lord_rules_d9_h7"
+            ]
+          },
+          {
+            "category": "career_change",
+            "contribution": 1.0,
+            "date": "2000-06-20",
+            "event_index": 1,
+            "signals": [
+              "pd_lord_rules_h10",
+              "slow_transit_h10"
+            ]
+          },
+          {
+            "category": "health_issue",
+            "contribution": 1.7,
+            "date": "2010-08-15",
+            "event_index": 2,
+            "signals": [
+              "md_lord_in_h6",
+              "ad_lord_in_h6"
+            ]
+          },
+          {
+            "category": "promotion",
+            "contribution": -0.25,
+            "date": "2005-04-01",
+            "event_index": 3,
+            "signals": [
+              "miss_unexplained"
+            ]
+          },
+          {
+            "category": "childbirth",
+            "contribution": 1.0,
+            "date": "2017-07-22",
+            "event_index": 4,
+            "signals": [
+              "md_lord_rules_h5"
+            ]
+          },
+          {
+            "category": "relocation",
+            "contribution": 0.5,
+            "date": "2008-11-05",
+            "event_index": 5,
+            "signals": [
+              "pd_lord_rules_h12"
+            ]
+          }
+        ]
+      },
+      {
+        "ascendant_sign": "Sagittarius",
+        "fit_score": 4.85,
+        "is_near_cusp": false,
+        "lagna_cusp_distance_deg": 13.082022,
+        "lagna_longitude_deg": 256.917978,
+        "misses": [],
+        "navamsa_lagna_sign": "Virgo",
+        "penalty_total": 0.25,
+        "positive_total": 5.1,
+        "prior_bonus": 0.0,
+        "representative_time_local": "23:45",
+        "supporting_events": [
+          {
+            "category": "marriage",
+            "contribution": 2.7,
+            "date": "2015-03-10",
+            "event_index": 0,
+            "signals": [
+              "ad_lord_rules_h7",
+              "md_lord_in_h7",
+              "d9_lord_rules_d9_h7",
+              "d9_lord_is_d9_lagna_lord"
+            ]
+          },
+          {
+            "category": "career_change",
+            "contribution": 0.7,
+            "date": "2000-06-20",
+            "event_index": 1,
+            "signals": [
+              "ad_lord_rules_h10"
+            ]
+          },
+          {
+            "category": "health_issue",
+            "contribution": 0.5,
+            "date": "2010-08-15",
+            "event_index": 2,
+            "signals": [
+              "pd_lord_rules_h6"
+            ]
+          },
+          {
+            "category": "promotion",
+            "contribution": 0.5,
+            "date": "2005-04-01",
+            "event_index": 3,
+            "signals": [
+              "slow_transit_h10"
+            ]
+          },
+          {
+            "category": "childbirth",
+            "contribution": -0.25,
+            "date": "2017-07-22",
+            "event_index": 4,
+            "signals": [
+              "miss_unexplained"
+            ]
+          },
+          {
+            "category": "relocation",
+            "contribution": 0.7,
+            "date": "2008-11-05",
+            "event_index": 5,
+            "signals": [
+              "ad_lord_rules_h12"
+            ]
+          }
+        ]
+      },
+      {
+        "ascendant_sign": "Capricorn",
+        "fit_score": 4.45,
+        "is_near_cusp": false,
+        "lagna_cusp_distance_deg": 13.816779,
+        "lagna_longitude_deg": 286.183221,
+        "misses": [],
+        "navamsa_lagna_sign": "Taurus",
+        "penalty_total": 0.25,
+        "positive_total": 4.7,
+        "prior_bonus": 0.0,
+        "representative_time_local": "01:30",
+        "supporting_events": [
+          {
+            "category": "marriage",
+            "contribution": 1.1,
+            "date": "2015-03-10",
+            "event_index": 0,
+            "signals": [
+              "slow_transit_h7",
+              "d9_lord_in_d9_h7"
+            ]
+          },
+          {
+            "category": "career_change",
+            "contribution": -0.25,
+            "date": "2000-06-20",
+            "event_index": 1,
+            "signals": [
+              "miss_unexplained"
+            ]
+          },
+          {
+            "category": "health_issue",
+            "contribution": 1.0,
+            "date": "2010-08-15",
+            "event_index": 2,
+            "signals": [
+              "ad_lord_in_h6"
+            ]
+          },
+          {
+            "category": "promotion",
+            "contribution": 0.7,
+            "date": "2005-04-01",
+            "event_index": 3,
+            "signals": [
+              "ad_lord_rules_h10"
+            ]
+          },
+          {
+            "category": "childbirth",
+            "contribution": 0.7,
+            "date": "2017-07-22",
+            "event_index": 4,
+            "signals": [
+              "ad_lord_rules_h5"
+            ]
+          },
+          {
+            "category": "relocation",
+            "contribution": 1.2,
+            "date": "2008-11-05",
+            "event_index": 5,
+            "signals": [
+              "ad_lord_rules_h4",
+              "slow_transit_h12"
             ]
           }
         ]
       },
       {
         "ascendant_sign": "Virgo",
-        "fit_score": 5.5,
+        "fit_score": 3.925,
         "is_near_cusp": false,
         "lagna_cusp_distance_deg": 14.820205,
         "lagna_longitude_deg": 164.820205,
+        "misses": [
+          "miss_silent_childbirth_h5",
+          "miss_silent_childbirth_h5"
+        ],
+        "navamsa_lagna_sign": "Taurus",
+        "penalty_total": 0.475,
+        "positive_total": 4.4,
+        "prior_bonus": 0.0,
         "representative_time_local": "16:30",
         "supporting_events": [
           {
@@ -806,23 +1212,25 @@
             "date": "2015-03-10",
             "event_index": 0,
             "signals": [
-              "dasha_lord_rules_h7"
+              "md_lord_rules_h7"
             ]
           },
           {
             "category": "career_change",
-            "contribution": 0.0,
+            "contribution": -0.25,
             "date": "2000-06-20",
             "event_index": 1,
-            "signals": []
+            "signals": [
+              "miss_unexplained"
+            ]
           },
           {
             "category": "health_issue",
-            "contribution": 1.0,
+            "contribution": 0.7,
             "date": "2010-08-15",
             "event_index": 2,
             "signals": [
-              "dasha_lord_in_h6"
+              "ad_lord_in_h6"
             ]
           },
           {
@@ -836,437 +1244,74 @@
           },
           {
             "category": "childbirth",
-            "contribution": 1.0,
+            "contribution": 0.5,
             "date": "2017-07-22",
             "event_index": 4,
             "signals": [
-              "dasha_lord_in_h5"
+              "pd_lord_in_h5"
             ]
           },
           {
             "category": "relocation",
-            "contribution": 2.0,
+            "contribution": 1.7,
             "date": "2008-11-05",
             "event_index": 5,
             "signals": [
               "slow_transit_h4",
-              "dasha_lord_rules_h12",
+              "ad_lord_rules_h12",
               "slow_transit_h12"
-            ]
-          }
-        ]
-      },
-      {
-        "ascendant_sign": "Sagittarius",
-        "fit_score": 5.5,
-        "is_near_cusp": false,
-        "lagna_cusp_distance_deg": 13.082022,
-        "lagna_longitude_deg": 256.917978,
-        "representative_time_local": "23:45",
-        "supporting_events": [
-          {
-            "category": "marriage",
-            "contribution": 2.0,
-            "date": "2015-03-10",
-            "event_index": 0,
-            "signals": [
-              "dasha_lord_rules_h7",
-              "dasha_lord_in_h7"
-            ]
-          },
-          {
-            "category": "career_change",
-            "contribution": 1.0,
-            "date": "2000-06-20",
-            "event_index": 1,
-            "signals": [
-              "dasha_lord_rules_h10"
-            ]
-          },
-          {
-            "category": "health_issue",
-            "contribution": 1.0,
-            "date": "2010-08-15",
-            "event_index": 2,
-            "signals": [
-              "dasha_lord_rules_h6"
-            ]
-          },
-          {
-            "category": "promotion",
-            "contribution": 0.5,
-            "date": "2005-04-01",
-            "event_index": 3,
-            "signals": [
-              "slow_transit_h10"
-            ]
-          },
-          {
-            "category": "childbirth",
-            "contribution": 0.0,
-            "date": "2017-07-22",
-            "event_index": 4,
-            "signals": []
-          },
-          {
-            "category": "relocation",
-            "contribution": 1.0,
-            "date": "2008-11-05",
-            "event_index": 5,
-            "signals": [
-              "dasha_lord_rules_h12"
-            ]
-          }
-        ]
-      },
-      {
-        "ascendant_sign": "Aries",
-        "fit_score": 5.5,
-        "is_near_cusp": false,
-        "lagna_cusp_distance_deg": 9.788655,
-        "lagna_longitude_deg": 20.211345,
-        "representative_time_local": "05:45",
-        "supporting_events": [
-          {
-            "category": "marriage",
-            "contribution": 1.0,
-            "date": "2015-03-10",
-            "event_index": 0,
-            "signals": [
-              "dasha_lord_rules_h7"
-            ]
-          },
-          {
-            "category": "career_change",
-            "contribution": 1.0,
-            "date": "2000-06-20",
-            "event_index": 1,
-            "signals": [
-              "dasha_lord_in_h10"
-            ]
-          },
-          {
-            "category": "health_issue",
-            "contribution": 0.5,
-            "date": "2010-08-15",
-            "event_index": 2,
-            "signals": [
-              "slow_transit_h6"
-            ]
-          },
-          {
-            "category": "promotion",
-            "contribution": 1.0,
-            "date": "2005-04-01",
-            "event_index": 3,
-            "signals": [
-              "dasha_lord_in_h10"
-            ]
-          },
-          {
-            "category": "childbirth",
-            "contribution": 1.0,
-            "date": "2017-07-22",
-            "event_index": 4,
-            "signals": [
-              "dasha_lord_rules_h5"
-            ]
-          },
-          {
-            "category": "relocation",
-            "contribution": 1.0,
-            "date": "2008-11-05",
-            "event_index": 5,
-            "signals": [
-              "dasha_lord_rules_h12"
-            ]
-          }
-        ]
-      },
-      {
-        "ascendant_sign": "Capricorn",
-        "fit_score": 5.0,
-        "is_near_cusp": false,
-        "lagna_cusp_distance_deg": 13.816779,
-        "lagna_longitude_deg": 286.183221,
-        "representative_time_local": "01:30",
-        "supporting_events": [
-          {
-            "category": "marriage",
-            "contribution": 0.5,
-            "date": "2015-03-10",
-            "event_index": 0,
-            "signals": [
-              "slow_transit_h7"
-            ]
-          },
-          {
-            "category": "career_change",
-            "contribution": 0.0,
-            "date": "2000-06-20",
-            "event_index": 1,
-            "signals": []
-          },
-          {
-            "category": "health_issue",
-            "contribution": 1.0,
-            "date": "2010-08-15",
-            "event_index": 2,
-            "signals": [
-              "dasha_lord_in_h6"
-            ]
-          },
-          {
-            "category": "promotion",
-            "contribution": 1.0,
-            "date": "2005-04-01",
-            "event_index": 3,
-            "signals": [
-              "dasha_lord_rules_h10"
-            ]
-          },
-          {
-            "category": "childbirth",
-            "contribution": 1.0,
-            "date": "2017-07-22",
-            "event_index": 4,
-            "signals": [
-              "dasha_lord_rules_h5"
-            ]
-          },
-          {
-            "category": "relocation",
-            "contribution": 1.5,
-            "date": "2008-11-05",
-            "event_index": 5,
-            "signals": [
-              "dasha_lord_rules_h4",
-              "slow_transit_h12"
-            ]
-          }
-        ]
-      },
-      {
-        "ascendant_sign": "Cancer",
-        "fit_score": 4.5,
-        "is_near_cusp": false,
-        "lagna_cusp_distance_deg": 13.988681,
-        "lagna_longitude_deg": 106.011319,
-        "representative_time_local": "11:45",
-        "supporting_events": [
-          {
-            "category": "marriage",
-            "contribution": 2.0,
-            "date": "2015-03-10",
-            "event_index": 0,
-            "signals": [
-              "dasha_lord_rules_h7",
-              "dasha_lord_in_h7"
-            ]
-          },
-          {
-            "category": "career_change",
-            "contribution": 0.0,
-            "date": "2000-06-20",
-            "event_index": 1,
-            "signals": []
-          },
-          {
-            "category": "health_issue",
-            "contribution": 0.0,
-            "date": "2010-08-15",
-            "event_index": 2,
-            "signals": []
-          },
-          {
-            "category": "promotion",
-            "contribution": 1.0,
-            "date": "2005-04-01",
-            "event_index": 3,
-            "signals": [
-              "dasha_lord_in_h10"
-            ]
-          },
-          {
-            "category": "childbirth",
-            "contribution": 0.5,
-            "date": "2017-07-22",
-            "event_index": 4,
-            "signals": [
-              "slow_transit_h5"
-            ]
-          },
-          {
-            "category": "relocation",
-            "contribution": 1.0,
-            "date": "2008-11-05",
-            "event_index": 5,
-            "signals": [
-              "dasha_lord_rules_h4"
-            ]
-          }
-        ]
-      },
-      {
-        "ascendant_sign": "Gemini",
-        "fit_score": 4.0,
-        "is_near_cusp": true,
-        "lagna_cusp_distance_deg": 2.504383,
-        "lagna_longitude_deg": 87.495617,
-        "representative_time_local": "10:15",
-        "supporting_events": [
-          {
-            "category": "marriage",
-            "contribution": 1.0,
-            "date": "2015-03-10",
-            "event_index": 0,
-            "signals": [
-              "dasha_lord_rules_h7"
-            ]
-          },
-          {
-            "category": "career_change",
-            "contribution": 1.0,
-            "date": "2000-06-20",
-            "event_index": 1,
-            "signals": [
-              "dasha_lord_rules_h10"
-            ]
-          },
-          {
-            "category": "health_issue",
-            "contribution": 0.0,
-            "date": "2010-08-15",
-            "event_index": 2,
-            "signals": []
-          },
-          {
-            "category": "promotion",
-            "contribution": 1.0,
-            "date": "2005-04-01",
-            "event_index": 3,
-            "signals": [
-              "dasha_lord_rules_h10"
-            ]
-          },
-          {
-            "category": "childbirth",
-            "contribution": 0.0,
-            "date": "2017-07-22",
-            "event_index": 4,
-            "signals": []
-          },
-          {
-            "category": "relocation",
-            "contribution": 1.0,
-            "date": "2008-11-05",
-            "event_index": 5,
-            "signals": [
-              "dasha_lord_rules_h12"
-            ]
-          }
-        ]
-      },
-      {
-        "ascendant_sign": "Libra",
-        "fit_score": 3.5,
-        "is_near_cusp": false,
-        "lagna_cusp_distance_deg": 14.253722,
-        "lagna_longitude_deg": 195.746278,
-        "representative_time_local": "19:00",
-        "supporting_events": [
-          {
-            "category": "marriage",
-            "contribution": 0.0,
-            "date": "2015-03-10",
-            "event_index": 0,
-            "signals": []
-          },
-          {
-            "category": "career_change",
-            "contribution": 0.0,
-            "date": "2000-06-20",
-            "event_index": 1,
-            "signals": []
-          },
-          {
-            "category": "health_issue",
-            "contribution": 0.5,
-            "date": "2010-08-15",
-            "event_index": 2,
-            "signals": [
-              "slow_transit_h6"
-            ]
-          },
-          {
-            "category": "promotion",
-            "contribution": 1.0,
-            "date": "2005-04-01",
-            "event_index": 3,
-            "signals": [
-              "dasha_lord_rules_h10"
-            ]
-          },
-          {
-            "category": "childbirth",
-            "contribution": 1.0,
-            "date": "2017-07-22",
-            "event_index": 4,
-            "signals": [
-              "dasha_lord_rules_h5"
-            ]
-          },
-          {
-            "category": "relocation",
-            "contribution": 1.0,
-            "date": "2008-11-05",
-            "event_index": 5,
-            "signals": [
-              "dasha_lord_in_h4"
             ]
           }
         ]
       },
       {
         "ascendant_sign": "Taurus",
-        "fit_score": 3.5,
+        "fit_score": 3.25,
         "is_near_cusp": false,
         "lagna_cusp_distance_deg": 13.087707,
         "lagna_longitude_deg": 46.912293,
+        "misses": [],
+        "navamsa_lagna_sign": "Gemini",
+        "penalty_total": 0.25,
+        "positive_total": 3.5,
+        "prior_bonus": 0.0,
         "representative_time_local": "07:15",
         "supporting_events": [
           {
             "category": "marriage",
-            "contribution": 0.5,
+            "contribution": 1.1,
             "date": "2015-03-10",
             "event_index": 0,
             "signals": [
-              "slow_transit_h7"
+              "slow_transit_h7",
+              "d9_lord_rules_d9_h7"
             ]
           },
           {
             "category": "career_change",
-            "contribution": 1.0,
+            "contribution": 0.7,
             "date": "2000-06-20",
             "event_index": 1,
             "signals": [
-              "dasha_lord_in_h10"
+              "pd_lord_in_h10"
             ]
           },
           {
             "category": "health_issue",
-            "contribution": 0.0,
+            "contribution": -0.25,
             "date": "2010-08-15",
             "event_index": 2,
-            "signals": []
+            "signals": [
+              "miss_unexplained"
+            ]
           },
           {
             "category": "promotion",
-            "contribution": 1.0,
+            "contribution": 0.7,
             "date": "2005-04-01",
             "event_index": 3,
             "signals": [
-              "dasha_lord_in_h10"
+              "ad_lord_in_h10"
             ]
           },
           {
@@ -1290,97 +1335,270 @@
         ]
       },
       {
-        "ascendant_sign": "Scorpio",
+        "ascendant_sign": "Gemini",
         "fit_score": 3.0,
-        "is_near_cusp": false,
-        "lagna_cusp_distance_deg": 13.465769,
-        "lagna_longitude_deg": 226.534231,
-        "representative_time_local": "21:30",
+        "is_near_cusp": true,
+        "lagna_cusp_distance_deg": 2.504383,
+        "lagna_longitude_deg": 87.495617,
+        "misses": [],
+        "navamsa_lagna_sign": "Gemini",
+        "penalty_total": 0.5,
+        "positive_total": 3.5,
+        "prior_bonus": 0.0,
+        "representative_time_local": "10:15",
         "supporting_events": [
           {
             "category": "marriage",
-            "contribution": 0.0,
+            "contribution": 1.6,
             "date": "2015-03-10",
             "event_index": 0,
-            "signals": []
+            "signals": [
+              "ad_lord_rules_h7",
+              "d9_lord_rules_d9_h7"
+            ]
           },
           {
             "category": "career_change",
-            "contribution": 0.0,
+            "contribution": 0.7,
             "date": "2000-06-20",
             "event_index": 1,
-            "signals": []
+            "signals": [
+              "ad_lord_rules_h10"
+            ]
           },
           {
             "category": "health_issue",
-            "contribution": 0.0,
+            "contribution": -0.25,
             "date": "2010-08-15",
             "event_index": 2,
-            "signals": []
+            "signals": [
+              "miss_unexplained"
+            ]
           },
           {
             "category": "promotion",
-            "contribution": 0.0,
+            "contribution": 0.5,
             "date": "2005-04-01",
             "event_index": 3,
-            "signals": []
+            "signals": [
+              "pd_lord_rules_h10"
+            ]
           },
           {
             "category": "childbirth",
-            "contribution": 1.0,
+            "contribution": -0.25,
             "date": "2017-07-22",
             "event_index": 4,
             "signals": [
-              "dasha_lord_rules_h5"
+              "miss_unexplained"
             ]
           },
           {
             "category": "relocation",
-            "contribution": 2.0,
+            "contribution": 0.7,
             "date": "2008-11-05",
             "event_index": 5,
             "signals": [
-              "dasha_lord_in_h4",
-              "dasha_lord_rules_h12"
+              "ad_lord_rules_h12"
+            ]
+          }
+        ]
+      },
+      {
+        "ascendant_sign": "Cancer",
+        "fit_score": 3.0,
+        "is_near_cusp": false,
+        "lagna_cusp_distance_deg": 13.988681,
+        "lagna_longitude_deg": 106.011319,
+        "misses": [
+          "miss_silent_marriage_h7"
+        ],
+        "navamsa_lagna_sign": "Scorpio",
+        "penalty_total": 0.65,
+        "positive_total": 3.65,
+        "prior_bonus": 0.0,
+        "representative_time_local": "11:45",
+        "supporting_events": [
+          {
+            "category": "marriage",
+            "contribution": 1.75,
+            "date": "2015-03-10",
+            "event_index": 0,
+            "signals": [
+              "pd_lord_rules_h7#dignified_fit",
+              "pd_lord_in_h7#dignified_fit"
+            ]
+          },
+          {
+            "category": "career_change",
+            "contribution": -0.25,
+            "date": "2000-06-20",
+            "event_index": 1,
+            "signals": [
+              "miss_unexplained"
+            ]
+          },
+          {
+            "category": "health_issue",
+            "contribution": -0.25,
+            "date": "2010-08-15",
+            "event_index": 2,
+            "signals": [
+              "miss_unexplained"
+            ]
+          },
+          {
+            "category": "promotion",
+            "contribution": 0.7,
+            "date": "2005-04-01",
+            "event_index": 3,
+            "signals": [
+              "ad_lord_in_h10"
+            ]
+          },
+          {
+            "category": "childbirth",
+            "contribution": 0.5,
+            "date": "2017-07-22",
+            "event_index": 4,
+            "signals": [
+              "slow_transit_h5"
+            ]
+          },
+          {
+            "category": "relocation",
+            "contribution": 0.7,
+            "date": "2008-11-05",
+            "event_index": 5,
+            "signals": [
+              "ad_lord_rules_h4"
+            ]
+          }
+        ]
+      },
+      {
+        "ascendant_sign": "Libra",
+        "fit_score": 2.65,
+        "is_near_cusp": false,
+        "lagna_cusp_distance_deg": 14.253722,
+        "lagna_longitude_deg": 195.746278,
+        "misses": [
+          "miss_silent_relocation_h4",
+          "miss_silent_relocation_h4"
+        ],
+        "navamsa_lagna_sign": "Aquarius",
+        "penalty_total": 0.475,
+        "positive_total": 3.125,
+        "prior_bonus": 0.0,
+        "representative_time_local": "19:00",
+        "supporting_events": [
+          {
+            "category": "marriage",
+            "contribution": 0.5,
+            "date": "2015-03-10",
+            "event_index": 0,
+            "signals": [
+              "d9_lord_is_d9_lagna_lord#dignified_fit"
+            ]
+          },
+          {
+            "category": "career_change",
+            "contribution": -0.25,
+            "date": "2000-06-20",
+            "event_index": 1,
+            "signals": [
+              "miss_unexplained"
+            ]
+          },
+          {
+            "category": "health_issue",
+            "contribution": 0.5,
+            "date": "2010-08-15",
+            "event_index": 2,
+            "signals": [
+              "slow_transit_h6"
+            ]
+          },
+          {
+            "category": "promotion",
+            "contribution": 0.5,
+            "date": "2005-04-01",
+            "event_index": 3,
+            "signals": [
+              "pd_lord_rules_h10"
+            ]
+          },
+          {
+            "category": "childbirth",
+            "contribution": 0.625,
+            "date": "2017-07-22",
+            "event_index": 4,
+            "signals": [
+              "pd_lord_rules_h5#dignified_fit"
+            ]
+          },
+          {
+            "category": "relocation",
+            "contribution": 1.0,
+            "date": "2008-11-05",
+            "event_index": 5,
+            "signals": [
+              "md_lord_in_h4"
             ]
           }
         ]
       },
       {
         "ascendant_sign": "Aquarius",
-        "fit_score": 3.0,
+        "fit_score": 2.1,
         "is_near_cusp": false,
         "lagna_cusp_distance_deg": 12.166466,
         "lagna_longitude_deg": 317.833534,
+        "misses": [
+          "miss_silent_relocation_h12"
+        ],
+        "navamsa_lagna_sign": "Pisces",
+        "penalty_total": 0.9,
+        "positive_total": 3.0,
+        "prior_bonus": 0.0,
         "representative_time_local": "03:00",
         "supporting_events": [
           {
             "category": "marriage",
-            "contribution": 0.0,
+            "contribution": 1.0,
             "date": "2015-03-10",
             "event_index": 0,
-            "signals": []
+            "signals": [
+              "d9_lord_rules_d9_h7",
+              "d9_lord_is_d9_lagna_lord"
+            ]
           },
           {
             "category": "career_change",
-            "contribution": 0.0,
+            "contribution": -0.25,
             "date": "2000-06-20",
             "event_index": 1,
-            "signals": []
+            "signals": [
+              "miss_unexplained"
+            ]
           },
           {
             "category": "health_issue",
-            "contribution": 0.0,
+            "contribution": -0.25,
             "date": "2010-08-15",
             "event_index": 2,
-            "signals": []
+            "signals": [
+              "miss_unexplained"
+            ]
           },
           {
             "category": "promotion",
-            "contribution": 0.0,
+            "contribution": -0.25,
             "date": "2005-04-01",
             "event_index": 3,
-            "signals": []
+            "signals": [
+              "miss_unexplained"
+            ]
           },
           {
             "category": "childbirth",
@@ -1388,17 +1606,88 @@
             "date": "2017-07-22",
             "event_index": 4,
             "signals": [
-              "dasha_lord_in_h5"
+              "md_lord_in_h5"
             ]
           },
           {
             "category": "relocation",
-            "contribution": 2.0,
+            "contribution": 1.0,
             "date": "2008-11-05",
             "event_index": 5,
             "signals": [
-              "dasha_lord_rules_h12",
-              "dasha_lord_in_h12"
+              "pd_lord_rules_h12",
+              "pd_lord_in_h12"
+            ]
+          }
+        ]
+      },
+      {
+        "ascendant_sign": "Scorpio",
+        "fit_score": 1.7,
+        "is_near_cusp": false,
+        "lagna_cusp_distance_deg": 13.465769,
+        "lagna_longitude_deg": 226.534231,
+        "misses": [],
+        "navamsa_lagna_sign": "Scorpio",
+        "penalty_total": 1.0,
+        "positive_total": 2.7,
+        "prior_bonus": 0.0,
+        "representative_time_local": "21:30",
+        "supporting_events": [
+          {
+            "category": "marriage",
+            "contribution": -0.25,
+            "date": "2015-03-10",
+            "event_index": 0,
+            "signals": [
+              "miss_unexplained"
+            ]
+          },
+          {
+            "category": "career_change",
+            "contribution": -0.25,
+            "date": "2000-06-20",
+            "event_index": 1,
+            "signals": [
+              "miss_unexplained"
+            ]
+          },
+          {
+            "category": "health_issue",
+            "contribution": -0.25,
+            "date": "2010-08-15",
+            "event_index": 2,
+            "signals": [
+              "miss_unexplained"
+            ]
+          },
+          {
+            "category": "promotion",
+            "contribution": -0.25,
+            "date": "2005-04-01",
+            "event_index": 3,
+            "signals": [
+              "miss_unexplained"
+            ]
+          },
+          {
+            "category": "childbirth",
+            "contribution": 1.0,
+            "date": "2017-07-22",
+            "event_index": 4,
+            "signals": [
+              "md_lord_rules_h5"
+            ]
+          },
+          {
+            "category": "relocation",
+            "contribution": 1.7,
+            "date": "2008-11-05",
+            "event_index": 5,
+            "signals": [
+              "ad_lord_in_h4",
+              "pd_lord_in_h4",
+              "pd_lord_rules_h12"
             ]
           }
         ]
@@ -1409,42 +1698,58 @@
         "is_near_cusp": false,
         "lagna_cusp_distance_deg": 12.666427,
         "lagna_longitude_deg": 347.333573,
+        "misses": [],
+        "navamsa_lagna_sign": "Sagittarius",
+        "penalty_total": 1.0,
+        "positive_total": 2.0,
+        "prior_bonus": 0.0,
         "representative_time_local": "04:15",
         "supporting_events": [
           {
             "category": "marriage",
-            "contribution": 0.0,
+            "contribution": 1.0,
             "date": "2015-03-10",
             "event_index": 0,
-            "signals": []
+            "signals": [
+              "d9_lord_in_d9_h7",
+              "d9_lord_is_d9_lagna_lord"
+            ]
           },
           {
             "category": "career_change",
-            "contribution": 0.0,
+            "contribution": -0.25,
             "date": "2000-06-20",
             "event_index": 1,
-            "signals": []
+            "signals": [
+              "miss_unexplained"
+            ]
           },
           {
             "category": "health_issue",
-            "contribution": 0.0,
+            "contribution": -0.25,
             "date": "2010-08-15",
             "event_index": 2,
-            "signals": []
+            "signals": [
+              "miss_unexplained"
+            ]
           },
           {
             "category": "promotion",
-            "contribution": 0.0,
+            "contribution": -0.25,
             "date": "2005-04-01",
             "event_index": 3,
-            "signals": []
+            "signals": [
+              "miss_unexplained"
+            ]
           },
           {
             "category": "childbirth",
-            "contribution": 0.0,
+            "contribution": -0.25,
             "date": "2017-07-22",
             "event_index": 4,
-            "signals": []
+            "signals": [
+              "miss_unexplained"
+            ]
           },
           {
             "category": "relocation",
@@ -1452,7 +1757,7 @@
             "date": "2008-11-05",
             "event_index": 5,
             "signals": [
-              "dasha_lord_in_h4"
+              "ad_lord_in_h4"
             ]
           }
         ]
@@ -1460,7 +1765,7 @@
     ],
     "discriminating_event_count": 6,
     "honesty_note_key": "rectify.honesty.near_tie",
-    "margin": 0.0,
+    "margin": 0.052392,
     "mode": "window",
     "recorded_time_sign": "Cancer"
   },
@@ -1473,6 +1778,11 @@
         "is_near_cusp": true,
         "lagna_cusp_distance_deg": 2.504383,
         "lagna_longitude_deg": 87.495617,
+        "misses": [],
+        "navamsa_lagna_sign": "Gemini",
+        "penalty_total": 0.0,
+        "positive_total": 0.0,
+        "prior_bonus": 0.0,
         "representative_time_local": "10:15",
         "supporting_events": []
       },
@@ -1482,6 +1792,11 @@
         "is_near_cusp": false,
         "lagna_cusp_distance_deg": 13.988681,
         "lagna_longitude_deg": 106.011319,
+        "misses": [],
+        "navamsa_lagna_sign": "Scorpio",
+        "penalty_total": 0.0,
+        "positive_total": 0.0,
+        "prior_bonus": 0.0,
         "representative_time_local": "11:45",
         "supporting_events": []
       },
@@ -1491,6 +1806,11 @@
         "is_near_cusp": false,
         "lagna_cusp_distance_deg": 13.256578,
         "lagna_longitude_deg": 136.743422,
+        "misses": [],
+        "navamsa_lagna_sign": "Virgo",
+        "penalty_total": 0.0,
+        "positive_total": 0.0,
+        "prior_bonus": 0.0,
         "representative_time_local": "14:15",
         "supporting_events": []
       },
@@ -1500,6 +1820,11 @@
         "is_near_cusp": false,
         "lagna_cusp_distance_deg": 14.820205,
         "lagna_longitude_deg": 164.820205,
+        "misses": [],
+        "navamsa_lagna_sign": "Taurus",
+        "penalty_total": 0.0,
+        "positive_total": 0.0,
+        "prior_bonus": 0.0,
         "representative_time_local": "16:30",
         "supporting_events": []
       },
@@ -1509,6 +1834,11 @@
         "is_near_cusp": false,
         "lagna_cusp_distance_deg": 14.253722,
         "lagna_longitude_deg": 195.746278,
+        "misses": [],
+        "navamsa_lagna_sign": "Aquarius",
+        "penalty_total": 0.0,
+        "positive_total": 0.0,
+        "prior_bonus": 0.0,
         "representative_time_local": "19:00",
         "supporting_events": []
       },
@@ -1518,6 +1848,11 @@
         "is_near_cusp": false,
         "lagna_cusp_distance_deg": 13.465769,
         "lagna_longitude_deg": 226.534231,
+        "misses": [],
+        "navamsa_lagna_sign": "Scorpio",
+        "penalty_total": 0.0,
+        "positive_total": 0.0,
+        "prior_bonus": 0.0,
         "representative_time_local": "21:30",
         "supporting_events": []
       },
@@ -1527,6 +1862,11 @@
         "is_near_cusp": false,
         "lagna_cusp_distance_deg": 13.082022,
         "lagna_longitude_deg": 256.917978,
+        "misses": [],
+        "navamsa_lagna_sign": "Virgo",
+        "penalty_total": 0.0,
+        "positive_total": 0.0,
+        "prior_bonus": 0.0,
         "representative_time_local": "23:45",
         "supporting_events": []
       },
@@ -1536,6 +1876,11 @@
         "is_near_cusp": false,
         "lagna_cusp_distance_deg": 13.816779,
         "lagna_longitude_deg": 286.183221,
+        "misses": [],
+        "navamsa_lagna_sign": "Taurus",
+        "penalty_total": 0.0,
+        "positive_total": 0.0,
+        "prior_bonus": 0.0,
         "representative_time_local": "01:30",
         "supporting_events": []
       },
@@ -1545,6 +1890,11 @@
         "is_near_cusp": false,
         "lagna_cusp_distance_deg": 12.166466,
         "lagna_longitude_deg": 317.833534,
+        "misses": [],
+        "navamsa_lagna_sign": "Pisces",
+        "penalty_total": 0.0,
+        "positive_total": 0.0,
+        "prior_bonus": 0.0,
         "representative_time_local": "03:00",
         "supporting_events": []
       },
@@ -1554,6 +1904,11 @@
         "is_near_cusp": false,
         "lagna_cusp_distance_deg": 12.666427,
         "lagna_longitude_deg": 347.333573,
+        "misses": [],
+        "navamsa_lagna_sign": "Sagittarius",
+        "penalty_total": 0.0,
+        "positive_total": 0.0,
+        "prior_bonus": 0.0,
         "representative_time_local": "04:15",
         "supporting_events": []
       },
@@ -1563,6 +1918,11 @@
         "is_near_cusp": false,
         "lagna_cusp_distance_deg": 9.788655,
         "lagna_longitude_deg": 20.211345,
+        "misses": [],
+        "navamsa_lagna_sign": "Libra",
+        "penalty_total": 0.0,
+        "positive_total": 0.0,
+        "prior_bonus": 0.0,
         "representative_time_local": "05:45",
         "supporting_events": []
       },
@@ -1572,6 +1932,11 @@
         "is_near_cusp": false,
         "lagna_cusp_distance_deg": 13.087707,
         "lagna_longitude_deg": 46.912293,
+        "misses": [],
+        "navamsa_lagna_sign": "Gemini",
+        "penalty_total": 0.0,
+        "positive_total": 0.0,
+        "prior_bonus": 0.0,
         "representative_time_local": "07:15",
         "supporting_events": []
       }
@@ -1586,66 +1951,16 @@
     "band": "near_tie",
     "candidates": [
       {
-        "ascendant_sign": "Pisces",
-        "fit_score": 2.518462,
-        "is_near_cusp": false,
-        "lagna_cusp_distance_deg": 12.666427,
-        "lagna_longitude_deg": 347.333573,
-        "representative_time_local": "04:15",
-        "supporting_events": [
-          {
-            "category": "relocation",
-            "contribution": 2.038462,
-            "date": "2010-01-01",
-            "event_index": 0,
-            "signals": [
-              "dasha_lord_in_h4",
-              "dasha_lord_rules_h12",
-              "slow_transit_h12"
-            ]
-          },
-          {
-            "category": "marriage",
-            "contribution": 0.48,
-            "date": "2012-01-01",
-            "event_index": 1,
-            "signals": []
-          }
-        ]
-      },
-      {
-        "ascendant_sign": "Libra",
-        "fit_score": 2.364615,
-        "is_near_cusp": false,
-        "lagna_cusp_distance_deg": 14.253722,
-        "lagna_longitude_deg": 195.746278,
-        "representative_time_local": "19:00",
-        "supporting_events": [
-          {
-            "category": "relocation",
-            "contribution": 1.884615,
-            "date": "2010-01-01",
-            "event_index": 0,
-            "signals": [
-              "dasha_lord_in_h4",
-              "slow_transit_h12"
-            ]
-          },
-          {
-            "category": "marriage",
-            "contribution": 0.48,
-            "date": "2012-01-01",
-            "event_index": 1,
-            "signals": []
-          }
-        ]
-      },
-      {
         "ascendant_sign": "Sagittarius",
-        "fit_score": 2.315385,
+        "fit_score": 2.895385,
         "is_near_cusp": false,
         "lagna_cusp_distance_deg": 13.082022,
         "lagna_longitude_deg": 256.917978,
+        "misses": [],
+        "navamsa_lagna_sign": "Virgo",
+        "penalty_total": 0.0,
+        "positive_total": 2.895385,
+        "prior_bonus": 0.0,
         "representative_time_local": "23:45",
         "supporting_events": [
           {
@@ -1654,110 +1969,172 @@
             "date": "2010-01-01",
             "event_index": 0,
             "signals": [
-              "dasha_lord_rules_h4"
+              "ad_lord_rules_h4"
             ]
           },
           {
             "category": "marriage",
-            "contribution": 1.2,
+            "contribution": 1.78,
             "date": "2012-01-01",
             "event_index": 1,
             "signals": [
-              "dasha_lord_rules_h7",
-              "dasha_lord_in_h7"
+              "pd_lord_rules_h7",
+              "md_lord_in_h7",
+              "d9_lord_rules_d9_h7",
+              "d9_lord_is_d9_lagna_lord"
             ]
           }
         ]
       },
       {
-        "ascendant_sign": "Aries",
-        "fit_score": 1.623077,
+        "ascendant_sign": "Pisces",
+        "fit_score": 2.887077,
         "is_near_cusp": false,
-        "lagna_cusp_distance_deg": 9.788655,
-        "lagna_longitude_deg": 20.211345,
-        "representative_time_local": "05:45",
+        "lagna_cusp_distance_deg": 12.666427,
+        "lagna_longitude_deg": 347.333573,
+        "misses": [],
+        "navamsa_lagna_sign": "Sagittarius",
+        "penalty_total": 0.0,
+        "positive_total": 2.887077,
+        "prior_bonus": 0.0,
+        "representative_time_local": "04:15",
         "supporting_events": [
           {
             "category": "relocation",
-            "contribution": 1.423077,
+            "contribution": 1.723077,
             "date": "2010-01-01",
             "event_index": 0,
             "signals": [
-              "dasha_lord_rules_h12"
+              "md_lord_in_h4",
+              "pd_lord_rules_h12",
+              "slow_transit_h12"
             ]
           },
           {
             "category": "marriage",
-            "contribution": 0.2,
+            "contribution": 1.164,
             "date": "2012-01-01",
             "event_index": 1,
             "signals": [
-              "dasha_lord_rules_h7"
+              "d9_lord_in_d9_h7",
+              "d9_lord_is_d9_lagna_lord"
+            ]
+          }
+        ]
+      },
+      {
+        "ascendant_sign": "Libra",
+        "fit_score": 2.260692,
+        "is_near_cusp": false,
+        "lagna_cusp_distance_deg": 14.253722,
+        "lagna_longitude_deg": 195.746278,
+        "misses": [],
+        "navamsa_lagna_sign": "Aquarius",
+        "penalty_total": 0.07,
+        "positive_total": 2.330692,
+        "prior_bonus": 0.0,
+        "representative_time_local": "19:00",
+        "supporting_events": [
+          {
+            "category": "relocation",
+            "contribution": 1.807692,
+            "date": "2010-01-01",
+            "event_index": 0,
+            "signals": [
+              "pd_lord_in_h4",
+              "slow_transit_h12"
+            ]
+          },
+          {
+            "category": "marriage",
+            "contribution": 0.453,
+            "date": "2012-01-01",
+            "event_index": 1,
+            "signals": [
+              "miss_unexplained"
+            ]
+          }
+        ]
+      },
+      {
+        "ascendant_sign": "Cancer",
+        "fit_score": 1.595538,
+        "is_near_cusp": false,
+        "lagna_cusp_distance_deg": 13.988681,
+        "lagna_longitude_deg": 106.011319,
+        "misses": [],
+        "navamsa_lagna_sign": "Scorpio",
+        "penalty_total": 0.184615,
+        "positive_total": 1.780154,
+        "prior_bonus": 0.0,
+        "representative_time_local": "11:45",
+        "supporting_events": [
+          {
+            "category": "relocation",
+            "contribution": 0.111538,
+            "date": "2010-01-01",
+            "event_index": 0,
+            "signals": [
+              "miss_unexplained"
+            ]
+          },
+          {
+            "category": "marriage",
+            "contribution": 1.484,
+            "date": "2012-01-01",
+            "event_index": 1,
+            "signals": [
+              "pd_lord_in_h7",
+              "d9_lord_is_d9_lagna_lord"
             ]
           }
         ]
       },
       {
         "ascendant_sign": "Capricorn",
-        "fit_score": 1.544615,
+        "fit_score": 1.542308,
         "is_near_cusp": false,
         "lagna_cusp_distance_deg": 13.816779,
         "lagna_longitude_deg": 286.183221,
+        "misses": [],
+        "navamsa_lagna_sign": "Taurus",
+        "penalty_total": 0.09,
+        "positive_total": 1.632308,
+        "prior_bonus": 0.0,
         "representative_time_local": "01:30",
         "supporting_events": [
           {
             "category": "relocation",
-            "contribution": 1.384615,
+            "contribution": 1.192308,
             "date": "2010-01-01",
             "event_index": 0,
             "signals": [
-              "dasha_lord_rules_h12"
+              "ad_lord_rules_h12"
             ]
           },
           {
             "category": "marriage",
-            "contribution": 0.16,
-            "date": "2012-01-01",
-            "event_index": 1,
-            "signals": []
-          }
-        ]
-      },
-      {
-        "ascendant_sign": "Leo",
-        "fit_score": 1.523077,
-        "is_near_cusp": false,
-        "lagna_cusp_distance_deg": 13.256578,
-        "lagna_longitude_deg": 136.743422,
-        "representative_time_local": "14:15",
-        "supporting_events": [
-          {
-            "category": "relocation",
-            "contribution": 0.923077,
-            "date": "2010-01-01",
-            "event_index": 0,
-            "signals": [
-              "dasha_lord_rules_h12"
-            ]
-          },
-          {
-            "category": "marriage",
-            "contribution": 0.6,
+            "contribution": 0.35,
             "date": "2012-01-01",
             "event_index": 1,
             "signals": [
-              "dasha_lord_in_h7"
+              "d9_lord_is_d9_lagna_lord"
             ]
           }
         ]
       },
       {
-        "ascendant_sign": "Scorpio",
-        "fit_score": 1.509231,
+        "ascendant_sign": "Aries",
+        "fit_score": 1.437231,
         "is_near_cusp": false,
-        "lagna_cusp_distance_deg": 13.465769,
-        "lagna_longitude_deg": 226.534231,
-        "representative_time_local": "21:30",
+        "lagna_cusp_distance_deg": 9.788655,
+        "lagna_longitude_deg": 20.211345,
+        "misses": [],
+        "navamsa_lagna_sign": "Libra",
+        "penalty_total": 0.18,
+        "positive_total": 1.617231,
+        "prior_bonus": 0.0,
+        "representative_time_local": "05:45",
         "supporting_events": [
           {
             "category": "relocation",
@@ -1765,151 +2142,230 @@
             "date": "2010-01-01",
             "event_index": 0,
             "signals": [
-              "dasha_lord_in_h4",
-              "slow_transit_h4"
+              "md_lord_rules_h12"
             ]
           },
           {
             "category": "marriage",
-            "contribution": 0.24,
+            "contribution": 0.168,
             "date": "2012-01-01",
             "event_index": 1,
-            "signals": []
+            "signals": [
+              "pd_lord_rules_h7",
+              "d9_lord_in_d9_h7",
+              "d9_lord_is_d9_lagna_lord"
+            ]
           }
         ]
       },
       {
-        "ascendant_sign": "Cancer",
-        "fit_score": 1.461538,
+        "ascendant_sign": "Leo",
+        "fit_score": 1.299923,
         "is_near_cusp": false,
-        "lagna_cusp_distance_deg": 13.988681,
-        "lagna_longitude_deg": 106.011319,
-        "representative_time_local": "11:45",
+        "lagna_cusp_distance_deg": 13.256578,
+        "lagna_longitude_deg": 136.743422,
+        "misses": [],
+        "navamsa_lagna_sign": "Virgo",
+        "penalty_total": 0.068462,
+        "positive_total": 1.368385,
+        "prior_bonus": 0.0,
+        "representative_time_local": "14:15",
         "supporting_events": [
           {
             "category": "relocation",
-            "contribution": 0.461538,
-            "date": "2010-01-01",
-            "event_index": 0,
-            "signals": []
-          },
-          {
-            "category": "marriage",
-            "contribution": 1.0,
-            "date": "2012-01-01",
-            "event_index": 1,
-            "signals": [
-              "dasha_lord_in_h7"
-            ]
-          }
-        ]
-      },
-      {
-        "ascendant_sign": "Gemini",
-        "fit_score": 1.433846,
-        "is_near_cusp": true,
-        "lagna_cusp_distance_deg": 2.504383,
-        "lagna_longitude_deg": 87.495617,
-        "representative_time_local": "10:15",
-        "supporting_events": [
-          {
-            "category": "relocation",
-            "contribution": 1.153846,
+            "contribution": 0.576923,
             "date": "2010-01-01",
             "event_index": 0,
             "signals": [
-              "slow_transit_h4"
+              "ad_lord_rules_h12"
             ]
           },
           {
             "category": "marriage",
-            "contribution": 0.28,
-            "date": "2012-01-01",
-            "event_index": 1,
-            "signals": []
-          }
-        ]
-      },
-      {
-        "ascendant_sign": "Virgo",
-        "fit_score": 1.063077,
-        "is_near_cusp": false,
-        "lagna_cusp_distance_deg": 14.820205,
-        "lagna_longitude_deg": 164.820205,
-        "representative_time_local": "16:30",
-        "supporting_events": [
-          {
-            "category": "relocation",
-            "contribution": 0.423077,
-            "date": "2010-01-01",
-            "event_index": 0,
-            "signals": []
-          },
-          {
-            "category": "marriage",
-            "contribution": 0.64,
+            "contribution": 0.723,
             "date": "2012-01-01",
             "event_index": 1,
             "signals": [
-              "dasha_lord_rules_h7"
-            ]
-          }
-        ]
-      },
-      {
-        "ascendant_sign": "Aquarius",
-        "fit_score": 0.810769,
-        "is_near_cusp": false,
-        "lagna_cusp_distance_deg": 12.166466,
-        "lagna_longitude_deg": 317.833534,
-        "representative_time_local": "03:00",
-        "supporting_events": [
-          {
-            "category": "relocation",
-            "contribution": 0.730769,
-            "date": "2010-01-01",
-            "event_index": 0,
-            "signals": []
-          },
-          {
-            "category": "marriage",
-            "contribution": 0.08,
-            "date": "2012-01-01",
-            "event_index": 1,
-            "signals": [
-              "dasha_lord_rules_h7"
+              "ad_lord_in_h7",
+              "pd_lord_in_h7"
             ]
           }
         ]
       },
       {
         "ascendant_sign": "Taurus",
-        "fit_score": 0.503077,
+        "fit_score": 1.271385,
         "is_near_cusp": false,
         "lagna_cusp_distance_deg": 13.087707,
         "lagna_longitude_deg": 46.912293,
+        "misses": [],
+        "navamsa_lagna_sign": "Gemini",
+        "penalty_total": 0.115385,
+        "positive_total": 1.386769,
+        "prior_bonus": 0.0,
         "representative_time_local": "07:15",
         "supporting_events": [
           {
             "category": "relocation",
-            "contribution": 0.423077,
+            "contribution": 0.215385,
             "date": "2010-01-01",
             "event_index": 0,
-            "signals": []
+            "signals": [
+              "miss_unexplained"
+            ]
           },
           {
             "category": "marriage",
-            "contribution": 0.08,
+            "contribution": 1.056,
             "date": "2012-01-01",
             "event_index": 1,
-            "signals": []
+            "signals": [
+              "d9_lord_rules_d9_h7",
+              "d9_lord_is_d9_lagna_lord"
+            ]
+          }
+        ]
+      },
+      {
+        "ascendant_sign": "Gemini",
+        "fit_score": 1.189538,
+        "is_near_cusp": true,
+        "lagna_cusp_distance_deg": 2.504383,
+        "lagna_longitude_deg": 87.495617,
+        "misses": [],
+        "navamsa_lagna_sign": "Gemini",
+        "penalty_total": 0.14,
+        "positive_total": 1.329538,
+        "prior_bonus": 0.0,
+        "representative_time_local": "10:15",
+        "supporting_events": [
+          {
+            "category": "relocation",
+            "contribution": 0.861538,
+            "date": "2010-01-01",
+            "event_index": 0,
+            "signals": [
+              "slow_transit_h4"
+            ]
+          },
+          {
+            "category": "marriage",
+            "contribution": 0.328,
+            "date": "2012-01-01",
+            "event_index": 1,
+            "signals": [
+              "d9_lord_in_d9_h7"
+            ]
+          }
+        ]
+      },
+      {
+        "ascendant_sign": "Scorpio",
+        "fit_score": 1.172,
+        "is_near_cusp": false,
+        "lagna_cusp_distance_deg": 13.465769,
+        "lagna_longitude_deg": 226.534231,
+        "misses": [],
+        "navamsa_lagna_sign": "Scorpio",
+        "penalty_total": 0.169231,
+        "positive_total": 1.341231,
+        "prior_bonus": 0.0,
+        "representative_time_local": "21:30",
+        "supporting_events": [
+          {
+            "category": "relocation",
+            "contribution": 0.95,
+            "date": "2010-01-01",
+            "event_index": 0,
+            "signals": [
+              "ad_lord_in_h4",
+              "slow_transit_h4"
+            ]
+          },
+          {
+            "category": "marriage",
+            "contribution": 0.222,
+            "date": "2012-01-01",
+            "event_index": 1,
+            "signals": [
+              "miss_unexplained"
+            ]
+          }
+        ]
+      },
+      {
+        "ascendant_sign": "Virgo",
+        "fit_score": 1.168154,
+        "is_near_cusp": false,
+        "lagna_cusp_distance_deg": 14.820205,
+        "lagna_longitude_deg": 164.820205,
+        "misses": [],
+        "navamsa_lagna_sign": "Taurus",
+        "penalty_total": 0.193077,
+        "positive_total": 1.361231,
+        "prior_bonus": 0.0,
+        "representative_time_local": "16:30",
+        "supporting_events": [
+          {
+            "category": "relocation",
+            "contribution": 0.096154,
+            "date": "2010-01-01",
+            "event_index": 0,
+            "signals": [
+              "miss_unexplained"
+            ]
+          },
+          {
+            "category": "marriage",
+            "contribution": 1.072,
+            "date": "2012-01-01",
+            "event_index": 1,
+            "signals": [
+              "ad_lord_rules_h7"
+            ]
+          }
+        ]
+      },
+      {
+        "ascendant_sign": "Aquarius",
+        "fit_score": 0.905462,
+        "is_near_cusp": false,
+        "lagna_cusp_distance_deg": 12.166466,
+        "lagna_longitude_deg": 317.833534,
+        "misses": [
+          "miss_silent_relocation_h12"
+        ],
+        "navamsa_lagna_sign": "Pisces",
+        "penalty_total": 0.198077,
+        "positive_total": 1.103538,
+        "prior_bonus": 0.0,
+        "representative_time_local": "03:00",
+        "supporting_events": [
+          {
+            "category": "relocation",
+            "contribution": 0.365385,
+            "date": "2010-01-01",
+            "event_index": 0,
+            "signals": [
+              "miss_unexplained"
+            ]
+          },
+          {
+            "category": "marriage",
+            "contribution": 0.642,
+            "date": "2012-01-01",
+            "event_index": 1,
+            "signals": [
+              "pd_lord_rules_h7#dignified_fit",
+              "d9_lord_is_d9_lagna_lord"
+            ]
           }
         ]
       }
     ],
     "discriminating_event_count": 2,
     "honesty_note_key": "rectify.honesty.near_tie",
-    "margin": 0.031506,
+    "margin": 0.001437,
     "mode": "window",
     "recorded_time_sign": "Cancer"
   }

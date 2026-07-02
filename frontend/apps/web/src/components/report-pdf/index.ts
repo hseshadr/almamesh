@@ -9,10 +9,14 @@
 export { ReportDocument } from './ReportDocument';
 export { buildReportPdfData } from './buildReportPdfData';
 export type { BirthDetailLabels, BuildReportPdfDataInput } from './buildReportPdfData';
+export { buildRectificationPdf } from './buildRectificationPdf';
+export type { BuildRectificationPdfInput, RectificationPdfEvent } from './buildRectificationPdf';
+export type { ReportPdfTranslators } from './buildComprehensiveSections';
 export type {
   ReportPdfData,
   ReportPdfDetail,
   ReportPdfLabels,
+  ReportPdfRectification,
   ReportPdfTechnical,
 } from './types';
 export { registerReportFonts } from './theme';

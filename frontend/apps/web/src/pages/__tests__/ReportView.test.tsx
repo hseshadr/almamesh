@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { render, screen, within, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import {
   useChartLibraryStore,
@@ -20,6 +20,15 @@ import {
 // authoritative locale) in these assertions; importing the config is a
 // synchronous, side-effecting init (inline resources, no async backend).
 import '../../i18n/config';
+
+// Mock the PDF pipeline (which dynamically imports @react-pdf/renderer): the
+// failure-path tests drive a rejected render — the exact behavior of a
+// pdf().toBlob() rejection propagating out of downloadReportPdf.
+vi.mock('../../lib/downloadReportPdf', () => ({
+  downloadReportPdf: vi.fn(async () => undefined),
+}));
+import { downloadReportPdf } from '../../lib/downloadReportPdf';
+
 import ReportView from '../ReportView';
 
 // --- A complete-enough engine chart fixture (Title-Case signs, as emitted) ---
@@ -345,6 +354,37 @@ describe('ReportView', () => {
     renderReport('you');
     expect(screen.getByTestId('report-download-pdf')).toBeTruthy();
     expect(screen.queryByTestId('report-save-pdf')).toBeNull();
+  });
+
+  it('surfaces a visible, localized error when the PDF render fails (pdf().toBlob() rejection)', async () => {
+    vi.mocked(downloadReportPdf).mockRejectedValueOnce(new Error('toBlob failed'));
+    seed();
+    renderReport('you');
+
+    // No error notice before the click.
+    expect(screen.queryByTestId('report-pdf-error')).toBeNull();
+
+    fireEvent.click(screen.getByTestId('report-download-pdf'));
+
+    // The failure must be user-visible — never a silent unhandled rejection.
+    await waitFor(() => expect(screen.getByTestId('report-pdf-error')).toBeTruthy());
+    expect(screen.getByTestId('report-pdf-error').textContent).toMatch(/PDF/i);
+    // On-screen only: the notice must never end up in a printed document.
+    expect(screen.getByTestId('report-pdf-error').className).toContain('no-print');
+  });
+
+  it('clears the PDF error when a retry starts', async () => {
+    vi.mocked(downloadReportPdf)
+      .mockRejectedValueOnce(new Error('boom'))
+      .mockResolvedValueOnce(undefined);
+    seed();
+    renderReport('you');
+
+    fireEvent.click(screen.getByTestId('report-download-pdf'));
+    await waitFor(() => expect(screen.getByTestId('report-pdf-error')).toBeTruthy());
+
+    fireEvent.click(screen.getByTestId('report-download-pdf'));
+    await waitFor(() => expect(screen.queryByTestId('report-pdf-error')).toBeNull());
   });
 
   it('omits sections whose guidance is null for the audience', () => {

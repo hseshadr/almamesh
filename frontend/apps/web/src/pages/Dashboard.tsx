@@ -21,7 +21,13 @@ import {
   type ChatTurn,
   type LlmEnv,
 } from "@almamesh/llm";
-import { useChartLibraryStore, useInterpretationStore, useLanguageStore, useProfilesStore } from "@almamesh/store";
+import {
+  useChartLibraryStore,
+  useInterpretationStore,
+  useLanguageStore,
+  useProfilesStore,
+  useRectificationRecordsStore,
+} from "@almamesh/store";
 
 import { Card, Spinner } from "../components/ui";
 import { ContentModeToggle } from "../components/ui/ContentModeToggle";
@@ -38,7 +44,7 @@ import { getUserFriendlyError } from "../lib/errors";
 import { type SSEMetaData } from "../lib/streaming";
 import { useContentModeStore } from "../stores/contentMode";
 import type { ViewMode } from "../lib/types";
-import { useStreamingInterpretation } from "../hooks/useStreamingInterpretation";
+import { useStreamingInterpretation, withRawPredictive } from "../hooks/useStreamingInterpretation";
 import { useElapsedSeconds, formatElapsed } from "../hooks/useElapsedSeconds";
 import { canExportPdf, isPlaceholderContent } from "./exportGate";
 import { personaText, resolveReportAudience } from "../lib/reportSelectors";
@@ -158,6 +164,7 @@ export default function DashboardPage() {
     streamInterpretation,
     interpretation,
     sections: interpretationSections,
+    failedSections: failedInterpretationSections,
     isStreaming: isStreamingInterpretation,
     status: interpretationStatus,
     error: streamingError,
@@ -199,8 +206,17 @@ export default function DashboardPage() {
     const interpretationText = interp
       ? serializeInterpretationForChat(interp, chatMode)
       : undefined;
+    // Chat grounded in the CONFIRMED rectification record (Spec 062 delta 3):
+    // only the PII-safe slice crosses — band + entered/working signs + fit
+    // mode. Times, dates, and margins stay on-device by construction.
+    const rectificationRecord = activeProfileId
+      ? useRectificationRecordsStore.getState().getRecord(activeProfileId)
+      : null;
     return streamChartChat({
-      chart,
+      // Compose the persisted raw predictive contexts (when ready for this
+      // profile) so chat answers can cite the engine's transit/strength/domain
+      // facts (Spec 062 delta 1); absent contexts → natal-only, as before.
+      chart: withRawPredictive(chart, chartId),
       question,
       config,
       mode: chatMode,
@@ -209,6 +225,16 @@ export default function DashboardPage() {
       // chat hook (best-effort; empty when memory is unavailable).
       retrievedContext,
       interpretationText,
+      ...(rectificationRecord
+        ? {
+            rectification: {
+              band: rectificationRecord.band,
+              originalSign: rectificationRecord.originalSign,
+              rectifiedSign: rectificationRecord.rectifiedSign,
+              mode: rectificationRecord.mode,
+            },
+          }
+        : {}),
       // Answer chat in the user's chosen UI language (interpretation is threaded
       // the same way via useStreamingInterpretation); the engine is untouched.
       language: useLanguageStore.getState().language,
@@ -522,8 +548,16 @@ export default function DashboardPage() {
                 {interpretationSections.map((s) => (
                   <li key={s.key} className="flex items-center justify-between">
                     <span>{t(`dashboard:sections.${s.key}`)}</span>
-                    <span className={s.complete ? 'text-status-success' : 'text-text-tertiary'}>
-                      {s.complete ? '✓' : '…'}
+                    <span
+                      className={
+                        s.failed
+                          ? 'text-status-error'
+                          : s.complete
+                            ? 'text-status-success'
+                            : 'text-text-tertiary'
+                      }
+                    >
+                      {s.failed ? '✗' : s.complete ? '✓' : '…'}
                     </span>
                   </li>
                 ))}
@@ -542,6 +576,31 @@ export default function DashboardPage() {
                 {t('life:reading.heading')}
               </h2>
             </header>
+            {/* Honest partial-failure notice: per-section LLM failures degrade
+                those sections to empty — say which ones and offer a regenerate
+                instead of silently rendering blank sections. */}
+            {failedInterpretationSections.length > 0 && (
+              <div
+                className="text-sm text-text-secondary"
+                role="status"
+                data-testid="interpretation-partial-failure"
+              >
+                <p>
+                  {t('dashboard:generation.partial_failure', {
+                    sections: failedInterpretationSections
+                      .map((key) => t(`dashboard:sections.${key}`))
+                      .join(', '),
+                  })}
+                </p>
+                <button
+                  onClick={handleGenerateSeparatedInterpretation}
+                  className="mt-1 underline hover:no-underline"
+                  data-testid="interpretation-partial-retry"
+                >
+                  {t('dashboard:actions.retry')}
+                </button>
+              </div>
+            )}
             <MarkdownContent content={summaryText} />
             {hasPeriodGuidance && periodGuidance && (
               <div className="space-y-1.5 border-l-2 border-accent-gold/40 pl-4">

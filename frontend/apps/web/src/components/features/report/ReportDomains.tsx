@@ -79,7 +79,7 @@ export function ReportDomains({ domainsCtx }: ReportDomainsProps): ReactElement 
   const { t } = useTranslation('report');
   return (
     <section className="report-section" data-testid="report-domains">
-      <ReportSectionHeading index="IX" title={t('domains.heading')} />
+      <ReportSectionHeading index="X" title={t('domains.heading')} />
       <div className="report-domain-grid">
         {DOMAIN_ORDER.map((domain) => (
           <DomainBlock key={domain} forecast={domainsCtx.forecasts[domain]} />

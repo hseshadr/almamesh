@@ -123,6 +123,61 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
     expect(byKey.remedial).toBe(false);
   });
 
+  it('records per-section error events as failed sections (partial success stays complete)', async () => {
+    // The generator degrades a failed section to empty and still completes —
+    // the hook must record the failure instead of discarding the event.
+    mockedStream.mockImplementation(
+      eventStream([
+        { type: 'section_complete', section: 'core' },
+        { type: 'error', section: 'yoga', message: 'HTTP 500 from endpoint' },
+        { type: 'section_complete', section: 'guidance1' },
+        { type: 'section_complete', section: 'guidance2' },
+        { type: 'section_complete', section: 'remedial' },
+        { type: 'complete', interpretation: SAMPLE_INTERPRETATION },
+      ]),
+    );
+
+    const { result } = renderHook(() => useStreamingInterpretation('chart-123'));
+    await act(async () => {
+      await result.current.streamInterpretation('chart-123');
+    });
+
+    await waitFor(() => expect(result.current.status).toBe('complete'));
+    expect(result.current.interpretation).toEqual(SAMPLE_INTERPRETATION);
+    const byKey = Object.fromEntries(result.current.sections.map((s) => [s.key, s]));
+    expect(byKey.yoga?.failed).toBe(true);
+    expect(byKey.yoga?.complete).toBe(false);
+    expect(byKey.core?.failed).toBe(false);
+    expect(result.current.failedSections).toEqual(['yoga']);
+  });
+
+  it('clears failed sections when a new generation starts', async () => {
+    mockedStream.mockImplementation(
+      eventStream([
+        { type: 'error', section: 'yoga', message: 'boom' },
+        { type: 'section_complete', section: 'core' },
+        { type: 'complete', interpretation: SAMPLE_INTERPRETATION },
+      ]),
+    );
+    const { result } = renderHook(() => useStreamingInterpretation('chart-123'));
+    await act(async () => {
+      await result.current.streamInterpretation('chart-123');
+    });
+    await waitFor(() => expect(result.current.failedSections).toEqual(['yoga']));
+
+    // Regenerate with a fully-successful stream: the failure must not linger.
+    mockedStream.mockImplementation(
+      eventStream([
+        { type: 'section_complete', section: 'yoga' },
+        { type: 'complete', interpretation: SAMPLE_INTERPRETATION },
+      ]),
+    );
+    await act(async () => {
+      await result.current.streamInterpretation('chart-123');
+    });
+    await waitFor(() => expect(result.current.failedSections).toEqual([]));
+  });
+
   it('passes the raw chart and resolved mode to the generator', async () => {
     mockedStream.mockImplementation(
       eventStream([{ type: 'complete', interpretation: SAMPLE_INTERPRETATION }]),

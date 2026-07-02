@@ -41,7 +41,7 @@ export function ReportYogas({ yogas, interpretation, audience }: ReportYogasProp
 
   return (
     <section className="report-section" data-testid="report-yogas">
-      <ReportSectionHeading index="III" title={t('yogas.heading')} />
+      <ReportSectionHeading index="IV" title={t('yogas.heading')} />
 
       {narrative ? (
         <ReportProse

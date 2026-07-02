@@ -10,9 +10,11 @@
  * confirm path only changed the birth time and dropped every trace of the
  * rectification itself.
  *
- * Display-only: this record NEVER feeds the engine and holds NO raw life-event
- * narrative — only the chosen candidate's sign/time/band/margin plus opaque
- * event ids — keeping the project's privacy posture intact.
+ * Display-only: this record NEVER feeds the engine and never leaves the
+ * device. v1 held only the chosen candidate's sign/time/band/margin plus
+ * opaque event ids; v2 (Spec 062) additionally snapshots the full adapted
+ * result and the user's own event summaries so the evidence story survives
+ * revisits — all of it stays local-first (IndexedDB), zero egress.
  *
  * Fully local-first: persisted to IndexedDB via `idb-keyval` under its own key,
  * mirroring the `lifeEvents` store, keyed by the owning profile id.
@@ -21,6 +23,7 @@
 import type {
   RectificationCandidate,
   RectificationRecord,
+  RectificationRecordEventSummary,
   RectificationResult,
 } from '@almamesh/shared-types';
 import { create, type StateCreator } from 'zustand';
@@ -30,8 +33,15 @@ import { get as idbGet, set as idbSet, del as idbDel } from 'idb-keyval';
 /** A single IndexedDB key holding all profiles' rectification records. */
 const PERSIST_NAME = 'almamesh-rectification-records';
 
-/** Bump when the persisted `RectificationRecord` shape changes; pair with `migrate`. */
-export const RECTIFICATION_RECORDS_PERSIST_VERSION = 1;
+/**
+ * Bump when the persisted `RectificationRecord` shape changes; pair with `migrate`.
+ *
+ * v1 → v2 (Spec 062): records gained OPTIONAL `resultSnapshot` (the full
+ * adapted engine result at confirmation time) and `eventSummaries` (the
+ * structured events that informed the fit, in the user's own words). Both are
+ * additive-optional, so a v1 record migrates by simply loading unchanged.
+ */
+export const RECTIFICATION_RECORDS_PERSIST_VERSION = 2;
 
 /** The slice of the store that `partialize` actually persists. */
 export interface PersistedRectificationRecordsState {
@@ -48,6 +58,9 @@ function isPlainRecord(value: unknown): value is Record<string, unknown> {
  * always return a valid `{ recordsByProfile }`. A returning visitor whose stored
  * record is malformed must never crash the app — non-object entries are dropped
  * and a corrupt root falls back to an empty map.
+ *
+ * v1 → v2 is purely additive (`resultSnapshot` / `eventSummaries` are optional),
+ * so a v1 record passes through verbatim with the new fields simply absent.
  */
 export function migrateRectificationRecordsPersistedState(
   persisted: unknown,
@@ -103,6 +116,12 @@ export interface BuildRectificationRecordArgs {
   readonly structuredEventIds: readonly string[];
   /** Confirmation instant (`Date.now()` in app code; explicit so it stays pure). */
   readonly confirmedAt: number;
+  /**
+   * v2 (optional): the structured events that informed the fit, with the
+   * user's own summaries, for on-device display on the standing record.
+   * Omitted ⇒ the record carries ids only (v1 behavior).
+   */
+  readonly eventSummaries?: readonly RectificationRecordEventSummary[];
 }
 
 /**
@@ -111,7 +130,11 @@ export interface BuildRectificationRecordArgs {
  * Pure: copies the chosen candidate's sign/time and the result's band/margin/mode,
  * keeps the originally-entered time + recorded sign for the "was X" half, and
  * records the opaque ids of the structured life events that informed the fit.
- * No life-event narrative ever enters the record.
+ *
+ * v2 (Spec 062): always snapshots the full adapted `result` on the record
+ * (`resultSnapshot`) so the evidence story survives revisits, and copies the
+ * caller-resolved `eventSummaries` when provided. Everything stays on-device;
+ * the record still never feeds the engine.
  */
 export function buildRectificationRecord(args: BuildRectificationRecordArgs): RectificationRecord {
   const { profileId, result, candidate, originalTime, structuredEventIds, confirmedAt } = args;
@@ -126,6 +149,8 @@ export function buildRectificationRecord(args: BuildRectificationRecordArgs): Re
     rectifiedTime: candidate.representativeTimeLocal,
     rectifiedSign: candidate.ascendantSign,
     supportingEventIds: [...structuredEventIds],
+    resultSnapshot: result,
+    ...(args.eventSummaries !== undefined ? { eventSummaries: [...args.eventSummaries] } : {}),
   };
 }
 

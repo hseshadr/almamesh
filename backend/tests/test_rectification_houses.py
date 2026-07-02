@@ -22,8 +22,16 @@ EXPECTED: dict[EventType, tuple[int, ...]] = {
     EventType.HEALTH_ISSUE: (6,),
     EventType.SURGERY: (6, 8),
     EventType.HIGHER_STUDIES: (4, 5, 9),
-    EventType.LITIGATION: (6,),
+    # Spec 062 E6: litigation is 6th; confinement/incarceration is classically 12th.
+    EventType.LITIGATION: (6, 12),
+    # Spec 062 E6: estrangement/rupture with parents or household (4th = home/parents).
+    EventType.FAMILY_RUPTURE: (4,),
 }
+
+
+def test_expected_map_is_exhaustive_over_event_type() -> None:
+    """The verbatim EXPECTED table above must cover every EventType member."""
+    assert set(EXPECTED) == set(EventType)
 
 
 def _idfn(e: object) -> str:

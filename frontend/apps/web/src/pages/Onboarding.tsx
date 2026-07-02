@@ -209,6 +209,10 @@ export default function OnboardingPage() {
   };
 
   const handleBirthDatePickerChange = (date: Date | null) => {
+    // BirthDatePicker buffers in-progress edits internally and only emits
+    // complete, in-range dates — incomplete edits (including cleared
+    // sections) never reach this handler. The null guard is defensive: the
+    // store setter is non-null and canProceed gates Continue on birthDate.
     if (date) {
       setBirthDate(date);
     }

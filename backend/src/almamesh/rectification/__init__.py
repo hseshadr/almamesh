@@ -14,6 +14,7 @@ from almamesh.rectification.candidates import (
     window_candidate_times,
 )
 from almamesh.rectification.models import (
+    AnchorConfidence,
     EventDatePrecision,
     RectificationBand,
     RectificationCandidate,
@@ -21,7 +22,47 @@ from almamesh.rectification.models import (
     RectificationMode,
     RectificationResult,
 )
-from almamesh.rectification.scorer import compute_transit_signs, rank_candidates, score_candidate
+from almamesh.rectification.scorer import (
+    EPS,
+    compute_transit_signs,
+    rank_candidates,
+    score_candidate,
+)
+
+# --- Spec 062 E5: weak anchor prior ------------------------------------------
+# Max bonus ≈ half of one primary signal: the prior can break a TRUE tie but
+# can never outvote an event. It renders as its own labeled evidence row.
+PRIOR_MAX_BONUS = 0.5
+PRIOR_MIN_HALF_WIDTH_MINUTES = 60.0
+# Pseudo-signal key for the prior's evidence row (grammar; see scorer docstring).
+PRIOR_ANCHOR_KEY = "prior_anchor"
+
+
+def _prior_bonus(
+    candidate_dt: datetime,
+    anchor_dt: datetime,
+    span_minutes: int | None,
+    anchor_confidence: AnchorConfidence,
+) -> float:
+    """Additive triangular bonus ``0.5 x max(0, 1 - |t - t_anchor| / H)``.
+
+    ``H = max(span/2, 60 min)``; ``UNKNOWN`` is flat (bonus 0). A recorded 5:45
+    makes 5:52 a priori more plausible than 17:00 — but only weakly.
+    """
+    if anchor_confidence is not AnchorConfidence.ABOUT:
+        return 0.0
+    half_width = max((span_minutes or 0) / 2.0, PRIOR_MIN_HALF_WIDTH_MINUTES)
+    delta_minutes = abs((candidate_dt - anchor_dt).total_seconds()) / 60.0
+    return PRIOR_MAX_BONUS * max(0.0, 1.0 - delta_minutes / half_width)
+
+
+def _resolve_anchor(
+    anchor_confidence: AnchorConfidence | None, mode: RectificationMode
+) -> AnchorConfidence:
+    """Default: cusp mode trusts the recorded time as 'about'; window mode doesn't."""
+    if anchor_confidence is not None:
+        return anchor_confidence
+    return AnchorConfidence.ABOUT if mode == RectificationMode.CUSP else AnchorConfidence.UNKNOWN
 
 
 def _score_all_candidates(
@@ -33,15 +74,24 @@ def _score_all_candidates(
     transit_signs: Mapping[datetime, Mapping[PlanetName, ZodiacSign]],
     reference_date: datetime,
     astronomy: SkyfieldAstronomy | None = None,
+    *,
+    anchor_dt: datetime,
+    span_minutes: int | None,
+    anchor_confidence: AnchorConfidence,
 ) -> list[RectificationCandidate]:
-    """Score every candidate time against the provided events."""
+    """Score every candidate time against the provided events (+ anchor prior)."""
     scored = []
     for ct in candidate_times:
         ctx = calculate_sidereal_context(
             ct.dt_utc, latitude, longitude, reference_date=reference_date, astronomy=astronomy
         )
         local_dt = ct.dt_utc + timedelta(minutes=utc_offset_minutes)
-        scored.append(score_candidate(ctx, events, birth_dt=local_dt, transit_signs=transit_signs))
+        prior = _prior_bonus(ct.dt_utc, anchor_dt, span_minutes, anchor_confidence)
+        scored.append(
+            score_candidate(
+                ctx, events, birth_dt=local_dt, transit_signs=transit_signs, prior_bonus=prior
+            )
+        )
     return scored
 
 
@@ -112,6 +162,32 @@ def _candidate_times(
     )
 
 
+def _lead_qualifier(ranked: Sequence[RectificationCandidate]) -> str | None:
+    """Which secondary term created the top candidate's lead, if any (E7).
+
+    'prior_influenced': stripping the anchor prior would erase the lead.
+    'penalty_driven': restoring the miss penalties would erase the lead.
+    Checked in that order (the anchor prior is the more caveat-worthy tie-maker).
+    """
+    if len(ranked) < 2:
+        return None
+    top, runner_up = ranked[0], ranked[1]
+    if top.fit_score <= runner_up.fit_score + EPS:
+        return None  # no lead to qualify
+    if top.fit_score - top.prior_bonus <= runner_up.fit_score - runner_up.prior_bonus + EPS:
+        return "prior_influenced"
+    if top.fit_score + top.penalty_total <= runner_up.fit_score + runner_up.penalty_total + EPS:
+        return "penalty_driven"
+    return None
+
+
+def _honesty_note_key(band: RectificationBand, ranked: Sequence[RectificationCandidate]) -> str:
+    """The i18n honesty-note key, qualified when the lead is prior/penalty-made."""
+    base = f"rectify.honesty.{band.value}"
+    qualifier = _lead_qualifier(ranked)
+    return f"{base}.{qualifier}" if qualifier else base
+
+
 def _build_result(
     mode: RectificationMode,
     cands: list[RectificationCandidate],
@@ -127,7 +203,7 @@ def _build_result(
         band=band,
         discriminating_event_count=disc_count,
         recorded_time_sign=recorded_sign,
-        honesty_note_key=f"rectify.honesty.{band.value}",
+        honesty_note_key=_honesty_note_key(band, ranked),
     )
 
 
@@ -141,12 +217,14 @@ def compute_rectification_result(
     mode: RectificationMode,
     reference_date: datetime,
     span_minutes: int | None = None,
+    anchor_confidence: AnchorConfidence | None = None,
 ) -> RectificationResult:
     """Score all candidate lagna times against life events; return ranked honest result.
 
-    ``span_minutes`` is only used in WINDOW mode: it bounds the search window
-    around ``dt_utc``.  None (default) searches the full birth day.  Ignored in
-    CUSP mode.
+    ``span_minutes`` bounds the search window around ``dt_utc`` in WINDOW mode
+    (None searches the full birth day; ignored in CUSP mode) AND widens the E5
+    anchor prior's half-width. ``anchor_confidence`` (E5) defaults per mode:
+    ``about`` for CUSP (a recorded time exists), ``unknown`` for WINDOW.
     """
     astro = make_astronomy()
     transit_signs = compute_transit_signs(events, astronomy=astro)
@@ -159,6 +237,9 @@ def compute_rectification_result(
         transit_signs,
         reference_date,
         astro,
+        anchor_dt=dt_utc,
+        span_minutes=span_minutes,
+        anchor_confidence=_resolve_anchor(anchor_confidence, mode),
     )
     recorded = _recorded_sign(dt_utc, latitude, longitude, reference_date, astronomy=astro)
     return _build_result(mode, cands, recorded)
@@ -166,6 +247,7 @@ def compute_rectification_result(
 
 __all__ = [
     "compute_rectification_result",
+    "AnchorConfidence",
     "EventDatePrecision",
     "RectificationBand",
 ]

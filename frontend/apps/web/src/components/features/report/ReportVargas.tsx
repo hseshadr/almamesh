@@ -1,8 +1,9 @@
 /**
- * ReportVargas — the printed Shodasavarga section: framed paper plates for the
- * key vargas (D9 + D10 when emitted), the vargottama flags and the
- * Viṁśopaka/Ṣaḍvarga strength tallies, with `approximated` flags shown
- * honestly (≈ + footnote). Engine VargaCtxFull verbatim.
+ * ReportVargas — the printed Shodasavarga section: framed paper plates for ALL
+ * sixteen divisional charts the engine emits (D1–D60, canonical order), the
+ * vargottama flags and the Viṁśopaka/Ṣaḍvarga strength tallies, with
+ * `approximated` flags shown honestly (≈ + footnote). Engine VargaCtxFull
+ * verbatim — vargas are sign-placement charts, so no degrees are printed.
  */
 
 import { useMemo, type ReactElement } from 'react';
@@ -15,8 +16,11 @@ import { toVargaChart } from '../../../lib/predictive';
 import { grahaName, signName } from '../../../lib/predictiveEventCopy';
 import { ReportSectionHeading } from './ReportSectionHeading';
 
-/** The vargas given a full chart plate in print (when the engine emitted them). */
-const PLATE_VARGAS: readonly DivisionalChartId[] = ['D9', 'D10'];
+/** All sixteen Shodaśavarga plates, in canonical order (drawn when emitted). */
+const PLATE_VARGAS: readonly DivisionalChartId[] = [
+  'D1', 'D2', 'D3', 'D4', 'D7', 'D9', 'D10', 'D12',
+  'D16', 'D20', 'D24', 'D27', 'D30', 'D40', 'D45', 'D60',
+];
 
 interface ReportVargasProps {
   readonly vargaCtxFull: VargaCtxFull;
@@ -52,8 +56,8 @@ export function ReportVargas({ vargaCtxFull }: ReportVargasProps): ReactElement 
 
   return (
     <section className="report-section" data-testid="report-vargas">
-      <ReportSectionHeading index="VII" title={t('vargas_full.heading')} />
-      <p className="report-note">{t('vargas_full.key_charts_note')}</p>
+      <ReportSectionHeading index="VIII" title={t('vargas_full.heading')} />
+      <p className="report-note">{t('vargas_full.all_charts_note')}</p>
 
       {plates.length > 0 && (
         <div className="report-charts-grid">

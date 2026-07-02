@@ -31,6 +31,7 @@ import type {
 } from "@almamesh/shared-types";
 import type { SiderealChart } from "@almamesh/browser/types";
 
+import { estimateTokens } from "./budget";
 import { chatCompletionJson, type ChatMessage } from "./client";
 import { ensurePrivacy, isLocalEndpoint, type ProviderConfig } from "./config";
 import { withLanguage, type PromptLanguage } from "./language";
@@ -537,7 +538,47 @@ const PREDICTIVE_CONTEXT_EXCEPTION = [
   "or strength figure that is not stated in that block.",
 ].join("\n");
 
-function buildSectionMessages(
+// --- Chart-JSON budget (Spec 062, LLM delta 6) ------------------------------
+//
+// The six parallel section calls used to each carry the FULL chart pretty-
+// printed — 6× the bytes of the chart on every generation. Now every section
+// embeds COMPACT JSON, and when even the compact full chart exceeds the token
+// budget below (estimateTokens guard, chars/4), the two sections whose tasks
+// only read planet/dasha/yoga facts — remedial + upcoming_periods — get just
+// those slices. The narrative sections (core/yoga/guidance) always keep the
+// full chart: their tasks trace house-lord chains through `houses` and `lagna`.
+
+/** Sections that may run on a slimmed chart when the full JSON is oversized. */
+const SLIM_CHART_SECTIONS: ReadonlySet<InterpretationSectionKey> = new Set([
+  "remedial",
+  "upcoming_periods",
+]);
+
+/**
+ * Estimated-token ceiling for a section's chart JSON before the slim-eligible
+ * sections drop to planets + dashas + yogas. Under the ceiling nothing is
+ * slimmed, so small charts lose no information.
+ */
+export const SECTION_CHART_TOKEN_BUDGET = 4096;
+
+/** The chart JSON one section embeds: compact always; slimmed when oversized. */
+function chartJsonForSection(
+  section: InterpretationSectionKey,
+  chart: Omit<SanitizedChart, "predictive">,
+): string {
+  const full = JSON.stringify(chart);
+  if (!SLIM_CHART_SECTIONS.has(section) || estimateTokens(full) <= SECTION_CHART_TOKEN_BUDGET) {
+    return full;
+  }
+  const slim = {
+    planets: chart.planets,
+    yogas: chart.yogas,
+    ...(chart.dashas ? { dashas: chart.dashas } : {}),
+  };
+  return JSON.stringify(slim);
+}
+
+export function buildSectionMessages(
   section: InterpretationSectionKey,
   chart: SanitizedChart,
   mode: ViewMode,
@@ -547,7 +588,7 @@ function buildSectionMessages(
   // The predictive contexts ride as a compact DELIMITED TEXT block with their
   // own narrate-only guard — excluded from the chart JSON dump (no duplication).
   const { predictive, ...chartForJson } = chart;
-  const chartJson = JSON.stringify(chartForJson, null, 2);
+  const chartJson = chartJsonForSection(section, chartForJson);
   const predictiveBlock = buildPredictiveFactsBlock(predictive);
   const userContent = lite
     ? liteUserContent(section, chartJson, mode, predictiveBlock)

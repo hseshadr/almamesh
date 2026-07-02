@@ -63,7 +63,7 @@ describe("structureLifeEvents — happy path", () => {
     ] });
   });
 
-  it("accepts all 16 valid categories without dropping any", async () => {
+  it("accepts all 17 valid categories without dropping any", async () => {
     const events = LIFE_EVENT_CATEGORIES.map((cat, i) => ({
       date: `2020-${String((i % 12) + 1).padStart(2, "0")}-01`,
       category: cat,
@@ -74,6 +74,24 @@ describe("structureLifeEvents — happy path", () => {
     if (result.status !== 'ok') return;
     expect(result.events).toHaveLength(LIFE_EVENT_CATEGORIES.length);
     expect(result.events.map((r) => r.category)).toEqual(LIFE_EVENT_CATEGORIES);
+  });
+
+  it("accepts family_rupture (the 17th category, Spec 062 E6) and lists it in the prompt", async () => {
+    // Guards the allowlist AND the vocabulary: family_rupture must be a member
+    // of LIFE_EVENT_CATEGORIES, survive validation, and appear in the system
+    // prompt's category list the model is shown.
+    expect(LIFE_EVENT_CATEGORIES).toContain("family_rupture");
+    expect(LIFE_EVENT_CATEGORIES).toHaveLength(17);
+
+    mockChat.mockResolvedValue(
+      JSON.stringify({ events: [{ date: "2018-11-01", category: "family_rupture" }] }),
+    );
+    const result = await structureLifeEvents("...", LOCAL_CFG);
+    expect(result).toEqual({
+      status: 'ok',
+      events: [{ date: "2018-11-01", category: "family_rupture", precision: 'exact' }],
+    });
+    expect(lastSystemPrompt()).toContain("family_rupture");
   });
 
   it("returns [] for an empty events array", async () => {

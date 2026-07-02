@@ -62,11 +62,14 @@ vi.mock('../components/features/rectify/RectifyResults', () => ({
     onConfirm: (c: unknown) => void;
     onKeepRecorded: () => void;
     result: { candidates: unknown[] };
-    recordedReading: unknown | null;
+    recordedReading: { signDegrees?: number } | null;
   }) => (
     <div
       data-testid="rectify-results"
       data-has-recorded={recordedReading != null ? 'true' : 'false'}
+      data-recorded-degrees={
+        recordedReading?.signDegrees != null ? String(recordedReading.signDegrees) : ''
+      }
     >
       <button onClick={() => onConfirm(result.candidates[0])} data-testid="confirm-candidate-btn">
         Use this time
@@ -149,6 +152,13 @@ const MOCK_CHART = {
       location_name: 'Pune, India',
     },
     birth_time_original: '07:30',
+  },
+  // The working natal chart at the RECORDED time — its lagna carries the
+  // engine's actual in-sign degrees (synthetic values; sign matches
+  // MOCK_RESULT.recordedTimeSign case-insensitively, as the engine emits
+  // Title-Case while the result sign is lowercase).
+  sidereal_chart: {
+    lagna: { sign: 'Aquarius', sign_degrees: 22.93 },
   },
 };
 
@@ -318,13 +328,77 @@ describe('RectifyPage', () => {
     expect(await screen.findByTestId('event-entry-step')).toBeTruthy();
   });
 
-  it('EventEntryStep Continue calls run(cusp) and shows fit step', async () => {
+  it('Continue shows the honest-window question; starting with the default calls run("cusp")', async () => {
     renderRectify();
     fireEvent.click(await screen.findByTestId('intro-start-btn'));
     const continueBtn = await screen.findByTestId('events-continue-btn');
     fireEvent.click(continueBtn);
+
+    // Spec 062: the fit does NOT auto-start — the honest-window question comes first.
+    expect(await screen.findByTestId('window-selector')).toBeTruthy();
+    expect(mockRun).not.toHaveBeenCalled();
+
+    // Default for a cusp-detected profile is "as recorded" → cusp comparison.
+    fireEvent.click(screen.getByTestId('window-start-btn'));
     expect(mockRun).toHaveBeenCalledWith('cusp');
     expect(await screen.findByText('Analysing your events…')).toBeTruthy();
+  });
+
+  describe('honest-window selector (Spec 062)', () => {
+    /** intro → events → fit (selector visible). */
+    async function gotoSelector() {
+      renderRectify();
+      fireEvent.click(await screen.findByTestId('intro-start-btn'));
+      fireEvent.click(await screen.findByTestId('events-continue-btn'));
+      return screen.findByTestId('window-selector');
+    }
+
+    it('renders all six symmetric options and no "%" anywhere', async () => {
+      const selector = await gotoSelector();
+      for (const id of ['as_recorded', 'quarter', 'half', 'hour', 'two_hours', 'whole_day']) {
+        expect(screen.getByTestId(`window-option-${id}`)).toBeTruthy();
+      }
+      expect(selector.textContent).not.toContain('%');
+      expect(selector.textContent).toMatch(/how sure are you/i);
+    });
+
+    it('±30m maps to run("window", 60) — spanMinutes is the TOTAL span', async () => {
+      await gotoSelector();
+      fireEvent.click(
+        screen.getByTestId('window-option-half').querySelector('input') as HTMLInputElement,
+      );
+      fireEvent.click(screen.getByTestId('window-start-btn'));
+      expect(mockRun).toHaveBeenCalledWith('window', 60);
+    });
+
+    it('±2h maps to run("window", 240)', async () => {
+      await gotoSelector();
+      fireEvent.click(
+        screen.getByTestId('window-option-two_hours').querySelector('input') as HTMLInputElement,
+      );
+      fireEvent.click(screen.getByTestId('window-start-btn'));
+      expect(mockRun).toHaveBeenCalledWith('window', 240);
+    });
+
+    it('whole day maps to run("window") with NO spanMinutes', async () => {
+      await gotoSelector();
+      fireEvent.click(
+        screen.getByTestId('window-option-whole_day').querySelector('input') as HTMLInputElement,
+      );
+      fireEvent.click(screen.getByTestId('window-start-btn'));
+      expect(mockRun).toHaveBeenCalledWith('window');
+    });
+
+    it('unknown-time profiles skip the question entirely and auto-run the whole day', async () => {
+      useChartLibraryStore.setState({ charts: { 'chart-1': MOCK_CHART_UNKNOWN as never } });
+      vi.mocked(useRectification).mockReturnValue(hookState({ detectedMode: 'window' }));
+      renderRectify();
+      fireEvent.click(await screen.findByTestId('intro-start-btn'));
+      fireEvent.click(await screen.findByTestId('events-continue-btn'));
+      // No recorded time to be sure about — no question, straight to the scan.
+      expect(screen.queryByTestId('window-selector')).toBeNull();
+      expect(mockRun).toHaveBeenCalledWith('window');
+    });
   });
 
   it('rerender with ready status shows results', async () => {
@@ -333,6 +407,36 @@ describe('RectifyPage', () => {
     fireEvent.click(await screen.findByTestId('events-continue-btn'));
     await navigateToResults(rerender);
     expect(screen.getByTestId('rectify-results')).toBeTruthy();
+  });
+
+  it('threads the ENGINE recorded-lagna degrees into the AS RECORDED reading (regression: hardcoded 0°)', async () => {
+    // The stored working chart's lagna is Aquarius 22.93° — the results page
+    // must show those real degrees, never a misleading 0°00' cusp reading.
+    const { rerender } = renderRectify();
+    fireEvent.click(await screen.findByTestId('intro-start-btn'));
+    fireEvent.click(await screen.findByTestId('events-continue-btn'));
+    await navigateToResults(rerender);
+    expect(screen.getByTestId('rectify-results').getAttribute('data-recorded-degrees')).toBe(
+      '22.93',
+    );
+  });
+
+  it('omits the recorded degrees (no invented 0°) when the stored chart lagna does not match the result sign', async () => {
+    useChartLibraryStore.setState({
+      charts: {
+        'chart-1': {
+          ...MOCK_CHART,
+          sidereal_chart: { lagna: { sign: 'Pisces', sign_degrees: 1.2 } },
+        } as never,
+      },
+    });
+    const { rerender } = renderRectify();
+    fireEvent.click(await screen.findByTestId('intro-start-btn'));
+    fireEvent.click(await screen.findByTestId('events-continue-btn'));
+    await navigateToResults(rerender);
+    // Comparison still renders (sign + time), but with NO degrees value.
+    expect(screen.getByTestId('rectify-results').getAttribute('data-has-recorded')).toBe('true');
+    expect(screen.getByTestId('rectify-results').getAttribute('data-recorded-degrees')).toBe('');
   });
 
   it('confirm candidate with sign flip opens modal and blocks without ack', async () => {
@@ -435,12 +539,19 @@ describe('RectifyPage', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
   });
 
-  it('window mode: run is called with "window" when detectedMode is window', async () => {
+  it('window mode: whole-day is the pre-selected default when detectedMode is window', async () => {
     vi.mocked(useRectification).mockReturnValue(hookState({ detectedMode: 'window' }));
 
     renderRectify();
     fireEvent.click(await screen.findByTestId('intro-start-btn'));
     fireEvent.click(await screen.findByTestId('events-continue-btn'));
+    // The rough-time profile still answers the honest-window question; its
+    // default is the whole-day scan (no invented precision).
+    const wholeDayRadio = screen
+      .getByTestId('window-option-whole_day')
+      .querySelector('input') as HTMLInputElement;
+    expect(wholeDayRadio.checked).toBe(true);
+    fireEvent.click(screen.getByTestId('window-start-btn'));
     expect(mockRun).toHaveBeenCalledWith('window');
   });
 
@@ -529,11 +640,15 @@ describe('RectifyPage', () => {
   // ---------------------------------------------------------------------------
 
   describe('fit step — warming + dead-end recovery', () => {
-    /** Click through intro → events → fit. */
+    /** Click through intro → events → fit (answering the window question when asked). */
     async function gotoFit() {
       renderRectify();
       fireEvent.click(await screen.findByTestId('intro-start-btn'));
       fireEvent.click(await screen.findByTestId('events-continue-btn'));
+      // The honest-window question renders only for valid inputs with a
+      // recorded time; the guard-path tests (missing birth / no events) skip it.
+      const startBtn = screen.queryByTestId('window-start-btn');
+      if (startBtn !== null) fireEvent.click(startBtn);
     }
 
     it('shows the honest warming surface (timer) when the engine is not ready', async () => {

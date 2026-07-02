@@ -32,8 +32,11 @@ import {
   useChartLibraryStore,
   useInterpretationStore,
   useLanguageStore,
+  usePredictiveStore,
+  useProfilesStore,
   type InterpretationStatus,
 } from '@almamesh/store';
+import type { SiderealChart } from '@almamesh/browser/types';
 import type { VedicInterpretation } from '@almamesh/shared-types';
 import type { SepViewMode } from '@almamesh/shared-types';
 
@@ -46,10 +49,12 @@ export const INTERPRETATION_SECTIONS: readonly InterpretationSectionKey[] = [
   'remedial',
 ];
 
-/** One section's completion flag, for a progress checklist in the UI. */
+/** One section's completion/failure flags, for a progress checklist in the UI. */
 export interface SectionProgress {
   readonly key: InterpretationSectionKey;
   readonly complete: boolean;
+  /** True when the generator's per-section call failed (section degraded to empty). */
+  readonly failed: boolean;
 }
 
 export interface StreamInterpretationOptions {
@@ -63,8 +68,10 @@ export interface UseStreamingInterpretationResult {
   interpretation: VedicInterpretation | undefined;
   /** Lifecycle of the active chart's interpretation. */
   status: InterpretationStatus;
-  /** Per-section completion flags (the 5 keys), for a progress checklist. */
+  /** Per-section completion/failure flags (the 5 keys), for a progress checklist. */
   sections: readonly SectionProgress[];
+  /** The keys of sections whose generation failed (degraded to empty). */
+  failedSections: readonly InterpretationSectionKey[];
   /** Failure message; present once `status === 'error'`. */
   error: string | null;
   /** True while a generation is in flight. */
@@ -100,6 +107,35 @@ function readLlmEnv(): LlmEnv {
   });
 }
 
+/**
+ * Compose the persisted RAW engine predictive contexts onto the natal chart
+ * (Spec 062, LLM delta 1) so interpretation + chat prompts carry the engine's
+ * transit/strength/varga/domain blocks — activating the sanitizer + facts
+ * pipeline that already exists in `@almamesh/llm`.
+ *
+ * Strictly additive and FAIL-OPEN: contexts that are absent (pre-v2 persisted
+ * blob), not `ready`, or belong to a different profile leave the chart
+ * untouched — narration degrades gracefully to natal-only, NEVER an error.
+ * Privacy is unchanged: the composed chart still flows through
+ * `sanitizeChartForLlm`, which reduces every predictive date to month
+ * precision before any prompt is built.
+ *
+ * `chartId` mirrors `usePredictiveLayer`'s profile-key fallback
+ * (`activeProfileId ?? chart_id ?? 'primary'`) so a stale profile's contexts
+ * can never be composed onto another profile's chart.
+ */
+export function withRawPredictive(chart: SiderealChart, chartId: string | null): SiderealChart {
+  const { status, rawContexts, profileKey } = usePredictiveStore.getState();
+  if (status !== 'ready' || !rawContexts) {
+    return chart;
+  }
+  const expectedKey = useProfilesStore.getState().activeProfileId ?? chartId ?? 'primary';
+  if (profileKey !== expectedKey) {
+    return chart;
+  }
+  return { ...chart, ...rawContexts };
+}
+
 /** Map a thrown error to a friendly, user-facing message. */
 function describeError(err: unknown): string {
   if (err instanceof PrivacyViolationError) {
@@ -117,6 +153,7 @@ export function useStreamingInterpretation(chartId?: string | null): UseStreamin
   const entry = useInterpretationStore((s) => (chartId ? s.byChart[chartId] : undefined));
   const startInterpretation = useInterpretationStore((s) => s.startInterpretation);
   const markSectionComplete = useInterpretationStore((s) => s.markSectionComplete);
+  const markSectionFailed = useInterpretationStore((s) => s.markSectionFailed);
   const setInterpretation = useInterpretationStore((s) => s.setInterpretation);
   const setError = useInterpretationStore((s) => s.setError);
   const resetEntry = useInterpretationStore((s) => s.reset);
@@ -164,7 +201,10 @@ export function useStreamingInterpretation(chartId?: string | null): UseStreamin
       startInterpretation(id);
       try {
         for await (const event of streamStructuredInterpretation({
-          chart,
+          // Compose the persisted raw predictive contexts (when ready for this
+          // profile) so the six section prompts carry the delimited engine
+          // predictive block; absent contexts → natal-only, exactly as before.
+          chart: withRawPredictive(chart, id),
           config,
           mode: options.view_mode === 'expert' ? 'expert' : 'layman',
           language,
@@ -173,25 +213,33 @@ export function useStreamingInterpretation(chartId?: string | null): UseStreamin
           if (controller.signal.aborted) return;
           if (event.type === 'section_complete') {
             markSectionComplete(id, event.section);
+          } else if (event.type === 'error' && event.section != null) {
+            // A per-section failure degrades that section to empty while the
+            // run still completes — record it so the UI can show the gap and
+            // offer a regenerate instead of a silently blank section.
+            // (`section` is optional on the event type; sectionless errors
+            // have no slot to mark and surface via the fatal path instead.)
+            markSectionFailed(id, event.section);
           } else if (event.type === 'complete') {
             setInterpretation(id, event.interpretation, new Date().toISOString());
           }
-          // `section_start` is informational; per-section `error` events degrade
-          // that section to empty and the run still completes — no fatal stop.
+          // `section_start` is informational.
         }
       } catch (err) {
         if (err instanceof Error && err.name === 'AbortError') return;
         setError(id, describeError(err));
       }
     },
-    [language, markSectionComplete, setError, setInterpretation, startInterpretation]
+    [language, markSectionComplete, markSectionFailed, setError, setInterpretation, startInterpretation]
   );
 
   const status: InterpretationStatus = entry?.status ?? 'idle';
   const completed = entry?.sections ?? {};
+  const failed = entry?.failedSections ?? {};
   const sections: readonly SectionProgress[] = INTERPRETATION_SECTIONS.map((key) => ({
     key,
     complete: Boolean(completed[key]),
+    failed: Boolean(failed[key]),
   }));
 
   return {
@@ -199,6 +247,7 @@ export function useStreamingInterpretation(chartId?: string | null): UseStreamin
     interpretation: entry?.interpretation,
     status,
     sections,
+    failedSections: sections.filter((s) => s.failed).map((s) => s.key),
     error: entry?.error ?? null,
     isStreaming: status === 'generating',
     reset,
