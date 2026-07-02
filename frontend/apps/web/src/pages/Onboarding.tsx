@@ -410,9 +410,9 @@ export default function OnboardingPage() {
       case "birth-date":
         return isStepValid(2);
       case "birth-location":
-        return isStepValid(4); // Location validation (city required)
+        return isStepValid(3); // Location validation (city required)
       case "birth-time":
-        return isStepValid(3); // Time validation
+        return isStepValid(4); // Time validation
       case "life-events":
         // Life events step has its own buttons, but check for narrative if proceeding
         return narrative.trim().length >= 20;
