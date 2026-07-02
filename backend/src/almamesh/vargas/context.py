@@ -23,7 +23,7 @@ from almamesh.schemas.vargas import (
 from almamesh.vargas.divisions import varga_sign
 
 if TYPE_CHECKING:
-    from almamesh.schemas.astrology import SiderealContext
+    from almamesh.schemas.astrology import PlanetPosition, SiderealContext
 
 # The six Shadvarga charts and their BPHS Vimshopaka weights (sum 20).
 _SHADVARGA_WEIGHTS: dict[DivisionalChart, float] = {
@@ -36,18 +36,22 @@ _SHADVARGA_WEIGHTS: dict[DivisionalChart, float] = {
 }
 
 
-def _placement(graha: PlanetName, longitude: float, chart: DivisionalChart) -> VargaPlacement:
-    """One graha's varga sign placement (sign + that sign's lord)."""
-    sign = varga_sign(chart, longitude)
-    return VargaPlacement(graha=graha, sign=sign, sign_lord=SIGN_LORDS[sign])
+def _placement(graha: PlanetName, pos: PlanetPosition, chart: DivisionalChart) -> VargaPlacement:
+    """One graha's varga sign placement (sign + that sign's lord).
+
+    Combustion is a D1 fact (real longitude vs the Sun); every divisional
+    placement CARRIES the natal ``is_combust`` verbatim, never recomputing it.
+    """
+    sign = varga_sign(chart, pos.longitude)
+    return VargaPlacement(
+        graha=graha, sign=sign, sign_lord=SIGN_LORDS[sign], is_combust=pos.is_combust
+    )
 
 
 def _build_chart(natal: SiderealContext, chart: DivisionalChart) -> VargaChart:
     """Build one divisional chart: lagna + every graha placed in it."""
     lagna_sign = varga_sign(chart, natal.lagna.longitude)
-    placements = {
-        graha: _placement(graha, pos.longitude, chart) for graha, pos in natal.planets.items()
-    }
+    placements = {graha: _placement(graha, pos, chart) for graha, pos in natal.planets.items()}
     return VargaChart(
         chart=chart,
         lagna_sign=lagna_sign,

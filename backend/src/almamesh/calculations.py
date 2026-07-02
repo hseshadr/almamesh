@@ -628,10 +628,19 @@ def _calculate_house_data(lagna_sign_idx: int) -> dict[int, HouseCuspData]:
     return houses
 
 
-def _navamsa_planet(name: PlanetName, p_long: float) -> VargaPlanet:
-    """The graha's D9 navamsa placement (sign + that sign's lord)."""
-    sign = navamsa_sign(p_long)
-    return VargaPlanet(name=name, sign=sign, sign_lord=SIGN_LORDS[sign])
+def _navamsa_planet(name: PlanetName, position: PlanetPosition) -> VargaPlanet:
+    """The graha's D9 navamsa placement (sign + lord), carrying the D1 combustion.
+
+    Combustion is a D1 fact (real longitude vs the Sun); the navamsa CARRIES the
+    natal ``is_combust`` verbatim rather than recomputing it per varga.
+    """
+    sign = navamsa_sign(position.longitude)
+    return VargaPlanet(
+        name=name,
+        sign=sign,
+        sign_lord=SIGN_LORDS[sign],
+        is_combust=position.is_combust,
+    )
 
 
 def _calculate_navamsa(
@@ -642,7 +651,7 @@ def _calculate_navamsa(
     return NavamsaChart(
         lagna_sign=lagna_sign,
         lagna_sign_lord=SIGN_LORDS[lagna_sign],
-        planets={n: _navamsa_planet(n, p.longitude) for n, p in planets.items()},
+        planets={n: _navamsa_planet(n, p) for n, p in planets.items()},
     )
 
 

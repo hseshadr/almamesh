@@ -13,7 +13,8 @@ const NAVAMSA: NavamsaChart = {
   lagna_sign_lord: 'mercury',
   planets: {
     sun: { name: 'sun', sign: 'Capricorn', sign_lord: 'saturn' },
-    moon: { name: 'moon', sign: 'Scorpio', sign_lord: 'mars' },
+    // Moon is combust in D1; the engine carries that flag onto the navamsa.
+    moon: { name: 'moon', sign: 'Scorpio', sign_lord: 'mars', is_combust: true },
     jupiter: { name: 'jupiter', sign: 'Sagittarius', sign_lord: 'jupiter' },
   },
 };
@@ -73,6 +74,18 @@ describe('DivisionalChartView (D9 Navamsa)', () => {
       expect(container.textContent).not.toContain('°');
       unmount();
     }
+  });
+
+  it('dims a graha the engine flagged combust in D1 (regression: was full-opacity in every varga)', () => {
+    // Combustion is a D1 fact the engine carries onto the D9; the varga path
+    // used to drop it, so a combust graha rendered full-opacity in the navamsa.
+    // The North SVG marks a combust planet's glyph with opacity-50.
+    useChartStore.setState({ displayStyle: 'north' });
+    const { container } = render(<DivisionalChartView siderealChart={chart} />);
+    const moon = container.querySelector('[data-planet="moon"]');
+    const jupiter = container.querySelector('[data-planet="jupiter"]');
+    expect(moon?.getAttribute('class')).toContain('opacity-50');
+    expect(jupiter?.getAttribute('class')).not.toContain('opacity-50');
   });
 
   it('labels the South plate centre as the D9, not the D1 Rāśi', () => {

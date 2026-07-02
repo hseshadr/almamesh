@@ -491,6 +491,8 @@ export interface VargaPlacementFullData {
   graha: PlanetName;
   sign: ZodiacSign;
   sign_lord: PlanetName;
+  /** D1 combustion (asta) carried onto this divisional placement by the engine. */
+  is_combust: boolean;
 }
 
 export interface VargaChartFullData {

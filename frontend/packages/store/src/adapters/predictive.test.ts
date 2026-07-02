@@ -244,6 +244,19 @@ describe("toVargaCtx (full Shodasavarga)", () => {
     expect(Object.keys(d10?.placements ?? {})).toHaveLength(9);
   });
 
+  it("carries the engine's D1 combustion flag onto every divisional placement", () => {
+    // The Bengaluru reference native has Mercury combust in D1; the engine
+    // carries that fact onto every varga, so the adapter must preserve it (it
+    // used to be dropped, dimming only the D1 table).
+    const ctx = toVargaCtx(vargaRaw);
+    for (const chart of Object.values(ctx?.charts ?? {})) {
+      expect(chart?.placements.mercury?.is_combust).toBe(true);
+      // The Sun is never combust; a non-combust graha stays false.
+      expect(chart?.placements.sun?.is_combust).toBe(false);
+      expect(chart?.placements.jupiter?.is_combust).toBe(false);
+    }
+  });
+
   it("surfaces the strength tallies verbatim (no rescoring in TS)", () => {
     const ctx = toVargaCtx(vargaRaw);
     expect(ctx?.vargottama).toEqual([]);

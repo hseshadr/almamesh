@@ -171,7 +171,7 @@ export const VARGA_CTX_FULL_FIXTURE: VargaContextFull = {
       lagna_sign: "scorpio",
       lagna_sign_lord: "mars",
       placements: {
-        mars: { graha: "mars", sign: "capricorn", sign_lord: "saturn" },
+        mars: { graha: "mars", sign: "capricorn", sign_lord: "saturn", is_combust: false },
       },
     },
   },
