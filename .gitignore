@@ -102,3 +102,6 @@ docs/*.local.md
 
 # Skyfield ephemeris (downloaded at runtime, ~17MB)
 *.bsp
+
+# Ephemeral agent git worktrees
+.claude/worktrees/

@@ -158,6 +158,12 @@ export interface VargaPlacementFull {
   readonly graha: string;
   readonly sign: string;
   readonly sign_lord: string;
+  /**
+   * Combustion (asta): the D1 graha-level flag the engine CARRIES onto every
+   * divisional placement. Additive — older bundles omit it; treat absent as
+   * `false`.
+   */
+  readonly is_combust?: boolean;
 }
 
 export interface VargaChartFull {

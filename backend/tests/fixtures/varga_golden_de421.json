@@ -8,46 +8,55 @@
         "placements": {
           "jupiter": {
             "graha": "jupiter",
+            "is_combust": false,
             "sign": "Taurus",
             "sign_lord": "venus"
           },
           "ketu": {
             "graha": "ketu",
+            "is_combust": false,
             "sign": "Leo",
             "sign_lord": "sun"
           },
           "mars": {
             "graha": "mars",
+            "is_combust": false,
             "sign": "Pisces",
             "sign_lord": "jupiter"
           },
           "mercury": {
             "graha": "mercury",
+            "is_combust": true,
             "sign": "Cancer",
             "sign_lord": "moon"
           },
           "moon": {
             "graha": "moon",
+            "is_combust": false,
             "sign": "Gemini",
             "sign_lord": "mercury"
           },
           "rahu": {
             "graha": "rahu",
+            "is_combust": false,
             "sign": "Aquarius",
             "sign_lord": "saturn"
           },
           "saturn": {
             "graha": "saturn",
+            "is_combust": false,
             "sign": "Sagittarius",
             "sign_lord": "jupiter"
           },
           "sun": {
             "graha": "sun",
+            "is_combust": false,
             "sign": "Cancer",
             "sign_lord": "moon"
           },
           "venus": {
             "graha": "venus",
+            "is_combust": false,
             "sign": "Gemini",
             "sign_lord": "mercury"
           }
@@ -60,46 +69,55 @@
         "placements": {
           "jupiter": {
             "graha": "jupiter",
+            "is_combust": false,
             "sign": "Pisces",
             "sign_lord": "jupiter"
           },
           "ketu": {
             "graha": "ketu",
+            "is_combust": false,
             "sign": "Pisces",
             "sign_lord": "jupiter"
           },
           "mars": {
             "graha": "mars",
+            "is_combust": false,
             "sign": "Aries",
             "sign_lord": "mars"
           },
           "mercury": {
             "graha": "mercury",
+            "is_combust": true,
             "sign": "Sagittarius",
             "sign_lord": "jupiter"
           },
           "moon": {
             "graha": "moon",
+            "is_combust": false,
             "sign": "Gemini",
             "sign_lord": "mercury"
           },
           "rahu": {
             "graha": "rahu",
+            "is_combust": false,
             "sign": "Virgo",
             "sign_lord": "mercury"
           },
           "saturn": {
             "graha": "saturn",
+            "is_combust": false,
             "sign": "Sagittarius",
             "sign_lord": "jupiter"
           },
           "sun": {
             "graha": "sun",
+            "is_combust": false,
             "sign": "Libra",
             "sign_lord": "venus"
           },
           "venus": {
             "graha": "venus",
+            "is_combust": false,
             "sign": "Leo",
             "sign_lord": "sun"
           }
@@ -112,46 +130,55 @@
         "placements": {
           "jupiter": {
             "graha": "jupiter",
+            "is_combust": false,
             "sign": "Leo",
             "sign_lord": "sun"
           },
           "ketu": {
             "graha": "ketu",
+            "is_combust": false,
             "sign": "Aries",
             "sign_lord": "mars"
           },
           "mars": {
             "graha": "mars",
+            "is_combust": false,
             "sign": "Virgo",
             "sign_lord": "mercury"
           },
           "mercury": {
             "graha": "mercury",
+            "is_combust": true,
             "sign": "Taurus",
             "sign_lord": "venus"
           },
           "moon": {
             "graha": "moon",
+            "is_combust": false,
             "sign": "Gemini",
             "sign_lord": "mercury"
           },
           "rahu": {
             "graha": "rahu",
+            "is_combust": false,
             "sign": "Libra",
             "sign_lord": "venus"
           },
           "saturn": {
             "graha": "saturn",
+            "is_combust": false,
             "sign": "Capricorn",
             "sign_lord": "saturn"
           },
           "sun": {
             "graha": "sun",
+            "is_combust": false,
             "sign": "Pisces",
             "sign_lord": "jupiter"
           },
           "venus": {
             "graha": "venus",
+            "is_combust": false,
             "sign": "Leo",
             "sign_lord": "sun"
           }
@@ -164,46 +191,55 @@
         "placements": {
           "jupiter": {
             "graha": "jupiter",
+            "is_combust": false,
             "sign": "Sagittarius",
             "sign_lord": "jupiter"
           },
           "ketu": {
             "graha": "ketu",
+            "is_combust": false,
             "sign": "Cancer",
             "sign_lord": "moon"
           },
           "mars": {
             "graha": "mars",
+            "is_combust": false,
             "sign": "Leo",
             "sign_lord": "sun"
           },
           "mercury": {
             "graha": "mercury",
+            "is_combust": true,
             "sign": "Gemini",
             "sign_lord": "mercury"
           },
           "moon": {
             "graha": "moon",
+            "is_combust": false,
             "sign": "Sagittarius",
             "sign_lord": "jupiter"
           },
           "rahu": {
             "graha": "rahu",
+            "is_combust": false,
             "sign": "Cancer",
             "sign_lord": "moon"
           },
           "saturn": {
             "graha": "saturn",
+            "is_combust": false,
             "sign": "Capricorn",
             "sign_lord": "saturn"
           },
           "sun": {
             "graha": "sun",
+            "is_combust": false,
             "sign": "Pisces",
             "sign_lord": "jupiter"
           },
           "venus": {
             "graha": "venus",
+            "is_combust": false,
             "sign": "Pisces",
             "sign_lord": "jupiter"
           }
@@ -216,46 +252,55 @@
         "placements": {
           "jupiter": {
             "graha": "jupiter",
+            "is_combust": false,
             "sign": "Cancer",
             "sign_lord": "moon"
           },
           "ketu": {
             "graha": "ketu",
+            "is_combust": false,
             "sign": "Cancer",
             "sign_lord": "moon"
           },
           "mars": {
             "graha": "mars",
+            "is_combust": false,
             "sign": "Leo",
             "sign_lord": "sun"
           },
           "mercury": {
             "graha": "mercury",
+            "is_combust": true,
             "sign": "Leo",
             "sign_lord": "sun"
           },
           "moon": {
             "graha": "moon",
+            "is_combust": false,
             "sign": "Leo",
             "sign_lord": "sun"
           },
           "rahu": {
             "graha": "rahu",
+            "is_combust": false,
             "sign": "Cancer",
             "sign_lord": "moon"
           },
           "saturn": {
             "graha": "saturn",
+            "is_combust": false,
             "sign": "Leo",
             "sign_lord": "sun"
           },
           "sun": {
             "graha": "sun",
+            "is_combust": false,
             "sign": "Leo",
             "sign_lord": "sun"
           },
           "venus": {
             "graha": "venus",
+            "is_combust": false,
             "sign": "Leo",
             "sign_lord": "sun"
           }
@@ -268,46 +313,55 @@
         "placements": {
           "jupiter": {
             "graha": "jupiter",
+            "is_combust": false,
             "sign": "Taurus",
             "sign_lord": "venus"
           },
           "ketu": {
             "graha": "ketu",
+            "is_combust": false,
             "sign": "Aquarius",
             "sign_lord": "saturn"
           },
           "mars": {
             "graha": "mars",
+            "is_combust": false,
             "sign": "Gemini",
             "sign_lord": "mercury"
           },
           "mercury": {
             "graha": "mercury",
+            "is_combust": true,
             "sign": "Libra",
             "sign_lord": "venus"
           },
           "moon": {
             "graha": "moon",
+            "is_combust": false,
             "sign": "Virgo",
             "sign_lord": "mercury"
           },
           "rahu": {
             "graha": "rahu",
+            "is_combust": false,
             "sign": "Aquarius",
             "sign_lord": "saturn"
           },
           "saturn": {
             "graha": "saturn",
+            "is_combust": false,
             "sign": "Virgo",
             "sign_lord": "mercury"
           },
           "sun": {
             "graha": "sun",
+            "is_combust": false,
             "sign": "Gemini",
             "sign_lord": "mercury"
           },
           "venus": {
             "graha": "venus",
+            "is_combust": false,
             "sign": "Sagittarius",
             "sign_lord": "jupiter"
           }
@@ -320,46 +374,55 @@
         "placements": {
           "jupiter": {
             "graha": "jupiter",
+            "is_combust": false,
             "sign": "Aquarius",
             "sign_lord": "saturn"
           },
           "ketu": {
             "graha": "ketu",
+            "is_combust": false,
             "sign": "Capricorn",
             "sign_lord": "saturn"
           },
           "mars": {
             "graha": "mars",
+            "is_combust": false,
             "sign": "Cancer",
             "sign_lord": "moon"
           },
           "mercury": {
             "graha": "mercury",
+            "is_combust": true,
             "sign": "Aries",
             "sign_lord": "mars"
           },
           "moon": {
             "graha": "moon",
+            "is_combust": false,
             "sign": "Virgo",
             "sign_lord": "mercury"
           },
           "rahu": {
             "graha": "rahu",
+            "is_combust": false,
             "sign": "Capricorn",
             "sign_lord": "saturn"
           },
           "saturn": {
             "graha": "saturn",
+            "is_combust": false,
             "sign": "Libra",
             "sign_lord": "venus"
           },
           "sun": {
             "graha": "sun",
+            "is_combust": false,
             "sign": "Sagittarius",
             "sign_lord": "jupiter"
           },
           "venus": {
             "graha": "venus",
+            "is_combust": false,
             "sign": "Capricorn",
             "sign_lord": "saturn"
           }
@@ -372,46 +435,55 @@
         "placements": {
           "jupiter": {
             "graha": "jupiter",
+            "is_combust": false,
             "sign": "Pisces",
             "sign_lord": "jupiter"
           },
           "ketu": {
             "graha": "ketu",
+            "is_combust": false,
             "sign": "Scorpio",
             "sign_lord": "mars"
           },
           "mars": {
             "graha": "mars",
+            "is_combust": false,
             "sign": "Aquarius",
             "sign_lord": "saturn"
           },
           "mercury": {
             "graha": "mercury",
+            "is_combust": true,
             "sign": "Capricorn",
             "sign_lord": "saturn"
           },
           "moon": {
             "graha": "moon",
+            "is_combust": false,
             "sign": "Scorpio",
             "sign_lord": "mars"
           },
           "rahu": {
             "graha": "rahu",
+            "is_combust": false,
             "sign": "Taurus",
             "sign_lord": "venus"
           },
           "saturn": {
             "graha": "saturn",
+            "is_combust": false,
             "sign": "Gemini",
             "sign_lord": "mercury"
           },
           "sun": {
             "graha": "sun",
+            "is_combust": false,
             "sign": "Leo",
             "sign_lord": "sun"
           },
           "venus": {
             "graha": "venus",
+            "is_combust": false,
             "sign": "Aries",
             "sign_lord": "mars"
           }
@@ -424,46 +496,55 @@
         "placements": {
           "jupiter": {
             "graha": "jupiter",
+            "is_combust": false,
             "sign": "Taurus",
             "sign_lord": "venus"
           },
           "ketu": {
             "graha": "ketu",
+            "is_combust": false,
             "sign": "Aries",
             "sign_lord": "mars"
           },
           "mars": {
             "graha": "mars",
+            "is_combust": false,
             "sign": "Cancer",
             "sign_lord": "moon"
           },
           "mercury": {
             "graha": "mercury",
+            "is_combust": true,
             "sign": "Pisces",
             "sign_lord": "jupiter"
           },
           "moon": {
             "graha": "moon",
+            "is_combust": false,
             "sign": "Gemini",
             "sign_lord": "mercury"
           },
           "rahu": {
             "graha": "rahu",
+            "is_combust": false,
             "sign": "Libra",
             "sign_lord": "venus"
           },
           "saturn": {
             "graha": "saturn",
+            "is_combust": false,
             "sign": "Sagittarius",
             "sign_lord": "jupiter"
           },
           "sun": {
             "graha": "sun",
+            "is_combust": false,
             "sign": "Pisces",
             "sign_lord": "jupiter"
           },
           "venus": {
             "graha": "venus",
+            "is_combust": false,
             "sign": "Gemini",
             "sign_lord": "mercury"
           }
@@ -476,46 +557,55 @@
         "placements": {
           "jupiter": {
             "graha": "jupiter",
+            "is_combust": false,
             "sign": "Virgo",
             "sign_lord": "mercury"
           },
           "ketu": {
             "graha": "ketu",
+            "is_combust": false,
             "sign": "Gemini",
             "sign_lord": "mercury"
           },
           "mars": {
             "graha": "mars",
+            "is_combust": false,
             "sign": "Pisces",
             "sign_lord": "jupiter"
           },
           "mercury": {
             "graha": "mercury",
+            "is_combust": true,
             "sign": "Scorpio",
             "sign_lord": "mars"
           },
           "moon": {
             "graha": "moon",
+            "is_combust": false,
             "sign": "Aries",
             "sign_lord": "mars"
           },
           "rahu": {
             "graha": "rahu",
+            "is_combust": false,
             "sign": "Gemini",
             "sign_lord": "mercury"
           },
           "saturn": {
             "graha": "saturn",
+            "is_combust": false,
             "sign": "Aries",
             "sign_lord": "mars"
           },
           "sun": {
             "graha": "sun",
+            "is_combust": false,
             "sign": "Capricorn",
             "sign_lord": "saturn"
           },
           "venus": {
             "graha": "venus",
+            "is_combust": false,
             "sign": "Aquarius",
             "sign_lord": "saturn"
           }
@@ -528,46 +618,55 @@
         "placements": {
           "jupiter": {
             "graha": "jupiter",
+            "is_combust": false,
             "sign": "Leo",
             "sign_lord": "sun"
           },
           "ketu": {
             "graha": "ketu",
+            "is_combust": false,
             "sign": "Aquarius",
             "sign_lord": "saturn"
           },
           "mars": {
             "graha": "mars",
+            "is_combust": false,
             "sign": "Virgo",
             "sign_lord": "mercury"
           },
           "mercury": {
             "graha": "mercury",
+            "is_combust": true,
             "sign": "Aries",
             "sign_lord": "mars"
           },
           "moon": {
             "graha": "moon",
+            "is_combust": false,
             "sign": "Gemini",
             "sign_lord": "mercury"
           },
           "rahu": {
             "graha": "rahu",
+            "is_combust": false,
             "sign": "Leo",
             "sign_lord": "sun"
           },
           "saturn": {
             "graha": "saturn",
+            "is_combust": false,
             "sign": "Sagittarius",
             "sign_lord": "jupiter"
           },
           "sun": {
             "graha": "sun",
+            "is_combust": false,
             "sign": "Capricorn",
             "sign_lord": "saturn"
           },
           "venus": {
             "graha": "venus",
+            "is_combust": false,
             "sign": "Gemini",
             "sign_lord": "mercury"
           }
@@ -580,46 +679,55 @@
         "placements": {
           "jupiter": {
             "graha": "jupiter",
+            "is_combust": false,
             "sign": "Virgo",
             "sign_lord": "mercury"
           },
           "ketu": {
             "graha": "ketu",
+            "is_combust": false,
             "sign": "Virgo",
             "sign_lord": "mercury"
           },
           "mars": {
             "graha": "mars",
+            "is_combust": false,
             "sign": "Gemini",
             "sign_lord": "mercury"
           },
           "mercury": {
             "graha": "mercury",
+            "is_combust": true,
             "sign": "Libra",
             "sign_lord": "venus"
           },
           "moon": {
             "graha": "moon",
+            "is_combust": false,
             "sign": "Gemini",
             "sign_lord": "mercury"
           },
           "rahu": {
             "graha": "rahu",
+            "is_combust": false,
             "sign": "Virgo",
             "sign_lord": "mercury"
           },
           "saturn": {
             "graha": "saturn",
+            "is_combust": false,
             "sign": "Cancer",
             "sign_lord": "moon"
           },
           "sun": {
             "graha": "sun",
+            "is_combust": false,
             "sign": "Pisces",
             "sign_lord": "jupiter"
           },
           "venus": {
             "graha": "venus",
+            "is_combust": false,
             "sign": "Capricorn",
             "sign_lord": "saturn"
           }
@@ -632,46 +740,55 @@
         "placements": {
           "jupiter": {
             "graha": "jupiter",
+            "is_combust": false,
             "sign": "Virgo",
             "sign_lord": "mercury"
           },
           "ketu": {
             "graha": "ketu",
+            "is_combust": false,
             "sign": "Aries",
             "sign_lord": "mars"
           },
           "mars": {
             "graha": "mars",
+            "is_combust": false,
             "sign": "Scorpio",
             "sign_lord": "mars"
           },
           "mercury": {
             "graha": "mercury",
+            "is_combust": true,
             "sign": "Leo",
             "sign_lord": "sun"
           },
           "moon": {
             "graha": "moon",
+            "is_combust": false,
             "sign": "Aquarius",
             "sign_lord": "saturn"
           },
           "rahu": {
             "graha": "rahu",
+            "is_combust": false,
             "sign": "Aries",
             "sign_lord": "mars"
           },
           "saturn": {
             "graha": "saturn",
+            "is_combust": false,
             "sign": "Pisces",
             "sign_lord": "jupiter"
           },
           "sun": {
             "graha": "sun",
+            "is_combust": false,
             "sign": "Capricorn",
             "sign_lord": "saturn"
           },
           "venus": {
             "graha": "venus",
+            "is_combust": false,
             "sign": "Libra",
             "sign_lord": "venus"
           }
@@ -684,46 +801,55 @@
         "placements": {
           "jupiter": {
             "graha": "jupiter",
+            "is_combust": false,
             "sign": "Libra",
             "sign_lord": "venus"
           },
           "ketu": {
             "graha": "ketu",
+            "is_combust": false,
             "sign": "Pisces",
             "sign_lord": "jupiter"
           },
           "mars": {
             "graha": "mars",
+            "is_combust": false,
             "sign": "Virgo",
             "sign_lord": "mercury"
           },
           "mercury": {
             "graha": "mercury",
+            "is_combust": true,
             "sign": "Capricorn",
             "sign_lord": "saturn"
           },
           "moon": {
             "graha": "moon",
+            "is_combust": false,
             "sign": "Virgo",
             "sign_lord": "mercury"
           },
           "rahu": {
             "graha": "rahu",
+            "is_combust": false,
             "sign": "Virgo",
             "sign_lord": "mercury"
           },
           "saturn": {
             "graha": "saturn",
+            "is_combust": false,
             "sign": "Taurus",
             "sign_lord": "venus"
           },
           "sun": {
             "graha": "sun",
+            "is_combust": false,
             "sign": "Pisces",
             "sign_lord": "jupiter"
           },
           "venus": {
             "graha": "venus",
+            "is_combust": false,
             "sign": "Leo",
             "sign_lord": "sun"
           }
@@ -736,46 +862,55 @@
         "placements": {
           "jupiter": {
             "graha": "jupiter",
+            "is_combust": false,
             "sign": "Capricorn",
             "sign_lord": "saturn"
           },
           "ketu": {
             "graha": "ketu",
+            "is_combust": false,
             "sign": "Capricorn",
             "sign_lord": "saturn"
           },
           "mars": {
             "graha": "mars",
+            "is_combust": false,
             "sign": "Sagittarius",
             "sign_lord": "jupiter"
           },
           "mercury": {
             "graha": "mercury",
+            "is_combust": true,
             "sign": "Cancer",
             "sign_lord": "moon"
           },
           "moon": {
             "graha": "moon",
+            "is_combust": false,
             "sign": "Gemini",
             "sign_lord": "mercury"
           },
           "rahu": {
             "graha": "rahu",
+            "is_combust": false,
             "sign": "Cancer",
             "sign_lord": "moon"
           },
           "saturn": {
             "graha": "saturn",
+            "is_combust": false,
             "sign": "Sagittarius",
             "sign_lord": "jupiter"
           },
           "sun": {
             "graha": "sun",
+            "is_combust": false,
             "sign": "Gemini",
             "sign_lord": "mercury"
           },
           "venus": {
             "graha": "venus",
+            "is_combust": false,
             "sign": "Cancer",
             "sign_lord": "moon"
           }
@@ -788,46 +923,55 @@
         "placements": {
           "jupiter": {
             "graha": "jupiter",
+            "is_combust": false,
             "sign": "Pisces",
             "sign_lord": "jupiter"
           },
           "ketu": {
             "graha": "ketu",
+            "is_combust": false,
             "sign": "Libra",
             "sign_lord": "venus"
           },
           "mars": {
             "graha": "mars",
+            "is_combust": false,
             "sign": "Scorpio",
             "sign_lord": "mars"
           },
           "mercury": {
             "graha": "mercury",
+            "is_combust": true,
             "sign": "Pisces",
             "sign_lord": "jupiter"
           },
           "moon": {
             "graha": "moon",
+            "is_combust": false,
             "sign": "Libra",
             "sign_lord": "venus"
           },
           "rahu": {
             "graha": "rahu",
+            "is_combust": false,
             "sign": "Aries",
             "sign_lord": "mars"
           },
           "saturn": {
             "graha": "saturn",
+            "is_combust": false,
             "sign": "Aries",
             "sign_lord": "mars"
           },
           "sun": {
             "graha": "sun",
+            "is_combust": false,
             "sign": "Capricorn",
             "sign_lord": "saturn"
           },
           "venus": {
             "graha": "venus",
+            "is_combust": false,
             "sign": "Sagittarius",
             "sign_lord": "jupiter"
           }
@@ -947,46 +1091,55 @@
         "placements": {
           "jupiter": {
             "graha": "jupiter",
+            "is_combust": false,
             "sign": "Gemini",
             "sign_lord": "mercury"
           },
           "ketu": {
             "graha": "ketu",
+            "is_combust": false,
             "sign": "Cancer",
             "sign_lord": "moon"
           },
           "mars": {
             "graha": "mars",
+            "is_combust": false,
             "sign": "Scorpio",
             "sign_lord": "mars"
           },
           "mercury": {
             "graha": "mercury",
+            "is_combust": false,
             "sign": "Sagittarius",
             "sign_lord": "jupiter"
           },
           "moon": {
             "graha": "moon",
+            "is_combust": false,
             "sign": "Leo",
             "sign_lord": "sun"
           },
           "rahu": {
             "graha": "rahu",
+            "is_combust": false,
             "sign": "Capricorn",
             "sign_lord": "saturn"
           },
           "saturn": {
             "graha": "saturn",
+            "is_combust": true,
             "sign": "Sagittarius",
             "sign_lord": "jupiter"
           },
           "sun": {
             "graha": "sun",
+            "is_combust": false,
             "sign": "Capricorn",
             "sign_lord": "saturn"
           },
           "venus": {
             "graha": "venus",
+            "is_combust": true,
             "sign": "Capricorn",
             "sign_lord": "saturn"
           }
@@ -999,46 +1152,55 @@
         "placements": {
           "jupiter": {
             "graha": "jupiter",
+            "is_combust": false,
             "sign": "Virgo",
             "sign_lord": "mercury"
           },
           "ketu": {
             "graha": "ketu",
+            "is_combust": false,
             "sign": "Libra",
             "sign_lord": "venus"
           },
           "mars": {
             "graha": "mars",
+            "is_combust": false,
             "sign": "Pisces",
             "sign_lord": "jupiter"
           },
           "mercury": {
             "graha": "mercury",
+            "is_combust": false,
             "sign": "Taurus",
             "sign_lord": "venus"
           },
           "moon": {
             "graha": "moon",
+            "is_combust": false,
             "sign": "Pisces",
             "sign_lord": "jupiter"
           },
           "rahu": {
             "graha": "rahu",
+            "is_combust": false,
             "sign": "Aries",
             "sign_lord": "mars"
           },
           "saturn": {
             "graha": "saturn",
+            "is_combust": true,
             "sign": "Cancer",
             "sign_lord": "moon"
           },
           "sun": {
             "graha": "sun",
+            "is_combust": false,
             "sign": "Virgo",
             "sign_lord": "mercury"
           },
           "venus": {
             "graha": "venus",
+            "is_combust": true,
             "sign": "Scorpio",
             "sign_lord": "mars"
           }
@@ -1051,46 +1213,55 @@
         "placements": {
           "jupiter": {
             "graha": "jupiter",
+            "is_combust": false,
             "sign": "Virgo",
             "sign_lord": "mercury"
           },
           "ketu": {
             "graha": "ketu",
+            "is_combust": false,
             "sign": "Aries",
             "sign_lord": "mars"
           },
           "mars": {
             "graha": "mars",
+            "is_combust": false,
             "sign": "Virgo",
             "sign_lord": "mercury"
           },
           "mercury": {
             "graha": "mercury",
+            "is_combust": false,
             "sign": "Cancer",
             "sign_lord": "moon"
           },
           "moon": {
             "graha": "moon",
+            "is_combust": false,
             "sign": "Taurus",
             "sign_lord": "venus"
           },
           "rahu": {
             "graha": "rahu",
+            "is_combust": false,
             "sign": "Libra",
             "sign_lord": "venus"
           },
           "saturn": {
             "graha": "saturn",
+            "is_combust": true,
             "sign": "Virgo",
             "sign_lord": "mercury"
           },
           "sun": {
             "graha": "sun",
+            "is_combust": false,
             "sign": "Capricorn",
             "sign_lord": "saturn"
           },
           "venus": {
             "graha": "venus",
+            "is_combust": true,
             "sign": "Pisces",
             "sign_lord": "jupiter"
           }
@@ -1103,46 +1274,55 @@
         "placements": {
           "jupiter": {
             "graha": "jupiter",
+            "is_combust": false,
             "sign": "Taurus",
             "sign_lord": "venus"
           },
           "ketu": {
             "graha": "ketu",
+            "is_combust": false,
             "sign": "Aries",
             "sign_lord": "mars"
           },
           "mars": {
             "graha": "mars",
+            "is_combust": false,
             "sign": "Virgo",
             "sign_lord": "mercury"
           },
           "mercury": {
             "graha": "mercury",
+            "is_combust": false,
             "sign": "Virgo",
             "sign_lord": "mercury"
           },
           "moon": {
             "graha": "moon",
+            "is_combust": false,
             "sign": "Leo",
             "sign_lord": "sun"
           },
           "rahu": {
             "graha": "rahu",
+            "is_combust": false,
             "sign": "Aries",
             "sign_lord": "mars"
           },
           "saturn": {
             "graha": "saturn",
+            "is_combust": true,
             "sign": "Sagittarius",
             "sign_lord": "jupiter"
           },
           "sun": {
             "graha": "sun",
+            "is_combust": false,
             "sign": "Aries",
             "sign_lord": "mars"
           },
           "venus": {
             "graha": "venus",
+            "is_combust": true,
             "sign": "Cancer",
             "sign_lord": "moon"
           }
@@ -1155,46 +1335,55 @@
         "placements": {
           "jupiter": {
             "graha": "jupiter",
+            "is_combust": false,
             "sign": "Leo",
             "sign_lord": "sun"
           },
           "ketu": {
             "graha": "ketu",
+            "is_combust": false,
             "sign": "Leo",
             "sign_lord": "sun"
           },
           "mars": {
             "graha": "mars",
+            "is_combust": false,
             "sign": "Leo",
             "sign_lord": "sun"
           },
           "mercury": {
             "graha": "mercury",
+            "is_combust": false,
             "sign": "Cancer",
             "sign_lord": "moon"
           },
           "moon": {
             "graha": "moon",
+            "is_combust": false,
             "sign": "Cancer",
             "sign_lord": "moon"
           },
           "rahu": {
             "graha": "rahu",
+            "is_combust": false,
             "sign": "Leo",
             "sign_lord": "sun"
           },
           "saturn": {
             "graha": "saturn",
+            "is_combust": true,
             "sign": "Cancer",
             "sign_lord": "moon"
           },
           "sun": {
             "graha": "sun",
+            "is_combust": false,
             "sign": "Cancer",
             "sign_lord": "moon"
           },
           "venus": {
             "graha": "venus",
+            "is_combust": true,
             "sign": "Cancer",
             "sign_lord": "moon"
           }
@@ -1207,46 +1396,55 @@
         "placements": {
           "jupiter": {
             "graha": "jupiter",
+            "is_combust": false,
             "sign": "Aquarius",
             "sign_lord": "saturn"
           },
           "ketu": {
             "graha": "ketu",
+            "is_combust": false,
             "sign": "Cancer",
             "sign_lord": "moon"
           },
           "mars": {
             "graha": "mars",
+            "is_combust": false,
             "sign": "Taurus",
             "sign_lord": "venus"
           },
           "mercury": {
             "graha": "mercury",
+            "is_combust": false,
             "sign": "Cancer",
             "sign_lord": "moon"
           },
           "moon": {
             "graha": "moon",
+            "is_combust": false,
             "sign": "Pisces",
             "sign_lord": "jupiter"
           },
           "rahu": {
             "graha": "rahu",
+            "is_combust": false,
             "sign": "Cancer",
             "sign_lord": "moon"
           },
           "saturn": {
             "graha": "saturn",
+            "is_combust": true,
             "sign": "Scorpio",
             "sign_lord": "mars"
           },
           "sun": {
             "graha": "sun",
+            "is_combust": false,
             "sign": "Aries",
             "sign_lord": "mars"
           },
           "venus": {
             "graha": "venus",
+            "is_combust": true,
             "sign": "Leo",
             "sign_lord": "sun"
           }
@@ -1259,46 +1457,55 @@
         "placements": {
           "jupiter": {
             "graha": "jupiter",
+            "is_combust": false,
             "sign": "Pisces",
             "sign_lord": "jupiter"
           },
           "ketu": {
             "graha": "ketu",
+            "is_combust": false,
             "sign": "Aquarius",
             "sign_lord": "saturn"
           },
           "mars": {
             "graha": "mars",
+            "is_combust": false,
             "sign": "Pisces",
             "sign_lord": "jupiter"
           },
           "mercury": {
             "graha": "mercury",
+            "is_combust": false,
             "sign": "Libra",
             "sign_lord": "venus"
           },
           "moon": {
             "graha": "moon",
+            "is_combust": false,
             "sign": "Pisces",
             "sign_lord": "jupiter"
           },
           "rahu": {
             "graha": "rahu",
+            "is_combust": false,
             "sign": "Aquarius",
             "sign_lord": "saturn"
           },
           "saturn": {
             "graha": "saturn",
+            "is_combust": true,
             "sign": "Aquarius",
             "sign_lord": "saturn"
           },
           "sun": {
             "graha": "sun",
+            "is_combust": false,
             "sign": "Leo",
             "sign_lord": "sun"
           },
           "venus": {
             "graha": "venus",
+            "is_combust": true,
             "sign": "Sagittarius",
             "sign_lord": "jupiter"
           }
@@ -1311,46 +1518,55 @@
         "placements": {
           "jupiter": {
             "graha": "jupiter",
+            "is_combust": false,
             "sign": "Gemini",
             "sign_lord": "mercury"
           },
           "ketu": {
             "graha": "ketu",
+            "is_combust": false,
             "sign": "Libra",
             "sign_lord": "venus"
           },
           "mars": {
             "graha": "mars",
+            "is_combust": false,
             "sign": "Sagittarius",
             "sign_lord": "jupiter"
           },
           "mercury": {
             "graha": "mercury",
+            "is_combust": false,
             "sign": "Cancer",
             "sign_lord": "moon"
           },
           "moon": {
             "graha": "moon",
+            "is_combust": false,
             "sign": "Capricorn",
             "sign_lord": "saturn"
           },
           "rahu": {
             "graha": "rahu",
+            "is_combust": false,
             "sign": "Aries",
             "sign_lord": "mars"
           },
           "saturn": {
             "graha": "saturn",
+            "is_combust": true,
             "sign": "Capricorn",
             "sign_lord": "saturn"
           },
           "sun": {
             "graha": "sun",
+            "is_combust": false,
             "sign": "Leo",
             "sign_lord": "sun"
           },
           "venus": {
             "graha": "venus",
+            "is_combust": true,
             "sign": "Capricorn",
             "sign_lord": "saturn"
           }
@@ -1363,46 +1579,55 @@
         "placements": {
           "jupiter": {
             "graha": "jupiter",
+            "is_combust": false,
             "sign": "Gemini",
             "sign_lord": "mercury"
           },
           "ketu": {
             "graha": "ketu",
+            "is_combust": false,
             "sign": "Pisces",
             "sign_lord": "jupiter"
           },
           "mars": {
             "graha": "mars",
+            "is_combust": false,
             "sign": "Cancer",
             "sign_lord": "moon"
           },
           "mercury": {
             "graha": "mercury",
+            "is_combust": false,
             "sign": "Aries",
             "sign_lord": "mars"
           },
           "moon": {
             "graha": "moon",
+            "is_combust": false,
             "sign": "Aries",
             "sign_lord": "mars"
           },
           "rahu": {
             "graha": "rahu",
+            "is_combust": false,
             "sign": "Virgo",
             "sign_lord": "mercury"
           },
           "saturn": {
             "graha": "saturn",
+            "is_combust": true,
             "sign": "Leo",
             "sign_lord": "sun"
           },
           "sun": {
             "graha": "sun",
+            "is_combust": false,
             "sign": "Capricorn",
             "sign_lord": "saturn"
           },
           "venus": {
             "graha": "venus",
+            "is_combust": true,
             "sign": "Capricorn",
             "sign_lord": "saturn"
           }
@@ -1415,46 +1640,55 @@
         "placements": {
           "jupiter": {
             "graha": "jupiter",
+            "is_combust": false,
             "sign": "Aquarius",
             "sign_lord": "saturn"
           },
           "ketu": {
             "graha": "ketu",
+            "is_combust": false,
             "sign": "Capricorn",
             "sign_lord": "saturn"
           },
           "mars": {
             "graha": "mars",
+            "is_combust": false,
             "sign": "Scorpio",
             "sign_lord": "mars"
           },
           "mercury": {
             "graha": "mercury",
+            "is_combust": false,
             "sign": "Sagittarius",
             "sign_lord": "jupiter"
           },
           "moon": {
             "graha": "moon",
+            "is_combust": false,
             "sign": "Gemini",
             "sign_lord": "mercury"
           },
           "rahu": {
             "graha": "rahu",
+            "is_combust": false,
             "sign": "Capricorn",
             "sign_lord": "saturn"
           },
           "saturn": {
             "graha": "saturn",
+            "is_combust": true,
             "sign": "Gemini",
             "sign_lord": "mercury"
           },
           "sun": {
             "graha": "sun",
+            "is_combust": false,
             "sign": "Taurus",
             "sign_lord": "venus"
           },
           "venus": {
             "graha": "venus",
+            "is_combust": true,
             "sign": "Virgo",
             "sign_lord": "mercury"
           }
@@ -1467,46 +1701,55 @@
         "placements": {
           "jupiter": {
             "graha": "jupiter",
+            "is_combust": false,
             "sign": "Virgo",
             "sign_lord": "mercury"
           },
           "ketu": {
             "graha": "ketu",
+            "is_combust": false,
             "sign": "Aries",
             "sign_lord": "mars"
           },
           "mars": {
             "graha": "mars",
+            "is_combust": false,
             "sign": "Leo",
             "sign_lord": "sun"
           },
           "mercury": {
             "graha": "mercury",
+            "is_combust": false,
             "sign": "Gemini",
             "sign_lord": "mercury"
           },
           "moon": {
             "graha": "moon",
+            "is_combust": false,
             "sign": "Taurus",
             "sign_lord": "venus"
           },
           "rahu": {
             "graha": "rahu",
+            "is_combust": false,
             "sign": "Libra",
             "sign_lord": "venus"
           },
           "saturn": {
             "graha": "saturn",
+            "is_combust": true,
             "sign": "Virgo",
             "sign_lord": "mercury"
           },
           "sun": {
             "graha": "sun",
+            "is_combust": false,
             "sign": "Capricorn",
             "sign_lord": "saturn"
           },
           "venus": {
             "graha": "venus",
+            "is_combust": true,
             "sign": "Capricorn",
             "sign_lord": "saturn"
           }
@@ -1519,46 +1762,55 @@
         "placements": {
           "jupiter": {
             "graha": "jupiter",
+            "is_combust": false,
             "sign": "Aries",
             "sign_lord": "mars"
           },
           "ketu": {
             "graha": "ketu",
+            "is_combust": false,
             "sign": "Taurus",
             "sign_lord": "venus"
           },
           "mars": {
             "graha": "mars",
+            "is_combust": false,
             "sign": "Leo",
             "sign_lord": "sun"
           },
           "mercury": {
             "graha": "mercury",
+            "is_combust": false,
             "sign": "Pisces",
             "sign_lord": "jupiter"
           },
           "moon": {
             "graha": "moon",
+            "is_combust": false,
             "sign": "Scorpio",
             "sign_lord": "mars"
           },
           "rahu": {
             "graha": "rahu",
+            "is_combust": false,
             "sign": "Taurus",
             "sign_lord": "venus"
           },
           "saturn": {
             "graha": "saturn",
+            "is_combust": true,
             "sign": "Scorpio",
             "sign_lord": "mars"
           },
           "sun": {
             "graha": "sun",
+            "is_combust": false,
             "sign": "Scorpio",
             "sign_lord": "mars"
           },
           "venus": {
             "graha": "venus",
+            "is_combust": true,
             "sign": "Cancer",
             "sign_lord": "moon"
           }
@@ -1571,46 +1823,55 @@
         "placements": {
           "jupiter": {
             "graha": "jupiter",
+            "is_combust": false,
             "sign": "Aquarius",
             "sign_lord": "saturn"
           },
           "ketu": {
             "graha": "ketu",
+            "is_combust": false,
             "sign": "Pisces",
             "sign_lord": "jupiter"
           },
           "mars": {
             "graha": "mars",
+            "is_combust": false,
             "sign": "Scorpio",
             "sign_lord": "mars"
           },
           "mercury": {
             "graha": "mercury",
+            "is_combust": false,
             "sign": "Aquarius",
             "sign_lord": "saturn"
           },
           "moon": {
             "graha": "moon",
+            "is_combust": false,
             "sign": "Cancer",
             "sign_lord": "moon"
           },
           "rahu": {
             "graha": "rahu",
+            "is_combust": false,
             "sign": "Pisces",
             "sign_lord": "jupiter"
           },
           "saturn": {
             "graha": "saturn",
+            "is_combust": true,
             "sign": "Scorpio",
             "sign_lord": "mars"
           },
           "sun": {
             "graha": "sun",
+            "is_combust": false,
             "sign": "Gemini",
             "sign_lord": "mercury"
           },
           "venus": {
             "graha": "venus",
+            "is_combust": true,
             "sign": "Aquarius",
             "sign_lord": "saturn"
           }
@@ -1623,46 +1884,55 @@
         "placements": {
           "jupiter": {
             "graha": "jupiter",
+            "is_combust": false,
             "sign": "Capricorn",
             "sign_lord": "saturn"
           },
           "ketu": {
             "graha": "ketu",
+            "is_combust": false,
             "sign": "Gemini",
             "sign_lord": "mercury"
           },
           "mars": {
             "graha": "mars",
+            "is_combust": false,
             "sign": "Pisces",
             "sign_lord": "jupiter"
           },
           "mercury": {
             "graha": "mercury",
+            "is_combust": false,
             "sign": "Scorpio",
             "sign_lord": "mars"
           },
           "moon": {
             "graha": "moon",
+            "is_combust": false,
             "sign": "Cancer",
             "sign_lord": "moon"
           },
           "rahu": {
             "graha": "rahu",
+            "is_combust": false,
             "sign": "Sagittarius",
             "sign_lord": "jupiter"
           },
           "saturn": {
             "graha": "saturn",
+            "is_combust": true,
             "sign": "Scorpio",
             "sign_lord": "mars"
           },
           "sun": {
             "graha": "sun",
+            "is_combust": false,
             "sign": "Pisces",
             "sign_lord": "jupiter"
           },
           "venus": {
             "graha": "venus",
+            "is_combust": true,
             "sign": "Aquarius",
             "sign_lord": "saturn"
           }
@@ -1675,46 +1945,55 @@
         "placements": {
           "jupiter": {
             "graha": "jupiter",
+            "is_combust": false,
             "sign": "Leo",
             "sign_lord": "sun"
           },
           "ketu": {
             "graha": "ketu",
+            "is_combust": false,
             "sign": "Gemini",
             "sign_lord": "mercury"
           },
           "mars": {
             "graha": "mars",
+            "is_combust": false,
             "sign": "Scorpio",
             "sign_lord": "mars"
           },
           "mercury": {
             "graha": "mercury",
+            "is_combust": false,
             "sign": "Aries",
             "sign_lord": "mars"
           },
           "moon": {
             "graha": "moon",
+            "is_combust": false,
             "sign": "Capricorn",
             "sign_lord": "saturn"
           },
           "rahu": {
             "graha": "rahu",
+            "is_combust": false,
             "sign": "Sagittarius",
             "sign_lord": "jupiter"
           },
           "saturn": {
             "graha": "saturn",
+            "is_combust": true,
             "sign": "Taurus",
             "sign_lord": "venus"
           },
           "sun": {
             "graha": "sun",
+            "is_combust": false,
             "sign": "Cancer",
             "sign_lord": "moon"
           },
           "venus": {
             "graha": "venus",
+            "is_combust": true,
             "sign": "Leo",
             "sign_lord": "sun"
           }
@@ -1727,46 +2006,55 @@
         "placements": {
           "jupiter": {
             "graha": "jupiter",
+            "is_combust": false,
             "sign": "Sagittarius",
             "sign_lord": "jupiter"
           },
           "ketu": {
             "graha": "ketu",
+            "is_combust": false,
             "sign": "Aquarius",
             "sign_lord": "saturn"
           },
           "mars": {
             "graha": "mars",
+            "is_combust": false,
             "sign": "Aquarius",
             "sign_lord": "saturn"
           },
           "mercury": {
             "graha": "mercury",
+            "is_combust": false,
             "sign": "Virgo",
             "sign_lord": "mercury"
           },
           "moon": {
             "graha": "moon",
+            "is_combust": false,
             "sign": "Scorpio",
             "sign_lord": "mars"
           },
           "rahu": {
             "graha": "rahu",
+            "is_combust": false,
             "sign": "Leo",
             "sign_lord": "sun"
           },
           "saturn": {
             "graha": "saturn",
+            "is_combust": true,
             "sign": "Scorpio",
             "sign_lord": "mars"
           },
           "sun": {
             "graha": "sun",
+            "is_combust": false,
             "sign": "Capricorn",
             "sign_lord": "saturn"
           },
           "venus": {
             "graha": "venus",
+            "is_combust": true,
             "sign": "Pisces",
             "sign_lord": "jupiter"
           }
@@ -1896,46 +2184,55 @@
         "placements": {
           "jupiter": {
             "graha": "jupiter",
+            "is_combust": false,
             "sign": "Taurus",
             "sign_lord": "venus"
           },
           "ketu": {
             "graha": "ketu",
+            "is_combust": false,
             "sign": "Sagittarius",
             "sign_lord": "jupiter"
           },
           "mars": {
             "graha": "mars",
+            "is_combust": false,
             "sign": "Libra",
             "sign_lord": "venus"
           },
           "mercury": {
             "graha": "mercury",
+            "is_combust": true,
             "sign": "Sagittarius",
             "sign_lord": "jupiter"
           },
           "moon": {
             "graha": "moon",
+            "is_combust": false,
             "sign": "Aquarius",
             "sign_lord": "saturn"
           },
           "rahu": {
             "graha": "rahu",
+            "is_combust": false,
             "sign": "Gemini",
             "sign_lord": "mercury"
           },
           "saturn": {
             "graha": "saturn",
+            "is_combust": false,
             "sign": "Taurus",
             "sign_lord": "venus"
           },
           "sun": {
             "graha": "sun",
+            "is_combust": false,
             "sign": "Sagittarius",
             "sign_lord": "jupiter"
           },
           "venus": {
             "graha": "venus",
+            "is_combust": false,
             "sign": "Aquarius",
             "sign_lord": "saturn"
           }
@@ -1948,46 +2245,55 @@
         "placements": {
           "jupiter": {
             "graha": "jupiter",
+            "is_combust": false,
             "sign": "Pisces",
             "sign_lord": "jupiter"
           },
           "ketu": {
             "graha": "ketu",
+            "is_combust": false,
             "sign": "Cancer",
             "sign_lord": "moon"
           },
           "mars": {
             "graha": "mars",
+            "is_combust": false,
             "sign": "Capricorn",
             "sign_lord": "saturn"
           },
           "mercury": {
             "graha": "mercury",
+            "is_combust": true,
             "sign": "Gemini",
             "sign_lord": "mercury"
           },
           "moon": {
             "graha": "moon",
+            "is_combust": false,
             "sign": "Libra",
             "sign_lord": "venus"
           },
           "rahu": {
             "graha": "rahu",
+            "is_combust": false,
             "sign": "Capricorn",
             "sign_lord": "saturn"
           },
           "saturn": {
             "graha": "saturn",
+            "is_combust": false,
             "sign": "Capricorn",
             "sign_lord": "saturn"
           },
           "sun": {
             "graha": "sun",
+            "is_combust": false,
             "sign": "Taurus",
             "sign_lord": "venus"
           },
           "venus": {
             "graha": "venus",
+            "is_combust": false,
             "sign": "Pisces",
             "sign_lord": "jupiter"
           }
@@ -2000,46 +2306,55 @@
         "placements": {
           "jupiter": {
             "graha": "jupiter",
+            "is_combust": false,
             "sign": "Leo",
             "sign_lord": "sun"
           },
           "ketu": {
             "graha": "ketu",
+            "is_combust": false,
             "sign": "Leo",
             "sign_lord": "sun"
           },
           "mars": {
             "graha": "mars",
+            "is_combust": false,
             "sign": "Aquarius",
             "sign_lord": "saturn"
           },
           "mercury": {
             "graha": "mercury",
+            "is_combust": true,
             "sign": "Leo",
             "sign_lord": "sun"
           },
           "moon": {
             "graha": "moon",
+            "is_combust": false,
             "sign": "Scorpio",
             "sign_lord": "mars"
           },
           "rahu": {
             "graha": "rahu",
+            "is_combust": false,
             "sign": "Aquarius",
             "sign_lord": "saturn"
           },
           "saturn": {
             "graha": "saturn",
+            "is_combust": false,
             "sign": "Taurus",
             "sign_lord": "venus"
           },
           "sun": {
             "graha": "sun",
+            "is_combust": false,
             "sign": "Gemini",
             "sign_lord": "mercury"
           },
           "venus": {
             "graha": "venus",
+            "is_combust": false,
             "sign": "Pisces",
             "sign_lord": "jupiter"
           }
@@ -2052,46 +2367,55 @@
         "placements": {
           "jupiter": {
             "graha": "jupiter",
+            "is_combust": false,
             "sign": "Sagittarius",
             "sign_lord": "jupiter"
           },
           "ketu": {
             "graha": "ketu",
+            "is_combust": false,
             "sign": "Scorpio",
             "sign_lord": "mars"
           },
           "mars": {
             "graha": "mars",
+            "is_combust": false,
             "sign": "Virgo",
             "sign_lord": "mercury"
           },
           "mercury": {
             "graha": "mercury",
+            "is_combust": true,
             "sign": "Libra",
             "sign_lord": "venus"
           },
           "moon": {
             "graha": "moon",
+            "is_combust": false,
             "sign": "Virgo",
             "sign_lord": "mercury"
           },
           "rahu": {
             "graha": "rahu",
+            "is_combust": false,
             "sign": "Scorpio",
             "sign_lord": "mars"
           },
           "saturn": {
             "graha": "saturn",
+            "is_combust": false,
             "sign": "Leo",
             "sign_lord": "sun"
           },
           "sun": {
             "graha": "sun",
+            "is_combust": false,
             "sign": "Leo",
             "sign_lord": "sun"
           },
           "venus": {
             "graha": "venus",
+            "is_combust": false,
             "sign": "Virgo",
             "sign_lord": "mercury"
           }
@@ -2104,46 +2428,55 @@
         "placements": {
           "jupiter": {
             "graha": "jupiter",
+            "is_combust": false,
             "sign": "Cancer",
             "sign_lord": "moon"
           },
           "ketu": {
             "graha": "ketu",
+            "is_combust": false,
             "sign": "Cancer",
             "sign_lord": "moon"
           },
           "mars": {
             "graha": "mars",
+            "is_combust": false,
             "sign": "Leo",
             "sign_lord": "sun"
           },
           "mercury": {
             "graha": "mercury",
+            "is_combust": true,
             "sign": "Cancer",
             "sign_lord": "moon"
           },
           "moon": {
             "graha": "moon",
+            "is_combust": false,
             "sign": "Cancer",
             "sign_lord": "moon"
           },
           "rahu": {
             "graha": "rahu",
+            "is_combust": false,
             "sign": "Cancer",
             "sign_lord": "moon"
           },
           "saturn": {
             "graha": "saturn",
+            "is_combust": false,
             "sign": "Cancer",
             "sign_lord": "moon"
           },
           "sun": {
             "graha": "sun",
+            "is_combust": false,
             "sign": "Cancer",
             "sign_lord": "moon"
           },
           "venus": {
             "graha": "venus",
+            "is_combust": false,
             "sign": "Leo",
             "sign_lord": "sun"
           }
@@ -2156,46 +2489,55 @@
         "placements": {
           "jupiter": {
             "graha": "jupiter",
+            "is_combust": false,
             "sign": "Taurus",
             "sign_lord": "venus"
           },
           "ketu": {
             "graha": "ketu",
+            "is_combust": false,
             "sign": "Libra",
             "sign_lord": "venus"
           },
           "mars": {
             "graha": "mars",
+            "is_combust": false,
             "sign": "Scorpio",
             "sign_lord": "mars"
           },
           "mercury": {
             "graha": "mercury",
+            "is_combust": true,
             "sign": "Virgo",
             "sign_lord": "mercury"
           },
           "moon": {
             "graha": "moon",
+            "is_combust": false,
             "sign": "Aries",
             "sign_lord": "mars"
           },
           "rahu": {
             "graha": "rahu",
+            "is_combust": false,
             "sign": "Libra",
             "sign_lord": "venus"
           },
           "saturn": {
             "graha": "saturn",
+            "is_combust": false,
             "sign": "Sagittarius",
             "sign_lord": "jupiter"
           },
           "sun": {
             "graha": "sun",
+            "is_combust": false,
             "sign": "Cancer",
             "sign_lord": "moon"
           },
           "venus": {
             "graha": "venus",
+            "is_combust": false,
             "sign": "Aquarius",
             "sign_lord": "saturn"
           }
@@ -2208,46 +2550,55 @@
         "placements": {
           "jupiter": {
             "graha": "jupiter",
+            "is_combust": false,
             "sign": "Capricorn",
             "sign_lord": "saturn"
           },
           "ketu": {
             "graha": "ketu",
+            "is_combust": false,
             "sign": "Capricorn",
             "sign_lord": "saturn"
           },
           "mars": {
             "graha": "mars",
+            "is_combust": false,
             "sign": "Aries",
             "sign_lord": "mars"
           },
           "mercury": {
             "graha": "mercury",
+            "is_combust": true,
             "sign": "Sagittarius",
             "sign_lord": "jupiter"
           },
           "moon": {
             "graha": "moon",
+            "is_combust": false,
             "sign": "Pisces",
             "sign_lord": "jupiter"
           },
           "rahu": {
             "graha": "rahu",
+            "is_combust": false,
             "sign": "Capricorn",
             "sign_lord": "saturn"
           },
           "saturn": {
             "graha": "saturn",
+            "is_combust": false,
             "sign": "Cancer",
             "sign_lord": "moon"
           },
           "sun": {
             "graha": "sun",
+            "is_combust": false,
             "sign": "Virgo",
             "sign_lord": "mercury"
           },
           "venus": {
             "graha": "venus",
+            "is_combust": false,
             "sign": "Libra",
             "sign_lord": "venus"
           }
@@ -2260,46 +2611,55 @@
         "placements": {
           "jupiter": {
             "graha": "jupiter",
+            "is_combust": false,
             "sign": "Aquarius",
             "sign_lord": "saturn"
           },
           "ketu": {
             "graha": "ketu",
+            "is_combust": false,
             "sign": "Scorpio",
             "sign_lord": "mars"
           },
           "mars": {
             "graha": "mars",
+            "is_combust": false,
             "sign": "Cancer",
             "sign_lord": "moon"
           },
           "mercury": {
             "graha": "mercury",
+            "is_combust": true,
             "sign": "Libra",
             "sign_lord": "venus"
           },
           "moon": {
             "graha": "moon",
+            "is_combust": false,
             "sign": "Leo",
             "sign_lord": "sun"
           },
           "rahu": {
             "graha": "rahu",
+            "is_combust": false,
             "sign": "Taurus",
             "sign_lord": "venus"
           },
           "saturn": {
             "graha": "saturn",
+            "is_combust": false,
             "sign": "Cancer",
             "sign_lord": "moon"
           },
           "sun": {
             "graha": "sun",
+            "is_combust": false,
             "sign": "Cancer",
             "sign_lord": "moon"
           },
           "venus": {
             "graha": "venus",
+            "is_combust": false,
             "sign": "Sagittarius",
             "sign_lord": "jupiter"
           }
@@ -2312,46 +2672,55 @@
         "placements": {
           "jupiter": {
             "graha": "jupiter",
+            "is_combust": false,
             "sign": "Taurus",
             "sign_lord": "venus"
           },
           "ketu": {
             "graha": "ketu",
+            "is_combust": false,
             "sign": "Leo",
             "sign_lord": "sun"
           },
           "mars": {
             "graha": "mars",
+            "is_combust": false,
             "sign": "Aquarius",
             "sign_lord": "saturn"
           },
           "mercury": {
             "graha": "mercury",
+            "is_combust": true,
             "sign": "Leo",
             "sign_lord": "sun"
           },
           "moon": {
             "graha": "moon",
+            "is_combust": false,
             "sign": "Libra",
             "sign_lord": "venus"
           },
           "rahu": {
             "graha": "rahu",
+            "is_combust": false,
             "sign": "Aquarius",
             "sign_lord": "saturn"
           },
           "saturn": {
             "graha": "saturn",
+            "is_combust": false,
             "sign": "Taurus",
             "sign_lord": "venus"
           },
           "sun": {
             "graha": "sun",
+            "is_combust": false,
             "sign": "Aries",
             "sign_lord": "mars"
           },
           "venus": {
             "graha": "venus",
+            "is_combust": false,
             "sign": "Aquarius",
             "sign_lord": "saturn"
           }
@@ -2364,46 +2733,55 @@
         "placements": {
           "jupiter": {
             "graha": "jupiter",
+            "is_combust": false,
             "sign": "Virgo",
             "sign_lord": "mercury"
           },
           "ketu": {
             "graha": "ketu",
+            "is_combust": false,
             "sign": "Gemini",
             "sign_lord": "mercury"
           },
           "mars": {
             "graha": "mars",
+            "is_combust": false,
             "sign": "Sagittarius",
             "sign_lord": "jupiter"
           },
           "mercury": {
             "graha": "mercury",
+            "is_combust": true,
             "sign": "Gemini",
             "sign_lord": "mercury"
           },
           "moon": {
             "graha": "moon",
+            "is_combust": false,
             "sign": "Gemini",
             "sign_lord": "mercury"
           },
           "rahu": {
             "graha": "rahu",
+            "is_combust": false,
             "sign": "Gemini",
             "sign_lord": "mercury"
           },
           "saturn": {
             "graha": "saturn",
+            "is_combust": false,
             "sign": "Taurus",
             "sign_lord": "venus"
           },
           "sun": {
             "graha": "sun",
+            "is_combust": false,
             "sign": "Sagittarius",
             "sign_lord": "jupiter"
           },
           "venus": {
             "graha": "venus",
+            "is_combust": false,
             "sign": "Aries",
             "sign_lord": "mars"
           }
@@ -2416,46 +2794,55 @@
         "placements": {
           "jupiter": {
             "graha": "jupiter",
+            "is_combust": false,
             "sign": "Leo",
             "sign_lord": "sun"
           },
           "ketu": {
             "graha": "ketu",
+            "is_combust": false,
             "sign": "Gemini",
             "sign_lord": "mercury"
           },
           "mars": {
             "graha": "mars",
+            "is_combust": false,
             "sign": "Capricorn",
             "sign_lord": "saturn"
           },
           "mercury": {
             "graha": "mercury",
+            "is_combust": true,
             "sign": "Gemini",
             "sign_lord": "mercury"
           },
           "moon": {
             "graha": "moon",
+            "is_combust": false,
             "sign": "Scorpio",
             "sign_lord": "mars"
           },
           "rahu": {
             "graha": "rahu",
+            "is_combust": false,
             "sign": "Sagittarius",
             "sign_lord": "jupiter"
           },
           "saturn": {
             "graha": "saturn",
+            "is_combust": false,
             "sign": "Taurus",
             "sign_lord": "venus"
           },
           "sun": {
             "graha": "sun",
+            "is_combust": false,
             "sign": "Gemini",
             "sign_lord": "mercury"
           },
           "venus": {
             "graha": "venus",
+            "is_combust": false,
             "sign": "Aquarius",
             "sign_lord": "saturn"
           }
@@ -2468,46 +2855,55 @@
         "placements": {
           "jupiter": {
             "graha": "jupiter",
+            "is_combust": false,
             "sign": "Virgo",
             "sign_lord": "mercury"
           },
           "ketu": {
             "graha": "ketu",
+            "is_combust": false,
             "sign": "Virgo",
             "sign_lord": "mercury"
           },
           "mars": {
             "graha": "mars",
+            "is_combust": false,
             "sign": "Gemini",
             "sign_lord": "mercury"
           },
           "mercury": {
             "graha": "mercury",
+            "is_combust": true,
             "sign": "Cancer",
             "sign_lord": "moon"
           },
           "moon": {
             "graha": "moon",
+            "is_combust": false,
             "sign": "Capricorn",
             "sign_lord": "saturn"
           },
           "rahu": {
             "graha": "rahu",
+            "is_combust": false,
             "sign": "Virgo",
             "sign_lord": "mercury"
           },
           "saturn": {
             "graha": "saturn",
+            "is_combust": false,
             "sign": "Libra",
             "sign_lord": "venus"
           },
           "sun": {
             "graha": "sun",
+            "is_combust": false,
             "sign": "Aquarius",
             "sign_lord": "saturn"
           },
           "venus": {
             "graha": "venus",
+            "is_combust": false,
             "sign": "Leo",
             "sign_lord": "sun"
           }
@@ -2520,46 +2916,55 @@
         "placements": {
           "jupiter": {
             "graha": "jupiter",
+            "is_combust": false,
             "sign": "Leo",
             "sign_lord": "sun"
           },
           "ketu": {
             "graha": "ketu",
+            "is_combust": false,
             "sign": "Leo",
             "sign_lord": "sun"
           },
           "mars": {
             "graha": "mars",
+            "is_combust": false,
             "sign": "Leo",
             "sign_lord": "sun"
           },
           "mercury": {
             "graha": "mercury",
+            "is_combust": true,
             "sign": "Gemini",
             "sign_lord": "mercury"
           },
           "moon": {
             "graha": "moon",
+            "is_combust": false,
             "sign": "Virgo",
             "sign_lord": "mercury"
           },
           "rahu": {
             "graha": "rahu",
+            "is_combust": false,
             "sign": "Leo",
             "sign_lord": "sun"
           },
           "saturn": {
             "graha": "saturn",
+            "is_combust": false,
             "sign": "Virgo",
             "sign_lord": "mercury"
           },
           "sun": {
             "graha": "sun",
+            "is_combust": false,
             "sign": "Capricorn",
             "sign_lord": "saturn"
           },
           "venus": {
             "graha": "venus",
+            "is_combust": false,
             "sign": "Sagittarius",
             "sign_lord": "jupiter"
           }
@@ -2572,46 +2977,55 @@
         "placements": {
           "jupiter": {
             "graha": "jupiter",
+            "is_combust": false,
             "sign": "Virgo",
             "sign_lord": "mercury"
           },
           "ketu": {
             "graha": "ketu",
+            "is_combust": false,
             "sign": "Cancer",
             "sign_lord": "moon"
           },
           "mars": {
             "graha": "mars",
+            "is_combust": false,
             "sign": "Leo",
             "sign_lord": "sun"
           },
           "mercury": {
             "graha": "mercury",
+            "is_combust": true,
             "sign": "Aries",
             "sign_lord": "mars"
           },
           "moon": {
             "graha": "moon",
+            "is_combust": false,
             "sign": "Pisces",
             "sign_lord": "jupiter"
           },
           "rahu": {
             "graha": "rahu",
+            "is_combust": false,
             "sign": "Capricorn",
             "sign_lord": "saturn"
           },
           "saturn": {
             "graha": "saturn",
+            "is_combust": false,
             "sign": "Gemini",
             "sign_lord": "mercury"
           },
           "sun": {
             "graha": "sun",
+            "is_combust": false,
             "sign": "Virgo",
             "sign_lord": "mercury"
           },
           "venus": {
             "graha": "venus",
+            "is_combust": false,
             "sign": "Leo",
             "sign_lord": "sun"
           }
@@ -2624,46 +3038,55 @@
         "placements": {
           "jupiter": {
             "graha": "jupiter",
+            "is_combust": false,
             "sign": "Sagittarius",
             "sign_lord": "jupiter"
           },
           "ketu": {
             "graha": "ketu",
+            "is_combust": false,
             "sign": "Taurus",
             "sign_lord": "venus"
           },
           "mars": {
             "graha": "mars",
+            "is_combust": false,
             "sign": "Sagittarius",
             "sign_lord": "jupiter"
           },
           "mercury": {
             "graha": "mercury",
+            "is_combust": true,
             "sign": "Aries",
             "sign_lord": "mars"
           },
           "moon": {
             "graha": "moon",
+            "is_combust": false,
             "sign": "Cancer",
             "sign_lord": "moon"
           },
           "rahu": {
             "graha": "rahu",
+            "is_combust": false,
             "sign": "Scorpio",
             "sign_lord": "mars"
           },
           "saturn": {
             "graha": "saturn",
+            "is_combust": false,
             "sign": "Scorpio",
             "sign_lord": "mars"
           },
           "sun": {
             "graha": "sun",
+            "is_combust": false,
             "sign": "Pisces",
             "sign_lord": "jupiter"
           },
           "venus": {
             "graha": "venus",
+            "is_combust": false,
             "sign": "Aquarius",
             "sign_lord": "saturn"
           }
@@ -2676,46 +3099,55 @@
         "placements": {
           "jupiter": {
             "graha": "jupiter",
+            "is_combust": false,
             "sign": "Pisces",
             "sign_lord": "jupiter"
           },
           "ketu": {
             "graha": "ketu",
+            "is_combust": false,
             "sign": "Libra",
             "sign_lord": "venus"
           },
           "mars": {
             "graha": "mars",
+            "is_combust": false,
             "sign": "Capricorn",
             "sign_lord": "saturn"
           },
           "mercury": {
             "graha": "mercury",
+            "is_combust": true,
             "sign": "Libra",
             "sign_lord": "venus"
           },
           "moon": {
             "graha": "moon",
+            "is_combust": false,
             "sign": "Taurus",
             "sign_lord": "venus"
           },
           "rahu": {
             "graha": "rahu",
+            "is_combust": false,
             "sign": "Aries",
             "sign_lord": "mars"
           },
           "saturn": {
             "graha": "saturn",
+            "is_combust": false,
             "sign": "Capricorn",
             "sign_lord": "saturn"
           },
           "sun": {
             "graha": "sun",
+            "is_combust": false,
             "sign": "Virgo",
             "sign_lord": "mercury"
           },
           "venus": {
             "graha": "venus",
+            "is_combust": false,
             "sign": "Libra",
             "sign_lord": "venus"
           }

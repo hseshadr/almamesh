@@ -69,4 +69,17 @@ describe('ShodasavargaPanel', () => {
     expect(within(card).getByTestId('south-chart-center-title').textContent).toBe('Navāṁśa');
     expect(card.textContent).not.toContain('°');
   });
+
+  it('dims a graha the engine flagged combust in D1 across the divisional charts', () => {
+    // Regression: the full-varga path dropped the engine's D1 combustion flag,
+    // so a combust graha rendered full-opacity in every Shodasavarga chart. The
+    // fixture's Saturn is combust; the North SVG marks it with opacity-50.
+    useChartStore.setState({ displayStyle: 'north' });
+    render(<ShodasavargaPanel vargaCtxFull={VARGA_CTX_FULL} />);
+    const card = screen.getByTestId('varga-chart-card');
+    const saturn = card.querySelector('[data-planet="saturn"]');
+    const jupiter = card.querySelector('[data-planet="jupiter"]');
+    expect(saturn?.getAttribute('class')).toContain('opacity-50');
+    expect(jupiter?.getAttribute('class')).not.toContain('opacity-50');
+  });
 });

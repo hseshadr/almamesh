@@ -160,8 +160,9 @@ function varga(
     lagna_sign: lagnaSign,
     lagna_sign_lord: 'mars',
     placements: {
-      saturn: { graha: 'saturn', sign: saturnSign, sign_lord: 'saturn' },
-      jupiter: { graha: 'jupiter', sign: 'pisces', sign_lord: 'jupiter' },
+      // Saturn is combust in D1; the engine carries that onto every varga.
+      saturn: { graha: 'saturn', sign: saturnSign, sign_lord: 'saturn', is_combust: true },
+      jupiter: { graha: 'jupiter', sign: 'pisces', sign_lord: 'jupiter', is_combust: false },
     },
   };
 }

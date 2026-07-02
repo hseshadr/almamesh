@@ -220,6 +220,11 @@ class VargaPlanet(BaseModel):
     name: PlanetName
     sign: ZodiacSign
     sign_lord: PlanetName
+    # Combustion (asta) is a D1 graha-level fact (real longitude vs the Sun),
+    # independent of the division — so the SAME flag the natal ``PlanetPosition``
+    # carries is copied verbatim onto every varga placement (never recomputed).
+    # False for the Sun and the nodes, exactly as on the natal chart.
+    is_combust: bool = False
 
 
 class NavamsaChart(BaseModel):

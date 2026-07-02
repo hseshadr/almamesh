@@ -156,6 +156,12 @@ export interface VargaPlanet {
   readonly name: string;
   readonly sign: string;
   readonly sign_lord: string;
+  /**
+   * Combustion (asta): a D1 graha-level fact (real longitude vs the Sun) the
+   * engine CARRIES onto every varga placement. Additive — older signed bundles
+   * omit it, so consumers must treat an absent value as `false`.
+   */
+  readonly is_combust?: boolean;
 }
 
 /** A divisional chart (e.g. D9 Navamsa): each graha's varga sign + the lagna. */

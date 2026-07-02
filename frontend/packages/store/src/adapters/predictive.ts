@@ -231,6 +231,8 @@ function toVargaPlacementFull(raw: VargaChartFull["placements"][string]): VargaP
     graha: asPlanet(raw.graha),
     sign: toUiSign(raw.sign),
     sign_lord: asPlanet(raw.sign_lord),
+    // D1 combustion carried by the engine; absent on older bundles -> false.
+    is_combust: raw.is_combust ?? false,
   };
 }
 

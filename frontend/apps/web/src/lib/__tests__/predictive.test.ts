@@ -57,7 +57,17 @@ describe('toVargaChart', () => {
       name: 'saturn',
       sign: 'Aquarius',
       sign_lord: 'saturn',
+      // The engine's D1 combustion flag carries through to the geometry builder.
+      is_combust: true,
     });
+  });
+
+  it('carries the engine combustion flag so the varga dims combust grahas', () => {
+    const d9 = VARGA_CTX_FULL.charts.D9;
+    const chart = toVargaChart(d9!);
+    // Saturn is combust in the fixture; Jupiter is not.
+    expect(chart.planets.saturn?.is_combust).toBe(true);
+    expect(chart.planets.jupiter?.is_combust).toBe(false);
   });
 });
 

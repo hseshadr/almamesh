@@ -74,6 +74,8 @@ export function toVargaChart(data: VargaChartFullData): VargaChart {
       name: placement.graha,
       sign: titleCaseToken(placement.sign),
       sign_lord: placement.sign_lord,
+      // Carry the engine's D1 combustion flag so the varga dims combust grahas.
+      is_combust: placement.is_combust,
     };
   }
   return {

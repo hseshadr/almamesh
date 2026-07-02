@@ -204,6 +204,13 @@ export interface VargaPlanet {
   readonly name: string; // lowercase engine key 'sun'..'ketu'
   readonly sign: string; // engine Title-Case sign value
   readonly sign_lord: string;
+  /**
+   * D1 combustion (asta) carried onto this varga placement by the engine (real
+   * longitude vs the Sun — never recomputed per varga). Optional so older
+   * bundles / the D9 navamsa shape without the flag still satisfy the type;
+   * consumers treat an absent value as `false`.
+   */
+  readonly is_combust?: boolean;
 }
 
 /** A divisional chart as the engine emits it (e.g. D9 Navamsa). */
@@ -268,9 +275,10 @@ export function buildVargaGeometry(varga: VargaChart): ChartGeometry {
 
 /**
  * A varga graha → ChartPlanet (house from the varga lagna). The engine emits
- * ONLY name/sign/lord per varga graha; everything else is "unknown", encoded
- * as inert empty values guarded by the geometry's `precision: "sign"` — never
- * fabricated facts (no "neutral" dignity, no 0° degree).
+ * name/sign/lord per varga graha PLUS the D1 combustion flag it carries onto the
+ * varga; everything else is "unknown", encoded as inert empty values guarded by
+ * the geometry's `precision: "sign"` — never fabricated facts (no "neutral"
+ * dignity, no 0° degree).
  */
 function vargaToChartPlanet(
   raw: VargaPlanet,
@@ -289,7 +297,9 @@ function vargaToChartPlanet(
     pada: 0,
     dignity: "",
     isRetrograde: false,
-    isCombust: false,
+    // Combustion is a D1 graha-level fact the engine carries onto the varga; a
+    // combust D1 graha stays visibly combust in every divisional chart.
+    isCombust: raw.is_combust ?? false,
     // Lordship is a RASI (D1) concept; the engine emits none per varga graha.
     housesRuled: [],
     isYogakaraka: false,

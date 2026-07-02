@@ -267,8 +267,9 @@ const VARGA_FIXTURE: VargaChart = {
   lagna_sign: "Gemini",
   lagna_sign_lord: "mercury",
   planets: {
+    // Moon is combust in D1 -> the engine carries the flag onto the varga.
     sun: { name: "sun", sign: "Capricorn", sign_lord: "saturn" },
-    moon: { name: "moon", sign: "Scorpio", sign_lord: "mars" },
+    moon: { name: "moon", sign: "Scorpio", sign_lord: "mars", is_combust: true },
     jupiter: { name: "jupiter", sign: "Sagittarius", sign_lord: "jupiter" },
   },
 };
@@ -329,5 +330,16 @@ describe("buildVargaGeometry (D9)", () => {
     const sun = geo.planets.find((p) => p.name === "sun");
     expect(sun?.color).toBe(PLANET_COLORS.sun);
     expect(sun?.label).toBe("Su");
+  });
+
+  it("carries the engine's D1 combustion flag onto the varga graha", () => {
+    // Regression: the varga adapter used to hardcode isCombust=false, so a
+    // combust graha rendered full-opacity in every divisional chart. It must
+    // now reflect the flag the engine carries from D1.
+    const moon = geo.planets.find((p) => p.name === "moon");
+    expect(moon?.isCombust).toBe(true);
+    // A graha the engine did not flag stays not-combust (absent -> false).
+    const jupiter = geo.planets.find((p) => p.name === "jupiter");
+    expect(jupiter?.isCombust).toBe(false);
   });
 });

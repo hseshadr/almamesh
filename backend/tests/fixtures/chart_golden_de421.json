@@ -730,46 +730,55 @@
       "name": "D9",
       "planets": {
         "jupiter": {
+          "is_combust": false,
           "name": "jupiter",
           "sign": "Cancer",
           "sign_lord": "moon"
         },
         "ketu": {
+          "is_combust": false,
           "name": "ketu",
           "sign": "Virgo",
           "sign_lord": "mercury"
         },
         "mars": {
+          "is_combust": false,
           "name": "mars",
           "sign": "Scorpio",
           "sign_lord": "mars"
         },
         "mercury": {
+          "is_combust": false,
           "name": "mercury",
           "sign": "Scorpio",
           "sign_lord": "mars"
         },
         "moon": {
+          "is_combust": false,
           "name": "moon",
           "sign": "Virgo",
           "sign_lord": "mercury"
         },
         "rahu": {
+          "is_combust": false,
           "name": "rahu",
           "sign": "Pisces",
           "sign_lord": "jupiter"
         },
         "saturn": {
+          "is_combust": false,
           "name": "saturn",
           "sign": "Pisces",
           "sign_lord": "jupiter"
         },
         "sun": {
+          "is_combust": false,
           "name": "sun",
           "sign": "Taurus",
           "sign_lord": "venus"
         },
         "venus": {
+          "is_combust": false,
           "name": "venus",
           "sign": "Cancer",
           "sign_lord": "moon"
@@ -2242,46 +2251,55 @@
       "name": "D9",
       "planets": {
         "jupiter": {
+          "is_combust": false,
           "name": "jupiter",
           "sign": "Gemini",
           "sign_lord": "mercury"
         },
         "ketu": {
+          "is_combust": false,
           "name": "ketu",
           "sign": "Aries",
           "sign_lord": "mars"
         },
         "mars": {
+          "is_combust": true,
           "name": "mars",
           "sign": "Leo",
           "sign_lord": "sun"
         },
         "mercury": {
+          "is_combust": false,
           "name": "mercury",
           "sign": "Aries",
           "sign_lord": "mars"
         },
         "moon": {
+          "is_combust": false,
           "name": "moon",
           "sign": "Aries",
           "sign_lord": "mars"
         },
         "rahu": {
+          "is_combust": false,
           "name": "rahu",
           "sign": "Libra",
           "sign_lord": "venus"
         },
         "saturn": {
+          "is_combust": false,
           "name": "saturn",
           "sign": "Gemini",
           "sign_lord": "mercury"
         },
         "sun": {
+          "is_combust": false,
           "name": "sun",
           "sign": "Leo",
           "sign_lord": "sun"
         },
         "venus": {
+          "is_combust": false,
           "name": "venus",
           "sign": "Leo",
           "sign_lord": "sun"
@@ -3897,46 +3915,55 @@
       "name": "D9",
       "planets": {
         "jupiter": {
+          "is_combust": false,
           "name": "jupiter",
           "sign": "Pisces",
           "sign_lord": "jupiter"
         },
         "ketu": {
+          "is_combust": false,
           "name": "ketu",
           "sign": "Libra",
           "sign_lord": "venus"
         },
         "mars": {
+          "is_combust": false,
           "name": "mars",
           "sign": "Scorpio",
           "sign_lord": "mars"
         },
         "mercury": {
+          "is_combust": true,
           "name": "mercury",
           "sign": "Pisces",
           "sign_lord": "jupiter"
         },
         "moon": {
+          "is_combust": false,
           "name": "moon",
           "sign": "Libra",
           "sign_lord": "venus"
         },
         "rahu": {
+          "is_combust": false,
           "name": "rahu",
           "sign": "Aries",
           "sign_lord": "mars"
         },
         "saturn": {
+          "is_combust": false,
           "name": "saturn",
           "sign": "Aries",
           "sign_lord": "mars"
         },
         "sun": {
+          "is_combust": false,
           "name": "sun",
           "sign": "Capricorn",
           "sign_lord": "saturn"
         },
         "venus": {
+          "is_combust": false,
           "name": "venus",
           "sign": "Sagittarius",
           "sign_lord": "jupiter"
@@ -5228,46 +5255,55 @@
       "name": "D9",
       "planets": {
         "jupiter": {
+          "is_combust": false,
           "name": "jupiter",
           "sign": "Sagittarius",
           "sign_lord": "jupiter"
         },
         "ketu": {
+          "is_combust": false,
           "name": "ketu",
           "sign": "Aquarius",
           "sign_lord": "saturn"
         },
         "mars": {
+          "is_combust": false,
           "name": "mars",
           "sign": "Aquarius",
           "sign_lord": "saturn"
         },
         "mercury": {
+          "is_combust": false,
           "name": "mercury",
           "sign": "Virgo",
           "sign_lord": "mercury"
         },
         "moon": {
+          "is_combust": false,
           "name": "moon",
           "sign": "Scorpio",
           "sign_lord": "mars"
         },
         "rahu": {
+          "is_combust": false,
           "name": "rahu",
           "sign": "Leo",
           "sign_lord": "sun"
         },
         "saturn": {
+          "is_combust": true,
           "name": "saturn",
           "sign": "Scorpio",
           "sign_lord": "mars"
         },
         "sun": {
+          "is_combust": false,
           "name": "sun",
           "sign": "Capricorn",
           "sign_lord": "saturn"
         },
         "venus": {
+          "is_combust": true,
           "name": "venus",
           "sign": "Pisces",
           "sign_lord": "jupiter"
@@ -6725,46 +6761,55 @@
       "name": "D9",
       "planets": {
         "jupiter": {
+          "is_combust": false,
           "name": "jupiter",
           "sign": "Pisces",
           "sign_lord": "jupiter"
         },
         "ketu": {
+          "is_combust": false,
           "name": "ketu",
           "sign": "Libra",
           "sign_lord": "venus"
         },
         "mars": {
+          "is_combust": false,
           "name": "mars",
           "sign": "Capricorn",
           "sign_lord": "saturn"
         },
         "mercury": {
+          "is_combust": true,
           "name": "mercury",
           "sign": "Libra",
           "sign_lord": "venus"
         },
         "moon": {
+          "is_combust": false,
           "name": "moon",
           "sign": "Taurus",
           "sign_lord": "venus"
         },
         "rahu": {
+          "is_combust": false,
           "name": "rahu",
           "sign": "Aries",
           "sign_lord": "mars"
         },
         "saturn": {
+          "is_combust": false,
           "name": "saturn",
           "sign": "Capricorn",
           "sign_lord": "saturn"
         },
         "sun": {
+          "is_combust": false,
           "name": "sun",
           "sign": "Virgo",
           "sign_lord": "mercury"
         },
         "venus": {
+          "is_combust": false,
           "name": "venus",
           "sign": "Libra",
           "sign_lord": "venus"
@@ -8214,46 +8259,55 @@
       "name": "D9",
       "planets": {
         "jupiter": {
+          "is_combust": false,
           "name": "jupiter",
           "sign": "Virgo",
           "sign_lord": "mercury"
         },
         "ketu": {
+          "is_combust": false,
           "name": "ketu",
           "sign": "Pisces",
           "sign_lord": "jupiter"
         },
         "mars": {
+          "is_combust": false,
           "name": "mars",
           "sign": "Leo",
           "sign_lord": "sun"
         },
         "mercury": {
+          "is_combust": true,
           "name": "mercury",
           "sign": "Virgo",
           "sign_lord": "mercury"
         },
         "moon": {
+          "is_combust": false,
           "name": "moon",
           "sign": "Sagittarius",
           "sign_lord": "jupiter"
         },
         "rahu": {
+          "is_combust": false,
           "name": "rahu",
           "sign": "Virgo",
           "sign_lord": "mercury"
         },
         "saturn": {
+          "is_combust": false,
           "name": "saturn",
           "sign": "Aquarius",
           "sign_lord": "saturn"
         },
         "sun": {
+          "is_combust": false,
           "name": "sun",
           "sign": "Scorpio",
           "sign_lord": "mars"
         },
         "venus": {
+          "is_combust": false,
           "name": "venus",
           "sign": "Scorpio",
           "sign_lord": "mars"
@@ -9601,46 +9655,55 @@
       "name": "D9",
       "planets": {
         "jupiter": {
+          "is_combust": false,
           "name": "jupiter",
           "sign": "Aries",
           "sign_lord": "mars"
         },
         "ketu": {
+          "is_combust": false,
           "name": "ketu",
           "sign": "Virgo",
           "sign_lord": "mercury"
         },
         "mars": {
+          "is_combust": false,
           "name": "mars",
           "sign": "Virgo",
           "sign_lord": "mercury"
         },
         "mercury": {
+          "is_combust": true,
           "name": "mercury",
           "sign": "Gemini",
           "sign_lord": "mercury"
         },
         "moon": {
+          "is_combust": false,
           "name": "moon",
           "sign": "Capricorn",
           "sign_lord": "saturn"
         },
         "rahu": {
+          "is_combust": false,
           "name": "rahu",
           "sign": "Pisces",
           "sign_lord": "jupiter"
         },
         "saturn": {
+          "is_combust": false,
           "name": "saturn",
           "sign": "Libra",
           "sign_lord": "venus"
         },
         "sun": {
+          "is_combust": false,
           "name": "sun",
           "sign": "Aries",
           "sign_lord": "mars"
         },
         "venus": {
+          "is_combust": false,
           "name": "venus",
           "sign": "Scorpio",
           "sign_lord": "mars"
