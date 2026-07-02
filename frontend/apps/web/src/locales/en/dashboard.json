@@ -21,7 +21,7 @@
   },
   "cta": {
     "title": "Connect an AI model to generate your interpretation",
-    "body": "Your chart is calculated on-device. To turn it into a personalized reading, connect an AI model — use the one-click OpenRouter preset or point AlmaMesh at a local model (e.g. Ollama)."
+    "body": "Your chart is calculated on-device. To turn it into a personalized reading, connect an AI model — use the one-click OpenRouter preset or point AlmaMesh at a local model (e.g. Ollama). Prefer fully private? There's also an on-device AI option (beta) in AI settings."
   },
   "generation": {
     "title_generating": "Generating your personalized interpretation",

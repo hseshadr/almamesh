@@ -14,16 +14,16 @@ import { fileURLToPath } from "node:url";
 import type { SiderealChart } from "@almamesh/browser/types";
 
 import type { ProviderConfig } from "../../src/config";
-import { OPENROUTER_API_BASE } from "../../src/config";
 
 import { EN_QUESTIONS, ES_QUESTIONS, PT_QUESTIONS } from "../fixtures/questions";
 import { STORIES } from "../fixtures/stories";
+import { CliArgError, parseArgs, type CliArgs } from "./cliArgs";
 import { buildEngineTruth } from "./engineTruth";
 import { createMockFetch } from "./mockEndpoint";
 import type { FetchLike } from "./openaiClient";
 import { compositeScore, latencyP50, renderReport } from "./report";
 import { scoreChat } from "./scoreChat";
-import { scoreExtractor } from "./scoreExtractor";
+import { EXTRACTOR_RESERVE_TOKENS, scoreExtractor } from "./scoreExtractor";
 import { SUITE } from "./suite";
 import type { ModelResult, ModelSpec } from "./types";
 
@@ -36,35 +36,6 @@ const PINNED_NOW = new Date("2026-07-02T00:00:00Z");
 
 const EN_FIXTURE = "chart-bengaluru-1988.json";
 const ES_PT_FIXTURE = "chart-saopaulo-1995.json";
-
-interface CliArgs {
-  readonly base: string;
-  readonly model: string | null;
-  readonly keyEnv: string;
-  readonly suite: boolean;
-  readonly dryRun: boolean;
-  readonly maxTokens: number;
-  readonly spendCap: number;
-  /** Comma-separated slug filter applied to the suite (subset smoke runs). */
-  readonly models: readonly string[] | null;
-}
-
-function parseArgs(argv: readonly string[]): CliArgs {
-  const get = (flag: string): string | null => {
-    const i = argv.indexOf(flag);
-    return i !== -1 && i + 1 < argv.length ? argv[i + 1] : null;
-  };
-  return {
-    base: get("--base") ?? OPENROUTER_API_BASE,
-    model: get("--model"),
-    keyEnv: get("--key-env") ?? "OPENROUTER_API_KEY",
-    suite: argv.includes("--suite"),
-    dryRun: argv.includes("--dry-run"),
-    maxTokens: Number(get("--max-tokens") ?? 450),
-    spendCap: Number(get("--spend-cap") ?? 30_000),
-    models: get("--models")?.split(",").map((s) => s.trim()) ?? null,
-  };
-}
 
 function loadChart(name: string): SiderealChart {
   const raw = readFileSync(join(BENCH_DIR, "fixtures", name), "utf8");
@@ -96,13 +67,14 @@ async function runModel(
   };
 
   try {
+    // The SAME reservation-based cap governs both tasks: the extractor
+    // reserves EXTRACTOR_RESERVE_TOKENS per attempt, chat reserves maxTokens
+    // per question — exhaustion skips explicitly instead of overspending.
     const extractor = await scoreExtractor({
       config: makeConfig(spec, apiKey),
       stories: STORIES,
       fetchBase,
-      onSpendTokens: (t) => {
-        spent += t;
-      },
+      trySpendTokens,
     });
     console.log(
       `  extractor: ${extractor.matched}/${extractor.expectedTotal} matched, ` +
@@ -197,7 +169,16 @@ async function runPool(
 }
 
 async function main(): Promise<void> {
-  const args = parseArgs(process.argv.slice(2));
+  let args: CliArgs;
+  try {
+    args = parseArgs(process.argv.slice(2));
+  } catch (err) {
+    if (err instanceof CliArgError) {
+      console.error(err.message);
+      process.exit(2);
+    }
+    throw err;
+  }
 
   let specs: readonly ModelSpec[];
   if (args.suite || args.dryRun) {
@@ -223,7 +204,8 @@ async function main(): Promise<void> {
 
   // Cost estimate up front — printed, never silent.
   const perModelEstimate =
-    STORIES.length * 300 + (EN_QUESTIONS.length + ES_QUESTIONS.length + PT_QUESTIONS.length) * args.maxTokens;
+    STORIES.length * EXTRACTOR_RESERVE_TOKENS +
+    (EN_QUESTIONS.length + ES_QUESTIONS.length + PT_QUESTIONS.length) * args.maxTokens;
   console.log(
     `Models: ${specs.length}. Estimated completion-token spend: ~${perModelEstimate} per model ` +
       `(~${perModelEstimate * specs.length} total), cap ${args.spendCap}/model. Concurrency ≤ 2.`,

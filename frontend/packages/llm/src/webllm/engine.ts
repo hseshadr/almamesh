@@ -77,6 +77,7 @@ interface WebLlmModuleLike {
     opts?: { initProgressCallback?: (report: InitProgressReportLike) => void },
   ): Promise<OnDeviceEngineHandle>;
   deleteModelAllInfoInCache(modelId: string): Promise<void>;
+  hasModelInCache(modelId: string): Promise<boolean>;
 }
 
 /** The ONLY place the library is loaded — dynamically, on first real use. */
@@ -172,6 +173,20 @@ export async function deleteCachedModel(modelId: string): Promise<void> {
   }
   const webllm = await loadWebLlm();
   await webllm.deleteModelAllInfoInCache(modelId);
+}
+
+/**
+ * True when `modelId`'s weights are present in WebLLM's Cache API storage —
+ * WITHOUT creating an engine or downloading any weights. Costs only the lazy
+ * library-chunk load (a few MB, SW-precached), never the ~1 GB model. Lets the
+ * settings card be honest when the `{engine:'webllm'}` flag exists but the
+ * weights don't (e.g. a Backup & Restore into a fresh browser). Callers treat
+ * a rejection as "unknown" and soften their copy instead of claiming offline
+ * readiness.
+ */
+export async function hasCachedModel(modelId: string): Promise<boolean> {
+  const webllm = await loadWebLlm();
+  return webllm.hasModelInCache(modelId);
 }
 
 /** Drop the singleton (tests / hard reset). Does not touch cached weights. */

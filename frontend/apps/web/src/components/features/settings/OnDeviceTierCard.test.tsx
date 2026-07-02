@@ -165,6 +165,9 @@ describe('OnDeviceTierCard', () => {
     const progressEl = screen.getByTestId('ondevice-progress');
     expect(progressEl.textContent).toContain('Downloading model');
     expect(screen.getByTestId('ondevice-progress-percent').textContent).toBe('42%');
+    // a11y: the bar is a real progressbar with a live value for screen readers.
+    const bar = screen.getByRole('progressbar');
+    expect(bar.getAttribute('aria-valuenow')).toBe('42');
     // the button is gone while downloading — no double-start
     expect(screen.queryByTestId('ondevice-download')).toBeNull();
 
@@ -241,6 +244,8 @@ describe('OnDeviceTierCard', () => {
     fireEvent.click(await screen.findByTestId('ondevice-download'));
     const error = await screen.findByTestId('ondevice-error');
     expect(error.textContent).toMatch(/Nothing was enabled/);
+    // a11y: a failure note interrupts (alert), it does not whisper (status).
+    expect(error.getAttribute('role')).toBe('alert');
     expect(readSaved().engine).toBeUndefined();
     expect(onChanged).not.toHaveBeenCalled();
     // The button is back for a retry.
@@ -261,6 +266,7 @@ describe('OnDeviceTierCard', () => {
         probeFn={supportedProbe}
         preloadFn={vi.fn()}
         deleteFn={vi.fn()}
+        hasCachedFn={vi.fn(async () => true)}
       />,
     );
     const enabledEl = await screen.findByTestId('ondevice-enabled');
@@ -268,6 +274,93 @@ describe('OnDeviceTierCard', () => {
     expect(enabledEl.textContent).toContain('Qwen3 1.7B');
     expect(screen.getByTestId('tier-ondevice-active')).toBeTruthy();
     expect(screen.getByTestId('ondevice-remove')).toBeTruthy();
+  });
+
+  // ── F2: the flag can exist WITHOUT the weights (Backup & Restore into a
+  //    fresh browser) — the enabled copy must never claim offline readiness
+  //    it cannot deliver. ─────────────────────────────────────────────────
+
+  it('enabled + weights VERIFIED in cache → the offline-ready claim stands', async () => {
+    window.localStorage.setItem(
+      LLM_SETTINGS_KEY,
+      JSON.stringify({ engine: 'webllm', model: DEFAULT_ONDEVICE_MODEL }),
+    );
+    render(
+      <OnDeviceTierCard
+        status={ON_DEVICE_STATUS}
+        onChanged={vi.fn()}
+        probeFn={supportedProbe}
+        preloadFn={vi.fn()}
+        deleteFn={vi.fn()}
+        hasCachedFn={vi.fn(async () => true)}
+      />,
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('ondevice-enabled-body').textContent).toMatch(
+        /cached on this device/,
+      ),
+    );
+  });
+
+  it('enabled + weights MISSING (restored backup) → honest copy + re-download affordance', async () => {
+    window.localStorage.setItem(
+      LLM_SETTINGS_KEY,
+      JSON.stringify({ engine: 'webllm', model: DEFAULT_ONDEVICE_MODEL }),
+    );
+    const preloadFn = vi.fn(async () => {});
+    render(
+      <OnDeviceTierCard
+        status={ON_DEVICE_STATUS}
+        onChanged={vi.fn()}
+        probeFn={supportedProbe}
+        preloadFn={preloadFn}
+        deleteFn={vi.fn()}
+        hasCachedFn={vi.fn(async () => false)}
+      />,
+    );
+    const redownload = await screen.findByTestId('ondevice-redownload');
+    const body = screen.getByTestId('ondevice-enabled-body');
+    expect(body.textContent).toMatch(/aren't downloaded on this device yet/);
+    // The false "even offline" promise is gone in this state.
+    expect(body.textContent).not.toMatch(/even offline/);
+    // Recovery: the affordance re-downloads the SAVED model...
+    fireEvent.click(redownload);
+    await waitFor(() =>
+      expect(preloadFn).toHaveBeenCalledWith(DEFAULT_ONDEVICE_MODEL, expect.any(Function)),
+    );
+    // ...and success restores the verified offline-ready copy.
+    await waitFor(() =>
+      expect(screen.getByTestId('ondevice-enabled-body').textContent).toMatch(
+        /cached on this device/,
+      ),
+    );
+  });
+
+  it('enabled + cache check unavailable → neutral "selected" copy, no offline claim', async () => {
+    window.localStorage.setItem(
+      LLM_SETTINGS_KEY,
+      JSON.stringify({ engine: 'webllm', model: DEFAULT_ONDEVICE_MODEL }),
+    );
+    render(
+      <OnDeviceTierCard
+        status={ON_DEVICE_STATUS}
+        onChanged={vi.fn()}
+        probeFn={supportedProbe}
+        preloadFn={vi.fn()}
+        deleteFn={vi.fn()}
+        hasCachedFn={vi.fn(async () => {
+          throw new Error('cache API unavailable');
+        })}
+      />,
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('ondevice-enabled-body').textContent).toMatch(
+        /is selected for on-device AI/,
+      ),
+    );
+    expect(screen.getByTestId('ondevice-enabled-body').textContent).not.toMatch(/even offline/);
+    // Unknown ≠ missing: no re-download nag when we simply could not check.
+    expect(screen.queryByTestId('ondevice-redownload')).toBeNull();
   });
 
   it('remove: deletes the cached weights AND turns the tier off', async () => {
@@ -284,6 +377,7 @@ describe('OnDeviceTierCard', () => {
         probeFn={supportedProbe}
         preloadFn={vi.fn()}
         deleteFn={deleteFn}
+        hasCachedFn={vi.fn(async () => true)}
       />,
     );
     fireEvent.click(await screen.findByTestId('ondevice-remove'));
@@ -308,11 +402,14 @@ describe('OnDeviceTierCard', () => {
         deleteFn={vi.fn(async () => {
           throw new Error('cache locked');
         })}
+        hasCachedFn={vi.fn(async () => true)}
       />,
     );
     fireEvent.click(await screen.findByTestId('ondevice-remove'));
     const error = await screen.findByTestId('ondevice-error');
     expect(error.textContent).toMatch(/turned off/);
+    // a11y: failure notes are alerts.
+    expect(error.getAttribute('role')).toBe('alert');
     expect(readSaved().engine).toBe('');
   });
 });

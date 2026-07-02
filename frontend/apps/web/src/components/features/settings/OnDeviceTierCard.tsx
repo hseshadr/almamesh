@@ -24,6 +24,7 @@ import {
   BLESSED_ONDEVICE_MODELS,
   DEFAULT_ONDEVICE_MODEL,
   deleteCachedModel as defaultDeleteFn,
+  hasCachedModel as defaultHasCachedFn,
   preloadOnDeviceModel as defaultPreloadFn,
   probeOnDeviceCapability as defaultProbeFn,
   readLlmSettings,
@@ -32,6 +33,7 @@ import {
   type OnDeviceCapability,
   type OnDeviceProgress,
 } from '@almamesh/llm';
+import { Badge, Button } from '../../ui';
 
 export interface OnDeviceTierCardProps {
   /** The saved provider status (drives the Active/enabled state). */
@@ -44,9 +46,27 @@ export interface OnDeviceTierCardProps {
   readonly preloadFn?: typeof defaultPreloadFn;
   /** Injectable cache remover — defaults to the real WebLLM cache delete. */
   readonly deleteFn?: typeof defaultDeleteFn;
+  /** Injectable weights-presence check — defaults to the real Cache API probe. */
+  readonly hasCachedFn?: typeof defaultHasCachedFn;
 }
 
 type CardBusy = 'idle' | 'downloading' | 'removing';
+
+/**
+ * Whether the ENABLED tier's weights are verifiably present (F2 honesty):
+ * the `{engine:'webllm'}` flag can exist without the ~1 GB cache (e.g. a
+ * Backup & Restore into a fresh browser), so the enabled copy only claims
+ * offline readiness after `hasCachedFn` confirms it. 'unknown' (check
+ * unavailable) softens the copy without nagging for a re-download.
+ */
+type CachePresence = 'checking' | 'cached' | 'missing' | 'unknown';
+
+/** The enabled-state body copy key for a given verified cache presence. */
+function enabledBodyKey(presence: CachePresence): string {
+  if (presence === 'cached') return 'model.enabled_body';
+  if (presence === 'missing') return 'model.enabled_body_missing';
+  return 'model.enabled_body_selected';
+}
 
 /** The saved on-device model id (blessed default when none picked yet). */
 function savedModelId(): string {
@@ -76,6 +96,7 @@ export function OnDeviceTierCard({
   probeFn = defaultProbeFn,
   preloadFn = defaultPreloadFn,
   deleteFn = defaultDeleteFn,
+  hasCachedFn = defaultHasCachedFn,
 }: OnDeviceTierCardProps): ReactElement {
   const { t } = useTranslation('settings');
 
@@ -86,6 +107,7 @@ export function OnDeviceTierCard({
   const [busy, setBusy] = useState<CardBusy>('idle');
   const [progress, setProgress] = useState<OnDeviceProgress | null>(null);
   const [errorKey, setErrorKey] = useState<'download_error' | 'remove_error' | null>(null);
+  const [cachePresence, setCachePresence] = useState<CachePresence>('checking');
 
   // Guard state writes after unmount (the download outlives quick navigation).
   const mountedRef = useRef(true);
@@ -111,6 +133,27 @@ export function OnDeviceTierCard({
   const selected =
     BLESSED_ONDEVICE_MODELS.find((m) => m.id === selectedId) ?? BLESSED_ONDEVICE_MODELS[0];
 
+  // F2 honesty: verify the enabled tier's weights actually exist in the cache
+  // before the copy claims "answers privately, even offline". The flag alone
+  // can survive a Backup & Restore into a fresh browser whose cache is empty.
+  useEffect(() => {
+    if (!enabled) return;
+    let cancelled = false;
+    setCachePresence('checking');
+    hasCachedFn(savedModelId()).then(
+      (present) => {
+        if (!cancelled && mountedRef.current) setCachePresence(present ? 'cached' : 'missing');
+      },
+      () => {
+        // Check unavailable → soften the copy; never claim, never nag.
+        if (!cancelled && mountedRef.current) setCachePresence('unknown');
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [enabled, hasCachedFn]);
+
   const startDownload = async (): Promise<void> => {
     if (busy !== 'idle') return;
     setBusy('downloading');
@@ -127,6 +170,8 @@ export function OnDeviceTierCard({
       if (mountedRef.current) {
         setBusy('idle');
         setProgress(null);
+        // The weights just landed — the offline-ready claim is verified again.
+        setCachePresence('cached');
       }
       onChanged();
     } catch {
@@ -160,6 +205,32 @@ export function OnDeviceTierCard({
   };
 
   const percent = Math.round((progress?.progress ?? 0) * 100);
+  const phaseLabel = t(`model.phase_${progress?.phase ?? 'download'}`);
+
+  // Shared between the first-download flow and the enabled-state re-download
+  // (F2). a11y: a real progressbar with a live value, inside a polite status.
+  const progressBlock = (
+    <div className="space-y-1.5" data-testid="ondevice-progress" role="status">
+      <p className="text-text-secondary text-xs">
+        {phaseLabel}
+        {' — '}
+        <span data-testid="ondevice-progress-percent">{percent}%</span>
+      </p>
+      <div
+        className="h-1.5 w-full overflow-hidden rounded-full bg-background-tertiary"
+        role="progressbar"
+        aria-label={phaseLabel}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={percent}
+      >
+        <div
+          className="h-full rounded-full bg-accent-gold transition-all"
+          style={{ width: `${percent}%` }}
+        />
+      </div>
+    </div>
+  );
 
   return (
     <section
@@ -177,12 +248,9 @@ export function OnDeviceTierCard({
           </span>
         </p>
         {enabled && (
-          <span
-            data-testid="tier-ondevice-active"
-            className="rounded-full bg-accent-gold/15 px-2 py-0.5 text-xs font-medium text-accent-gold"
-          >
+          <Badge variant="brass" data-testid="tier-ondevice-active">
             {t('tiers.active_badge')}
-          </span>
+          </Badge>
         )}
       </div>
       <p className="text-text-secondary text-xs mt-1">{t('tiers.ondevice_body')}</p>
@@ -210,9 +278,19 @@ export function OnDeviceTierCard({
       {enabled && (
         <div className="mt-3 space-y-3" data-testid="ondevice-enabled">
           <p className="text-text-primary text-sm">{t('model.enabled_title')}</p>
-          <p className="text-text-secondary text-xs">
-            {t('model.enabled_body', { model: modelLabel(savedModelId()) })}
+          {/* The body only claims offline readiness once the cache check
+              CONFIRMED the weights exist (F2 honesty). */}
+          <p className="text-text-secondary text-xs" data-testid="ondevice-enabled-body">
+            {t(enabledBodyKey(cachePresence), { model: modelLabel(savedModelId()) })}
           </p>
+          {cachePresence === 'missing' &&
+            (busy === 'downloading' ? (
+              progressBlock
+            ) : (
+              <Button size="sm" onClick={() => void startDownload()} data-testid="ondevice-redownload">
+                {t('model.redownload_cta')}
+              </Button>
+            ))}
           <p className="text-text-muted text-xs" data-testid="ondevice-scope">
             {t('model.scope_note')}
           </p>
@@ -274,35 +352,19 @@ export function OnDeviceTierCard({
           </p>
 
           {busy === 'downloading' ? (
-            <div className="space-y-1.5" data-testid="ondevice-progress" role="status">
-              <p className="text-text-secondary text-xs">
-                {t(`model.phase_${progress?.phase ?? 'download'}`)}
-                {' — '}
-                <span data-testid="ondevice-progress-percent">{percent}%</span>
-              </p>
-              <div className="h-1.5 w-full overflow-hidden rounded-full bg-background-tertiary">
-                <div
-                  className="h-full rounded-full bg-accent-gold transition-all"
-                  style={{ width: `${percent}%` }}
-                />
-              </div>
-            </div>
+            progressBlock
           ) : (
-            <button
-              type="button"
-              onClick={() => void startDownload()}
-              className="rounded-md bg-accent-gold px-4 py-2 text-sm font-medium text-background-primary transition-colors hover:bg-accent-gold-bright"
-              data-testid="ondevice-download"
-            >
+            <Button onClick={() => void startDownload()} data-testid="ondevice-download">
               {t('model.download_cta')}
-            </button>
+            </Button>
           )}
         </div>
       )}
 
-      {/* Honest failure notes (download / cache removal). */}
+      {/* Honest failure notes (download / cache removal) — alerts, so screen
+          readers announce them immediately rather than politely. */}
       {errorKey && (
-        <p className="mt-3 text-xs text-status-error" data-testid="ondevice-error" role="status">
+        <p className="mt-3 text-xs text-status-error" data-testid="ondevice-error" role="alert">
           {t(`model.${errorKey}`)}
         </p>
       )}

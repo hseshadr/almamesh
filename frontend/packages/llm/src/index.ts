@@ -135,7 +135,7 @@ export type {
 } from "./webllm/capability";
 export { BLESSED_ONDEVICE_MODELS, DEFAULT_ONDEVICE_MODEL } from "./webllm/models";
 export type { OnDeviceModelSpec } from "./webllm/models";
-export { preloadOnDeviceModel, deleteCachedModel } from "./webllm/engine";
+export { preloadOnDeviceModel, deleteCachedModel, hasCachedModel } from "./webllm/engine";
 export type {
   OnDeviceProgress,
   OnDeviceProgressCallback,

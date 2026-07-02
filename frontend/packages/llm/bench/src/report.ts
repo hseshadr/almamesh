@@ -27,16 +27,26 @@ export function latencyP50(result: {
  * Composite score (documented in the report): extraction accuracy 40%,
  * fence cleanliness 40% (linear down to 0 at 10 violations/1k tokens),
  * JSON validity 10%, es/pt in-language 10%.
+ *
+ * Missing data scores as MISSING, never as clean: a chat run that produced
+ * zero completion tokens (every request failed or was skipped) has no fence
+ * evidence, so its fence term earns 0 credit — a silent model can never top
+ * the ranking on a phantom 1.0. The table renders that cell as "no data".
  */
 export function compositeScore(result: {
   extractor?: { accuracy: number; jsonValidFirstTry: number; stories: number };
   chat?: {
+    completionTokens: number;
     violationsPer1k: number;
     inLanguage: Readonly<Record<"es" | "pt", { ok: number; total: number }>>;
   };
 }): number {
   const extraction = result.extractor?.accuracy ?? 0;
-  const fence = result.chat ? Math.max(0, 1 - result.chat.violationsPer1k / 10) : 0;
+  const chat = result.chat;
+  const fence =
+    chat !== undefined && chat.completionTokens > 0
+      ? Math.max(0, 1 - chat.violationsPer1k / 10)
+      : 0;
   const jsonValidity =
     result.extractor && result.extractor.stories > 0
       ? result.extractor.jsonValidFirstTry / result.extractor.stories
@@ -74,7 +84,7 @@ export function renderReport(results: readonly ModelResult[], meta: ReportMeta):
     `- Pinned \`now\` for dasha relativization: ${meta.pinnedNow}`,
     `- Spend cap per model: ~${meta.spendCapPerModel} completion tokens`,
     "",
-    "Composite = extraction accuracy ×0.4 + fence cleanliness ×0.4 (1 − violations/1k ÷ 10, floored at 0) + JSON validity ×0.1 + es/pt in-language ×0.1.",
+    "Composite = extraction accuracy ×0.4 + fence cleanliness ×0.4 (1 − violations/1k ÷ 10, floored at 0) + JSON validity ×0.1 + es/pt in-language ×0.1. A chat run with zero completion tokens has NO fence evidence: it earns 0 fence credit and shows “no data”.",
     "",
     "| Rank | Model | Endpoint | Extraction acc | JSON valid (1st try) | Retries | Fence viol/1k tok | es/pt in-lang | Latency p50 | Think blocks | Composite | Notes |",
     "|---|---|---|---|---|---|---|---|---|---|---|---|",
@@ -102,7 +112,13 @@ export function renderReport(results: readonly ModelResult[], meta: ReportMeta):
         `| ${ex ? pct(ex.accuracy) + ` (${ex.matched}/${ex.expectedTotal}, ${ex.spurious} spurious)` : "—"} `,
         `| ${ex ? `${ex.jsonValidFirstTry}/${ex.stories}` : "—"} `,
         `| ${ex ? ex.retries : "—"} `,
-        `| ${ch ? ch.violationsPer1k.toFixed(2) + ` (${ch.violations.length} in ${ch.completionTokens} tok)` : "—"} `,
+        `| ${
+          ch
+            ? ch.completionTokens > 0
+              ? ch.violationsPer1k.toFixed(2) + ` (${ch.violations.length} in ${ch.completionTokens} tok)`
+              : "no data"
+            : "—"
+        } `,
         `| ${langCells.join(", ") || "—"} `,
         `| ${r.latencyP50Ms !== null ? `${r.latencyP50Ms} ms` : "—"} `,
         `| ${ch ? ch.thinkBlocksSeen : "—"} `,

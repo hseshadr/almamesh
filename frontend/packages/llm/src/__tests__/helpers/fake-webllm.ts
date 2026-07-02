@@ -39,11 +39,14 @@ export interface FakeWebLlmState {
   progressReports: FakeInitProgressReport[];
   /** When set, the next CreateMLCEngine call rejects with this error. */
   failCreate: Error | undefined;
+  /** What hasModelInCache reports (weights present in the Cache API). */
+  modelInCache: boolean;
 }
 
 export interface FakeWebLlm {
   CreateMLCEngine: Mock;
   deleteModelAllInfoInCache: Mock;
+  hasModelInCache: Mock;
   __state: FakeWebLlmState;
   __interrupt: Mock;
   __unload: Mock;
@@ -57,6 +60,7 @@ export function makeFakeWebLlm(): FakeWebLlm {
     jsonContent: '{"ok":true}',
     progressReports: [],
     failCreate: undefined,
+    modelInCache: true,
   };
   const interrupt = vi.fn();
   const unload = vi.fn(async () => {});
@@ -101,9 +105,12 @@ export function makeFakeWebLlm(): FakeWebLlm {
 
   const deleteModelAllInfoInCache = vi.fn(async (_modelId: string) => {});
 
+  const hasModelInCache = vi.fn(async (_modelId: string) => state.modelInCache);
+
   return {
     CreateMLCEngine,
     deleteModelAllInfoInCache,
+    hasModelInCache,
     __state: state,
     __interrupt: interrupt,
     __unload: unload,
@@ -113,8 +120,10 @@ export function makeFakeWebLlm(): FakeWebLlm {
       state.jsonContent = '{"ok":true}';
       state.progressReports = [];
       state.failCreate = undefined;
+      state.modelInCache = true;
       CreateMLCEngine.mockClear();
       deleteModelAllInfoInCache.mockClear();
+      hasModelInCache.mockClear();
       interrupt.mockClear();
       unload.mockClear();
     },

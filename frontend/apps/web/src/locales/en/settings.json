@@ -178,7 +178,7 @@
     "reason_adapter_error": "The graphics-adapter check failed (a driver or permission problem). Reloading may help; otherwise the cloud tier below still works.",
     "picker_label": "Model",
     "model_size": "{{size}} MB download · needs ~{{vram}} MB of GPU memory",
-    "disclosure": "Downloads ~{{size}} MB from huggingface.co, cached on this device, works offline afterwards.",
+    "disclosure": "Downloads ~{{size}} MB from huggingface.co and github.com, cached on this device, works offline afterwards.",
     "scope_note": "Handles chat and the interview. The full written reading needs a cloud or local endpoint.",
     "download_cta": "Download & enable",
     "phase_download": "Downloading model",
@@ -187,6 +187,9 @@
     "download_error": "The download didn't finish — check your connection and try again. Nothing was enabled.",
     "enabled_title": "On-device AI is active",
     "enabled_body": "{{model}} is cached on this device and answers privately, even offline.",
+    "enabled_body_selected": "{{model}} is selected for on-device AI on this device.",
+    "enabled_body_missing": "{{model}} is selected, but its weights aren't downloaded on this device yet (for example after restoring a backup in a new browser). Download them below to chat privately on-device.",
+    "redownload_cta": "Download model weights",
     "remove": "Remove downloaded model",
     "removing": "Removing…",
     "remove_error": "On-device AI was turned off, but the cached weights could not be removed — your browser may free them itself, or try again."

@@ -63,13 +63,21 @@ function isParseableJson(content: string | null): boolean {
   }
 }
 
+/**
+ * Completion tokens reserved per extractor attempt against the spend cap
+ * (mirrors run.ts's up-front cost estimate; a structured-events response is
+ * far smaller than a chat answer).
+ */
+export const EXTRACTOR_RESERVE_TOKENS = 300;
+
 export interface ScoreExtractorOptions {
   readonly config: ProviderConfig;
   readonly stories: readonly BenchStory[];
   readonly fetchBase: FetchLike;
   /** Bench-level retries per story when structureLifeEvents reports 'error'. */
   readonly maxRetries?: number;
-  readonly onSpendTokens?: (tokens: number) => void;
+  /** Returns false when the spend cap is exhausted — remaining stories skip. */
+  readonly trySpendTokens?: (tokens: number) => boolean;
 }
 
 export async function scoreExtractor(options: ScoreExtractorOptions): Promise<ExtractorScore> {
@@ -86,6 +94,13 @@ export async function scoreExtractor(options: ScoreExtractorOptions): Promise<Ex
     expectedTotal += story.expected.length;
     let scored = false;
     for (let attempt = 0; attempt <= maxRetries && !scored; attempt++) {
+      // The extractor honors the SAME spend cap as the chat task: every
+      // attempt (including retries) reserves tokens up front, and exhaustion
+      // is an explicit skip — never a silent extra request.
+      if (options.trySpendTokens && !options.trySpendTokens(EXTRACTOR_RESERVE_TOKENS)) {
+        failures.push(`${story.id}: skipped (spend cap reached)`);
+        break;
+      }
       const records: RecordedExchange[] = [];
       // structureLifeEvents talks to globalThis.fetch — swap in the recorder
       // (mutex-guarded; see recordingFetch.ts) so raw validity is observable.
@@ -96,7 +111,6 @@ export async function scoreExtractor(options: ScoreExtractorOptions): Promise<Ex
       const record = records[records.length - 1];
       if (record) {
         latenciesMs.push(record.ms);
-        options.onSpendTokens?.(Math.ceil((record.content?.length ?? 0) / 4));
       }
       if (attempt === 0 && isParseableJson(record?.content ?? null)) {
         jsonValidFirstTry += 1;

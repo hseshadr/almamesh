@@ -112,6 +112,30 @@ describe("lordship claims", () => {
   it("does not flag the correct lagna lord", () => {
     expect(fenceCheck(TRUTH, "Your lagna lord is Moon.")).toHaveLength(0);
   });
+
+  // --- regression: bound the forward-claim window (aspect-tail false flags) ---
+
+  it("does not bind a trailing aspect clause ('Saturn rules the 7th and aspects the 3rd')", () => {
+    expect(fenceCheck(TRUTH, "Saturn rules the 7th and aspects the 3rd.")).toHaveLength(0);
+  });
+
+  it("does not bind the aspect tail with 'house' wording either", () => {
+    expect(
+      fenceCheck(TRUTH, "Saturn rules the 7th house and aspects the 3rd house."),
+    ).toHaveLength(0);
+  });
+
+  it("still flags the wrong house in a genuine multi-house claim ('Mars rules the 5th and the 3rd houses')", () => {
+    const v = fenceCheck(TRUTH, "Mars rules the 5th and the 3rd houses.");
+    expect(v).toHaveLength(1);
+    expect(v[0].detail).toContain("house 3");
+  });
+
+  it("still flags a wrong house directly after the verb ('Saturn governs the 3rd and aspects the 7th')", () => {
+    const v = fenceCheck(TRUTH, "Saturn governs the 3rd and aspects the 7th.");
+    expect(v).toHaveLength(1);
+    expect(v[0].detail).toContain("house 3");
+  });
 });
 
 describe("dasha date claims", () => {

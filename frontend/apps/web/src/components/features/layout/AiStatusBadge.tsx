@@ -46,6 +46,9 @@ export function AiStatusBadge() {
     <Link
       to="/settings/ai"
       title={title}
+      // Mobile hides the text span (icon-only dot) — the link keeps an
+      // accessible name for screen readers regardless of viewport.
+      aria-label={label}
       data-testid="ai-status-badge"
       className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ${
         ready

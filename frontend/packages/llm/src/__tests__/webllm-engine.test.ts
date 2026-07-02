@@ -14,6 +14,7 @@ import type { FakeWebLlm } from "./helpers/fake-webllm";
 import {
   deleteCachedModel,
   getOnDeviceEngine,
+  hasCachedModel,
   preloadOnDeviceModel,
   resetOnDeviceEngine,
   type OnDeviceProgress,
@@ -122,6 +123,21 @@ describe("preloadOnDeviceModel — the settings-UI download entry", () => {
     expect(fake.CreateMLCEngine).toHaveBeenCalledTimes(1);
     expect(seen).toHaveLength(1);
     expect(seen[0].phase).toBe("download");
+  });
+});
+
+describe("hasCachedModel — weights-presence check WITHOUT creating an engine", () => {
+  it("delegates to the library's hasModelInCache and reports presence", async () => {
+    fake.__state.modelInCache = true;
+    await expect(hasCachedModel(DEFAULT_ONDEVICE_MODEL)).resolves.toBe(true);
+    expect(fake.hasModelInCache).toHaveBeenCalledWith(DEFAULT_ONDEVICE_MODEL);
+    // No engine was created — checking must never trigger a download.
+    expect(fake.CreateMLCEngine).not.toHaveBeenCalled();
+  });
+
+  it("reports absence (the restored-backup-in-a-fresh-browser case)", async () => {
+    fake.__state.modelInCache = false;
+    await expect(hasCachedModel(DEFAULT_ONDEVICE_MODEL)).resolves.toBe(false);
   });
 });
 

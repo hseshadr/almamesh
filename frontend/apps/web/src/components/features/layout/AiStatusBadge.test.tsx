@@ -57,4 +57,13 @@ describe('AiStatusBadge', () => {
     renderBadge({ kind: 'none', label: 'Not set', configured: false });
     expect(screen.getByTestId('ai-status-badge').textContent).toContain('Set up AI');
   });
+
+  it('exposes an accessible name for the icon-only mobile rendering', () => {
+    // On mobile the text span is hidden (hidden sm:inline) and only the dot
+    // shows — the link still needs a name for screen readers.
+    renderBadge({ kind: 'openrouter', label: 'OpenRouter', configured: true });
+    expect(screen.getByTestId('ai-status-badge').getAttribute('aria-label')).toBe(
+      'AI: OpenRouter',
+    );
+  });
 });

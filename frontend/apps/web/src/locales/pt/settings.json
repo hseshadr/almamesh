@@ -181,7 +181,7 @@
     "reason_adapter_error": "A verificação do adaptador gráfico falhou (um problema de driver ou de permissão). Recarregar pode ajudar; caso contrário, o nível na nuvem abaixo continua funcionando.",
     "picker_label": "Modelo",
     "model_size": "{{size}} MB de download · precisa de ~{{vram}} MB de memória de GPU",
-    "disclosure": "Baixa ~{{size}} MB de huggingface.co, fica guardado neste dispositivo e depois funciona offline.",
+    "disclosure": "Baixa ~{{size}} MB de huggingface.co e github.com, fica guardado neste dispositivo e depois funciona offline.",
     "scope_note": "Cobre o chat e a entrevista. A leitura escrita completa precisa de um endpoint na nuvem ou local.",
     "download_cta": "Baixar e ativar",
     "phase_download": "Baixando o modelo",
@@ -190,6 +190,9 @@
     "download_error": "O download não terminou — verifique sua conexão e tente novamente. Nada foi ativado.",
     "enabled_title": "A IA no dispositivo está ativa",
     "enabled_body": "{{model}} está guardado neste dispositivo e responde de forma privada, mesmo offline.",
+    "enabled_body_selected": "{{model}} está selecionado para a IA no dispositivo neste aparelho.",
+    "enabled_body_missing": "{{model}} está selecionado, mas seus pesos ainda não foram baixados neste dispositivo (por exemplo, após restaurar um backup em um navegador novo). Baixe-os abaixo para conversar de forma privada no dispositivo.",
+    "redownload_cta": "Baixar os pesos do modelo",
     "remove": "Remover o modelo baixado",
     "removing": "Removendo…",
     "remove_error": "A IA no dispositivo foi desativada, mas os pesos em cache não puderam ser removidos — seu navegador pode liberá-los sozinho, ou tente novamente."

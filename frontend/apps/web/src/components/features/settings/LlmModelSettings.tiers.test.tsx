@@ -23,7 +23,14 @@ function readSaved(): Record<string, unknown> {
 const unsupportedProbe = vi.fn(async () => ({ supported: false, reason: 'no_webgpu' }) as const);
 
 function renderTiers() {
-  return render(<LlmModelSettings probeFn={unsupportedProbe} />);
+  return render(
+    <LlmModelSettings
+      probeFn={unsupportedProbe}
+      // Deterministic: never let the enabled card's cache check hit the real
+      // (dynamically imported) WebLLM library inside jsdom.
+      hasCachedFn={vi.fn(async () => true)}
+    />,
+  );
 }
 
 describe('LlmModelSettings — three tiers', () => {

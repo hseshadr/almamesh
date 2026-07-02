@@ -54,6 +54,22 @@ describe("compositeScore", () => {
     });
     expect(score).toBeCloseTo(0.75 * 0.4 + 0 + (6 / 7) * 0.1 + (3 / 4) * 0.1, 6);
   });
+
+  it("gives NO fence credit to an empty/failed chat run (zero completion tokens)", () => {
+    const silentChat: ChatScore = {
+      ...CHAT,
+      questions: 0,
+      completionTokens: 0,
+      violations: [],
+      violationsPer1k: 0,
+      inLanguage: { es: { ok: 0, total: 0 }, pt: { ok: 0, total: 0 } },
+    };
+    const score = compositeScore({ extractor: EXTRACTOR, chat: silentChat });
+    // Fence + language terms are MISSING, not perfect: only extraction + JSON count.
+    expect(score).toBeCloseTo(0.75 * 0.4 + (6 / 7) * 0.1, 6);
+    // A silent model must rank BELOW the same model with a real, clean chat run.
+    expect(score).toBeLessThan(compositeScore({ extractor: EXTRACTOR, chat: CHAT }));
+  });
 });
 
 describe("latencyP50", () => {
@@ -95,5 +111,22 @@ describe("renderReport", () => {
     expect(report).toContain("saturn rules the 3rd house");
     expect(report).toContain("Server quant ≠ browser quant");
     expect(report).toContain("es 2/2, pt 1/2");
+  });
+
+  it("marks the fence cell 'no data' for a zero-token chat run instead of a clean score", () => {
+    const silent: ModelResult = {
+      ...result("silent-model", 0.4),
+      chat: {
+        ...CHAT,
+        questions: 0,
+        completionTokens: 0,
+        violations: [],
+        violationsPer1k: 0,
+        inLanguage: { es: { ok: 0, total: 0 }, pt: { ok: 0, total: 0 } },
+      },
+    };
+    const report = renderReport([silent], meta);
+    expect(report).toContain("no data");
+    expect(report).not.toContain("0.00 (0 in 0 tok)");
   });
 });

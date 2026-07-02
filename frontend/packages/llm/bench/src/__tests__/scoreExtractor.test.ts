@@ -147,4 +147,22 @@ describe("scoreExtractor", () => {
     expect(score.failures).toHaveLength(1);
     expect(score.failures[0]).toContain("t-1");
   });
+
+  it("enforces the spend cap: stories after exhaustion are skipped, not silently run", async () => {
+    const payload = JSON.stringify({
+      events: [
+        { date: "2014-06-12", category: "marriage", precision: "exact" },
+        { date: "2010-05-20", category: "relocation", precision: "year" },
+      ],
+    });
+    let allowance = 1; // budget for exactly one story attempt
+    const score = await scoreExtractor({
+      config: CONFIG,
+      stories: [STORY, { ...STORY, id: "t-2" }],
+      fetchBase: fetchReturning(payload),
+      trySpendTokens: () => allowance-- > 0,
+    });
+    expect(score.matched).toBe(2); // only the first story was scored
+    expect(score.failures).toEqual(["t-2: skipped (spend cap reached)"]);
+  });
 });

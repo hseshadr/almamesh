@@ -181,7 +181,7 @@
     "reason_adapter_error": "La comprobación del adaptador gráfico falló (un problema de controlador o de permisos). Recargar puede ayudar; si no, el nivel en la nube de abajo sigue funcionando.",
     "picker_label": "Modelo",
     "model_size": "{{size}} MB de descarga · necesita ~{{vram}} MB de memoria de GPU",
-    "disclosure": "Descarga ~{{size}} MB desde huggingface.co, se guarda en este dispositivo y después funciona sin conexión.",
+    "disclosure": "Descarga ~{{size}} MB desde huggingface.co y github.com, se guarda en este dispositivo y después funciona sin conexión.",
     "scope_note": "Cubre el chat y la entrevista. La lectura escrita completa necesita un endpoint en la nube o local.",
     "download_cta": "Descargar y activar",
     "phase_download": "Descargando el modelo",
@@ -190,6 +190,9 @@
     "download_error": "La descarga no terminó — revisa tu conexión e inténtalo de nuevo. No se activó nada.",
     "enabled_title": "La IA en el dispositivo está activa",
     "enabled_body": "{{model}} está guardado en este dispositivo y responde de forma privada, incluso sin conexión.",
+    "enabled_body_selected": "{{model}} está seleccionado para la IA en el dispositivo en este equipo.",
+    "enabled_body_missing": "{{model}} está seleccionado, pero sus pesos aún no están descargados en este dispositivo (por ejemplo, tras restaurar una copia de seguridad en un navegador nuevo). Descárgalos abajo para chatear de forma privada en el dispositivo.",
+    "redownload_cta": "Descargar los pesos del modelo",
     "remove": "Eliminar el modelo descargado",
     "removing": "Eliminando…",
     "remove_error": "La IA en el dispositivo se desactivó, pero los pesos guardados no se pudieron eliminar — tu navegador puede liberarlos por su cuenta, o inténtalo de nuevo."

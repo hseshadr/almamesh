@@ -129,6 +129,29 @@ const FORWARD_LORDSHIP_RE = new RegExp(
   "g",
 );
 
+// Words allowed INSIDE the house-token run that follows a lordship verb:
+// articles, connectors, "house(s)" and the house tokens themselves. The claim
+// window ends at the first word outside this set, so a trailing clause
+// ("rules the 7th and aspects the 3rd") cannot bind its house to the verb
+// (smoke-run false-flag fix), while "rules the 7th and 8th houses" still
+// binds both houses.
+const LORDSHIP_RUN_WORD_RE = new RegExp(
+  `^(?:the|your|both|and|y|e|or|o|ou|plus|houses?|casas?|\\d{1,2}|${HOUSE_TOKEN})$`,
+);
+
+/** Truncate a forward-lordship tail at the first non-house-run word. */
+function lordshipClaimWindow(tail: string): string {
+  const kept: string[] = [];
+  for (const word of tail.split(/\s+/)) {
+    const bare = word.replace(/[^a-z0-9]/g, "");
+    if (bare.length > 0 && !LORDSHIP_RUN_WORD_RE.test(bare)) {
+      break;
+    }
+    kept.push(word);
+  }
+  return kept.join(" ");
+}
+
 // "the lord of the 7th house is venus" / "7th lord venus" — short connector
 // window on purpose: "lord of the 7th is in the 8th with venus" must NOT bind.
 const REVERSED_LORDSHIP_RE = new RegExp(
@@ -175,7 +198,9 @@ function checkLordships(truth: EngineTruth, sentence: string, out: FenceViolatio
     return;
   }
   for (const m of sentence.matchAll(FORWARD_LORDSHIP_RE)) {
-    const tail = m[2];
+    // Bound the claim window to the house-token run directly after the verb —
+    // a following clause ("... and aspects the 3rd") must not bind.
+    const tail = lordshipClaimWindow(m[2]);
     // Guard: the tail must actually reference houses ("rules discipline",
     // "rules sagittarius" carry no house token and are skipped).
     for (const house of housesIn(tail)) {

@@ -29,6 +29,7 @@ import {
   type LlmSettings,
   type LlmStatus,
 } from '@almamesh/llm';
+import { Badge, Button } from '../../ui';
 import { OnDeviceTierCard, type OnDeviceTierCardProps } from './OnDeviceTierCard';
 
 const PLACEHOLDER_BASE = 'http://localhost:11434/v1';
@@ -57,7 +58,7 @@ function withoutOnDeviceModels(settings: LlmSettings): LlmSettings {
 /** Test-only injectables threaded through to the on-device tier card. */
 export type LlmModelSettingsProps = Pick<
   OnDeviceTierCardProps,
-  'probeFn' | 'preloadFn' | 'deleteFn'
+  'probeFn' | 'preloadFn' | 'deleteFn' | 'hasCachedFn'
 >;
 
 export default function LlmModelSettings(props: LlmModelSettingsProps = {}) {
@@ -94,12 +95,9 @@ export default function LlmModelSettings(props: LlmModelSettingsProps = {}) {
             </span>
           </p>
           {noneActive ? (
-            <span
-              data-testid="tier-none-active"
-              className="rounded-full bg-accent-gold/15 px-2 py-0.5 text-xs font-medium text-accent-gold"
-            >
+            <Badge variant="brass" data-testid="tier-none-active">
               {t('tiers.active_badge')}
-            </span>
+            </Badge>
           ) : (
             <button
               type="button"
@@ -132,12 +130,9 @@ export default function LlmModelSettings(props: LlmModelSettingsProps = {}) {
             </span>
           </p>
           {cloudActive && (
-            <span
-              data-testid="tier-cloud-active"
-              className="rounded-full bg-accent-gold/15 px-2 py-0.5 text-xs font-medium text-accent-gold"
-            >
+            <Badge variant="brass" data-testid="tier-cloud-active">
               {t('tiers.active_badge')}
-            </span>
+            </Badge>
           )}
         </div>
         {/* The honest one-liner: stronger models, redacted chart data leaves. */}
@@ -229,14 +224,13 @@ function CloudEndpointForm({ onSaved }: { onSaved: () => void }) {
             <p className="text-text-primary text-sm font-medium">{t('ai.use_openrouter_title')}</p>
             <p className="text-text-secondary text-xs mt-0.5">{t('ai.use_openrouter_description')}</p>
           </div>
-          <button
-            type="button"
+          <Button
             onClick={useOpenRouter}
-            className="w-full flex-shrink-0 rounded-md bg-accent-gold px-4 py-2 text-sm font-medium text-background-primary transition-colors hover:bg-accent-gold-bright sm:w-auto"
+            className="w-full flex-shrink-0 sm:w-auto"
             data-testid="llm-use-openrouter"
           >
             {t('ai.use_openrouter_button')}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -338,13 +332,9 @@ function CloudEndpointForm({ onSaved }: { onSaved: () => void }) {
       )}
 
       <div className="flex items-center gap-3">
-        <button
-          onClick={save}
-          className="px-4 py-2 text-sm font-medium rounded-md bg-accent-gold text-background-primary"
-          data-testid="llm-save"
-        >
+        <Button onClick={save} data-testid="llm-save">
           {t('ai.save_model_settings')}
-        </button>
+        </Button>
         {saved && <span className="text-sm text-green-400">{t('ai.saved')}</span>}
       </div>
     </div>

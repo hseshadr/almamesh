@@ -22,7 +22,7 @@
   },
   "cta": {
     "title": "Conecte um modelo de IA para gerar sua interpretação",
-    "body": "Seu mapa é calculado no seu dispositivo. Para transformá-lo em uma leitura personalizada, conecte um modelo de IA: use a configuração rápida do OpenRouter com um clique ou aponte o AlmaMesh para um modelo local (por exemplo, Ollama)."
+    "body": "Seu mapa é calculado no seu dispositivo. Para transformá-lo em uma leitura personalizada, conecte um modelo de IA: use a configuração rápida do OpenRouter com um clique ou aponte o AlmaMesh para um modelo local (por exemplo, Ollama). Prefere privacidade total? Também há uma opção de IA no dispositivo (beta) nas configurações de IA."
   },
   "generation": {
     "title_generating": "Gerando sua interpretação personalizada",

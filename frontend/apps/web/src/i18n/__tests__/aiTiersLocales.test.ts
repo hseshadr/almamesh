@@ -81,6 +81,15 @@ describe('AI tiers locale parity (Spec 063)', () => {
     }
   });
 
+  it('dashboard "Connect an AI model" card also mentions the on-device option ×3', () => {
+    const bodies = [enDashboard, esDashboard, ptDashboard].map(
+      (c) => ((c as Catalog).cta as Catalog).body as string,
+    );
+    expect(bodies[0]).toMatch(/on-device AI option/i);
+    expect(bodies[1]).toMatch(/IA en el dispositivo/i);
+    expect(bodies[2]).toMatch(/IA no dispositivo/i);
+  });
+
   it('common ai_badge.on_device label exists ×3', () => {
     for (const catalog of [enCommon, esCommon, ptCommon]) {
       const badge = (catalog as Catalog).ai_badge as Catalog;
