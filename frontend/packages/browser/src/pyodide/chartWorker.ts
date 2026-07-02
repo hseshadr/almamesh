@@ -128,6 +128,18 @@ def _almamesh_compute_rectification(input_json):
         )
         for e in data["events"]
     ]
+    # Spec 062: spanMinutes (honest window bound) + anchorConfidence (E5 anchor
+    # prior) thread through as snake_case kwargs. Both kwargs are OMITTED when
+    # the caller omits the field, so absent inputs stay byte-identical and an
+    # older wheel (without the kwargs) still serves span-less calls.
+    extra_kwargs = {}
+    raw_span = data.get("spanMinutes")
+    if raw_span is not None:
+        extra_kwargs["span_minutes"] = int(raw_span)
+    raw_anchor = data.get("anchorConfidence")
+    if raw_anchor is not None:
+        from almamesh.rectification.models import AnchorConfidence
+        extra_kwargs["anchor_confidence"] = AnchorConfidence(str(raw_anchor))
     result = compute_rectification_result(
         dt_utc=dt,
         latitude=data["latitude"],
@@ -136,6 +148,7 @@ def _almamesh_compute_rectification(input_json):
         events=events,
         mode=RectificationMode(data["mode"]),
         reference_date=reference_date,
+        **extra_kwargs,
     )
     return json.dumps(result.model_dump(mode="json"))
 `;

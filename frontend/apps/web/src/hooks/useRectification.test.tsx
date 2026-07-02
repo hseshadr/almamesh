@@ -155,6 +155,44 @@ describe('useRectification', () => {
     expect(result.current.state.error).toBeNull();
   });
 
+  // Spec 062: the wire input carries the E5 anchor prior explicitly, matching
+  // the engine defaults ('about' for cusp — a recorded time exists; 'unknown'
+  // for window) so absent and explicit are byte-identical. spanMinutes is
+  // threaded only when the caller supplies it.
+  it('run("cusp") sends anchorConfidence "about" and omits spanMinutes by default', async () => {
+    const ctx = makeEngineCtx();
+    const { result } = renderHook(() => useRectification(PROFILE_ID), {
+      wrapper: makeWrapper(ctx),
+    });
+
+    await act(async () => {
+      await result.current.run('cusp');
+    });
+
+    const compute = (ctx.engine as unknown as { computeRectification: ReturnType<typeof vi.fn> })
+      .computeRectification;
+    const wire = compute.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(wire.anchorConfidence).toBe('about');
+    expect('spanMinutes' in wire).toBe(false);
+  });
+
+  it('run("window", spanMinutes) sends anchorConfidence "unknown" and threads spanMinutes', async () => {
+    const ctx = makeEngineCtx();
+    const { result } = renderHook(() => useRectification(PROFILE_ID), {
+      wrapper: makeWrapper(ctx),
+    });
+
+    await act(async () => {
+      await result.current.run('window', 90);
+    });
+
+    const compute = (ctx.engine as unknown as { computeRectification: ReturnType<typeof vi.fn> })
+      .computeRectification;
+    const wire = compute.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(wire.anchorConfidence).toBe('unknown');
+    expect(wire.spanMinutes).toBe(90);
+  });
+
   it('engine throw produces error state; retry() calls reboot() then re-runs -> ready', async () => {
     let callCount = 0;
     const computeImpl = (): Promise<RectificationResultRaw> => {

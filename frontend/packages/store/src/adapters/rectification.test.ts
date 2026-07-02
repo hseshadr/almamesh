@@ -8,6 +8,9 @@ import type { RectificationResultRaw } from '@almamesh/browser/types';
 import { adaptRectification } from './rectification';
 
 // Synthetic fixture — no real birth data, only structural coverage.
+// Spec 062: candidates carry the fit-score split (positive/penalty/prior),
+// the D9 navamsa lagna, and candidate-level miss keys; evidence signals use
+// the depth/valence grammar and contribution is NET (can be negative).
 const RAW: RectificationResultRaw = {
   mode: 'cusp',
   candidates: [
@@ -18,13 +21,25 @@ const RAW: RectificationResultRaw = {
       lagna_cusp_distance_deg: 3.8,
       is_near_cusp: false,
       fit_score: 0.72,
+      navamsa_lagna_sign: 'Leo',
+      positive_total: 1.1,
+      penalty_total: 0.45,
+      prior_bonus: 0.07,
+      misses: ['miss_silent_marriage_h7'],
       supporting_events: [
         {
           event_index: 0,
           category: 'marriage',
           date: '2010-05-15',
-          signals: ['Jupiter transit 7th house'],
+          signals: ['ad_lord_rules_h7#dignified_fit', 'd9_lord_in_d9_h7'],
           contribution: 1.0,
+        },
+        {
+          event_index: 1,
+          category: 'litigation',
+          date: '2014-03-02',
+          signals: ['miss_unexplained'],
+          contribution: -0.25,
         },
       ],
     },
@@ -61,19 +76,77 @@ describe('adaptRectification', () => {
     expect(cand?.fitScore).toBe(0.72);
   });
 
+  it('maps the Spec 062 candidate fields (D9 lagna + fit-score split + misses) verbatim', () => {
+    const cand = adaptRectification(RAW).candidates[0];
+    expect(cand?.navamsaLagnaSign).toBe('Leo');
+    expect(cand?.positiveTotal).toBe(1.1);
+    expect(cand?.penaltyTotal).toBe(0.45);
+    expect(cand?.priorBonus).toBe(0.07);
+    expect(cand?.misses).toEqual(['miss_silent_marriage_h7']);
+  });
+
+  it('defaults the Spec 062 candidate fields when an older wheel omits them', () => {
+    // An older bundled wheel (pre-Spec-062) emits candidates without the new
+    // keys; the adapter must produce the same defaults the backend models use.
+    const legacyCandidate = { ...RAW.candidates[0]! };
+    delete (legacyCandidate as Record<string, unknown>).navamsa_lagna_sign;
+    delete (legacyCandidate as Record<string, unknown>).positive_total;
+    delete (legacyCandidate as Record<string, unknown>).penalty_total;
+    delete (legacyCandidate as Record<string, unknown>).prior_bonus;
+    delete (legacyCandidate as Record<string, unknown>).misses;
+    const raw: RectificationResultRaw = { ...RAW, candidates: [legacyCandidate] };
+
+    const cand = adaptRectification(raw).candidates[0];
+    expect(cand?.navamsaLagnaSign).toBeNull();
+    expect(cand?.positiveTotal).toBe(0);
+    expect(cand?.penaltyTotal).toBe(0);
+    expect(cand?.priorBonus).toBe(0);
+    expect(cand?.misses).toEqual([]);
+  });
+
   it('maps all event evidence camelCase fields', () => {
     const result = adaptRectification(RAW);
 
     // Explicit runtime check: nested array is populated and mapped
-    expect(result.candidates[0]?.supportingEvents).toHaveLength(1);
+    expect(result.candidates[0]?.supportingEvents).toHaveLength(2);
 
     const ev = result.candidates[0]?.supportingEvents[0];
     expect(ev).toBeDefined();
     expect(ev?.eventIndex).toBe(0);
     expect(ev?.category).toBe('marriage');
     expect(ev?.date).toBe('2010-05-15');
-    expect(ev?.signals).toEqual(['Jupiter transit 7th house']);
+    expect(ev?.signals).toEqual(['ad_lord_rules_h7#dignified_fit', 'd9_lord_in_d9_h7']);
     expect(ev?.contribution).toBe(1.0);
+  });
+
+  it('passes a NEGATIVE net contribution through verbatim (miss_unexplained rows)', () => {
+    const ev = adaptRectification(RAW).candidates[0]?.supportingEvents[1];
+    expect(ev?.category).toBe('litigation');
+    expect(ev?.signals).toEqual(['miss_unexplained']);
+    expect(ev?.contribution).toBe(-0.25);
+  });
+
+  it('accepts the family_rupture category (17th, Spec 062 E6) on evidence rows', () => {
+    const raw: RectificationResultRaw = {
+      ...RAW,
+      candidates: [
+        {
+          ...RAW.candidates[0]!,
+          supporting_events: [
+            {
+              event_index: 0,
+              category: 'family_rupture',
+              date: '2018-11-01',
+              signals: ['md_lord_rules_h4'],
+              contribution: 0.5,
+            },
+          ],
+        },
+      ],
+    };
+    expect(adaptRectification(raw).candidates[0]?.supportingEvents[0]?.category).toBe(
+      'family_rupture',
+    );
   });
 
   it('passes null recordedTimeSign through unchanged', () => {

@@ -16,8 +16,11 @@ import { bootEngine, seedChart, waitForEngineReady, type SeedBirthSpec } from '.
  *   1. Intro step renders
  *   2. 0-event guard (Continue disabled until ≥1 structured event)
  *   3. ≥3 events added via structured entry rows
+ *   3b. Honest-window question (Spec 062): renders for a recorded time,
+ *       "as recorded" pre-selected for cusp, no "%"; absent for unknown-time
  *   4. Fit step → results render (band-label visible)
- *   5. Band label qualitative (no %)
+ *   5. Band label qualitative (no %); no raw signal key from the FULL Spec 062
+ *      grammar anywhere (md_/ad_/pd_/dasha_/d9_/miss_/prior_/#valence)
  *   6. Honesty note substantive
  *   7. Evidence rows: localized signal phrases (not raw machine keys)
  *   8. NO "%" in results region
@@ -38,6 +41,13 @@ import { bootEngine, seedChart, waitForEngineReady, type SeedBirthSpec } from '.
 
 // Cross-platform temp dir — works on both macOS (local) and Linux (CI).
 const SCRATCHPAD = join(tmpdir(), 'almamesh-wizard-e2e');
+
+// Spec 062 raw-key gate: NO machine signal key from the full grammar may ever
+// surface in the UI — depth keys (md_/ad_/pd_ + legacy dasha_), transits, D9
+// keys, valence suffixes, miss keys (unexplained + silent), the prior pseudo-
+// signal. An unmapped key must fail this gate, never silently fall back.
+const RAW_SIGNAL_KEY_RE =
+  /(?:md|ad|pd|dasha)_lord_(?:rules|in)_h\d|slow_transit_h\d|d9_lord_[a-z0-9_]+|miss_unexplained|miss_silent_[a-z_]+_h\d|prior_anchor|#(?:afflicted|dignified)_fit/;
 
 // Synthetic Bengaluru cusp native (ZERO owner PII).
 // 1988-08-08 06:44 IST == 01:14 UTC. Cancer/Leo cusp (lagna ~Leo 0°).
@@ -202,8 +212,25 @@ test.describe('Phase-2 Rectification Wizard', () => {
       timeout: 5_000,
     });
 
-    // ── 9. Continue → Fit → Results ───────────────────────────────────────
+    // ── 9. Continue → honest-window question → Fit → Results ─────────────
     await continueBtn.click();
+    await page.waitForTimeout(600);
+
+    // Spec 062: a recorded-time profile answers the honest-window question
+    // BEFORE the engine runs ("how sure are you about the recorded time?").
+    const windowSelector = page.locator('[data-testid="window-selector"]');
+    await expect(windowSelector, 'window question must render for a recorded time').toBeVisible({
+      timeout: 5_000,
+    });
+    const selectorText = (await windowSelector.textContent()) ?? '';
+    expect(selectorText, 'window question must NOT contain "%"').not.toContain('%');
+    // Approximate-confidence profile → cusp detected → "as recorded" pre-selected.
+    const defaultRadio = page.locator(
+      '[data-testid="window-option-as_recorded"] input[type="radio"]',
+    );
+    expect(await defaultRadio.isChecked(), 'as_recorded must be the cusp default').toBe(true);
+    await page.screenshot({ path: `${SCRATCHPAD}/04b-window-question.png`, fullPage: true });
+    await page.locator('[data-testid="window-start-btn"]').click();
     await page.waitForTimeout(600);
 
     // Fit step (loading state)
@@ -250,15 +277,23 @@ test.describe('Phase-2 Rectification Wizard', () => {
     let hasRaw = false;
     for (let i = 0; i < tableCount; i++) {
       const txt = (await evidenceTables.nth(i).textContent()) ?? '';
-      if (/Dasha lord|Slow planet|timing signal/i.test(txt)) hasLocalized = true;
-      if (/dasha_lord_rules_h\d|dasha_lord_in_h\d|slow_transit_h\d/.test(txt)) hasRaw = true;
+      if (/lord|Slow planet|navamsa|timing signal/i.test(txt)) hasLocalized = true;
+      // Spec 062: the FULL grammar — an unmapped depth/D9/miss/prior/valence
+      // key surfacing raw fails the gate (no silent "A timing signal" pass).
+      if (RAW_SIGNAL_KEY_RE.test(txt)) hasRaw = true;
     }
     expect(hasLocalized, 'evidence rows must have localized human phrases').toBe(true);
     expect(hasRaw, 'evidence rows must NOT expose raw machine signal keys').toBe(false);
 
     // 10d. NO "%" in page text (anti-scam: no false-precision fit-score %)
+    // and NO raw signal key ANYWHERE on the results page (misses, prior rows
+    // and the decided-line render outside the evidence tables).
     const pageText = (await page.evaluate(() => document.body.innerText ?? '')) ?? '';
     expect(pageText, 'NO "%" may appear on the results page').not.toContain('%');
+    expect(
+      RAW_SIGNAL_KEY_RE.test(pageText),
+      'NO raw signal key may appear anywhere on the results page',
+    ).toBe(false);
 
     // 10e. Recorded-time reference section
     await expect(
@@ -271,6 +306,20 @@ test.describe('Phase-2 Rectification Wizard', () => {
     const candidateCount = await candidateCards.count();
     expect(candidateCount, 'at least 1 candidate card').toBeGreaterThan(0);
     await expect(candidateCards.first().locator('[data-testid="confirm-button"]')).toBeVisible();
+
+    // 10g. Spec 062 storytelling: counts-only fit summary on every card, the
+    // "what decided it" line, and no numeric score fragments in the summary.
+    const fitSummary = candidateCards.first().locator('[data-testid="fit-summary"]');
+    await expect(fitSummary, 'fit summary (counts only) must render').toBeVisible();
+    const fitSummaryText = (await fitSummary.textContent()) ?? '';
+    expect(fitSummaryText, 'fit summary must be counts, not scores').toMatch(
+      /supporting fit|unexplained event|quiet-period miss/i,
+    );
+    expect(fitSummaryText, 'fit summary must NOT contain decimals').not.toMatch(/\d\.\d/);
+    await expect(
+      page.locator('[data-testid="decided-line"]'),
+      '"what decided it" line must render',
+    ).toBeVisible();
 
     // ── 11. Parity capture: band + candidate signs ────────────────────────
     const parityData = await page.evaluate(() => {
@@ -567,6 +616,14 @@ test.describe('Phase-2 Rectification Wizard', () => {
     await wContinueBtn.click();
     await page.waitForTimeout(600);
 
+    // Spec 062: an UNKNOWN-time profile has no recorded time to be sure
+    // about — the honest-window question must NOT appear; the whole-day scan
+    // starts directly.
+    await expect(
+      page.locator('[data-testid="window-selector"]'),
+      'window question must be ABSENT for unknown-time profiles',
+    ).toHaveCount(0);
+
     // FitProgress: elapsed timer visible, NO "%"
     const wFitStep = page.locator('[data-testid="fit-step"]');
     if (await wFitStep.isVisible({ timeout: 4_000 }).catch(() => false)) {
@@ -603,9 +660,13 @@ test.describe('Phase-2 Rectification Wizard', () => {
     expect(caveatText, 'caveat must mention "sign"').toMatch(/sign/i);
     console.log(`[wizard-window] window-sign-caveat: "${caveatText.slice(0, 100)}"`);
 
-    // ── 11. Assert no % in results region ────────────────────────────────
+    // ── 11. Assert no % and no raw signal keys in results region ─────────
     const wPageText = (await page.evaluate(() => document.body.innerText ?? '')) ?? '';
     expect(wPageText, 'NO "%" may appear on window results page').not.toContain('%');
+    expect(
+      RAW_SIGNAL_KEY_RE.test(wPageText),
+      'NO raw signal key may appear on the window results page',
+    ).toBe(false);
 
     // ── 12. Band qualitative ──────────────────────────────────────────────
     const wBandText = (await wBandLabel.textContent()) ?? '';

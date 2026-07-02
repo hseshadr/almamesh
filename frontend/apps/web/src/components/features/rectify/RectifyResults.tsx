@@ -21,6 +21,7 @@ import {
   type CandidateReading,
 } from '../settings/BirthTimeComparison';
 import { cuspInfo } from '../../../lib/lagnaCusp';
+import { decidedFamilies } from '../../../lib/rectifySignals';
 import { CandidateCard } from './CandidateCard';
 
 export interface RectifyResultsProps {
@@ -58,6 +59,31 @@ function stripNsPrefix(key: string, ns: string): string {
   return key.startsWith(prefix) ? key.slice(prefix.length) : key;
 }
 
+/**
+ * Resolve the engine's honesty-note key into a base band note plus an optional
+ * Spec 062 lead qualifier. The engine emits either `rectify.honesty.{band}` or
+ * a variant `rectify.honesty.{band}.prior_influenced` / `.penalty_driven` —
+ * variants render the band's base note PLUS the matching caveat sentence, so
+ * a prior-made or penalty-made lead is never presented as a clean event win.
+ * Unknown qualifiers degrade gracefully to the base note.
+ */
+export function resolveHonestyKeys(honestyNoteKey: string): {
+  baseKey: string;
+  qualifierKey: string | null;
+} {
+  const key = stripNsPrefix(honestyNoteKey, 'rectify');
+  const parts = key.split('.');
+  if (parts[0] !== 'honesty' || parts.length < 2) {
+    return { baseKey: key, qualifierKey: null };
+  }
+  const qualifier = parts[2];
+  const qualifierKey =
+    qualifier === 'prior_influenced' || qualifier === 'penalty_driven'
+      ? `honesty_qualifier.${qualifier}`
+      : null;
+  return { baseKey: `honesty.${parts[1]}`, qualifierKey };
+}
+
 export function RectifyResults({
   result,
   recordedReading,
@@ -67,8 +93,18 @@ export function RectifyResults({
   const { t } = useTranslation('rectify');
 
   const { band, candidates, honestyNoteKey } = result;
-  const honestyKey = stripNsPrefix(honestyNoteKey, 'rectify');
+  const { baseKey: honestyKey, qualifierKey: honestyQualifierKey } =
+    resolveHonestyKeys(honestyNoteKey);
   const topCandidate = candidates[0];
+
+  // "What decided it" — the top candidate's strongest evidence KINDS (never
+  // scores). The D9 flip callout fires when navamsa signals contributed.
+  const families = topCandidate != null ? decidedFamilies(topCandidate.supportingEvents) : [];
+  const decidedReasons =
+    families.length > 0
+      ? families.map((family) => t(`results.reason_${family}`)).join(' · ')
+      : t('results.reason_balance');
+  const d9Contributed = families.includes('d9');
 
   // For the BirthTimeComparison: recorded vs top rectified candidate.
   const rectifiedReading = topCandidate != null ? candidateReading(topCandidate) : null;
@@ -109,6 +145,25 @@ export function RectifyResults({
         >
           {t(honestyKey)}
         </p>
+        {honestyQualifierKey != null && (
+          <p
+            data-testid="honesty-qualifier"
+            className="mt-2 text-sm italic leading-relaxed text-text-secondary"
+          >
+            {t(honestyQualifierKey)}
+          </p>
+        )}
+        <p data-testid="decided-line" className="mt-3 text-xs text-text-tertiary">
+          {t('results.decided_line', { reasons: decidedReasons })}
+        </p>
+        {d9Contributed && (
+          <p
+            data-testid="d9-flip-callout"
+            className="mt-1.5 text-xs leading-relaxed text-accent-blue"
+          >
+            {t('results.d9_flip_callout')}
+          </p>
+        )}
       </div>
 
       {/* ── Near-tie settle note ────────────────────────────────────────── */}

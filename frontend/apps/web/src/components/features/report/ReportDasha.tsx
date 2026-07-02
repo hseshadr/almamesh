@@ -1,18 +1,21 @@
 /**
  * ReportDasha — the Vimshottari Mahā-daśā sequence + the current periods,
- * plus the period drill-down the letterpress document needs: the RUNNING
- * mahā's nine antar-daśās and the running antar's nine pratyantar-daśās
- * (never all 81 antars — page bloat). Each sub-table highlights its running
- * row exactly like the mahā table does.
+ * plus the full period drill-down the definitive document needs: the nine
+ * antar-daśās of EVERY mahā (all 81, in mahā order — this is the reference
+ * table an astrologer reaches for), and the running antar's nine
+ * pratyantar-daśās nested after the running mahā. Each sub-table highlights
+ * its running row exactly like the mahā table does.
  *
  * Reads the engine's `dashas` verbatim: spans, lords and durations are the
  * emitted values; "running" rows are located by pure lord + dated-start
  * matching (`lib/dashaPeriods`, no astrology). Older payloads without the
- * depth fields render the classic section unchanged. Dates use the
- * null/epoch-safe `formatReportDate`, so a missing date never renders as 1969.
+ * depth fields render the classic section unchanged. Boundary dates render
+ * via the date-safe `formatPredictiveDate` pattern — the WRITTEN calendar
+ * date, never a UTC reparse that rolls the day back west of GMT (missing
+ * dates render an em dash, never 1969).
  */
 
-import type { ReactElement } from 'react';
+import { Fragment, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { DashaPeriod, VimshottariDasha } from '@almamesh/browser/types';
 import {
@@ -20,11 +23,23 @@ import {
   type DashaTreeRow,
   type DashaTreeSource,
 } from '../../../lib/dashaPeriods';
-import { formatDurationYears, formatReportDate } from '../../../lib/reportData';
+// Dasha boundaries arrive as date-only strings OR full ISO instants; the old
+// `formatReportDate` reparsed both through `new Date(...)` and formatted them
+// in the VIEWER's timezone, rolling the displayed day back a day west of GMT
+// (the life-event date bug class). Taking the written date part and
+// formatting it at local noon keeps the calendar day stable in every zone.
+import { formatPredictiveDate } from '../../../lib/predictive';
+import { formatDurationYears } from '../../../lib/reportData';
 import { ReportSectionHeading } from './ReportSectionHeading';
 
 function titleCase(value: string): string {
   return value ? value.charAt(0).toUpperCase() + value.slice(1) : '';
+}
+
+/** Date-safe dasha boundary date: the WRITTEN calendar date, or an em dash. */
+function formatDashaDate(value: string | null | undefined): string {
+  if (!value) return '—';
+  return formatPredictiveDate(value.split('T')[0] ?? value);
 }
 
 /** A current-period leg with its level label, or null when the engine omits it. */
@@ -36,7 +51,7 @@ function CurrentLeg({ label, period }: { label: string; period: DashaPeriod | nu
     <div className="report-dasha-leg">
       <dt>{label}</dt>
       <dd>
-        {titleCase(period.lord)} ({formatReportDate(period.start_date)} – {formatReportDate(period.end_date)})
+        {titleCase(period.lord)} ({formatDashaDate(period.start_date)} – {formatDashaDate(period.end_date)})
       </dd>
     </div>
   );
@@ -84,8 +99,8 @@ function PeriodTable({
                 {titleCase(period.lord)}
                 {isCurrent ? ' ·' : ''}
               </td>
-              <td>{formatReportDate(period.start_date)}</td>
-              <td>{formatReportDate(period.end_date)}</td>
+              <td>{formatDashaDate(period.start_date)}</td>
+              <td>{formatDashaDate(period.end_date)}</td>
               <td>{t('dasha.years_short', { years: formatDurationYears(period.duration_years) })}</td>
             </tr>
           );
@@ -108,7 +123,6 @@ export function ReportDasha({ dashas }: ReportDashaProps): ReactElement | null {
   // period-depth fields; pure widening, no cast — see lib/dashaPeriods).
   const tree: DashaTreeSource = dashas;
   const runningMahaRow = findPeriodRow(tree.maha_dasha_sequence, tree.current_maha);
-  const antars = runningMahaRow?.antar_sequence ?? null;
   const pratyantars = tree.pratyantar_sequence ?? null;
 
   if (sequence.length === 0 && !dashas.current_maha) {
@@ -117,7 +131,7 @@ export function ReportDasha({ dashas }: ReportDashaProps): ReactElement | null {
 
   return (
     <section className="report-section" data-testid="report-dasha">
-      <ReportSectionHeading index="IV" title={t('dasha.heading')} />
+      <ReportSectionHeading index="V" title={t('dasha.heading')} />
 
       {(dashas.current_maha || dashas.current_antar || dashas.current_pratyantar) && (
         <dl className="report-dasha-current report-avoid-break" data-testid="report-dasha-current">
@@ -144,29 +158,46 @@ export function ReportDasha({ dashas }: ReportDashaProps): ReactElement | null {
         />
       )}
 
-      {/* Antar-daśās of the RUNNING mahā only — never all 81 (page bloat). */}
-      {dashas.current_maha && antars && antars.length > 0 && (
-        <>
-          <h3 className="report-subsection-title">
-            {t('dasha.antar_heading', { lord: titleCase(dashas.current_maha.lord) })}
-          </h3>
-          <PeriodTable rows={antars} running={tree.current_antar} testid="report-dasha-antars" />
-        </>
-      )}
-
-      {/* Pratyantar-daśās of the running antar. */}
-      {dashas.current_antar && pratyantars && pratyantars.length > 0 && (
-        <>
-          <h3 className="report-subsection-title">
-            {t('dasha.pratyantar_heading', { lord: titleCase(dashas.current_antar.lord) })}
-          </h3>
-          <PeriodTable
-            rows={pratyantars}
-            running={tree.current_pratyantar}
-            testid="report-dasha-pratyantars"
-          />
-        </>
-      )}
+      {/* Antar-daśās of EVERY mahā, in mahā order — the definitive reference
+          table. Only the running mahā's table highlights a running antar; the
+          running antar's pratyantar drill-down nests right after it so the
+          section stays chronological. Older payloads without `antar_sequence`
+          render the classic section unchanged. */}
+      {tree.maha_dasha_sequence.map((maha, index) => {
+        const antars = maha.antar_sequence ?? null;
+        if (!antars || antars.length === 0) {
+          return null;
+        }
+        const isRunningMaha =
+          runningMahaRow !== null &&
+          maha.lord === runningMahaRow.lord &&
+          maha.start_date === runningMahaRow.start_date;
+        return (
+          <Fragment key={`${maha.lord}-${index}`}>
+            <h3 className="report-subsection-title">
+              {t('dasha.antar_heading', { lord: titleCase(maha.lord) })}
+            </h3>
+            <PeriodTable
+              rows={antars}
+              running={isRunningMaha ? tree.current_antar : null}
+              testid="report-dasha-antars"
+            />
+            {/* Pratyantar-daśās of the running antar, nested in place. */}
+            {isRunningMaha && dashas.current_antar && pratyantars && pratyantars.length > 0 && (
+              <>
+                <h3 className="report-subsection-title">
+                  {t('dasha.pratyantar_heading', { lord: titleCase(dashas.current_antar.lord) })}
+                </h3>
+                <PeriodTable
+                  rows={pratyantars}
+                  running={tree.current_pratyantar}
+                  testid="report-dasha-pratyantars"
+                />
+              </>
+            )}
+          </Fragment>
+        );
+      })}
     </section>
   );
 }

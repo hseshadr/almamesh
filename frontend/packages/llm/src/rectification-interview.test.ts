@@ -20,6 +20,7 @@ import {
   buildInterviewMessages,
   gatherEventsFromTurn,
   streamRectificationInterview,
+  type InterviewGatheredEvent,
 } from "./rectification-interview";
 import { structureLifeEvents } from "./structure-life-events";
 
@@ -129,6 +130,90 @@ describe("buildInterviewMessages", () => {
     expect(result[2]).toEqual({ role: "assistant", content: "turn 2" });
     expect(result[3]).toEqual({ role: "user", content: "turn 3" });
   });
+
+  it("elicits what a rectifier needs: exact dates + distinct life domains, without leading", () => {
+    // Spec 062 (LLM delta 2 preamble): the persona explains WHY exact dates
+    // matter and pushes for precision across DISTINCT domains — but never leads.
+    const persona = buildInterviewMessages([], "en")[0].content;
+    expect(persona).toMatch(/EXACTLY-DATED/i);
+    expect(persona).toMatch(/distinct life domains/i);
+    expect(persona).toMatch(/never lead/i);
+  });
+});
+
+// =============================================================================
+// buildInterviewMessages — gathered-state block (Spec 062, LLM delta 2)
+// =============================================================================
+
+describe("buildInterviewMessages — interview state block", () => {
+  const GATHERED: InterviewGatheredEvent[] = [
+    { date: "2004-06-15", category: "marriage", precision: "month" },
+    { date: "2011-02-01", category: "relocation", precision: "exact" },
+  ];
+
+  it("renders each gathered event as {date, category, precision} ONLY", () => {
+    const msgs = buildInterviewMessages([], "en", GATHERED);
+    const system = msgs[0].content;
+    expect(system).toContain("INTERVIEW STATE");
+    expect(system).toContain("2004-06-15 (marriage, month)");
+    expect(system).toContain("2011-02-01 (relocation, exact)");
+  });
+
+  it("lists the categories still missing so the model can diversify", () => {
+    const msgs = buildInterviewMessages([], "en", GATHERED);
+    const system = msgs[0].content;
+    expect(system).toContain("Categories not yet gathered");
+    expect(system).toContain("litigation"); // a missing category is listed…
+    const missingLine = system
+      .split("\n")
+      .find((l) => l.includes("Categories not yet gathered"))!;
+    expect(missingLine).not.toContain("marriage"); // …a gathered one is not
+    expect(missingLine).not.toContain("relocation");
+  });
+
+  it("carries the elicitation strategy: exact dates, de-correlation, Ascendant-sensitive domains", () => {
+    const system = buildInterviewMessages([], "en", GATHERED)[0].content;
+    expect(system).toMatch(/exact dates score sharpest/i);
+    expect(system).toMatch(/de-correlat/i); // mirrors the engine's de-correlation
+    expect(system).toMatch(/category not yet gathered/i);
+    expect(system).toMatch(/Ascendant-sensitive/i);
+  });
+
+  it("renders a 'none yet' state block when gathered is empty (strategy still rides)", () => {
+    const system = buildInterviewMessages([], "en", [])[0].content;
+    expect(system).toContain("INTERVIEW STATE");
+    expect(system).toContain("none yet");
+    expect(system).toMatch(/exact dates score sharpest/i);
+  });
+
+  it("PII boundary: never leaks a summary/note smuggled past the type", () => {
+    const smuggled = [
+      {
+        date: "2004-06-15",
+        category: "marriage",
+        precision: "exact",
+        summary: "SECRET WEDDING NOTE",
+        note: "SECRET NOTE",
+      } as unknown as InterviewGatheredEvent,
+    ];
+    const system = buildInterviewMessages([], "en", smuggled)[0].content;
+    expect(system).not.toContain("SECRET WEDDING NOTE");
+    expect(system).not.toContain("SECRET NOTE");
+  });
+
+  it("keeps the persona + RECTIFICATION_FENCE byte-intact when the state block rides", () => {
+    const bare = buildInterviewMessages([], "en")[0].content;
+    const withState = buildInterviewMessages([], "en", GATHERED)[0].content;
+    expect(withState.startsWith(bare)).toBe(true); // persona prefix untouched
+    expect(withState).toContain(RECTIFICATION_FENCE);
+  });
+
+  it("omitting the state param keeps the legacy prompt byte-identical", () => {
+    const legacy = buildInterviewMessages([], "en");
+    const explicit = buildInterviewMessages([], "en", undefined);
+    expect(explicit).toEqual(legacy);
+    expect(legacy[0].content).not.toContain("INTERVIEW STATE");
+  });
 });
 
 // =============================================================================
@@ -156,6 +241,26 @@ describe("streamRectificationInterview", () => {
       streamRectificationInterview({ history: [], config: HTTP_CFG, fetchImpl }),
     );
     expect(deltas).toEqual(["What milestone shall we start with?"]);
+  });
+
+  it("threads the gathered-state block into the outgoing request", async () => {
+    let requestBody = "";
+    const fetchImpl = vi.fn(async (_url: unknown, init?: { body?: unknown }) => {
+      requestBody = String(init?.body ?? "");
+      const stream = new ReadableStream<Uint8Array>({ start(c) { c.close(); } });
+      return new Response(stream, { status: 200 });
+    }) as unknown as typeof fetch;
+
+    await collect(
+      streamRectificationInterview({
+        history: [],
+        config: HTTP_CFG,
+        fetchImpl,
+        state: [{ date: "2004-06-15", category: "marriage", precision: "month" }],
+      }),
+    );
+    expect(requestBody).toContain("INTERVIEW STATE");
+    expect(requestBody).toContain("2004-06-15 (marriage, month)");
   });
 
   it("forwards the abort signal to the underlying fetch", async () => {

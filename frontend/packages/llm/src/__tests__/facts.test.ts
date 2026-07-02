@@ -140,8 +140,11 @@ describe("buildChartFactsBlock", () => {
   it("is compact: NOT a raw chart JSON dump", () => {
     const block = buildChartFactsBlock(CHART);
     // Raw JSON would carry these structural keys; the facts block must not.
+    // NOTE (Spec 062, LLM delta 4): nakshatra/pada/degrees now DO appear — but
+    // as prose ("pada 1"), never as the raw JSON keys asserted absent here.
     expect(block).not.toContain("ayanamsa_value");
     expect(block).not.toContain("nakshatra_pada");
+    expect(block).not.toContain("sign_degrees");
     expect(block).not.toContain("longitude");
   });
 
@@ -159,6 +162,39 @@ describe("buildChartFactsBlock", () => {
     const noDasha = { ...CHART, dashas: undefined } as SanitizedChart;
     const block = buildChartFactsBlock(noDasha);
     expect(block).toMatch(/mars/i); // still emits planet facts
+  });
+});
+
+// Spec 062 (LLM delta 4): the old planetLine DROPPED degree-within-sign and
+// nakshatra/pada/lord, so chat could not answer "what degree is my Mars?" or
+// ground a nakshatra question. This suite locks the DELIBERATE reversal: the
+// engine's own sign_degrees + nakshatra fields now ride the planet line as
+// prose. Still zero astrology math and nothing identifying — every value is an
+// emitted engine field.
+describe("buildChartFactsBlock — degrees + nakshatra depth (Spec 062 delta 4)", () => {
+  it("emits each planet's engine degree-within-sign on its line", () => {
+    const block = buildChartFactsBlock(CHART);
+    expect(block).toContain("- mars: capricorn 10.50° (10th house), exalted");
+    expect(block).toContain("- saturn: cancer 10.20° (4th house), debilitated, retrograde");
+  });
+
+  it("emits each planet's nakshatra, pada, and nakshatra lord as prose", () => {
+    const block = buildChartFactsBlock(CHART);
+    expect(block).toContain("nakshatra shravana pada 1 (lord moon)");
+    expect(block).toContain("nakshatra pushya pada 2 (lord saturn)");
+  });
+
+  it("degrades gracefully when a legacy payload lacks nakshatra/degrees fields", () => {
+    const legacyMars = { ...CHART.planets.mars } as Record<string, unknown>;
+    delete legacyMars.nakshatra;
+    delete legacyMars.sign_degrees;
+    const legacy: SanitizedChart = {
+      ...CHART,
+      planets: { mars: legacyMars as unknown as SanitizedChart["planets"][string] },
+    };
+    const block = buildChartFactsBlock(legacy);
+    expect(block).toContain("- mars: capricorn (10th house), exalted");
+    expect(block).not.toContain("undefined");
   });
 });
 
@@ -523,12 +559,16 @@ describe("buildChartFactsBlock — engine-dated current + upcoming periods", () 
   it("graceful absence: a chart without the tree renders byte-identical to today", () => {
     // The exact, full pre-tree output for CHART — pinned verbatim so any
     // accidental reformatting of the legacy path fails loudly.
+    // DELIBERATELY UPDATED for Spec 062 (LLM delta 4): the planet lines now
+    // carry the engine's degree-within-sign and nakshatra/pada/lord — the old
+    // exclusion this test used to lock was reversed on purpose so chat can
+    // ground degree- and nakshatra-level questions in engine facts.
     const expected = [
       "Ascendant (Lagna): aries, lord mars",
       "",
       "Planets:",
-      "- mars: capricorn (10th house), exalted",
-      "- saturn: cancer (4th house), debilitated, retrograde",
+      "- mars: capricorn 10.50° (10th house), exalted — nakshatra shravana pada 1 (lord moon)",
+      "- saturn: cancer 10.20° (4th house), debilitated, retrograde — nakshatra pushya pada 2 (lord saturn)",
       "",
       "Current dasha period:",
       "- Mahadasha: sun (48 months remaining)",

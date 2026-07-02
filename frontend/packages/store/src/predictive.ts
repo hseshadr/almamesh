@@ -62,6 +62,16 @@ export interface PredictiveStore {
   vargaCtxFull?: VargaCtxFull;
   strengthCtx?: StrengthCtx;
   domainsCtx?: DomainsCtx;
+  /**
+   * The RAW engine contexts exactly as `computePredictive` returned them
+   * (Spec 062, LLM delta 1). Kept alongside the UI reshape so the optional
+   * LLM layer can compose `transit_context`/`strength_context`/
+   * `varga_context_full`/`domains_context` back onto the chart before the
+   * `@almamesh/llm` sanitizer reduces them to month precision. Stays entirely
+   * on-device; absent on pre-v2 persisted blobs (features then degrade
+   * gracefully to natal-only narration).
+   */
+  rawContexts?: PredictiveContexts;
   /** The profile the loaded/loading contexts belong to. */
   profileKey?: string;
   /** Internal idempotency key: `${profileKey}@${referenceInstant}`. */
@@ -81,6 +91,7 @@ const EMPTY_CONTEXTS = {
   vargaCtxFull: undefined,
   strengthCtx: undefined,
   domainsCtx: undefined,
+  rawContexts: undefined,
 } as const;
 
 const requestKeyOf = (input: EnsurePredictiveInput): string =>
@@ -95,8 +106,11 @@ const requestKeyOf = (input: EnsurePredictiveInput): string =>
 // result keyed by `${profileKey}@${referenceInstant}`, so a reload with the same
 // chart + day rehydrates to `ready` and `ensurePredictive` short-circuits.
 
-/** Bump when the persisted predictive shape changes; always pair with `migrate`. */
-export const PREDICTIVE_PERSIST_VERSION = 1;
+/**
+ * Bump when the persisted predictive shape changes; always pair with `migrate`.
+ * v1 → v2 (Spec 062, LLM delta 1): added the OPTIONAL `rawContexts` slice.
+ */
+export const PREDICTIVE_PERSIST_VERSION = 2;
 
 /** The single IndexedDB key holding the persisted predictive slice. */
 export const PREDICTIVE_PERSIST_NAME = 'almamesh-predictive';
@@ -113,6 +127,8 @@ export interface PersistedPredictiveState {
   vargaCtxFull?: VargaCtxFull;
   strengthCtx?: StrengthCtx;
   domainsCtx?: DomainsCtx;
+  /** Raw engine contexts (v2+); optional so a v1 blob hydrates gracefully. */
+  rawContexts?: PredictiveContexts;
   profileKey?: string;
   requestKey?: string;
 }
@@ -167,6 +183,7 @@ function partializePredictive(state: PredictiveStore): PersistedPredictiveState 
     vargaCtxFull: state.vargaCtxFull,
     strengthCtx: state.strengthCtx,
     domainsCtx: state.domainsCtx,
+    rawContexts: state.rawContexts,
     profileKey: state.profileKey,
     requestKey: state.requestKey,
   };
@@ -194,19 +211,30 @@ export function coercePersistedPredictive(persisted: unknown): PersistedPredicti
     vargaCtxFull: persisted.vargaCtxFull as VargaCtxFull | undefined,
     strengthCtx: persisted.strengthCtx as StrengthCtx | undefined,
     domainsCtx: persisted.domainsCtx as DomainsCtx | undefined,
+    // Absent on v1 blobs: LLM composition then degrades to natal-only (never an error).
+    rawContexts: isPlainRecord(persisted.rawContexts)
+      ? (persisted.rawContexts as unknown as PredictiveContexts)
+      : undefined,
     profileKey: typeof persisted.profileKey === 'string' ? persisted.profileKey : undefined,
     requestKey: persisted.requestKey,
   };
 }
 
 /**
- * Any old/unknown persisted VERSION → a clean idle slate (forcing a fresh
- * compute). On the CURRENT version the untouched blob flows through `merge`.
+ * v1 → v2 (Spec 062, LLM delta 1): the shape is identical PLUS an optional
+ * `rawContexts` slice. A v1 blob simply lacks it — keep its ready UI contexts
+ * (no ~30s recompute on upgrade) and let the LLM composition layer degrade
+ * gracefully to natal-only until the next fresh compute. Any OTHER old/unknown
+ * version → a clean idle slate (forcing a fresh compute). On the CURRENT
+ * version the untouched blob flows through `merge`.
  */
 export function migratePredictivePersistedState(
-  _persisted: unknown,
-  _fromVersion: number,
+  persisted: unknown,
+  fromVersion: number,
 ): PersistedPredictiveState {
+  if (fromVersion === 1) {
+    return coercePersistedPredictive(persisted);
+  }
   return IDLE_PERSISTED;
 }
 
@@ -253,6 +281,9 @@ export const predictiveStoreCreator: StateCreator<PredictiveStore> = (set, get) 
         vargaCtxFull: toVargaCtx(raw.varga_context_full),
         strengthCtx: toStrengthCtx(raw.strength_context),
         domainsCtx: toDomainsCtx(raw.domains_context),
+        // The raw engine contexts, verbatim, for the LLM composition layer
+        // (Spec 062 delta 1) — persisted with the reshape, never re-derived.
+        rawContexts: raw,
       });
     } catch (err) {
       if (get().requestKey !== key) {

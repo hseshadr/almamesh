@@ -1,8 +1,9 @@
 /**
  * ReportDasha — the letterpress Vimśottarī section: current legs, convention
- * note, the 9-row mahā table, PLUS (new) the running mahā's nine antar-daśās
- * and the running antar's nine pratyantar-daśās — never all 81 antars (page
- * bloat). Older payloads without depth render the classic section unchanged.
+ * note, the 9-row mahā table, PLUS the antar-daśās of EVERY mahā (the
+ * definitive reference tables — one 9-row table per mahā, in mahā order) and
+ * the running antar's nine pratyantar-daśās nested after the running mahā.
+ * Older payloads without depth render the classic section unchanged.
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -31,14 +32,28 @@ describe('ReportDasha', () => {
     expect(runningRow?.textContent).toContain('Saturn');
   });
 
-  it('adds the antar-daśās of the RUNNING mahā only (9 rows, running antar highlighted)', () => {
+  it('prints the antar-daśās of EVERY mahā — one 9-row table per mahā, in order', () => {
     render(<ReportDasha dashas={FOUNDER_DASHAS} />);
+    const tables = screen.getAllByTestId('report-dasha-antars');
+    expect(tables).toHaveLength(9); // all nine mahās expand
+    for (const table of tables) {
+      expect(within(table).getAllByRole('row')).toHaveLength(10); // header + 9 antars
+    }
+    // Every mahā gets its own localized heading.
     expect(screen.getByText('Antar-daśās of the Saturn Mahā-daśā')).toBeTruthy();
-    const table = screen.getByTestId('report-dasha-antars');
-    const rows = within(table).getAllByRole('row');
-    expect(rows).toHaveLength(10); // header + exactly the running mahā's 9 antars
-    const running = rows.find((row) => row.getAttribute('aria-current') === 'true');
-    expect(running?.textContent).toContain('Venus');
+    expect(screen.getByText('Antar-daśās of the Venus Mahā-daśā')).toBeTruthy();
+  });
+
+  it('highlights the running antar ONLY inside the running mahā', () => {
+    render(<ReportDasha dashas={FOUNDER_DASHAS} />);
+    const tables = screen.getAllByTestId('report-dasha-antars');
+    const runningRows = tables.flatMap((table) =>
+      within(table)
+        .getAllByRole('row')
+        .filter((row) => row.getAttribute('aria-current') === 'true'),
+    );
+    expect(runningRows).toHaveLength(1); // exactly one running antar overall
+    expect(runningRows[0].textContent).toContain('Venus');
   });
 
   it('adds the pratyantar-daśās of the RUNNING antar (9 rows, running PD highlighted)', () => {
@@ -50,11 +65,8 @@ describe('ReportDasha', () => {
     const running = rows.find((row) => row.getAttribute('aria-current') === 'true');
     expect(running?.textContent).toContain('Saturn');
     expect(within(table).getByText('Mercury')).toBeTruthy(); // the next PD is on the page
-  });
-
-  it('never prints all 81 antars — only the running mahā expands', () => {
-    render(<ReportDasha dashas={FOUNDER_DASHAS} />);
-    expect(screen.getAllByTestId('report-dasha-antars')).toHaveLength(1);
+    // Exactly one pratyantar drill-down — nested after the running mahā only.
+    expect(screen.getAllByTestId('report-dasha-pratyantars')).toHaveLength(1);
   });
 
   it('renders the classic section unchanged (no sub-tables, no crash) on older payloads', () => {
@@ -62,5 +74,50 @@ describe('ReportDasha', () => {
     expect(screen.getByTestId('report-dasha-maha-table')).toBeTruthy();
     expect(screen.queryByTestId('report-dasha-antars')).toBeNull();
     expect(screen.queryByTestId('report-dasha-pratyantars')).toBeNull();
+  });
+
+  // -------------------------------------------------------------------------
+  // Regression (Spec 062 flagged bug): dasha boundary dates must render as the
+  // WRITTEN calendar date. The old `formatReportDate` path reparsed date-only
+  // strings through `new Date("YYYY-MM-DD")` (UTC midnight), which rolls the
+  // displayed day back to the PREVIOUS day for every viewer west of GMT — the
+  // same class as the life-event date bug. The date-safe path parses the Y/M/D
+  // parts and formats at local noon, so the day is stable in ANY host zone.
+  // -------------------------------------------------------------------------
+  it('renders dasha boundary dates as written — never rolled back a day west of GMT', () => {
+    render(<ReportDasha dashas={FOUNDER_DASHAS} />);
+    // The running Saturn mahā starts 2017-01-09 (see test/dashaFixtures.ts);
+    // en locale renders MM/DD/YYYY via the tz-safe local-noon formatter.
+    const current = screen.getByTestId('report-dasha-current');
+    expect(current.textContent).toContain('01/09/2017');
+    // The day-early fingerprint must NEVER appear, in any host timezone.
+    expect(current.textContent).not.toContain('01/08/2017');
+    const mahaTable = screen.getByTestId('report-dasha-maha-table');
+    expect(mahaTable.textContent).toContain('01/09/2017');
+    expect(mahaTable.textContent).not.toContain('01/08/2017');
+  });
+
+  it('full ISO datetime boundaries render their written (UTC) calendar date', () => {
+    // An instant just past UTC midnight is the sharpest west-of-GMT trap:
+    // rendered as a local-time instant in America/Los_Angeles it would show
+    // Jan 12 — the date-safe path must keep the written Jan 13.
+    const dashas = {
+      ...FOUNDER_DASHAS_NO_DEPTH,
+      maha_dasha_sequence: [
+        {
+          lord: 'mercury',
+          start_date: '2020-01-13T00:30:00Z',
+          end_date: '2037-01-13T00:30:00Z',
+          duration_years: 17,
+        },
+      ],
+      current_maha: null,
+      current_antar: null,
+      current_pratyantar: null,
+    } as typeof FOUNDER_DASHAS_NO_DEPTH;
+    render(<ReportDasha dashas={dashas} />);
+    const table = screen.getByTestId('report-dasha-maha-table');
+    expect(table.textContent).toContain('01/13/2020');
+    expect(table.textContent).not.toContain('01/12/2020');
   });
 });

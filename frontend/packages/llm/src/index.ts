@@ -79,6 +79,7 @@ export {
   streamRectificationInterview,
   gatherEventsFromTurn,
 } from "./rectification-interview";
+export type { InterviewGatheredEvent } from "./rectification-interview";
 
 export {
   isLocalEndpoint,
@@ -102,7 +103,7 @@ export {
   serializeInterpretationForChat,
   INTERP_TOKEN_BUDGET,
 } from "./prompt";
-export type { ViewMode } from "./prompt";
+export type { ViewMode, ChatRectificationContext } from "./prompt";
 
 export { languageInstruction, withLanguage } from "./language";
 export type { PromptLanguage } from "./language";
@@ -142,7 +143,12 @@ import type { ProviderConfig } from "./config";
 import type { PromptLanguage } from "./language";
 import { sanitizeMeshEdgeForLlm } from "./mesh-sanitize";
 import type { MeshEdgeContext } from "./mesh-types";
-import { buildChatMessages, buildInterpretationMessages, type ViewMode } from "./prompt";
+import {
+  buildChatMessages,
+  buildInterpretationMessages,
+  type ChatRectificationContext,
+  type ViewMode,
+} from "./prompt";
 import { routeChatCompletion } from "./route";
 import { sanitizeChartForLlm } from "./sanitize";
 import type { SiderealChart } from "@almamesh/browser/types";
@@ -210,6 +216,13 @@ export interface StreamChatParams {
    * block; when absent, chat is byte-identical to the single-chart path.
    */
   readonly meshEdge?: MeshEdgeContext;
+  /**
+   * The PII-safe slice of a CONFIRMED rectification record (band + entered/
+   * working signs + cusp status ONLY — Spec 062 delta 3). When present, the
+   * prompt pins the engine's birth-time story so narration never contradicts
+   * it; when absent, the prompt is byte-identical to the record-less path.
+   */
+  readonly rectification?: ChatRectificationContext;
   /** UI/narration language for the answer (`en` default); engine is untouched. */
   readonly language?: PromptLanguage;
   readonly signal?: AbortSignal;
@@ -246,6 +259,7 @@ export async function* streamChartChat(
     params.interpretationText,
     params.language ?? "en",
     meshEdge,
+    params.rectification,
   );
 
   yield* routeChatCompletion({

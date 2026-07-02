@@ -21,7 +21,13 @@ import {
   type ChatTurn,
   type LlmEnv,
 } from "@almamesh/llm";
-import { useChartLibraryStore, useInterpretationStore, useLanguageStore, useProfilesStore } from "@almamesh/store";
+import {
+  useChartLibraryStore,
+  useInterpretationStore,
+  useLanguageStore,
+  useProfilesStore,
+  useRectificationRecordsStore,
+} from "@almamesh/store";
 
 import { Card, Spinner } from "../components/ui";
 import { ContentModeToggle } from "../components/ui/ContentModeToggle";
@@ -38,7 +44,7 @@ import { getUserFriendlyError } from "../lib/errors";
 import { type SSEMetaData } from "../lib/streaming";
 import { useContentModeStore } from "../stores/contentMode";
 import type { ViewMode } from "../lib/types";
-import { useStreamingInterpretation } from "../hooks/useStreamingInterpretation";
+import { useStreamingInterpretation, withRawPredictive } from "../hooks/useStreamingInterpretation";
 import { useElapsedSeconds, formatElapsed } from "../hooks/useElapsedSeconds";
 import { canExportPdf, isPlaceholderContent } from "./exportGate";
 import { personaText, resolveReportAudience } from "../lib/reportSelectors";
@@ -199,8 +205,17 @@ export default function DashboardPage() {
     const interpretationText = interp
       ? serializeInterpretationForChat(interp, chatMode)
       : undefined;
+    // Chat grounded in the CONFIRMED rectification record (Spec 062 delta 3):
+    // only the PII-safe slice crosses — band + entered/working signs + fit
+    // mode. Times, dates, and margins stay on-device by construction.
+    const rectificationRecord = activeProfileId
+      ? useRectificationRecordsStore.getState().getRecord(activeProfileId)
+      : null;
     return streamChartChat({
-      chart,
+      // Compose the persisted raw predictive contexts (when ready for this
+      // profile) so chat answers can cite the engine's transit/strength/domain
+      // facts (Spec 062 delta 1); absent contexts → natal-only, as before.
+      chart: withRawPredictive(chart, chartId),
       question,
       config,
       mode: chatMode,
@@ -209,6 +224,16 @@ export default function DashboardPage() {
       // chat hook (best-effort; empty when memory is unavailable).
       retrievedContext,
       interpretationText,
+      ...(rectificationRecord
+        ? {
+            rectification: {
+              band: rectificationRecord.band,
+              originalSign: rectificationRecord.originalSign,
+              rectifiedSign: rectificationRecord.rectifiedSign,
+              mode: rectificationRecord.mode,
+            },
+          }
+        : {}),
       // Answer chat in the user's chosen UI language (interpretation is threaded
       // the same way via useStreamingInterpretation); the engine is untouched.
       language: useLanguageStore.getState().language,

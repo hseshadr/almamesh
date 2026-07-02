@@ -38,6 +38,18 @@ class EventDatePrecision(str, Enum):
     APPROX = "approx"  # no reliable year (a multi-year span)
 
 
+class AnchorConfidence(str, Enum):
+    """How much the recorded birth time anchors the prior (Spec 062 E5).
+
+    ABOUT: a weak triangular prior around the recorded time (max bonus 0.5 —
+    about half of one primary signal; it can break a true tie, never outvote
+    an event). UNKNOWN: flat, no prior at all.
+    """
+
+    ABOUT = "about"
+    UNKNOWN = "unknown"
+
+
 class RectificationEventInput(BaseModel):
     """A single life event supplied by the user for rectification analysis."""
 
@@ -61,7 +73,16 @@ class EventEvidence(BaseModel):
 
 
 class RectificationCandidate(BaseModel):
-    """One candidate ascendant time with its event-fit score and evidence."""
+    """One candidate ascendant time with its event-fit score and evidence.
+
+    Spec 062 E7 score breakdown (all additive, defaulted for back-compat):
+    ``fit_score = positive_total - penalty_total + prior_bonus``. The split is
+    surfaced so the UI can show penalties and the anchor prior transparently
+    (the prior renders as its own labeled ``prior_anchor`` row). ``misses``
+    lists the candidate-level silent-activation penalty keys
+    (``miss_silent_{category}_h{n}``); per-event unexplained misses live in
+    each ``EventEvidence.signals`` as ``miss_unexplained``.
+    """
 
     model_config = ConfigDict(frozen=True)
 
@@ -72,6 +93,12 @@ class RectificationCandidate(BaseModel):
     is_near_cusp: bool
     fit_score: float
     supporting_events: list[EventEvidence]
+    # --- Spec 062 additive fields ---
+    navamsa_lagna_sign: ZodiacSign | None = None
+    positive_total: float = 0.0
+    penalty_total: float = 0.0
+    prior_bonus: float = 0.0
+    misses: list[str] = []
 
 
 class RectificationResult(BaseModel):

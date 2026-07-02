@@ -90,7 +90,47 @@ describe('buildRectificationRecord', () => {
       rectifiedTime: '07:45',
       rectifiedSign: 'pisces',
       supportingEventIds: ['evt-1', 'evt-2'],
+      resultSnapshot: RESULT_CUSP,
     });
+  });
+
+  it('snapshots the full adapted result on the record (v2)', () => {
+    const record = buildRectificationRecord({
+      profileId: 'p1',
+      result: RESULT_CUSP,
+      candidate: CANDIDATE,
+      originalTime: '07:30',
+      structuredEventIds: ['evt-1'],
+      confirmedAt: Date.parse('2026-06-29T12:00:00.000Z'),
+    });
+    expect(record.resultSnapshot).toEqual(RESULT_CUSP);
+  });
+
+  it('stores event summaries when supplied (v2) and omits the key when absent', () => {
+    const summaries = [
+      { id: 'evt-1', date: '2010-05-15', category: 'marriage' as const, summary: 'We married' },
+      { id: 'evt-2', date: '2014-03-02', category: 'litigation' as const },
+    ];
+    const withSummaries = buildRectificationRecord({
+      profileId: 'p1',
+      result: RESULT_CUSP,
+      candidate: CANDIDATE,
+      originalTime: '07:30',
+      structuredEventIds: ['evt-1', 'evt-2'],
+      confirmedAt: Date.parse('2026-06-29T12:00:00.000Z'),
+      eventSummaries: summaries,
+    });
+    expect(withSummaries.eventSummaries).toEqual(summaries);
+
+    const withoutSummaries = buildRectificationRecord({
+      profileId: 'p1',
+      result: RESULT_CUSP,
+      candidate: CANDIDATE,
+      originalTime: '07:30',
+      structuredEventIds: ['evt-1'],
+      confirmedAt: Date.parse('2026-06-29T12:00:00.000Z'),
+    });
+    expect('eventSummaries' in withoutSummaries).toBe(false);
   });
 
   it('carries null originalSign + window mode for an unknown-time fit', () => {
@@ -119,7 +159,8 @@ describe('buildRectificationRecord', () => {
       confirmedAt: Date.parse('2026-06-29T12:00:00.000Z'),
     });
     expect(record.supportingEventIds).toEqual(['evt-1', 'evt-2', 'evt-3']);
-    // The only keys are the typed display fields — nothing else.
+    // The only keys are the typed display fields — nothing else. (v2 adds the
+    // resultSnapshot; eventSummaries appears only when explicitly supplied.)
     expect(Object.keys(record).sort()).toEqual(
       [
         'band',
@@ -131,6 +172,7 @@ describe('buildRectificationRecord', () => {
         'profileId',
         'rectifiedSign',
         'rectifiedTime',
+        'resultSnapshot',
         'supportingEventIds',
       ].sort(),
     );
@@ -161,6 +203,28 @@ describe('migrateRectificationRecordsPersistedState', () => {
     expect(out.recordsByProfile.p1).toEqual(sampleRecord());
     expect(out.recordsByProfile.bad).toBeUndefined();
   });
+
+  it('loads a v1 record (no resultSnapshot / eventSummaries) unchanged — graceful v1→v2', () => {
+    // sampleRecord() IS the v1 shape: no snapshot, no summaries. Migrating from
+    // version 1 must keep it verbatim with both v2 fields simply absent.
+    const v1 = sampleRecord();
+    const out = migrateRectificationRecordsPersistedState({ recordsByProfile: { p1: v1 } }, 1);
+    expect(out.recordsByProfile.p1).toEqual(v1);
+    expect(out.recordsByProfile.p1?.resultSnapshot).toBeUndefined();
+    expect(out.recordsByProfile.p1?.eventSummaries).toBeUndefined();
+  });
+
+  it('keeps a v2 record with snapshot + summaries intact', () => {
+    const v2 = sampleRecord({
+      resultSnapshot: RESULT_CUSP,
+      eventSummaries: [{ id: 'evt-1', date: '2010-05-15', category: 'marriage' }],
+    });
+    const out = migrateRectificationRecordsPersistedState(
+      { recordsByProfile: { p1: v2 } },
+      RECTIFICATION_RECORDS_PERSIST_VERSION,
+    );
+    expect(out.recordsByProfile.p1).toEqual(v2);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -174,8 +238,8 @@ describe('rectificationRecordsStore', () => {
     store = newStore();
   });
 
-  it('RECTIFICATION_RECORDS_PERSIST_VERSION is 1', () => {
-    expect(RECTIFICATION_RECORDS_PERSIST_VERSION).toBe(1);
+  it('RECTIFICATION_RECORDS_PERSIST_VERSION is 2 (v2: resultSnapshot + eventSummaries)', () => {
+    expect(RECTIFICATION_RECORDS_PERSIST_VERSION).toBe(2);
   });
 
   it('setRecord then getRecord round-trips, keyed by profileId', () => {

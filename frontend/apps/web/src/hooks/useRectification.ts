@@ -105,11 +105,22 @@ export function toWireEvents(events: readonly LifeEvent[]): RectificationEventIn
     }));
 }
 
-/** Build the camelCase wire payload from the birth description + events. */
-function buildWireInput(
+/**
+ * Build the camelCase wire payload from the birth description + events.
+ *
+ * Exported as a pure function so it can be unit-tested independently of the
+ * hook. Spec 062: `anchorConfidence` is sent explicitly but ALWAYS matches the
+ * engine's per-mode default ('about' for cusp — a recorded time exists;
+ * 'unknown' for window), so explicit and absent are byte-identical.
+ * `spanMinutes` (the honest "somewhere between HH:MM and HH:MM" window bound)
+ * is threaded only when the caller supplies it — absent keeps the current
+ * full-day behavior.
+ */
+export function buildWireInput(
   birth: NonNullable<ReturnType<typeof birthDescForProfile>>,
   events: readonly RectificationEventInput[],
   mode: RectificationMode,
+  spanMinutes?: number,
 ): RectificationInput {
   const tzd = dayjs.tz(`${birth.date}T${birth.effectiveTime}`, birth.tz);
   return {
@@ -119,6 +130,8 @@ function buildWireInput(
     utcOffsetMinutes: tzd.utcOffset(),
     events,
     mode,
+    anchorConfidence: mode === 'window' ? 'unknown' : 'about',
+    ...(spanMinutes !== undefined ? { spanMinutes } : {}),
     // Always pin referenceDate — omitting it makes the engine use wall clock
     // (non-deterministic, breaks reproducibility across re-runs).
     referenceDate: predictiveReferenceInstant(),
@@ -213,8 +226,13 @@ export interface UseRectificationResult {
    *  - `'cusp'`   for exact / approximate times (two-candidate comparison)
    */
   readonly detectedMode: RectificationMode;
-  /** Kick off a rectification run with the given mode. No-op if not ready. */
-  readonly run: (mode: RectificationMode) => Promise<void>;
+  /**
+   * Kick off a rectification run with the given mode. No-op if not ready.
+   * `spanMinutes` (optional, Spec 062) bounds the WINDOW-mode search to an
+   * honest user-stated window around the recorded time; omit for the current
+   * full-day behavior.
+   */
+  readonly run: (mode: RectificationMode, spanMinutes?: number) => Promise<void>;
   /** Reset the store to idle (clears any previous result or error). */
   readonly reset: () => void;
   /**
@@ -264,8 +282,9 @@ export function useRectification(profileId: string): UseRectificationResult {
   // cancelledRef: set to true on unmount so a mid-flight run's completion
   // triggers an immediate reset() rather than leaving stale results in the store.
   const cancelledRef = useRef(false);
-  // Track the last mode so retry() can re-run with the same argument.
+  // Track the last mode + span so retry() can re-run with the same arguments.
   const lastModeRef = useRef<RectificationMode | null>(null);
+  const lastSpanMinutesRef = useRef<number | undefined>(undefined);
 
   // warmingTimedOut: true once the engine has been warming past the generous
   // timeout without booting — the cue to offer reset-and-reload. The single
@@ -317,14 +336,18 @@ export function useRectification(profileId: string): UseRectificationResult {
    * fresh engine from reboot() without relying on the stale closure value.
    */
   const executeRun = useCallback(
-    async (runtimeEngine: RectificationRuntime, mode: RectificationMode): Promise<void> => {
+    async (
+      runtimeEngine: RectificationRuntime,
+      mode: RectificationMode,
+      spanMinutes?: number,
+    ): Promise<void> => {
       if (birth === null) return;
 
       const wireEvents = toWireEvents(useLifeEventsStore.getState().getEvents(profileId));
 
       if (wireEvents.length < 1) return;
 
-      const wireInput = buildWireInput(birth, wireEvents, mode);
+      const wireInput = buildWireInput(birth, wireEvents, mode, spanMinutes);
 
       // Reset the cancelled flag at the start of every run (important for
       // remounted wizards and for the retry path after a previous cancellation).
@@ -342,13 +365,14 @@ export function useRectification(profileId: string): UseRectificationResult {
   );
 
   const run = useCallback(
-    async (mode: RectificationMode): Promise<void> => {
-      // Record the requested mode FIRST — even if the engine is still warming —
-      // so a later retry() (after the engine recovers) re-runs with this mode
-      // rather than no-opping because it was never captured.
+    async (mode: RectificationMode, spanMinutes?: number): Promise<void> => {
+      // Record the requested mode + span FIRST — even if the engine is still
+      // warming — so a later retry() (after the engine recovers) re-runs with
+      // these arguments rather than no-opping because they were never captured.
       lastModeRef.current = mode;
+      lastSpanMinutesRef.current = spanMinutes;
       if (engine === null) return; // guard: engine not ready
-      await executeRun(engine, mode);
+      await executeRun(engine, mode, spanMinutes);
     },
     [engine, executeRun],
   );
@@ -373,7 +397,7 @@ export function useRectification(profileId: string): UseRectificationResult {
       return;
     }
     if (cancelledRef.current) return;
-    await executeRun(freshEngine, mode);
+    await executeRun(freshEngine, mode, lastSpanMinutesRef.current);
   }, [engineCtx, executeRun, detectedMode]);
 
   return {

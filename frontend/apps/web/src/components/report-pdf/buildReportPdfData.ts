@@ -7,7 +7,14 @@
  */
 
 import type { LagnaData, SiderealChart } from '@almamesh/browser/types';
-import type { ProcessedBirthData, VedicInterpretation } from '@almamesh/shared-types';
+import type {
+  DomainsCtx,
+  ProcessedBirthData,
+  StrengthCtx,
+  TransitCtx,
+  VargaCtxFull,
+  VedicInterpretation,
+} from '@almamesh/shared-types';
 import {
   buildPlaceString,
   formatBirthDateTime,
@@ -18,16 +25,30 @@ import {
 } from '../../lib/reportData';
 import type { ReportAudience } from '../../lib/reportSelectors';
 import { rectificationDelta, type RectificationDelta } from '../../lib/rectification';
-import type { ReportPdfData, ReportPdfDetail, ReportPdfLabels, ReportPdfTechnical } from './types';
+import type {
+  ReportPdfData,
+  ReportPdfDetail,
+  ReportPdfLabels,
+  ReportPdfRectification,
+  ReportPdfTechnical,
+} from './types';
 import { glyphSafe } from './glyphSafe';
 import {
   buildCharts,
   buildD1Geometry,
   buildDasha,
+  buildHouses,
   buildNarrative,
   buildPlanetRows,
   buildYogas,
 } from './buildReportSections';
+import {
+  buildDomainsSection,
+  buildStrengthSection,
+  buildTransitsSection,
+  buildVargasSection,
+  type ReportPdfTranslators,
+} from './buildComprehensiveSections';
 
 /** The per-field labels the birth-details list needs (already localized). */
 export interface BirthDetailLabels {
@@ -67,8 +88,33 @@ export interface BuildReportPdfDataInput {
    * Omit it (or return no delta) to render no rectification note.
    */
   readonly formatRectifiedNote?: (delta: RectificationDelta) => string;
+  /**
+   * Binds the localized `report:dasha.antar_heading` template ("Antar-daśās of
+   * the {{lord}} Mahā-daśā") for the all-mahā antar drill-down tables. Same
+   * i18n-stays-in-React pattern as `formatRectifiedNote`; without it each
+   * antar table is headed by the title-cased lord alone.
+   */
+  readonly formatAntarHeading?: (lord: string) => string;
   readonly detailLabels: BirthDetailLabels;
   readonly chromeLabels: ReportPdfLabels;
+  /**
+   * The on-device PREDICTIVE contexts + the i18next translators that localize
+   * them (the same `t` functions the on-screen report uses). OPTIONAL: when
+   * absent — or when an individual context was not computed — the matching
+   * PDF sections are omitted entirely, exactly like the web report.
+   */
+  readonly comprehensive?: {
+    readonly translators: ReportPdfTranslators;
+    readonly transitCtx?: TransitCtx;
+    readonly vargaCtxFull?: VargaCtxFull;
+    readonly strengthCtx?: StrengthCtx;
+    readonly domainsCtx?: DomainsCtx;
+  };
+  /**
+   * The pre-localized Birth Time Authority slice (see `buildRectificationPdf`).
+   * OPTIONAL: present only when a confirmed rectification record exists.
+   */
+  readonly rectification?: ReportPdfRectification;
 }
 
 /**
@@ -123,6 +169,7 @@ export function buildReportPdfData(input: BuildReportPdfDataInput): ReportPdfDat
     (field) => ({ label: field.label, value: glyphSafe(field.value) }),
   );
   const d1Geometry = buildD1Geometry(input.sidereal);
+  const { comprehensive } = input;
 
   return {
     personName: glyphSafe(input.personName),
@@ -135,12 +182,32 @@ export function buildReportPdfData(input: BuildReportPdfDataInput): ReportPdfDat
     rectifiedNote: buildRectifiedNote(input),
     technical,
     planets: buildPlanetRows(d1Geometry),
+    houses: buildHouses(input.sidereal),
     charts: buildCharts(input.sidereal, d1Geometry, input.chartCaptions),
-    dasha: buildDasha(input.sidereal),
+    dasha: buildDasha(input.sidereal, input.formatAntarHeading),
     yogas: buildYogas(input.sidereal),
     narrative: input.interpretation
       ? buildNarrative(input.interpretation, input.audience)
       : undefined,
+    // Comprehensive sections mirror the web report: each renders only when its
+    // on-device context was computed (and the translators were supplied).
+    transits:
+      comprehensive?.transitCtx !== undefined
+        ? buildTransitsSection(comprehensive.transitCtx, comprehensive.translators)
+        : undefined,
+    vargas:
+      comprehensive?.vargaCtxFull !== undefined
+        ? buildVargasSection(comprehensive.vargaCtxFull, comprehensive.translators)
+        : undefined,
+    strength:
+      comprehensive?.strengthCtx !== undefined
+        ? buildStrengthSection(comprehensive.strengthCtx, comprehensive.translators)
+        : undefined,
+    domains:
+      comprehensive?.domainsCtx !== undefined
+        ? buildDomainsSection(comprehensive.domainsCtx, comprehensive.translators)
+        : undefined,
+    rectification: input.rectification,
     labels: safeLabels(input.chromeLabels),
   };
 }

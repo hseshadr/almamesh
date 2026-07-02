@@ -15,9 +15,21 @@ import type {
   SanitizedDatedPeriod,
 } from "./sanitize";
 
-/** One planet's line: "Mars — Capricorn (10th house), exalted, retrograde". */
+/**
+ * One planet's line:
+ * "mars: capricorn 10.50° (10th house), exalted — nakshatra shravana pada 1 (lord moon)".
+ *
+ * Spec 062 (LLM delta 4) deliberately REVERSED the earlier degrees/nakshatra
+ * exclusion: chat could not ground "what degree is my Mars?" or a nakshatra
+ * question without them. Every value is still the engine's OWN emitted field
+ * (sign_degrees, nakshatra, nakshatra_pada, nakshatra_lord) — no astrology
+ * math, nothing identifying. Legacy stored payloads that predate these fields
+ * degrade gracefully (the extras are simply omitted).
+ */
 function planetLine(planet: PlanetPosition): string {
-  const parts = [`${planet.sign} (${planet.house}th house)`];
+  const degrees =
+    typeof planet.sign_degrees === "number" ? ` ${planet.sign_degrees.toFixed(2)}°` : "";
+  const parts = [`${planet.sign}${degrees} (${planet.house}th house)`];
   if (planet.dignity && planet.dignity !== "neutral") {
     parts.push(planet.dignity);
   }
@@ -27,7 +39,10 @@ function planetLine(planet: PlanetPosition): string {
   if (planet.is_combust) {
     parts.push("combust");
   }
-  return `- ${planet.name}: ${parts.join(", ")}`;
+  const nakshatra = planet.nakshatra
+    ? ` — nakshatra ${planet.nakshatra} pada ${planet.nakshatra_pada} (lord ${planet.nakshatra_lord})`
+    : "";
+  return `- ${planet.name}: ${parts.join(", ")}${nakshatra}`;
 }
 
 /** The planet block: one line per graha, in the chart's own key order. */

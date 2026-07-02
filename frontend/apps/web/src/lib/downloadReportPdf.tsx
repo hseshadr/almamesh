@@ -7,8 +7,20 @@
  */
 
 import type { LagnaData, SiderealChart } from '@almamesh/browser/types';
-import type { ProcessedBirthData, VedicInterpretation } from '@almamesh/shared-types';
-import type { BirthDetailLabels, ReportPdfLabels } from '../components/report-pdf';
+import type {
+  DomainsCtx,
+  ProcessedBirthData,
+  StrengthCtx,
+  TransitCtx,
+  VargaCtxFull,
+  VedicInterpretation,
+} from '@almamesh/shared-types';
+import type {
+  BirthDetailLabels,
+  ReportPdfLabels,
+  ReportPdfRectification,
+  ReportPdfTranslators,
+} from '../components/report-pdf';
 import type { ReportAudience } from './reportSelectors';
 import type { ReportChartFields } from './reportData';
 import type { RectificationDelta } from './rectification';
@@ -26,6 +38,8 @@ export interface ReportPdfChrome {
    * effect, so i18n stays in React while the cover stays honest.
    */
   readonly formatRectifiedNote?: (delta: RectificationDelta) => string;
+  /** Binds `report:dasha.antar_heading` for the all-mahā antar tables. */
+  readonly formatAntarHeading?: (lord: string) => string;
   /** Localized kundli plate captions ("Rāśi · D1" / "Navāṁśa · D9"). */
   readonly chartCaptions: { readonly rasi: string; readonly navamsa: string };
   readonly detailLabels: BirthDetailLabels;
@@ -46,6 +60,20 @@ export interface DownloadReportPdfInput {
   /** Resolved audience voice (layman / technical) for the narrative. */
   readonly audience: ReportAudience;
   readonly chrome: ReportPdfChrome;
+  /**
+   * The computed predictive contexts + the i18next translators that localize
+   * them. OPTIONAL: when absent (or a context is missing) the matching PDF
+   * sections are omitted — the PDF mirrors exactly what the web report shows.
+   */
+  readonly comprehensive?: {
+    readonly translators: ReportPdfTranslators;
+    readonly transitCtx?: TransitCtx;
+    readonly vargaCtxFull?: VargaCtxFull;
+    readonly strengthCtx?: StrengthCtx;
+    readonly domainsCtx?: DomainsCtx;
+  };
+  /** Pre-localized Birth Time Authority slice (when a rectification exists). */
+  readonly rectification?: ReportPdfRectification;
   /** The download file name (without extension). */
   readonly fileBaseName: string;
 }
@@ -73,8 +101,11 @@ export async function downloadReportPdf(input: DownloadReportPdfInput): Promise<
     chartCaptions: input.chrome.chartCaptions,
     ascendantNote: input.chrome.ascendantNote,
     formatRectifiedNote: input.chrome.formatRectifiedNote,
+    formatAntarHeading: input.chrome.formatAntarHeading,
     detailLabels: input.chrome.detailLabels,
     chromeLabels: input.chrome.chromeLabels,
+    comprehensive: input.comprehensive,
+    rectification: input.rectification,
   });
 
   const blob = await pdf(<ReportDocument data={data} />).toBlob();

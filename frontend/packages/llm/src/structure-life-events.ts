@@ -26,7 +26,7 @@ const STRUCTURER_SYSTEM_PROMPT = [
   "of life events and return ONE JSON object with this exact shape:",
   '{ "events": [ { "date": "YYYY-MM-DD", "category": "<category>", "precision": "exact|month|year|approx" } ] }',
   "",
-  "The 16 valid categories are (use EXACTLY these strings, no others):",
+  `The ${LIFE_EVENT_CATEGORIES.length} valid categories are (use EXACTLY these strings, no others):`,
   LIFE_EVENT_CATEGORIES.join(", "),
   "",
   "Rules:",
@@ -90,7 +90,8 @@ export type StructureLifeEventsResult =
  * Ask the configured LLM to extract life events from free-form prose and return
  * them as typed `RectificationEventInput` rows.
  *
- * - Each row is validated: only YYYY-MM-DD dates and the 16 known categories survive.
+ * - Each row is validated: only YYYY-MM-DD dates and the known categories
+ *   (`LIFE_EVENT_CATEGORIES`, 17 incl. `family_rupture`) survive.
  * - On a real call/parse failure (network error, LLM rejection, malformed JSON) returns
  *   `{ status: 'error' }`. On a genuine empty or filtered response returns
  *   `{ status: 'ok', events: [] }`. Never throws.

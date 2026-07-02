@@ -80,14 +80,36 @@ export interface ReportPdfDashaPeriod {
   readonly isCurrent: boolean;
 }
 
+/** One antar-daśā drill-down table: a (localized) heading + its nine periods. */
+export interface ReportPdfAntarTable {
+  /** Pre-localized heading, e.g. "Antar-daśās of the Saturn Mahā-daśā". */
+  readonly heading: string;
+  readonly periods: ReadonlyArray<ReportPdfDashaPeriod>;
+}
+
 /** The dasha timeline slice: the maha sequence + the current focus line. */
 export interface ReportPdfDasha {
   /** The nine maha-dasha periods, in order. */
   readonly mahaSequence: ReadonlyArray<ReportPdfDashaPeriod>;
   /** The current Maha · Antar · Pratyantar focus, pre-formatted (may be empty). */
   readonly currentFocus: string;
-  /** The current antar's sub-periods (antardashas of the running maha). */
-  readonly currentAntars: ReadonlyArray<ReportPdfDashaPeriod>;
+  /**
+   * The antar-daśā drill-down of EVERY mahā (in mahā order) — the definitive
+   * reference tables. Empty on older payloads without period depth.
+   */
+  readonly antarTables: ReadonlyArray<ReportPdfAntarTable>;
+}
+
+/** One whole-sign house row — all values pre-formatted. */
+export interface ReportPdfHouseRow {
+  /** House number as a string, "1"–"12". */
+  readonly house: string;
+  /** Sign name, e.g. "Aries". */
+  readonly sign: string;
+  /** Title-cased sign lord, e.g. "Mars". */
+  readonly signLord: string;
+  /** Occupying grahas, comma-joined ("Sun, Ketu"), or "—" when empty. */
+  readonly occupants: string;
 }
 
 /** One yoga — name, classification, and description, all pre-formatted. */
@@ -110,6 +132,144 @@ export interface ReportPdfNarrativeSection {
   readonly title: string;
   /** Ordered paragraphs of prose (already plain text, markdown stripped). */
   readonly paragraphs: ReadonlyArray<string>;
+}
+
+/* ── Comprehensive (predictive + rectification) section slices ─────────────
+ * Every field below is a FINISHED display string, pre-localized by the
+ * builders (which reuse the exact same i18n helpers as the on-screen report,
+ * so PDF and web copy never drift). The PDF components render them verbatim.
+ */
+
+/** The eyebrow / title / intro chrome every comprehensive section opens with. */
+export interface ReportPdfSectionChrome {
+  readonly eyebrow: string;
+  readonly title: string;
+  readonly intro?: string;
+}
+
+/** A short label → value readout line (panel row). */
+export interface ReportPdfLabeledValue {
+  readonly label: string;
+  readonly value: string;
+}
+
+/** One generic table row; `emphasis` brass-tints it (totals / running rows). */
+export interface ReportPdfTableRow {
+  readonly cells: ReadonlyArray<string>;
+  readonly emphasis?: boolean;
+}
+
+/** A generic pre-formatted table (headers repeat when it breaks across pages). */
+export interface ReportPdfTable {
+  readonly headers: ReadonlyArray<string>;
+  readonly rows: ReadonlyArray<ReportPdfTableRow>;
+  /** Optional per-column flex weights (defaults to equal columns). */
+  readonly widths?: ReadonlyArray<number>;
+}
+
+/** Section VIII — Transits & Timing (engine TransitCtx, pre-formatted). */
+export interface ReportPdfTransits {
+  readonly chrome: ReportPdfSectionChrome;
+  /** "Sidereal sky positions for …" line. */
+  readonly asOf: string;
+  readonly gochara: ReportPdfTable;
+  readonly sadeSatiHeading: string;
+  readonly sadeSati: ReadonlyArray<ReportPdfLabeledValue>;
+  readonly slowHitsHeading: string;
+  readonly slowHits: ReportPdfTable;
+  /** Shown instead of the table when the engine emitted no slow hits. */
+  readonly slowHitsEmpty: string;
+  readonly fusionHeading: string;
+  readonly fusion: ReadonlyArray<ReportPdfLabeledValue>;
+  readonly timelineHeading: string;
+  readonly timeline: ReportPdfTable;
+  readonly timelineEmpty: string;
+}
+
+/** One framed divisional-chart plate (sign-precision geometry, no degrees). */
+export interface ReportPdfVargaPlate {
+  readonly id: string;
+  /** Localized caption, e.g. "D9 · Navāṁśa". */
+  readonly caption: string;
+  readonly geometry: ChartGeometry;
+}
+
+/** Section IX — all sixteen divisional charts + the classical tallies. */
+export interface ReportPdfVargas {
+  readonly chrome: ReportPdfSectionChrome;
+  readonly note: string;
+  /** Up to 16 plates, canonical D1→D60 order (only emitted charts). */
+  readonly plates: ReadonlyArray<ReportPdfVargaPlate>;
+  readonly vargottamaHeading: string;
+  /** Pre-joined vargottama line, or the localized empty-state text. */
+  readonly vargottamaLine: string;
+  readonly vimshopakaHeading: string;
+  readonly vimshopaka: ReportPdfTable;
+  /** The ≈-approximation footnote, present only when any score carries it. */
+  readonly approxNote?: string;
+}
+
+/** Section X — Ashtakavarga (SAV + BAV) and six-component Shadbala. */
+export interface ReportPdfStrength {
+  readonly chrome: ReportPdfSectionChrome;
+  /** SAV heading including the canonical total, pre-formatted. */
+  readonly savHeading: string;
+  /** The 12 per-sign SAV bindu cells, in zodiac order. */
+  readonly savCells: ReadonlyArray<ReportPdfLabeledValue>;
+  readonly bavHeading: string;
+  /** Sign × graha bindu matrix, closed by an emphasised totals row. */
+  readonly bav: ReportPdfTable;
+  readonly shadbalaHeading: string;
+  /** Graha · six components (virūpas) · rūpa totals · verdict. */
+  readonly shadbala: ReportPdfTable;
+  readonly componentsNote: string;
+  readonly approxNote?: string;
+  readonly sunriseNote: string;
+}
+
+/** One life-domain forecast block, fully pre-formatted. */
+export interface ReportPdfDomainBlock {
+  readonly name: string;
+  readonly band: string;
+  readonly strengthLine: string;
+  readonly emphasisLine: string;
+  readonly windowsLabel: string;
+  readonly windows: ReadonlyArray<string>;
+  readonly windowsEmpty: string;
+}
+
+/** Section XI — the seven deterministic life-domain forecasts. */
+export interface ReportPdfDomains {
+  readonly chrome: ReportPdfSectionChrome;
+  readonly blocks: ReadonlyArray<ReportPdfDomainBlock>;
+}
+
+/**
+ * Section XII — Birth Time Authority. QUALITATIVE ONLY by contract: the facts
+ * carry the entered/working clocks + signs, mode, band and confirm date —
+ * never a percentage, margin number, or fit score.
+ */
+export interface ReportPdfRectification {
+  readonly chrome: ReportPdfSectionChrome;
+  readonly facts: ReadonlyArray<ReportPdfLabeledValue>;
+  readonly eventsHeading: string;
+  readonly events: ReportPdfTable;
+  /** Shown instead of the table when no supporting events resolved. */
+  readonly eventsEmpty: string;
+  readonly caveat: string;
+  /**
+   * Phase 2 (Spec 062, v2 records with a resultSnapshot): the full evidence
+   * story — candidate comparison, per-event evidence with depth/polarity
+   * labels, quiet-period misses, and the prior note. All optional so v1
+   * records keep rendering the classic section unchanged. Qualitative only.
+   */
+  readonly candidatesHeading?: string;
+  readonly candidates?: ReportPdfTable;
+  readonly evidenceHeading?: string;
+  readonly evidence?: ReportPdfTable;
+  readonly missesHeading?: string;
+  readonly missNotes?: ReadonlyArray<string>;
+  readonly priorNote?: string;
 }
 
 /** The cover + birth-details slice (the foundation; more sections follow). */
@@ -143,6 +303,8 @@ export interface ReportPdfData {
 
   /** The planetary-positions table (9 grahas + the Lagna row). */
   readonly planets: ReadonlyArray<ReportPdfPlanetRow>;
+  /** The 12 whole-sign house rows (sign, lord, occupants). */
+  readonly houses: ReadonlyArray<ReportPdfHouseRow>;
   /** The two kundli charts (D1 + optional D9), as geometry. */
   readonly charts: ReportPdfCharts;
   /** The Vimshottari dasha timeline. */
@@ -156,6 +318,16 @@ export interface ReportPdfData {
    * omits the Interpretation section entirely (never a blank/broken page).
    */
   readonly narrative?: ReadonlyArray<ReportPdfNarrativeSection>;
+
+  /* Comprehensive sections — present only when the on-device predictive
+     contexts were computed (transits/vargas/strength/domains) or a confirmed
+     rectification record exists. The document omits absent sections entirely
+     (never a blank page): the PDF mirrors exactly what the web report shows. */
+  readonly transits?: ReportPdfTransits;
+  readonly vargas?: ReportPdfVargas;
+  readonly strength?: ReportPdfStrength;
+  readonly domains?: ReportPdfDomains;
+  readonly rectification?: ReportPdfRectification;
 
   /** Localized static labels the document needs (keeps i18n out of the PDF layer). */
   readonly labels: ReportPdfLabels;
@@ -183,6 +355,16 @@ export interface ReportPdfLabels {
   readonly colDignity: string;
   readonly lagnaRowName: string;
 
+  /** Houses section. */
+  readonly housesEyebrow: string;
+  readonly housesTitle: string;
+  readonly housesIntro: string;
+  readonly colHouseNumber: string;
+  readonly colHouseSign: string;
+  readonly colHouseLord: string;
+  readonly colOccupants: string;
+  readonly housesNote: string;
+
   /** Kundli charts section. */
   readonly chartsEyebrow: string;
   readonly chartsTitle: string;
@@ -194,7 +376,6 @@ export interface ReportPdfLabels {
   readonly dashaIntro: string;
   readonly dashaCurrentLabel: string;
   readonly dashaSequenceLabel: string;
-  readonly dashaAntarLabel: string;
 
   /** Yogas section. */
   readonly yogasEyebrow: string;

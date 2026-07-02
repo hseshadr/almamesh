@@ -71,6 +71,8 @@ class EventType(str, Enum):
     # Education/Legal
     HIGHER_STUDIES = "higher_studies"
     LITIGATION = "litigation"
+    # Family (Spec 062 E6): estrangement/rupture with parents or household.
+    FAMILY_RUPTURE = "family_rupture"
 
 
 # --- Zodiac and Sign Constants ---

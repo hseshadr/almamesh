@@ -16,7 +16,8 @@
     "health_issue": "Problema de salud",
     "surgery": "Cirugía",
     "higher_studies": "Estudios superiores",
-    "litigation": "Litigio / Acción legal"
+    "litigation": "Litigio / Acción legal",
+    "family_rupture": "Ruptura familiar / distanciamiento"
   },
   "entry": {
     "title": "Tus eventos de vida",
@@ -47,8 +48,26 @@
   "signals": {
     "dasha_lord_rules": "El señor de la dasa rige la casa {{house}}",
     "dasha_lord_in": "El señor de la dasa está en la casa {{house}}",
+    "md_lord_rules": "El señor del período mayor (maha dasa) rige la casa {{house}}",
+    "md_lord_in": "El señor del período mayor (maha dasa) está en la casa {{house}}",
+    "ad_lord_rules": "El señor del subperíodo (antar dasa) rige la casa {{house}}",
+    "ad_lord_in": "El señor del subperíodo (antar dasa) está en la casa {{house}}",
+    "pd_lord_rules": "Sincronizado con el sub-subperíodo (pratyantar): su señor rige la casa {{house}}",
+    "pd_lord_in": "Sincronizado con el sub-subperíodo (pratyantar): su señor está en la casa {{house}}",
     "slow_transit": "Planeta lento en tránsito por la casa {{house}}",
+    "d9_lord_rules_d9_h7": "El señor del período activo rige la casa de la pareja (la 7.ª) del gráfico navamsa (D9)",
+    "d9_lord_in_d9_h7": "El señor del período activo está en la casa de la pareja (la 7.ª) del gráfico navamsa (D9)",
+    "d9_lord_is_d9_lagna_lord": "El señor del período activo rige el propio signo ascendente del navamsa (D9)",
+    "miss_unexplained": "Ningún período activo explica este evento — cuenta en contra de este candidato",
+    "miss_silent": "Predijo una ventana fuerte de {{category}} sin nada reportado",
+    "prior_anchor": "El más cercano a la hora registrada — un empujón suave, nunca un sustituto de los eventos",
+    "qualifier_afflicted": "el estado debilitado (afligido) del señor coincide con este evento difícil",
+    "qualifier_dignified": "la fuerza dignificada del señor coincide con este evento afortunado",
     "unknown": "Una señal de temporización"
+  },
+  "honesty_qualifier": {
+    "prior_influenced": "Una advertencia: esta ventaja depende del suave empujón de la hora registrada — solo con los eventos sería un empate.",
+    "penalty_driven": "Una advertencia: esta ventaja proviene sobre todo de períodos silenciosos que cuentan en contra del otro candidato, no de coincidencias directas con eventos."
   },
   "results": {
     "title": "Resultados de rectificación",
@@ -60,7 +79,38 @@
     "recorded_reference_label": "Tu horario registrado",
     "candidate_label": "Candidato {{rank}}",
     "evidence_table_label": "Eventos de vida de apoyo",
-    "window_caveat": "Los eventos solo determinan el signo ascendente, no el minuto exacto. El tiempo representativo mostrado es ilustrativo: te ubica dentro del signo, no en un momento de nacimiento preciso."
+    "window_caveat": "Los eventos solo determinan el signo ascendente, no el minuto exacto. El tiempo representativo mostrado es ilustrativo: te ubica dentro del signo, no en un momento de nacimiento preciso.",
+    "navamsa_rising_label": "Ascendente del navamsa",
+    "fit_supporting_one": "{{count}} coincidencia de apoyo",
+    "fit_supporting_other": "{{count}} coincidencias de apoyo",
+    "fit_unexplained_one": "{{count}} evento sin explicar",
+    "fit_unexplained_other": "{{count}} eventos sin explicar",
+    "fit_quiet_one": "{{count}} período silencioso en contra",
+    "fit_quiet_other": "{{count}} períodos silenciosos en contra",
+    "prior_label": "Empujón de la hora registrada",
+    "misses_label": "En contra de este candidato",
+    "evidence_supports": "Apoya",
+    "evidence_against": "Cuenta en contra",
+    "decided_line": "Qué lo decidió: {{reasons}}.",
+    "reason_pd": "temporización de período al día (pratyantar)",
+    "reason_ad": "temporización de subperíodo (antar)",
+    "reason_md": "temporización de período mayor (maha)",
+    "reason_dasha": "temporización del señor del período",
+    "reason_d9": "la prueba del ascendente del navamsa (D9)",
+    "reason_transit": "tránsitos de planetas lentos",
+    "reason_balance": "el balance de la evidencia entre los candidatos",
+    "d9_flip_callout": "El ascendente del navamsa (D9) cambia aproximadamente cada 13 minutos — ayudó a separar a estos candidatos."
+  },
+  "window": {
+    "heading": "¿Qué tan segura es la hora registrada?",
+    "body": "Elige una ventana honesta alrededor de la hora registrada. Una ventana más estrecha afina la búsqueda — y si no estás seguro, deja que el motor explore el día completo.",
+    "as_recorded": "Es exacta, o dentro de unos pocos minutos",
+    "quarter": "Dentro de unos 15 minutos en cualquier dirección",
+    "half": "Dentro de unos 30 minutos en cualquier dirección",
+    "hour": "Dentro de una hora en cualquier dirección",
+    "two_hours": "Dentro de unas dos horas en cualquier dirección",
+    "whole_day": "Realmente no lo sé — explorar el día completo",
+    "start": "Iniciar el análisis"
   },
   "wizard": {
     "title": "Refinar tu hora de nacimiento"

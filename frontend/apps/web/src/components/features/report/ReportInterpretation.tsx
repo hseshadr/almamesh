@@ -71,7 +71,7 @@ export function ReportInterpretation({
 
   return (
     <section className="report-section report-interpretation" data-testid="report-interpretation">
-      <ReportSectionHeading index="V" title={t('interpretation.heading')} />
+      <ReportSectionHeading index="VI" title={t('interpretation.heading')} />
 
       {summary ? (
         <div className="report-summary-quote report-avoid-break">

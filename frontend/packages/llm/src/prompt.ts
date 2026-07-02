@@ -14,9 +14,33 @@ import { buildMeshFactsBlock } from "./mesh-facts";
 import type { SanitizedMeshEdge } from "./mesh-sanitize";
 import { buildPredictiveFactsBlock } from "./predictive-facts";
 import type { SanitizedChart } from "./sanitize";
-import type { VedicInterpretation, TitledPersona, Persona } from "@almamesh/shared-types";
+import type {
+  VedicInterpretation,
+  TitledPersona,
+  Persona,
+  RectificationBand,
+  RectificationMode,
+} from "@almamesh/shared-types";
 
 export type ViewMode = "layman" | "expert";
+
+/**
+ * The PII-safe slice of a CONFIRMED rectification record a chat prompt may
+ * carry (Spec 062, LLM delta 3): the qualitative band, the entered vs working
+ * rising SIGNS, and the fit mode (cusp vs window). Deliberately NO dates, NO
+ * clock times, NO margins/percentages — the type IS the privacy boundary, so a
+ * caller cannot leak the record's time fields into a prompt.
+ */
+export interface ChatRectificationContext {
+  /** Qualitative confidence band — a convention, never a verdict. */
+  readonly band: RectificationBand;
+  /** Rising sign at the originally-entered time, or null when none was recorded. */
+  readonly originalSign: string | null;
+  /** Rising sign of the confirmed (working-authority) rectified time. */
+  readonly rectifiedSign: string;
+  /** Engine fit mode: `cusp` (near a sign boundary) or `window` (unknown/rough time). */
+  readonly mode: RectificationMode;
+}
 
 // History budget for the chat path. Now that the chart rides as a COMPACT facts
 // block (not a full JSON dump), prior turns can keep a more generous slice of the
@@ -93,7 +117,7 @@ export const RECTIFICATION_FENCE = [
   "discovery of the user's 'true time' or as an ordained astrological truth.",
   "NEVER invent dates or events the user did not explicitly state.",
   "NEVER include personal names, place names, or any PII in your output.",
-  "OMIT any event you cannot assign both a YYYY-MM-DD date AND one of the 16 valid categories.",
+  "OMIT any event you cannot assign both a YYYY-MM-DD date AND one of the 17 valid categories.",
 ].join("\n");
 
 // Verbatim persona from backend TEXT_INTERPRETATION_PROMPT.
@@ -335,6 +359,36 @@ function truncateToInterpBudget(text: string): string {
   return text.slice(0, Math.max(0, budgetChars)) + marker;
 }
 
+/**
+ * The labelled rectification-grounding block, or "" when no record exists —
+ * keeping the no-record prompt byte-identical to today's. Band + signs + cusp
+ * status ONLY (see `ChatRectificationContext`); the honesty framing mirrors
+ * the wizard's own: a band is a convention from event evidence, never a
+ * verdict, and no "true time" is ever claimed.
+ */
+function rectificationBlock(rectification?: ChatRectificationContext): string {
+  if (!rectification) {
+    return "";
+  }
+  const entered =
+    rectification.originalSign === null
+      ? "no recorded rising sign at the entered time"
+      : `entered rising sign: ${rectification.originalSign}`;
+  const fit =
+    rectification.mode === "cusp"
+      ? "the recorded time sat near a rising-sign cusp"
+      : "the birth time was unknown or rough (full-window fit)";
+  return [
+    "Birth-time rectification (engine record — the chart facts above are computed",
+    "from the rectified WORKING time):",
+    `- ${entered}; working rising sign: ${rectification.rectifiedSign}; ${fit}.`,
+    `- Confidence band: ${rectification.band} — a qualitative convention from dated`,
+    "  life-event evidence, never a verdict. Never present the rectified time as a",
+    "  discovered 'true time', and never contradict this record when narrating the",
+    "  Ascendant or anything derived from it.",
+  ].join("\n");
+}
+
 /** The labelled reading block, or "" when no finished reading is available. */
 function interpretationBlock(text?: string): string {
   if (!text || text.trim() === "") {
@@ -363,6 +417,11 @@ function interpretationBlock(text?: string): string {
  * the user can ask how their chart and e.g. their mother's interact. The system
  * prompt then also carries the relationship exception + anti-scam fence. When
  * absent, the prompt is byte-identical to the single-chart path.
+ *
+ * The optional `rectification` is the PII-safe slice of a confirmed
+ * rectification record (band + signs + cusp status only, Spec 062 delta 3) so
+ * narration never contradicts the engine's birth-time story; when absent, the
+ * prompt is byte-identical to the record-less path.
  */
 export function buildChatMessages(
   chart: SanitizedChart,
@@ -373,20 +432,23 @@ export function buildChatMessages(
   interpretationText?: string,
   language: PromptLanguage = "en",
   meshEdge?: SanitizedMeshEdge,
+  rectification?: ChatRectificationContext,
 ): ChatMessage[] {
   const factsBlock = buildChartFactsBlock(chart);
   const meshBlock = buildMeshFactsBlock(meshEdge);
   // The compact facts block rides ONLY on the latest user turn (not repeated per
   // turn) to save budget; the system prompt already pins the engine as truth. The
   // mesh relationship block (when present) rides immediately after the chart
-  // facts; the already-generated reading sits after those and before any RAG
-  // context. Absent blocks are "" and filtered, keeping today's bytes.
+  // facts; the rectification record line (when present) follows so the birth-time
+  // story is pinned; the already-generated reading sits after those and before
+  // any RAG context. Absent blocks are "" and filtered, keeping today's bytes.
   const userContent = [
     chatRegister(mode),
     "",
     "Chart facts (sanitized; no identifying information):",
     factsBlock,
     meshBlock,
+    rectificationBlock(rectification),
     interpretationBlock(interpretationText),
     retrievedContextBlock(retrievedContext),
     "",

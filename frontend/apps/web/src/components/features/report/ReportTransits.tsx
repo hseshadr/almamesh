@@ -1,7 +1,8 @@
 /**
  * ReportTransits — the printed "Transits & Timing" section: the gochara table,
- * the Sade Sati status panel, the daśā×transit fusion read and the 12-month
- * timeline. Engine TransitCtx verbatim, locale-aware dates, almanac styling.
+ * the Sade Sati status panel, the slow-graha hits, the daśā×transit fusion
+ * read and the 12-month timeline. Engine TransitCtx verbatim, locale-aware
+ * dates, almanac styling.
  */
 
 import type { ReactElement } from 'react';
@@ -13,6 +14,7 @@ import {
   grahaName,
   sadeSatiPhaseName,
   signName,
+  slowHitTargetLabel,
   timelineEventLabel,
 } from '../../../lib/predictiveEventCopy';
 import { ReportSectionHeading } from './ReportSectionHeading';
@@ -39,7 +41,7 @@ export function ReportTransits({ transitCtx }: ReportTransitsProps): ReactElemen
 
   return (
     <section className="report-section" data-testid="report-transits">
-      <ReportSectionHeading index="VI" title={t('transits.heading')} />
+      <ReportSectionHeading index="VII" title={t('transits.heading')} />
       <p className="report-note">
         {t('transits.as_of', { date: formatPredictiveDate(transitCtx.gochara.instant) })}
       </p>
@@ -103,6 +105,34 @@ export function ReportTransits({ transitCtx }: ReportTransitsProps): ReactElemen
           </div>
         ))}
       </dl>
+
+      {/* Slow-graha hits — the dated exact contacts of the slow movers to the
+          natal points (engine `slow_hits` verbatim; previously never printed). */}
+      <h3 className="report-subsection-title">{t('transits.slow_hits_heading')}</h3>
+      {transitCtx.slow_hits.length === 0 ? (
+        <p className="report-note">{tp('slow_hits.empty')}</p>
+      ) : (
+        <table className="report-table" data-testid="report-slow-hits">
+          <thead>
+            <tr>
+              <th scope="col">{t('transits.col_date')}</th>
+              <th scope="col">{t('transits.col_event')}</th>
+              <th scope="col">{t('transits.col_tone')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {transitCtx.slow_hits.map((hit) => (
+              <tr key={`${hit.graha}-${hit.kind}-${hit.exact}`} className="report-avoid-break">
+                <td>{formatPredictiveDate(hit.exact)}</td>
+                <td>
+                  {grahaName(tp, hit.graha)} → {slowHitTargetLabel(tp, hit.natal_point)}
+                </td>
+                <td>{tp(`severity.${hit.severity}`)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
 
       <h3 className="report-subsection-title">{t('transits.fusion_heading')}</h3>
       <dl className="report-dasha-current report-avoid-break" data-testid="report-fusion">

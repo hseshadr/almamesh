@@ -24,17 +24,54 @@ This is a clean DETERMINISTIC inverse of the forward dasha-significator idea
 (``almamesh.dasha.vimshottari._extract_vim_*_signals``). It MUST NOT import the
 quarantined heuristic ``almamesh.dasha.scoring`` ("guaranteed high probability"
 expert rules) — that is enforced by ``tests/test_scoring_quarantine.py``.
+
+SIGNAL KEY GRAMMAR (Spec 062 — the frontend EvidenceTable parser mirrors this):
+
+    md_lord_rules_h{n} / md_lord_in_h{n}   maha-dasha lord rules/occupies house n (w 1.0)
+    ad_lord_rules_h{n} / ad_lord_in_h{n}   antar-dasha lord rules/occupies house n (w 0.7)
+    pd_lord_rules_h{n} / pd_lord_in_h{n}   pratyantar lord rules/occupies house n (w 0.5)
+    slow_transit_h{n}                      Jupiter/Saturn transits house n       (w 0.5)
+    d9_lord_rules_d9_h7                    active lord rules 7th-from-D9-lagna   (w 0.6)
+    d9_lord_in_d9_h7                       active lord occupies 7th-from-D9-lagna (w 0.6)
+    d9_lord_is_d9_lagna_lord               active lord rules the D9 lagna        (w 0.4)
+    …#afflicted_fit / …#dignified_fit      valence suffix: the firing lord's dignity
+                                           matches the event's character (x1.25);
+                                           a silent x0.85 damp applies to mismatches
+                                           (no suffix — never negative by itself)
+    prior_anchor                           pseudo-signal: the weak recorded-time prior
+                                           (rendered from candidate.prior_bonus)
+    miss_unexplained                       per-event: the event fired NOTHING for this
+                                           candidate (−0.25 per silent grid sample)
+    miss_silent_{category}_h{n}            candidate-level (candidate.misses): a strong
+                                           antar signature (lord rules AND occupies
+                                           house n) with no reported {category} event
+                                           inside the period (−0.15, ≤2 per category)
+
+Depth-dedup rule (E1): a lord matching at several depths counts ONCE — keyed at
+the DEEPEST matching depth (sharpest timing story) but weighted at the HIGHEST
+matching depth's weight, so Jupiter MD=AD=PD is never triple-counted and never
+scores below a plain MD hit. Misses are marginalized and de-correlated exactly
+like hits, and the total penalty is clamped to ≤50% of the positive total —
+absence of a *reported* event is weak evidence (users under-report), hence the
+asymmetric −0.25/−0.15 weights and the clamp.
 """
 
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from datetime import UTC, date, datetime, timedelta
-from typing import TypeVar
+from typing import NamedTuple, TypeVar
 
 from almamesh.calculations import SkyfieldAstronomy
-from almamesh.constants.astrology import ZODIAC_SIGNS, EventType, PlanetName, ZodiacSign
+from almamesh.constants.astrology import (
+    SIGN_LORDS,
+    ZODIAC_SIGNS,
+    Dignity,
+    EventType,
+    PlanetName,
+    ZodiacSign,
+)
 
 # Reuse the engine's own pratyantar tiling so dasha math has ONE source of truth
 # (calc-integrity mandate). This is dasha astronomy, NOT the quarantined scorer.
@@ -56,6 +93,60 @@ from almamesh.transits.positions import transit_positions
 # SECONDARY corroborating signal.
 W_PRIMARY = 1.0
 W_TRANSIT = 0.5
+
+# --- Spec 062 depth weights (E1): MD = structural theme, AD = delivery, PD =
+# timing sharpness. The precision grid naturally washes PD out for imprecise
+# dates (many pratyantars sampled), so no special-casing by precision. ---------
+W_ANTAR = 0.7
+W_PRATYANTAR = 0.5
+_DEPTH_KEYS = ("md", "ad", "pd")
+_DEPTH_WEIGHTS = (W_PRIMARY, W_ANTAR, W_PRATYANTAR)
+
+# --- Spec 062 D9 weights (E2): the navamsa lagna shifts every ~13 minutes — a
+# second quasi-independent discrete observable, tested by dated relationship
+# events only (CHILDBIRTH conservatively excluded in v1). ----------------------
+W_D9_H7 = 0.6
+W_D9_LAGNA_LORD = 0.4
+_D9_CATEGORIES = frozenset({EventType.MARRIAGE, EventType.ENGAGEMENT, EventType.BREAKUP})
+
+# --- Spec 062 valence (E3): dignity-conditioned fit. Match boosts, mismatch
+# gently damps (never negative by itself); neutral events never multiply. ------
+VALENCE_BOOST = 1.25
+VALENCE_MISMATCH_DAMP = 0.85
+_COLLAPSE_EVENTS = frozenset(
+    {
+        EventType.JOB_LOSS,
+        EventType.BREAKUP,
+        EventType.EXPENSE_SHOCK,
+        EventType.LITIGATION,
+        EventType.HEALTH_ISSUE,
+        EventType.SURGERY,
+    }
+)
+_GAIN_EVENTS = frozenset(
+    {
+        EventType.PROMOTION,
+        EventType.MARRIAGE,
+        EventType.ENGAGEMENT,
+        EventType.CHILDBIRTH,
+        EventType.WINDFALL,
+        EventType.PROPERTY_PURCHASE,
+        EventType.BUSINESS_START,
+        EventType.HIGHER_STUDIES,
+    }
+)
+
+# --- Spec 062 miss penalties (E4): absence of a REPORTED event is weak evidence
+# (users under-report), hence the asymmetric magnitudes vs the +1.0 primary hit
+# and the hard clamp at 50% of the positive total — misses refine, never dominate.
+MISS_UNEXPLAINED = 0.25  # per silent grid sample of a reported event (form 1)
+MISS_SILENT = 0.15  # per strong-but-silent antar signature (form 2)
+SILENT_MISSES_PER_CATEGORY = 2  # form-2 cap per event category
+PENALTY_CLAMP_RATIO = 0.5
+MISS_UNEXPLAINED_KEY = "miss_unexplained"
+# Reporting coverage window lead: 6 months before the earliest reported event
+# (same 182-day half-year convention as the YEAR precision grid).
+_COVERAGE_LEAD = timedelta(days=182)
 
 # --- Honest-confidence constants (Task 8) --------------------------------------
 # A single discriminating event can favour a candidate by coincidence; only
@@ -150,16 +241,123 @@ def _active_lords_at(dashas: VimshottariDashaData, when: datetime) -> tuple[Plan
     return (maha.lord, antar.lord, pratyantar)
 
 
+class _Fired(NamedTuple):
+    """One fired signal before valence: key, base weight, firing lord (if any)."""
+
+    key: str
+    weight: float
+    lord: PlanetName | None
+
+
+def _lord_depth_match(
+    active_lords: tuple[PlanetName, ...], lord: PlanetName
+) -> tuple[int, float] | None:
+    """(deepest matching depth index, highest matching depth weight) or None.
+
+    E1 dedup: a lord active at several depths counts ONCE — keyed at the
+    DEEPEST depth, weighted at the HIGHEST matching depth's weight (so
+    Jupiter MD=AD=PD never triple-counts and never scores below a MD hit).
+    """
+    matches = [i for i, active in enumerate(active_lords) if active == lord]
+    if not matches:
+        return None
+    return matches[-1], max(_DEPTH_WEIGHTS[i] for i in matches)
+
+
 def _house_signals(
     context: SiderealContext, house: int, active_lords: tuple[PlanetName, ...]
-) -> list[str]:
-    """Dasha signals for one house: an active lord RULES it, or OCCUPIES it."""
-    signals: list[str] = []
-    if context.houses[house].sign_lord in active_lords:
-        signals.append(f"dasha_lord_rules_h{house}")
-    if any(context.planets[lord].house == house for lord in active_lords):
-        signals.append(f"dasha_lord_in_h{house}")
-    return signals
+) -> list[_Fired]:
+    """Depth-keyed dasha signals for one house: a lord RULES it, or OCCUPIES it."""
+    fired: list[_Fired] = []
+    ruler = context.houses[house].sign_lord
+    rules = _lord_depth_match(active_lords, ruler)
+    if rules is not None:
+        fired.append(_Fired(f"{_DEPTH_KEYS[rules[0]]}_lord_rules_h{house}", rules[1], ruler))
+    for lord in dict.fromkeys(active_lords):  # distinct, first-appearance order
+        if context.planets[lord].house != house:
+            continue
+        occupies = _lord_depth_match(active_lords, lord)
+        assert occupies is not None  # lord came from active_lords
+        fired.append(_Fired(f"{_DEPTH_KEYS[occupies[0]]}_lord_in_h{house}", occupies[1], lord))
+    return fired
+
+
+def _d9_seventh_sign(navamsa_lagna: ZodiacSign) -> ZodiacSign:
+    """The sign 7th from the navamsa lagna (pure 12-sign arithmetic)."""
+    return ZodiacSign(ZODIAC_SIGNS[(_SIGN_INDEX[navamsa_lagna] + 6) % 12])
+
+
+def _deepest_d9_occupant(
+    context: SiderealContext, active_lords: tuple[PlanetName, ...], sign: ZodiacSign
+) -> PlanetName | None:
+    """The deepest-depth active lord whose NAVAMSA placement sits in ``sign``."""
+    navamsa = context.navamsa
+    if navamsa is None:
+        return None
+    for lord in reversed(active_lords):  # pd → ad → md: deepest match first
+        placement = navamsa.planets.get(lord)
+        if placement is not None and placement.sign == sign:
+            return lord
+    return None
+
+
+def _d9_signals(
+    context: SiderealContext, category: EventType, active_lords: tuple[PlanetName, ...]
+) -> list[_Fired]:
+    """E2: D9 navamsa-lagna signals for relationship events (fire at most once each).
+
+    Computed purely from the already-derived ``context.navamsa`` — zero new
+    astronomy. Keys carry no depth prefix; the E1 deepest-match rule only picks
+    WHICH lord fires (for the valence read), the weights are fixed.
+    """
+    navamsa = context.navamsa
+    if navamsa is None or category not in _D9_CATEGORIES or not active_lords:
+        return []
+    fired: list[_Fired] = []
+    seventh = _d9_seventh_sign(navamsa.lagna_sign)
+    if _lord_depth_match(active_lords, SIGN_LORDS[seventh]) is not None:
+        fired.append(_Fired("d9_lord_rules_d9_h7", W_D9_H7, SIGN_LORDS[seventh]))
+    occupant = _deepest_d9_occupant(context, active_lords, seventh)
+    if occupant is not None:
+        fired.append(_Fired("d9_lord_in_d9_h7", W_D9_H7, occupant))
+    if _lord_depth_match(active_lords, navamsa.lagna_sign_lord) is not None:
+        fired.append(_Fired("d9_lord_is_d9_lagna_lord", W_D9_LAGNA_LORD, navamsa.lagna_sign_lord))
+    return fired
+
+
+def _event_valence(category: EventType) -> int:
+    """+1 gain-type, -1 collapse-type, 0 neutral (E3 EventType→valence map)."""
+    if category in _COLLAPSE_EVENTS:
+        return -1
+    return 1 if category in _GAIN_EVENTS else 0
+
+
+def _lord_condition(context: SiderealContext, lord: PlanetName) -> str:
+    """'afflicted' (debilitated/combust), 'dignified' (exalted/own) or 'neutral'.
+
+    Combustion outranks a dignified placement: an exalted-but-combust lord
+    still reads afflicted (asta overrides, deterministic precedence).
+    """
+    planet = context.planets[lord]
+    if planet.dignity is Dignity.DEBILITATED or planet.is_combust:
+        return "afflicted"
+    if planet.dignity in (Dignity.EXALTED, Dignity.OWN):
+        return "dignified"
+    return "neutral"
+
+
+def _apply_valence(context: SiderealContext, fired: _Fired, valence: int) -> tuple[str, float]:
+    """E3: dignity-conditioned fit for lord-fired signals → (final key, weight)."""
+    if fired.lord is None or valence == 0:
+        return fired.key, fired.weight
+    condition = _lord_condition(context, fired.lord)
+    if condition == "afflicted" and valence < 0:
+        return f"{fired.key}#afflicted_fit", fired.weight * VALENCE_BOOST
+    if condition == "dignified" and valence > 0:
+        return f"{fired.key}#dignified_fit", fired.weight * VALENCE_BOOST
+    if condition == "neutral":
+        return fired.key, fired.weight
+    return fired.key, fired.weight * VALENCE_MISMATCH_DAMP  # mismatch: damped, no suffix
 
 
 def _sign_of(longitude: float) -> ZodiacSign:
@@ -231,35 +429,82 @@ def _transit_houses_at(
     return _transit_houses(context, signs)
 
 
-def _collect_signals(
+def _collect_fired(
     context: SiderealContext,
     category_houses_: Sequence[int],
     active_lords: tuple[PlanetName, ...],
     transit_houses: frozenset[int],
-) -> list[str]:
-    """Every fired machine key across the event category's classical houses."""
-    signals: list[str] = []
+    category: EventType,
+) -> list[_Fired]:
+    """Every fired signal (dasha + transit + D9) across the event's houses."""
+    fired: list[_Fired] = []
     for house in category_houses_:
-        signals.extend(_house_signals(context, house, active_lords))
+        fired.extend(_house_signals(context, house, active_lords))
         if house in transit_houses:
-            signals.append(f"slow_transit_h{house}")
-    return signals
-
-
-def _signal_weight(signal: str) -> float:
-    """Primary dasha matches outweigh the secondary transit signal."""
-    return W_TRANSIT if signal.startswith("slow_transit") else W_PRIMARY
+            fired.append(_Fired(f"slow_transit_h{house}", W_TRANSIT, None))
+    fired.extend(_d9_signals(context, category, active_lords))
+    return fired
 
 
 def _instant_signals(
     context: SiderealContext,
+    event: RectificationEventInput,
     houses: Sequence[int],
     when: datetime,
     transit_houses: frozenset[int],
-) -> list[str]:
-    """Fired signal keys at one instant (dasha + transit) for the event's houses."""
+) -> list[tuple[str, float]]:
+    """Valence-weighted (key, weight) pairs fired at one instant; empty = silent."""
     active_lords = _active_lords_at(context.dashas, when)
-    return _collect_signals(context, houses, active_lords, transit_houses)
+    fired = _collect_fired(context, houses, active_lords, transit_houses, event.category)
+    valence = _event_valence(event.category)
+    return [_apply_valence(context, f, valence) for f in fired]
+
+
+class _EventScore(NamedTuple):
+    """One event's evidence plus its positive/penalty split (both already /n)."""
+
+    evidence: EventEvidence
+    positive: float
+    penalty: float
+
+
+def _central_snapshot(fired: list[tuple[str, float]]) -> list[str]:
+    """The representative signal keys: fired keys, or the unexplained-miss key."""
+    return [key for key, _ in fired] if fired else [MISS_UNEXPLAINED_KEY]
+
+
+def _score_event(
+    context: SiderealContext,
+    event: RectificationEventInput,
+    event_index: int,
+    transit_signs: Mapping[datetime, Mapping[PlanetName, ZodiacSign]] | None,
+) -> _EventScore:
+    """Marginalize hits AND form-1 misses over the event's precision grid."""
+    houses = category_houses(event.category)
+    instants = _event_instants(event.date, event.precision)
+    zero_transit = event.precision is EventDatePrecision.APPROX
+    positive = penalty = 0.0
+    for when in instants:
+        t_houses = frozenset() if zero_transit else _transit_houses_at(context, when, transit_signs)
+        fired = _instant_signals(context, event, houses, when, t_houses)
+        if fired:
+            positive += sum(weight for _, weight in fired)
+        else:
+            penalty += MISS_UNEXPLAINED  # the event happened; a silent chart loses ground
+    n = len(instants)
+    central = instants[n // 2]
+    central_transit = (
+        frozenset() if zero_transit else _transit_houses_at(context, central, transit_signs)
+    )
+    snapshot = _central_snapshot(_instant_signals(context, event, houses, central, central_transit))
+    evidence = EventEvidence(
+        event_index=event_index,
+        category=event.category,
+        date=event.date,
+        signals=snapshot,
+        contribution=(positive - penalty) / n,
+    )
+    return _EventScore(evidence, positive / n, penalty / n)
 
 
 def extract_event_signals(
@@ -269,41 +514,18 @@ def extract_event_signals(
     event_index: int = 0,
     transit_signs: Mapping[datetime, Mapping[PlanetName, ZodiacSign]] | None = None,
 ) -> EventEvidence:
-    """Marginalize one event's dasha + transit contribution across its precision window.
+    """Marginalize one event's contribution across its precision window.
 
     ``transit_signs`` is the orchestrator's per-instant map (``compute_transit_signs``,
     keyed by ``datetime``); ``None`` triggers an internal fallback. For ``APPROX``
     precision the transit contribution is hard-zeroed — slow planets move too slowly
-    relative to a ±2-year window to provide reliable per-instant evidence. For
-    ``EXACT`` (1-instant window) the result is byte-identical to the pre-Task-4
-    single-noon-instant code path. ``event_index`` defaults to 0; ``score_candidate``
-    sets the real position.
+    relative to a ±2-year window to provide reliable per-instant evidence.
+    ``contribution`` is the NET marginalized value: fired weights minus the form-1
+    unexplained-miss penalty (−0.25 per fully-silent grid sample); the candidate
+    aggregation keeps the positive/penalty split separately (``_score_event``).
+    ``event_index`` defaults to 0; ``score_candidate`` sets the real position.
     """
-    houses = category_houses(event.category)
-    instants = _event_instants(event.date, event.precision)
-    zero_transit = event.precision is EventDatePrecision.APPROX
-    dasha_sum = 0.0
-    transit_sum = 0.0
-    for when in instants:
-        t_houses = frozenset() if zero_transit else _transit_houses_at(context, when, transit_signs)
-        for signal in _instant_signals(context, houses, when, t_houses):
-            if signal.startswith("slow_transit"):
-                transit_sum += _signal_weight(signal)
-            else:
-                dasha_sum += _signal_weight(signal)
-    n = len(instants)
-    central = instants[n // 2]
-    central_transit = (
-        frozenset() if zero_transit else _transit_houses_at(context, central, transit_signs)
-    )
-    signals = _instant_signals(context, houses, central, central_transit)
-    return EventEvidence(
-        event_index=event_index,
-        category=event.category,
-        date=event.date,
-        signals=signals,
-        contribution=(dasha_sum + transit_sum) / n,
-    )
+    return _score_event(context, event, event_index, transit_signs).evidence
 
 
 def _category_total(contributions: list[float]) -> float:
@@ -320,26 +542,116 @@ def _category_total(contributions: list[float]) -> float:
     return min(decayed, max(CATEGORY_CAP, ordered[0]))
 
 
-def _decorrelated_total(evidences: Sequence[EventEvidence]) -> float:
+def _decorrelate_by_category(pairs: Iterable[tuple[EventType, float]]) -> float:
     """Sum the per-category de-correlated totals across DIFFERENT life areas.
 
     De-correlation is per-category only: independent evidence from different
-    categories adds up fully, while clustered same-category events are damped and
-    capped (``_category_total``). This is the anti-false-precision core.
+    categories adds up fully, while clustered same-category values are damped and
+    capped (``_category_total``). This is the anti-false-precision core; hits and
+    misses run through the SAME machinery (Spec 062 design invariant).
     """
     by_category: dict[EventType, list[float]] = defaultdict(list)
-    for evidence in evidences:
-        by_category[evidence.category].append(evidence.contribution)
-    return sum(_category_total(contributions) for contributions in by_category.values())
+    for category, value in pairs:
+        by_category[category].append(value)
+    return sum(_category_total(values) for values in by_category.values())
+
+
+def _decorrelated_total(evidences: Sequence[EventEvidence]) -> float:
+    """De-correlated total of the evidences' net contributions (kept for reuse/tests)."""
+    return _decorrelate_by_category((e.category, e.contribution) for e in evidences)
+
+
+def _period_explained(
+    antar: DashaPeriod, category_events: Sequence[RectificationEventInput]
+) -> bool:
+    """True when any reported same-category event (± its precision tolerance)
+    overlaps the antar period — the activation is then accounted for."""
+    for event in category_events:
+        half = timedelta(days=_PRECISION_HALF_DAYS[event.precision])
+        instant = _event_instant(event.date)
+        if instant - half < antar.end_date and instant + half >= antar.start_date:
+            return True
+    return False
+
+
+def _strong_signature(context: SiderealContext, house: int, lord: PlanetName) -> bool:
+    """The antar lord both RULES and OCCUPIES the house — the same conjunction
+    that would have scored ≥1.4 (0.7 + 0.7) as an AD-level hit."""
+    planet = context.planets.get(lord)
+    return context.houses[house].sign_lord == lord and planet is not None and planet.house == house
+
+
+def _category_silences(
+    context: SiderealContext,
+    category: EventType,
+    antars: Sequence[DashaPeriod],
+    events: Sequence[RectificationEventInput],
+) -> list[tuple[EventType, str]]:
+    """Form-2 misses for one category, capped at SILENT_MISSES_PER_CATEGORY."""
+    category_events = [e for e in events if e.category == category]
+    found: list[tuple[EventType, str]] = []
+    for antar in antars:
+        for house in category_houses(category):
+            if not _strong_signature(context, house, antar.lord):
+                continue
+            if _period_explained(antar, category_events):
+                continue
+            found.append((category, f"miss_silent_{category.value}_h{house}"))
+            if len(found) >= SILENT_MISSES_PER_CATEGORY:
+                return found
+    return found
+
+
+def silent_activation_misses(
+    context: SiderealContext, events: Sequence[RectificationEventInput]
+) -> list[tuple[EventType, str]]:
+    """E4 form 2: strong antar signatures with NO reported event of that category.
+
+    Only categories the user actually reported are examined (absence in a life
+    area the user never mentioned is not evidence), only within the reporting
+    coverage window [min(event dates) − 6 months, max(event dates)]. Enumerated
+    from the already-dated 81-row antar tree — zero new astronomy.
+    """
+    if not events:
+        return []
+    window_start = min(_event_instant(e.date) for e in events) - _COVERAGE_LEAD
+    window_end = max(_event_instant(e.date) for e in events)
+    antars = [
+        antar
+        for maha in context.dashas.maha_dasha_sequence
+        for antar in maha.antar_sequence
+        if antar.start_date < window_end and antar.end_date > window_start
+    ]
+    categories = sorted({e.category for e in events}, key=lambda c: c.value)
+    misses: list[tuple[EventType, str]] = []
+    for category in categories:
+        misses.extend(_category_silences(context, category, antars, events))
+    return misses
+
+
+def _clamped_penalty(
+    scores: Sequence[_EventScore],
+    silent: Sequence[tuple[EventType, str]],
+    positive_total: float,
+) -> float:
+    """Pool form-1 + form-2 penalties, de-correlate like hits, clamp to ≤50%."""
+    items = [(s.evidence.category, s.penalty) for s in scores if s.penalty > 0]
+    items += [(category, MISS_SILENT) for category, _key in silent]
+    raw = _decorrelate_by_category(items)
+    return min(raw, PENALTY_CLAMP_RATIO * positive_total)
 
 
 def _build_candidate(
     context: SiderealContext,
     birth_dt: datetime,
-    fit_score: float,
     evidences: list[EventEvidence],
+    *,
+    positive_total: float,
+    penalty_total: float,
+    prior_bonus: float,
+    misses: list[str],
 ) -> RectificationCandidate:
-    """Assemble a candidate from its context lagna, de-correlated score, and evidence."""
+    """Assemble a candidate; ``fit_score = positive − penalty + prior`` (E7)."""
     lagna = context.lagna
     return RectificationCandidate(
         ascendant_sign=lagna.sign,
@@ -347,8 +659,13 @@ def _build_candidate(
         lagna_longitude_deg=lagna.longitude,
         lagna_cusp_distance_deg=lagna.lagna_cusp_distance_deg,
         is_near_cusp=lagna.is_near_cusp,
-        fit_score=fit_score,
+        fit_score=positive_total - penalty_total + prior_bonus,
         supporting_events=evidences,
+        navamsa_lagna_sign=context.navamsa.lagna_sign if context.navamsa else None,
+        positive_total=positive_total,
+        penalty_total=penalty_total,
+        prior_bonus=prior_bonus,
+        misses=misses,
     )
 
 
@@ -358,6 +675,7 @@ def score_candidate(
     *,
     birth_dt: datetime,
     transit_signs: Mapping[datetime, Mapping[PlanetName, ZodiacSign]] | None = None,
+    prior_bonus: float = 0.0,
 ) -> RectificationCandidate:
     """Score every event against one candidate chart into a de-correlated candidate.
 
@@ -365,12 +683,24 @@ def score_candidate(
     (rendered ``HH:MM``); pass it in the zone you want shown. ``transit_signs`` is
     the orchestrator's per-instant precompute (``compute_transit_signs``, keyed by
     ``datetime``); when absent each event computes its own signs on demand.
+    ``prior_bonus`` is the orchestrator's weak anchor prior (E5), surfaced on the
+    candidate as its own labeled field — never hidden inside the score.
     """
-    evidences = [
-        extract_event_signals(context, event, event_index=index, transit_signs=transit_signs)
-        for index, event in enumerate(events)
+    scores = [
+        _score_event(context, event, index, transit_signs) for index, event in enumerate(events)
     ]
-    return _build_candidate(context, birth_dt, _decorrelated_total(evidences), evidences)
+    positive_total = _decorrelate_by_category((s.evidence.category, s.positive) for s in scores)
+    silent = silent_activation_misses(context, events)
+    penalty_total = _clamped_penalty(scores, silent, positive_total)
+    return _build_candidate(
+        context,
+        birth_dt,
+        [s.evidence for s in scores],
+        positive_total=positive_total,
+        penalty_total=penalty_total,
+        prior_bonus=prior_bonus,
+        misses=[key for _category, key in silent],
+    )
 
 
 def _margin(ranked: Sequence[RectificationCandidate]) -> float:

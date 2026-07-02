@@ -1287,9 +1287,10 @@ export type LifeEventCategory =
   | 'health_issue'
   | 'surgery'
   | 'higher_studies'
-  | 'litigation';
+  | 'litigation'
+  | 'family_rupture';
 
-/** All 16 life-event categories for rectification. */
+/** All 17 life-event categories for rectification (Spec 062 E6 added family_rupture). */
 export const LIFE_EVENT_CATEGORIES: readonly LifeEventCategory[] = [
   'marriage',
   'engagement',
@@ -1307,6 +1308,7 @@ export const LIFE_EVENT_CATEGORIES: readonly LifeEventCategory[] = [
   'surgery',
   'higher_studies',
   'litigation',
+  'family_rupture',
 ];
 
 // Rectification result mode (cusp-based or window-based time-fitting)
@@ -1317,6 +1319,16 @@ export type RectificationBand = 'near_tie' | 'leans' | 'consistent';
 
 // How precisely the user knows an event's date (drives engine weighting).
 export type EventDatePrecision = 'exact' | 'month' | 'year' | 'approx';
+
+/**
+ * How much the recorded birth time anchors the E5 prior (Spec 062).
+ *
+ * 'about': a weak triangular prior around the recorded time (max bonus ~0.5 —
+ * about half of one primary signal; it can break a true tie, never outvote an
+ * event). 'unknown': flat, no prior at all. Engine defaults per mode: 'about'
+ * for cusp (a recorded time exists), 'unknown' for window.
+ */
+export type AnchorConfidence = 'about' | 'unknown';
 
 /** Life event input for rectification analysis. */
 export interface RectificationEventInput {
@@ -1331,7 +1343,20 @@ export interface RectificationEventInput {
   readonly summary?: string;
 }
 
-/** Supporting evidence for a life event in the rectification result. */
+/**
+ * Supporting evidence for a life event in the rectification result.
+ *
+ * `signals` are opaque engine keys following the Spec 062 grammar documented in
+ * `backend/src/almamesh/rectification/scorer.py` (and mirrored in
+ * `@almamesh/browser` `pyodide/rectification.ts`): depth-keyed
+ * `md_/ad_/pd_lord_rules|in_h{n}`, `slow_transit_h{n}`, D9 keys
+ * (`d9_lord_rules_d9_h7`, `d9_lord_in_d9_h7`, `d9_lord_is_d9_lagna_lord`),
+ * valence suffixes `#afflicted_fit`/`#dignified_fit`, the `prior_anchor`
+ * pseudo-signal, and `miss_unexplained`.
+ *
+ * `contribution` is the NET per-event contribution and CAN BE NEGATIVE (an
+ * event that fired nothing for this candidate counts against it).
+ */
 export interface EventEvidence {
   readonly eventIndex: number;
   readonly category: LifeEventCategory;
@@ -1340,7 +1365,16 @@ export interface EventEvidence {
   readonly contribution: number;
 }
 
-/** One candidate rectified time with supporting event evidence. */
+/**
+ * One candidate rectified time with supporting event evidence.
+ *
+ * Spec 062: `fitScore = positiveTotal - penaltyTotal + priorBonus`; the split
+ * is exposed so the UI can render honest per-part storytelling (the prior as
+ * its own labeled row, penalties as "counting against"). `misses` lists the
+ * candidate-level silent-activation penalty keys
+ * (`miss_silent_{category}_h{n}`); per-event unexplained misses live in the
+ * evidence `signals` as `miss_unexplained`.
+ */
 export interface RectificationCandidate {
   readonly ascendantSign: string;
   readonly representativeTimeLocal: string;
@@ -1348,10 +1382,25 @@ export interface RectificationCandidate {
   readonly lagnaCuspDistanceDeg: number;
   readonly isNearCusp: boolean;
   readonly fitScore: number;
+  /** D9 navamsa lagna sign at the candidate time (Spec 062 E2), or null. */
+  readonly navamsaLagnaSign: string | null;
+  /** De-correlated positive evidence total (Spec 062 E7). */
+  readonly positiveTotal: number;
+  /** Clamped miss-penalty total (Spec 062 E4/E7). */
+  readonly penaltyTotal: number;
+  /** Weak recorded-time anchor prior bonus (Spec 062 E5). */
+  readonly priorBonus: number;
+  /** Candidate-level silent-activation miss keys (`miss_silent_{category}_h{n}`). */
+  readonly misses: readonly string[];
   readonly supportingEvents: readonly EventEvidence[];
 }
 
-/** The complete rectification result: mode, candidates, margin, band, honesty note. */
+/**
+ * The complete rectification result: mode, candidates, margin, band, honesty note.
+ *
+ * `honestyNoteKey` is `rectify.honesty.{band}` or a Spec 062 variant
+ * `rectify.honesty.{band}.prior_influenced` / `.penalty_driven`.
+ */
 export interface RectificationResult {
   readonly mode: RectificationMode;
   readonly candidates: readonly RectificationCandidate[];
@@ -1363,15 +1412,36 @@ export interface RectificationResult {
 }
 
 /**
+ * One structured life event as remembered on a confirmed rectification record
+ * (v2): its opaque id, date, category, and the user's OWN optional summary
+ * text. Display-only and fully on-device — never fed to the engine and never
+ * sent anywhere.
+ */
+export interface RectificationRecordEventSummary {
+  /** Opaque id of the structured life event (matches `supportingEventIds`). */
+  readonly id: string;
+  /** ISO `YYYY-MM-DD` date of the event. */
+  readonly date: string;
+  /** Life-event category the engine scored. */
+  readonly category: LifeEventCategory;
+  /** The user's own optional "what happened" text (on-device display only). */
+  readonly summary?: string;
+}
+
+/**
  * A persisted, display-only record of a CONFIRMED birth-time rectification.
  *
  * Written when the user confirms a candidate in the `/rectify` wizard so
  * Settings can show "you rectified your birth time on <date>: was X, now Y".
- * It is pure metadata for display — it NEVER feeds the engine and carries NO
- * raw life-event narrative (only opaque event ids + their count), preserving
- * the project's privacy posture. Reuses the engine's own
- * `RectificationMode`/`RectificationBand` so the band stays a convention, never
- * a verdict.
+ * It is pure metadata for display — it NEVER feeds the engine and stays fully
+ * on-device (IndexedDB, local-first; nothing here ever leaves the device).
+ * Reuses the engine's own `RectificationMode`/`RectificationBand` so the band
+ * stays a convention, never a verdict.
+ *
+ * v2 (Spec 062): optionally carries `resultSnapshot` (the full adapted engine
+ * result at confirmation time, so the evidence story survives revisits) and
+ * `eventSummaries` (the structured events that informed the fit, in the user's
+ * own words). Both are optional so v1 records keep loading unchanged.
  */
 export interface RectificationRecord {
   /** Owning profile id (also the persisted store map key). */
@@ -1394,6 +1464,16 @@ export interface RectificationRecord {
   readonly rectifiedSign: string;
   /** Opaque ids of the structured life events that informed the fit (no PII). */
   readonly supportingEventIds: readonly string[];
+  /**
+   * v2: the full adapted engine result captured at confirmation time
+   * (display-only snapshot; absent on v1 records).
+   */
+  readonly resultSnapshot?: RectificationResult;
+  /**
+   * v2: the structured events that informed the fit, with the user's own
+   * summaries for on-device display (absent on v1 records).
+   */
+  readonly eventSummaries?: readonly RectificationRecordEventSummary[];
 }
 
 export type LifeEventType =

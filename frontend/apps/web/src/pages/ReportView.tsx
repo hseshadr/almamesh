@@ -20,9 +20,16 @@
 import type { ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { useChartLibraryStore, type StoredChart } from '@almamesh/store';
+import {
+  useChartLibraryStore,
+  useLifeEventsStore,
+  useProfilesStore,
+  useRectificationRecordsStore,
+  type LifeEvent,
+  type StoredChart,
+} from '@almamesh/store';
 import type { LagnaData } from '@almamesh/browser/types';
-import type { ProcessedBirthData } from '@almamesh/shared-types';
+import type { ProcessedBirthData, RectificationRecord } from '@almamesh/shared-types';
 import { useStreamingInterpretation } from '../hooks/useStreamingInterpretation';
 import { usePredictiveLayer, type PredictiveLayer } from '../hooks/usePredictiveLayer';
 import { useElapsedSeconds, formatElapsed } from '../hooks/useElapsedSeconds';
@@ -31,14 +38,21 @@ import { resolveReportAudience } from '../lib/reportSelectors';
 import { cuspInfo } from '../lib/lagnaCusp';
 import { rectificationDelta } from '../lib/rectification';
 import { downloadReportPdf, type ReportPdfChrome } from '../lib/downloadReportPdf';
+// Deep import ON PURPOSE: the report-pdf index re-exports ReportDocument and
+// therefore @react-pdf/renderer, which must stay OUT of ReportView's static
+// graph (it loads lazily inside downloadReportPdf). The builder module itself
+// is pure reshaping + i18n and pulls no renderer code.
+import { buildRectificationPdf } from '../components/report-pdf/buildRectificationPdf';
 import {
   ReportChartsPage,
   ReportCover,
   ReportDasha,
   ReportDomains,
   ReportFooter,
+  ReportHouses,
   ReportInterpretation,
   ReportPlanetTable,
+  ReportRectification,
   ReportStrength,
   ReportTransits,
   ReportVargas,
@@ -142,6 +156,7 @@ function selectPrimaryChart(charts: Readonly<Record<string, StoredChart>>): Stor
 export default function ReportView(): ReactElement {
   const navigate = useNavigate();
   const { t } = useTranslation('report');
+  const { t: tp } = useTranslation('predictive');
   const [searchParams] = useSearchParams();
   const { contentMode } = useContentModeStore();
 
@@ -155,6 +170,22 @@ export default function ReportView(): ReactElement {
   // report renders these sections only when computed; otherwise it offers an
   // on-screen (never printed) affordance to compute before printing.
   const predictive = usePredictiveLayer();
+
+  // Birth Time Authority (Section XI): the profile's CONFIRMED rectification
+  // record + its supporting life events, resolved in record order (read-only
+  // store usage; ids that no longer resolve are simply dropped).
+  const activeProfileId = useProfilesStore((s) => s.activeProfileId);
+  const profileId = activeProfileId ?? storedChart?.profile_id ?? null;
+  const rectificationRecord: RectificationRecord | undefined = useRectificationRecordsStore(
+    (s) => (profileId ? s.recordsByProfile[profileId] : undefined),
+  );
+  const profileEvents: readonly LifeEvent[] =
+    useLifeEventsStore((s) => (profileId ? s.eventsByProfile[profileId] : undefined)) ?? [];
+  const supportingEvents: readonly LifeEvent[] = rectificationRecord
+    ? rectificationRecord.supportingEventIds
+        .map((id) => profileEvents.find((event) => event.id === id))
+        .filter((event): event is LifeEvent => event !== undefined)
+    : [];
 
   // `?mode=` wins; otherwise fall back to the dashboard's content mode.
   const fallbackMode = contentMode === 'technical' ? 'astrologer' : 'you';
@@ -202,6 +233,7 @@ export default function ReportView(): ReactElement {
           sign: delta.deltaMinutes > 0 ? '+' : '−',
           minutes: Math.abs(delta.deltaMinutes),
         }),
+      formatAntarHeading: (lord) => t('dasha.antar_heading', { lord }),
       chartCaptions: {
         rasi: t('charts.rasi_caption'),
         navamsa: t('charts.navamsa_caption'),
@@ -229,6 +261,14 @@ export default function ReportView(): ReactElement {
         colHouse: t('pdf.house_short'),
         colDignity: t('planets.col_dignity'),
         lagnaRowName: t('pdf.lagna_row_name'),
+        housesEyebrow: t('pdf.houses_eyebrow'),
+        housesTitle: t('houses.heading'),
+        housesIntro: t('pdf.houses_intro'),
+        colHouseNumber: t('houses.col_house'),
+        colHouseSign: t('houses.col_sign'),
+        colHouseLord: t('houses.col_lord'),
+        colOccupants: t('houses.col_occupants'),
+        housesNote: t('houses.whole_sign_note'),
         chartsEyebrow: t('pdf.charts_eyebrow'),
         chartsTitle: t('charts.heading'),
         chartsIntro: t('pdf.charts_intro'),
@@ -237,7 +277,6 @@ export default function ReportView(): ReactElement {
         dashaIntro: t('pdf.dasha_intro'),
         dashaCurrentLabel: t('pdf.dasha_current_label'),
         dashaSequenceLabel: t('pdf.dasha_sequence_label'),
-        dashaAntarLabel: t('pdf.dasha_antar_label'),
         yogasEyebrow: t('pdf.yogas_eyebrow'),
         yogasTitle: t('yogas.heading'),
         yogasIntro: t('pdf.yogas_intro'),
@@ -254,6 +293,31 @@ export default function ReportView(): ReactElement {
       interpretation: readyInterpretation,
       audience,
       chrome,
+      // The comprehensive sections mirror the web report: they enter the PDF
+      // only when the on-device predictive contexts are computed.
+      comprehensive:
+        predictive.status === 'ready'
+          ? {
+              translators: { tr: t, tp },
+              transitCtx: predictive.transitCtx,
+              vargaCtxFull: predictive.vargaCtxFull,
+              strengthCtx: predictive.strengthCtx,
+              domainsCtx: predictive.domainsCtx,
+            }
+          : undefined,
+      // Birth Time Authority (Section XII) — only when a confirmed record
+      // exists; localized here so i18n stays in React.
+      rectification: rectificationRecord
+        ? buildRectificationPdf({
+            record: rectificationRecord,
+            events: supportingEvents.map((event) => ({
+              date: event.date,
+              category: event.category,
+              summary: event.summary ?? event.note ?? event.description,
+            })),
+            t,
+          })
+        : undefined,
       fileBaseName: t('pdf_title', { name: personName, date: isoDate(new Date()) }),
     });
   };
@@ -302,6 +366,7 @@ export default function ReportView(): ReactElement {
         ) : null}
         <ReportChartsPage chart={sidereal} />
         <ReportPlanetTable chart={sidereal} />
+        <ReportHouses chart={sidereal} />
         <ReportYogas
           yogas={sidereal.yogas}
           interpretation={readyInterpretation}
@@ -312,7 +377,7 @@ export default function ReportView(): ReactElement {
           <ReportInterpretation interpretation={readyInterpretation} audience={audience} />
         ) : null}
         {/* Predictive sections — rendered only when the lazy contexts are
-            computed (sections VI–IX live after the fixed I–V numbering). */}
+            computed (sections VII–X live after the fixed I–VI numbering). */}
         {predictive.status === 'ready' && predictive.transitCtx && (
           <ReportTransits transitCtx={predictive.transitCtx} />
         )}
@@ -325,6 +390,10 @@ export default function ReportView(): ReactElement {
         {predictive.status === 'ready' && predictive.domainsCtx && (
           <ReportDomains domainsCtx={predictive.domainsCtx} />
         )}
+        {/* Birth Time Authority (XI) — only when a rectification was confirmed. */}
+        {rectificationRecord ? (
+          <ReportRectification record={rectificationRecord} events={supportingEvents} />
+        ) : null}
         <ReportFooter personName={personName} />
       </article>
     </div>

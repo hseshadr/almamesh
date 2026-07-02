@@ -55,9 +55,9 @@ _WIN_UTC_OFFSET = 540  # JST = UTC+9
 
 # ── Synthetic discriminating window native (Mumbai) — NEVER real owner data ────
 # Chosen because Virgo rising consistently scores highest for this native+events:
-# dasha lords at the chosen event dates rotate into Virgo-specific house lordships
-# (Mercury rules h1+h10; Jupiter in h4; Moon/Mars active in h6/h7).  Verified by
-# engine exploration: band=leans, margin≈0.172, disc=6.
+# dasha lords at the chosen event dates rotate into Virgo-specific house lordships.
+# Re-crafted for the Spec-062 depth-aware scorer (engine exploration 2026-07-01):
+# band=consistent, margin≈0.51, disc=6, top=Virgo.
 _DISC_DT_UTC = datetime(1992, 7, 4, 6, 30, 0, tzinfo=UTC)  # noon IST = 06:30 UTC
 _DISC_LAT = 19.0760  # Mumbai
 _DISC_LON = 72.8777
@@ -86,12 +86,12 @@ _WIN_EVENTS_MAIN: list[RectificationEventInput] = [
 # Discriminating events: Mumbai native, crafted so Virgo's dasha-lord/house fit
 # clearly outscores all others across 6 independent life-area categories.
 _WIN_EVENTS_DISC: list[RectificationEventInput] = [
-    RectificationEventInput(date=date(2005, 3, 15), category=EventType.CAREER_CHANGE),
-    RectificationEventInput(date=date(2010, 7, 1), category=EventType.PROMOTION),
-    RectificationEventInput(date=date(2015, 9, 20), category=EventType.BUSINESS_START),
-    RectificationEventInput(date=date(2003, 5, 12), category=EventType.MARRIAGE),
-    RectificationEventInput(date=date(2018, 2, 28), category=EventType.CHILDBIRTH),
-    RectificationEventInput(date=date(2008, 11, 10), category=EventType.RELOCATION),
+    RectificationEventInput(date=date(2013, 6, 10), category=EventType.CAREER_CHANGE),
+    RectificationEventInput(date=date(2018, 6, 29), category=EventType.PROMOTION),
+    RectificationEventInput(date=date(2010, 8, 10), category=EventType.BUSINESS_START),
+    RectificationEventInput(date=date(2011, 2, 6), category=EventType.MARRIAGE),
+    RectificationEventInput(date=date(2022, 10, 21), category=EventType.CHILDBIRTH),
+    RectificationEventInput(date=date(2016, 4, 10), category=EventType.RELOCATION),
 ]
 
 # ── Precision scenario: Tokyo native, year/approx precision events ────────────

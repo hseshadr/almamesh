@@ -1,7 +1,10 @@
 /**
  * Rectify — event-based birth-time rectification wizard.
  *
- * Step flow: intro → events → fit (loading) → results
+ * Step flow: intro → events → fit → results. The fit step first asks the
+ * honest-window question ("how sure are you about the recorded time?" —
+ * Spec 062; skipped for unknown-time profiles, which auto-scan the whole day)
+ * and then runs the engine with `run(mode, spanMinutes?)`.
  *
  * On confirm: builds BirthMeta from stored chart + candidate's representative
  * time, opens RegenerationConfirmModal (with sign-flip gate when the ascendant
@@ -20,13 +23,21 @@ import {
   useProfilesStore,
   useRectificationRecordsStore,
 } from '@almamesh/store';
-import type { ProcessedBirthData, RectificationCandidate } from '@almamesh/shared-types';
+import type {
+  ProcessedBirthData,
+  RectificationCandidate,
+  RectificationRecordEventSummary,
+} from '@almamesh/shared-types';
 import type { TimeConfidence } from '@almamesh/constants';
 import { useRectification } from '../hooks/useRectification';
 import { EventEntryStep } from '../components/features/rectify/EventEntryStep';
 import { FitProgress } from '../components/features/rectify/FitProgress';
 import { EngineWarming } from '../components/features/rectify/EngineWarming';
 import { RectifyResults } from '../components/features/rectify/RectifyResults';
+import {
+  WindowSelector,
+  type WindowChoice,
+} from '../components/features/rectify/WindowSelector';
 import { RegenerationConfirmModal } from '../components/features/settings/RegenerationConfirmModal';
 
 type WizardStep = 'intro' | 'events' | 'fit' | 'results';
@@ -56,21 +67,10 @@ export function RectifyPage(): ReactElement {
   const [step, setStep] = useState<WizardStep>(initialStep);
   const [pendingCandidate, setPendingCandidate] = useState<RectificationCandidate | null>(null);
   const [showModal, setShowModal] = useState(false);
-
-  // Kick off the rectification when the fit step becomes active.
-  // Mode is auto-detected from the profile's birth_time_confidence:
-  //   'unknown'/'rough' → 'window' (whole-day sign ranking)
-  //   'exact'/'approximate' → 'cusp' (two-candidate comparison)
-  useEffect(() => {
-    // Only kick the compute when the inputs are actually valid. When birth
-    // details are missing or there are no structured events, the fit step shows
-    // an explicit message instead — never a silent spinner waiting on a run that
-    // can't happen. (run() records the mode even while the engine warms, so a
-    // later retry recovers; the hook re-fires this once the engine is ready.)
-    if (step === 'fit' && state.status === 'idle' && !missingBirth && hasEnoughEvents) {
-      void run(detectedMode);
-    }
-  }, [step, state.status, missingBirth, hasEnoughEvents, run, detectedMode]);
+  // Spec 062 honest-window choice: null until the user answers "how sure are
+  // you about the recorded time?" (auto-filled for unknown-time profiles,
+  // which have no recorded time to be sure about).
+  const [windowChoice, setWindowChoice] = useState<WindowChoice | null>(null);
 
   // Transition fit → results once the engine finishes.
   useEffect(() => {
@@ -95,6 +95,36 @@ export function RectifyPage(): ReactElement {
     const birthData = chart?.birth_data as ProcessedBirthData | undefined;
     return (birthData?.birth_time_confidence as TimeConfidence | undefined) === 'unknown';
   }, [charts, profileId]);
+
+  // Kick off the rectification when the fit step is active AND the honest
+  // window is chosen. Unknown-time profiles have no recorded time to be sure
+  // about, so their whole-day window choice is auto-filled (no extra click).
+  // Only runs when the inputs are actually valid — when birth details are
+  // missing or there are no structured events, the fit step shows an explicit
+  // message instead, never a silent spinner. (run() records the mode+span even
+  // while the engine warms, so a later retry recovers; the hook re-fires this
+  // once the engine is ready because `run`'s identity changes.)
+  useEffect(() => {
+    if (step !== 'fit' || state.status !== 'idle' || missingBirth || !hasEnoughEvents) return;
+    if (windowChoice == null) {
+      if (isUnknownTime) setWindowChoice({ mode: detectedMode });
+      return;
+    }
+    if (windowChoice.spanMinutes === undefined) {
+      void run(windowChoice.mode);
+    } else {
+      void run(windowChoice.mode, windowChoice.spanMinutes);
+    }
+  }, [
+    step,
+    state.status,
+    missingBirth,
+    hasEnoughEvents,
+    windowChoice,
+    isUnknownTime,
+    detectedMode,
+    run,
+  ]);
 
   const signFlip = useMemo(() => {
     // No sign to flip from when the user never entered a time.
@@ -167,22 +197,31 @@ export function RectifyPage(): ReactElement {
     // Persist a display-only record of THIS rectification before changing the
     // birth time, so Settings can show a standing "was X, now Y" account. The
     // chosen candidate's sign/time + the result's band/margin/mode are captured
-    // alongside the opaque ids of the structured events that informed the fit —
-    // no life-event narrative is ever stored (privacy posture).
+    // alongside the structured events that informed the fit. v2 (Spec 062) also
+    // snapshots the full in-memory adapted result and the events' own summaries
+    // so the evidence story survives revisits — everything stays on-device
+    // (IndexedDB, local-first) and the record never feeds the engine.
     if (state.result != null) {
-      const structuredEventIds = useLifeEventsStore
+      const structuredEvents = useLifeEventsStore
         .getState()
         .getEvents(profileId)
-        .filter(isStructuredLifeEvent)
-        .map((e) => e.id);
+        .filter(isStructuredLifeEvent);
+      const eventSummaries: RectificationRecordEventSummary[] = structuredEvents.map((e) => ({
+        id: e.id,
+        date: e.date,
+        // isStructuredLifeEvent guarantees a category (boolean guard, no narrowing).
+        category: e.category!,
+        ...(e.summary != null && e.summary !== '' ? { summary: e.summary } : {}),
+      }));
       useRectificationRecordsStore.getState().setRecord(
         buildRectificationRecord({
           profileId,
           result: state.result,
           candidate: pendingCandidate,
           originalTime: enteredTime,
-          structuredEventIds,
+          structuredEventIds: structuredEvents.map((e) => e.id),
           confirmedAt: Date.now(),
+          eventSummaries,
         }),
       );
     }
@@ -225,7 +264,7 @@ export function RectifyPage(): ReactElement {
 
       {step === 'fit' && state.status !== 'ready' && (
         <div data-testid="fit-step" className="flex flex-col gap-4">
-          {!missingBirth && hasEnoughEvents && (
+          {!missingBirth && hasEnoughEvents && (windowChoice != null || isUnknownTime) && (
             <h2 className="text-xl font-semibold text-text-primary">{t('fit.heading')}</h2>
           )}
           {state.status === 'error' ? (
@@ -260,6 +299,13 @@ export function RectifyPage(): ReactElement {
                 {t('error.back_to_events')}
               </button>
             </div>
+          ) : windowChoice == null && !isUnknownTime ? (
+            /* Spec 062: the honest-window question — the fit starts only after
+               the user states how sure they are about the recorded time. */
+            <WindowSelector
+              defaultId={detectedMode === 'cusp' ? 'as_recorded' : 'whole_day'}
+              onStart={setWindowChoice}
+            />
           ) : engineError !== null || !engineReady ? (
             <EngineWarming
               engineError={engineError}

@@ -27,6 +27,11 @@ const CANDIDATE_A: RectificationCandidate = {
   lagnaCuspDistanceDeg: 3.8,
   isNearCusp: false,
   fitScore: 12.5,
+  navamsaLagnaSign: 'Leo',
+  positiveTotal: 12.5,
+  penaltyTotal: 0,
+  priorBonus: 0,
+  misses: [],
   supportingEvents: [
     {
       eventIndex: 0,
@@ -52,6 +57,11 @@ const CANDIDATE_B: RectificationCandidate = {
   lagnaCuspDistanceDeg: 1.18,
   isNearCusp: true,
   fitScore: 4.0,
+  navamsaLagnaSign: 'Virgo',
+  positiveTotal: 4.0,
+  penaltyTotal: 0,
+  priorBonus: 0,
+  misses: [],
   supportingEvents: [],
 };
 
@@ -339,6 +349,143 @@ describe('RectifyResults — window mode caveat', () => {
 // ---------------------------------------------------------------------------
 // Unknown birth time — recorded-reference section must be suppressed
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Spec 062: honesty-note variants + "what decided it" storytelling
+// ---------------------------------------------------------------------------
+
+describe('RectifyResults — Spec 062 honesty variants + decided line', () => {
+  beforeEach(() => {
+    useLanguageStore.setState({ language: 'en' });
+  });
+
+  it('resolves the prior_influenced variant: base band note PLUS the prior caveat', () => {
+    render(
+      <RectifyResults
+        result={{ ...CONSISTENT_RESULT, honestyNoteKey: 'rectify.honesty.consistent.prior_influenced' }}
+        recordedReading={RECORDED_READING}
+        onConfirm={vi.fn()}
+        onKeepRecorded={vi.fn()}
+      />,
+    );
+    // Base note still renders (never replaced by the caveat)
+    expect(screen.getByTestId('honesty-note').textContent).toMatch(/starting point|certainty/i);
+    // The qualifier renders as its own honest caveat
+    expect(screen.getByTestId('honesty-qualifier').textContent).toMatch(
+      /recorded-time nudge|would be a tie/i,
+    );
+  });
+
+  it('resolves the penalty_driven variant for the leans band', () => {
+    render(
+      <RectifyResults
+        result={{ ...CONSISTENT_RESULT, band: 'leans', honestyNoteKey: 'rectify.honesty.leans.penalty_driven' }}
+        recordedReading={RECORDED_READING}
+        onConfirm={vi.fn()}
+        onKeepRecorded={vi.fn()}
+      />,
+    );
+    expect(screen.getByTestId('honesty-note').textContent).toMatch(/working hypothesis/i);
+    expect(screen.getByTestId('honesty-qualifier').textContent).toMatch(/quiet periods/i);
+  });
+
+  it('renders NO qualifier for a plain band key, and degrades unknown qualifiers to the base', () => {
+    const { unmount } = render(
+      <RectifyResults
+        result={CONSISTENT_RESULT}
+        recordedReading={RECORDED_READING}
+        onConfirm={vi.fn()}
+        onKeepRecorded={vi.fn()}
+      />,
+    );
+    expect(screen.queryByTestId('honesty-qualifier')).toBeNull();
+    unmount();
+
+    render(
+      <RectifyResults
+        result={{ ...CONSISTENT_RESULT, honestyNoteKey: 'rectify.honesty.consistent.mystery_variant' }}
+        recordedReading={RECORDED_READING}
+        onConfirm={vi.fn()}
+        onKeepRecorded={vi.fn()}
+      />,
+    );
+    expect(screen.queryByTestId('honesty-qualifier')).toBeNull();
+    expect(screen.getByTestId('honesty-note').textContent).toMatch(/starting point|certainty/i);
+  });
+
+  it('synthesizes the "what decided it" line from the top candidate evidence kinds', () => {
+    const result: RectificationResult = {
+      ...CONSISTENT_RESULT,
+      candidates: [
+        {
+          ...CANDIDATE_A,
+          supportingEvents: [
+            {
+              eventIndex: 0,
+              category: 'marriage',
+              date: '2011-06-01',
+              signals: ['ad_lord_rules_h7', 'd9_lord_rules_d9_h7'],
+              contribution: 1.85,
+            },
+          ],
+        },
+        CANDIDATE_B,
+      ],
+    };
+    render(
+      <RectifyResults
+        result={result}
+        recordedReading={RECORDED_READING}
+        onConfirm={vi.fn()}
+        onKeepRecorded={vi.fn()}
+      />,
+    );
+    const decided = screen.getByTestId('decided-line');
+    expect(decided.textContent).toMatch(/what decided it/i);
+    expect(decided.textContent).toMatch(/antar/i);
+    // D9 contributed → the 13-minute flip callout renders
+    expect(screen.getByTestId('d9-flip-callout').textContent).toMatch(/13 minutes/i);
+  });
+
+  it('omits the D9 callout when no navamsa signal contributed', () => {
+    render(
+      <RectifyResults
+        result={CONSISTENT_RESULT}
+        recordedReading={RECORDED_READING}
+        onConfirm={vi.fn()}
+        onKeepRecorded={vi.fn()}
+      />,
+    );
+    // CANDIDATE_A carries only legacy dasha/transit signals — no d9 family.
+    expect(screen.queryByTestId('d9-flip-callout')).toBeNull();
+    expect(screen.getByTestId('decided-line').textContent).toMatch(/period-lord|transits/i);
+  });
+
+  it('near-tie keeps the side-by-side layout with the new storytelling present', () => {
+    render(
+      <RectifyResults
+        result={NEAR_TIE_RESULT}
+        recordedReading={RECORDED_READING}
+        onConfirm={vi.fn()}
+        onKeepRecorded={vi.fn()}
+      />,
+    );
+    expect(screen.getAllByTestId('candidate-card').length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByTestId('decided-line')).toBeTruthy();
+  });
+
+  it('still contains NO "%" with variants + decided line rendered', () => {
+    const { container } = render(
+      <RectifyResults
+        result={{ ...CONSISTENT_RESULT, honestyNoteKey: 'rectify.honesty.consistent.prior_influenced' }}
+        recordedReading={RECORDED_READING}
+        onConfirm={vi.fn()}
+        onKeepRecorded={vi.fn()}
+      />,
+    );
+    expect(container.textContent).not.toContain('%');
+  });
+});
 
 describe('RectifyResults — unknown birth time (recordedReading: null)', () => {
   beforeEach(() => {

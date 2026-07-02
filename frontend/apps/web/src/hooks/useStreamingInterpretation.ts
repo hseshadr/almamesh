@@ -32,8 +32,11 @@ import {
   useChartLibraryStore,
   useInterpretationStore,
   useLanguageStore,
+  usePredictiveStore,
+  useProfilesStore,
   type InterpretationStatus,
 } from '@almamesh/store';
+import type { SiderealChart } from '@almamesh/browser/types';
 import type { VedicInterpretation } from '@almamesh/shared-types';
 import type { SepViewMode } from '@almamesh/shared-types';
 
@@ -100,6 +103,35 @@ function readLlmEnv(): LlmEnv {
   });
 }
 
+/**
+ * Compose the persisted RAW engine predictive contexts onto the natal chart
+ * (Spec 062, LLM delta 1) so interpretation + chat prompts carry the engine's
+ * transit/strength/varga/domain blocks — activating the sanitizer + facts
+ * pipeline that already exists in `@almamesh/llm`.
+ *
+ * Strictly additive and FAIL-OPEN: contexts that are absent (pre-v2 persisted
+ * blob), not `ready`, or belong to a different profile leave the chart
+ * untouched — narration degrades gracefully to natal-only, NEVER an error.
+ * Privacy is unchanged: the composed chart still flows through
+ * `sanitizeChartForLlm`, which reduces every predictive date to month
+ * precision before any prompt is built.
+ *
+ * `chartId` mirrors `usePredictiveLayer`'s profile-key fallback
+ * (`activeProfileId ?? chart_id ?? 'primary'`) so a stale profile's contexts
+ * can never be composed onto another profile's chart.
+ */
+export function withRawPredictive(chart: SiderealChart, chartId: string | null): SiderealChart {
+  const { status, rawContexts, profileKey } = usePredictiveStore.getState();
+  if (status !== 'ready' || !rawContexts) {
+    return chart;
+  }
+  const expectedKey = useProfilesStore.getState().activeProfileId ?? chartId ?? 'primary';
+  if (profileKey !== expectedKey) {
+    return chart;
+  }
+  return { ...chart, ...rawContexts };
+}
+
 /** Map a thrown error to a friendly, user-facing message. */
 function describeError(err: unknown): string {
   if (err instanceof PrivacyViolationError) {
@@ -164,7 +196,10 @@ export function useStreamingInterpretation(chartId?: string | null): UseStreamin
       startInterpretation(id);
       try {
         for await (const event of streamStructuredInterpretation({
-          chart,
+          // Compose the persisted raw predictive contexts (when ready for this
+          // profile) so the six section prompts carry the delimited engine
+          // predictive block; absent contexts → natal-only, exactly as before.
+          chart: withRawPredictive(chart, id),
           config,
           mode: options.view_mode === 'expert' ? 'expert' : 'layman',
           language,

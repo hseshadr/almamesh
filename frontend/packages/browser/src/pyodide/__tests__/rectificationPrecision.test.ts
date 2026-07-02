@@ -44,3 +44,48 @@ describe("rectification precision threading (browser worker glue)", () => {
     expect(roundTripped.events[0]?.precision).toBe("approx");
   });
 });
+
+// Spec 062: the wire input gained `spanMinutes` (honest window bound) and
+// `anchorConfidence` ('about' | 'unknown', the E5 anchor prior). The Python
+// glue must pass them through as `span_minutes` / `anchor_confidence` kwargs —
+// and must OMIT the kwargs entirely when the caller does, so absent inputs
+// stay byte-identical on older wheels.
+describe("rectification span/anchor threading (Spec 062, browser worker glue)", () => {
+  it("threads spanMinutes into the Python span_minutes kwarg (only when present)", () => {
+    expect(PY_BOOTSTRAP).toMatch(/data\.get\(\s*"spanMinutes"\s*\)/);
+    expect(PY_BOOTSTRAP).toMatch(/["']span_minutes["']/);
+  });
+
+  it("threads anchorConfidence into the Python anchor_confidence kwarg (only when present)", () => {
+    expect(PY_BOOTSTRAP).toMatch(/data\.get\(\s*"anchorConfidence"\s*\)/);
+    expect(PY_BOOTSTRAP).toMatch(/["']anchor_confidence["']/);
+  });
+
+  it("carries spanMinutes + anchorConfidence on the wire input across serialisation", () => {
+    const input: RectificationInput = {
+      datetimeUtc: "1988-08-08T01:14:00+00:00",
+      latitude: 12.9716,
+      longitude: 77.5946,
+      utcOffsetMinutes: 330,
+      events: [{ date: "2023-02-01", category: "marriage" }],
+      mode: "window",
+      spanMinutes: 90,
+      anchorConfidence: "unknown",
+      referenceDate: "2026-06-09T12:00:00+00:00",
+    };
+
+    const roundTripped = JSON.parse(JSON.stringify(input)) as RectificationInput;
+
+    expect(roundTripped.spanMinutes).toBe(90);
+    expect(roundTripped.anchorConfidence).toBe("unknown");
+  });
+
+  it("accepts the 17th category family_rupture on the wire event type (Spec 062 E6)", () => {
+    const event: RectificationEventInputWire = {
+      date: "2018-11-01",
+      category: "family_rupture",
+      precision: "month",
+    };
+    expect(event.category).toBe("family_rupture");
+  });
+});

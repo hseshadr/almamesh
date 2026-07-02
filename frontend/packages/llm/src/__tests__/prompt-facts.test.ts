@@ -60,8 +60,20 @@ describe("buildChatMessages — facts pre-injection", () => {
   it("does NOT dump the raw chart JSON (no ayanamsa_value key)", () => {
     const msgs = buildChatMessages(CHART, "Tell me about my chart.");
     const userTurn = msgs[msgs.length - 1].content ?? "";
+    // DELIBERATE reversal (Spec 062, LLM delta 4): nakshatra + pada + degrees
+    // now ride the facts block AS PROSE ("pada 1"), so chat can ground degree/
+    // nakshatra questions. The RAW JSON KEYS below must still never appear —
+    // the block stays a compact facts summary, not a chart dump.
     expect(userTurn).not.toContain("ayanamsa_value");
     expect(userTurn).not.toContain("nakshatra_pada");
+    expect(userTurn).not.toContain("sign_degrees");
+  });
+
+  it("carries degrees + nakshatra/pada/lord as prose (Spec 062 delta 4)", () => {
+    const msgs = buildChatMessages(CHART, "What degree is my Mars?");
+    const userTurn = msgs[msgs.length - 1].content ?? "";
+    expect(userTurn).toContain("capricorn 10.50°");
+    expect(userTurn).toContain("nakshatra shravana pada 1 (lord moon)");
   });
 
   it("keeps the sanitized / no-identifying-information framing", () => {

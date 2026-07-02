@@ -22,6 +22,7 @@ function adaptEvidence(raw: EventEvidenceRaw): EventEvidence {
     category: raw.category,
     date: raw.date,
     signals: raw.signals,
+    // NET contribution (Spec 062) — verbatim, and it CAN be negative.
     contribution: raw.contribution,
   };
 }
@@ -34,6 +35,13 @@ function adaptCandidate(raw: RectificationCandidateRaw): RectificationCandidate 
     lagnaCuspDistanceDeg: raw.lagna_cusp_distance_deg,
     isNearCusp: raw.is_near_cusp,
     fitScore: raw.fit_score,
+    // Spec 062 fields; `??` supplies the backend model defaults when an OLDER
+    // bundled wheel omits the keys (renaming + defaulting only — no astrology).
+    navamsaLagnaSign: raw.navamsa_lagna_sign ?? null,
+    positiveTotal: raw.positive_total ?? 0,
+    penaltyTotal: raw.penalty_total ?? 0,
+    priorBonus: raw.prior_bonus ?? 0,
+    misses: raw.misses ?? [],
     supportingEvents: raw.supporting_events.map(adaptEvidence),
   };
 }
