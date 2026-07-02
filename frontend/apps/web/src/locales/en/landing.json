@@ -1,13 +1,16 @@
 {
   "nav": {
-    "cta": "Draw my chart",
+    "cta": "Generate my chart",
+    "ctaReturning": "Open my chart",
     "languageLabel": "Language",
     "github": "Star on GitHub"
   },
   "hero": {
     "headline": "Your real sky. Computed on your device. Free, forever.",
     "subhead": "A faithful Vedic (sidereal) chart — planets, nakshatras, dashas — calculated in your browser. An honest experiment, not a fortune-teller. No account. No email. Your birth data never leaves your browser.",
-    "cta": "Draw my chart — free",
+    "cta": "Generate my chart — free",
+    "ctaReturning": "Open my chart",
+    "openSource": "Free & open source on GitHub",
     "microcopy": "Works offline · 3 languages · open engine."
   },
   "what": {
@@ -134,8 +137,9 @@
     ]
   },
   "finalCta": {
-    "title": "Draw your chart — free, private, yours.",
-    "cta": "Draw my chart — free",
+    "title": "Generate your chart — free, private, yours.",
+    "cta": "Generate my chart — free",
+    "ctaReturning": "Open my chart",
     "installPwa": "Install as an app",
     "viewSource": "View source on GitHub"
   },

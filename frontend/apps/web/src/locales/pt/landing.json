@@ -1,14 +1,17 @@
 {
   "_meta": { "review": "machine-translated" },
   "nav": {
-    "cta": "Criar meu mapa",
+    "cta": "Gerar meu mapa",
+    "ctaReturning": "Abrir meu mapa",
     "languageLabel": "Idioma",
     "github": "Estrela no GitHub"
   },
   "hero": {
     "headline": "Seu céu real. Calculado no seu dispositivo. Grátis, para sempre.",
     "subhead": "Um mapa védico (sideral) fiel — planetas, nakshatras, dashas — calculado no seu navegador. Um experimento honesto, não um adivinho. Sem conta. Sem e-mail. Seus dados de nascimento nunca saem do seu navegador.",
-    "cta": "Criar meu mapa — grátis",
+    "cta": "Gerar meu mapa — grátis",
+    "ctaReturning": "Abrir meu mapa",
+    "openSource": "Grátis e de código aberto no GitHub",
     "microcopy": "Funciona offline · 3 idiomas · motor aberto."
   },
   "what": {
@@ -135,8 +138,9 @@
     ]
   },
   "finalCta": {
-    "title": "Crie seu mapa — grátis, privado, seu.",
-    "cta": "Criar meu mapa — grátis",
+    "title": "Gere seu mapa — grátis, privado, seu.",
+    "cta": "Gerar meu mapa — grátis",
+    "ctaReturning": "Abrir meu mapa",
     "installPwa": "Instalar como app",
     "viewSource": "Ver o código no GitHub"
   },

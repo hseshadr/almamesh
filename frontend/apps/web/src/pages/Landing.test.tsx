@@ -18,7 +18,16 @@ vi.mock('../components/forcefield', () => ({
   ForceFieldExperience: () => <div data-testid="forcefield-stub" />,
 }));
 
+// The CTAs route on whether a chart already exists — control that signal.
+vi.mock('../lib/localChart', () => ({
+  hasLocalChart: vi.fn(() => false),
+}));
+
+import { hasLocalChart } from '../lib/localChart';
+import { GITHUB_URL } from '../components/features/landing';
 import Landing from './Landing';
+
+const mockHasLocalChart = vi.mocked(hasLocalChart);
 
 function renderLanding() {
   return render(
@@ -31,6 +40,7 @@ function renderLanding() {
 describe('Landing', () => {
   beforeEach(() => {
     useLanguageStore.setState({ language: 'en' });
+    mockHasLocalChart.mockReturnValue(false);
   });
 
   it('renders the hero headline', () => {
@@ -55,6 +65,22 @@ describe('Landing', () => {
     expect(navCta.getAttribute('href')).toBe('/onboarding');
   });
 
+  it('surfaces the open-source GitHub link in the nav on all breakpoints', () => {
+    renderLanding();
+    const gh = screen.getByTestId('landing-nav-github');
+    expect(gh.getAttribute('href')).toBe(GITHUB_URL);
+    // Regression guard: the old treatment hid it below the `sm` breakpoint.
+    expect(gh.className).not.toContain('hidden');
+  });
+
+  it('routes the primary CTAs to /dashboard for a returning visitor with a saved chart', () => {
+    mockHasLocalChart.mockReturnValue(true);
+    renderLanding();
+    expect(screen.getByTestId('hero-cta').getAttribute('href')).toBe('/dashboard');
+    expect(screen.getByTestId('landing-nav-cta').getAttribute('href')).toBe('/dashboard');
+    expect(screen.getByTestId('final-cta').getAttribute('href')).toBe('/dashboard');
+  });
+
   it('renders a footer with a link to the privacy policy', () => {
     renderLanding();
     const footer = screen.getByRole('contentinfo');
@@ -77,7 +103,7 @@ describe('Landing', () => {
       'Where & when',
       'Why I built this',
       'The engine you can trust',
-      'Draw your chart — free, private, yours.',
+      'Generate your chart — free, private, yours.',
     ]);
   });
 });

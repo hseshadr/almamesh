@@ -2,16 +2,18 @@ import type { ReactElement } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { cn, buttonVariants } from '../../ui';
-import { usePrewarmEngineOnIntent } from '../../../hooks/usePrewarmEngineOnIntent';
-import { GITHUB_URL } from './LandingFooter';
+import { useChartCta } from '../../../hooks/useChartCta';
+import { GITHUB_URL, GithubMark } from './LandingFooter';
 
 /**
- * The closing call — the committing "Draw my chart" CTA (prewarms the engine on
- * intent) plus quieter secondary actions (install as a PWA, view the source).
+ * The closing call — the committing primary CTA plus quieter secondary actions
+ * (install as a PWA, view the source). The CTA is adaptive (`useChartCta`):
+ * "Generate my chart" → onboarding for a first-time visitor (prewarming the
+ * engine on intent), or "Open my chart" → the dashboard for a returning one.
  */
 export function FinalCta(): ReactElement {
   const { t } = useTranslation('landing');
-  const prewarm = usePrewarmEngineOnIntent();
+  const { to, labelKey, intentProps } = useChartCta();
 
   return (
     <section className="relative overflow-hidden py-28" aria-labelledby="finalcta-title">
@@ -29,15 +31,15 @@ export function FinalCta(): ReactElement {
         </h2>
 
         <Link
-          to="/onboarding"
-          {...prewarm}
+          to={to}
+          {...intentProps}
           className={cn(
             buttonVariants({ variant: 'primary', size: 'lg' }),
             'mt-10 px-9 text-base shadow-[0_8px_40px_-8px_rgba(201,162,75,0.55)]',
           )}
           data-testid="final-cta"
         >
-          {t('finalCta.cta')}
+          {t(`finalCta.${labelKey}`)}
         </Link>
 
         <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-sm text-text-muted">
@@ -49,8 +51,9 @@ export function FinalCta(): ReactElement {
             href={GITHUB_URL}
             target="_blank"
             rel="noreferrer"
-            className="text-text-secondary underline-offset-4 transition-colors hover:text-accent-gold-bright hover:underline"
+            className="inline-flex items-center gap-1.5 text-text-secondary underline-offset-4 transition-colors hover:text-accent-gold-bright hover:underline"
           >
+            <GithubMark className="h-4 w-4" />
             {t('finalCta.viewSource')}
           </a>
         </div>

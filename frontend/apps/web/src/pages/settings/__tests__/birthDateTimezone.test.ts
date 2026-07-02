@@ -23,10 +23,10 @@
  * every environment, but only the Pacific run can actually catch a UTC-rollover
  * regression.
  */
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import dayjs from 'dayjs';
 import type { BirthMeta } from '@almamesh/store';
-import { toBirthData } from '@almamesh/store';
+import { toBirthData, useOnboardingStore } from '@almamesh/store';
 import { birthDetailsFromBirthData } from '../birthDetailsFromBirthData';
 
 /**
@@ -50,6 +50,38 @@ function formatLocalDate(date: Date): string {
  */
 function pickerSelectedDate(isoDate: string): Date {
   return dayjs(isoDate).toDate();
+}
+
+/**
+ * A `Date` whose UTC calendar day differs from its LOCAL calendar day under the
+ * ACTIVE system tz — the discriminating input that turns a store-side
+ * `formatLocalDate` -> `toISOString().split('T')[0]` swap RED wherever such an
+ * instant exists:
+ *   - east of GMT (offset < 0, e.g. Asia/Kolkata): the picker's LOCAL-midnight
+ *     Date already qualifies — its UTC instant is the PREVIOUS day;
+ *   - west of GMT (offset > 0, e.g. America/Los_Angeles): local midnight stays
+ *     on the same UTC day, so a late-evening LOCAL time is used whose UTC
+ *     instant rolls FORWARD to the next day;
+ *   - pure UTC/GMT (offset 0): no such instant exists and the swap is
+ *     undetectable, so `null` is returned and the caller skips the guard.
+ *
+ * This lets the store-driven guard below have teeth under the file's mandated
+ * `TZ=America/Los_Angeles` run (and equally under Asia/Kolkata) rather than only
+ * catching an east-of-GMT rollover.
+ */
+function utcDayTripwire(): { date: Date; localDay: string; utcDay: string } | null {
+  const offset = new Date(1990, 0, 15).getTimezoneOffset(); // minutes: >0 west, <0 east
+  let date: Date;
+  if (offset < 0) {
+    date = new Date(1990, 0, 15, 0, 0, 0);
+  } else if (offset > 0) {
+    date = new Date(1990, 0, 15, 23, 0, 0);
+  } else {
+    return null;
+  }
+  const localDay = formatLocalDate(date);
+  const utcDay = date.toISOString().split('T')[0];
+  return localDay === utcDay ? null : { date, localDay, utcDay };
 }
 
 const ENTERED_DATE = '1990-01-15';
@@ -154,5 +186,77 @@ describe(`birth-date round trip preserves the calendar day (TZ=${
 
     expect(reStored.birth_datetime_local.split('T')[0]).toBe(ENTERED_DATE);
     expect(reStored.birth_datetime_local).toBe(stored.birth_datetime_local);
+  });
+});
+
+/**
+ * Drive the REAL onboarding write path end to end. The assertions above compare
+ * against a DUPLICATED, test-local `formatLocalDate`, so a refactor that swapped
+ * the STORE's real helper for `toISOString().split('T')[0]` would sail straight
+ * past them. These exercise `useOnboardingStore.getFormattedBirthData()`
+ * directly — the exact getter Onboarding.tsx calls before generating the chart —
+ * so that regression turns the suite red.
+ */
+describe(`onboarding store write path preserves the calendar day (TZ=${
+  Intl.DateTimeFormat().resolvedOptions().timeZone
+})`, () => {
+  // The onboarding store is an in-memory module singleton; start every case from
+  // a clean slate so state can't leak between assertions.
+  beforeEach(() => {
+    useOnboardingStore.getState().reset();
+  });
+
+  // getFormattedBirthData() fails closed without lat/lon, so seed the India
+  // location the reported native was born in before reading the date back.
+  const seedKolkataLocation = () => {
+    useOnboardingStore.getState().setLocation({
+      city: KOLKATA.city,
+      state: KOLKATA.state,
+      country: KOLKATA.country,
+      latitude: KOLKATA.lat,
+      longitude: KOLKATA.lon,
+      timezone: KOLKATA.timezone,
+    });
+  };
+
+  it('getFormattedBirthData() keeps the picker local-midnight civil date (end-to-end real store)', () => {
+    const store = useOnboardingStore.getState();
+    // Exactly what the MUI picker hands setBirthDate: a native LOCAL-midnight Date.
+    store.setBirthDate(pickerSelectedDate(ENTERED_DATE));
+    store.setBirthTime(ENTERED_TIME, 'exact');
+    seedKolkataLocation();
+
+    const out = useOnboardingStore.getState().getFormattedBirthData();
+    expect(out).not.toBeNull();
+    // The reported live symptom is the date rendering one day earlier.
+    expect(out?.date).toBe(ENTERED_DATE);
+    expect(out?.date).not.toBe('1990-01-14');
+    // The birth time and zone must survive the getter untouched.
+    expect(out?.time).toBe(ENTERED_TIME);
+    expect(out?.timezone).toBe(KOLKATA.timezone);
+  });
+
+  it('getFormattedBirthData() emits the LOCAL calendar day, never the UTC day (red on a toISOString swap)', () => {
+    // A picker-style local-midnight date only discriminates the swap EAST of
+    // GMT; `utcDayTripwire` picks a discriminating instant for the active tz so
+    // this bites under TZ=America/Los_Angeles too (skips only pure-UTC hosts).
+    const tripwire = utcDayTripwire();
+    if (!tripwire) {
+      // Offset 0 (UTC/GMT winter): local day == UTC day — the swap is provably
+      // unobservable here, so there is nothing to guard in this environment.
+      return;
+    }
+
+    const store = useOnboardingStore.getState();
+    store.setBirthDate(tripwire.date);
+    store.setBirthTime(ENTERED_TIME, 'exact');
+    seedKolkataLocation();
+
+    const out = useOnboardingStore.getState().getFormattedBirthData();
+    // The store must echo the birthDate's LOCAL civil day. Under a
+    // `formatLocalDate` -> `toISOString().split('T')[0]` regression it would
+    // emit `tripwire.utcDay`, and this assertion goes red.
+    expect(out?.date).toBe(tripwire.localDay);
+    expect(out?.date).not.toBe(tripwire.utcDay);
   });
 });

@@ -1,14 +1,17 @@
 {
   "_meta": { "review": "machine-translated" },
   "nav": {
-    "cta": "Crear mi carta",
+    "cta": "Generar mi carta",
+    "ctaReturning": "Abrir mi carta",
     "languageLabel": "Idioma",
     "github": "Estrella en GitHub"
   },
   "hero": {
     "headline": "Tu cielo real. Calculado en tu dispositivo. Gratis, para siempre.",
     "subhead": "Una carta védica (sideral) fiel — planetas, nakshatras, dashas — calculada en tu navegador. Un experimento honesto, no un adivino. Sin cuenta. Sin correo. Tus datos de nacimiento nunca salen de tu navegador.",
-    "cta": "Crear mi carta — gratis",
+    "cta": "Generar mi carta — gratis",
+    "ctaReturning": "Abrir mi carta",
+    "openSource": "Gratis y de código abierto en GitHub",
     "microcopy": "Funciona sin conexión · 3 idiomas · motor abierto."
   },
   "what": {
@@ -135,8 +138,9 @@
     ]
   },
   "finalCta": {
-    "title": "Crea tu carta — gratis, privada, tuya.",
-    "cta": "Crear mi carta — gratis",
+    "title": "Genera tu carta — gratis, privada, tuya.",
+    "cta": "Generar mi carta — gratis",
+    "ctaReturning": "Abrir mi carta",
     "installPwa": "Instalar como app",
     "viewSource": "Ver el código en GitHub"
   },
