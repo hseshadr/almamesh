@@ -90,7 +90,10 @@ export function configFromEnv(): RuntimeConfig {
 	const bundleBaseUrl = import.meta.env.VITE_BUNDLE_BASE_URL;
 	// The pinned key ships in the SPA build (public/public.key), served from the
 	// app's OWN trusted origin — never fetched from the untrusted bundle origin.
-	const pubkeyUrl = new URL("public.key", document.baseURI).toString();
+	// ROOT-absolute on purpose: resolving against document.baseURI broke deep
+	// links — a hard load of a nested route requested /<route>/public.key, the
+	// SPA fallback answered with index.html, and verification failed closed.
+	const pubkeyUrl = new URL("/public.key", globalThis.location.origin).toString();
 	return { bundleBaseUrl, pubkeyUrl };
 }
 
