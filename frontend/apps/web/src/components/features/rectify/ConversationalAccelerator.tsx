@@ -27,6 +27,8 @@ import {
   type ChatTurn,
 } from '@almamesh/llm';
 import type { RectificationEventInput } from '@almamesh/shared-types';
+import { MessageBubble } from '../chat/MessageBubble';
+import { Spinner } from '../../ui/Spinner';
 import { isCloudConfigured, resolveConfig, toPromptLanguage } from './rectifyLlmConfig';
 
 // ── Types ───────────────────────────────────────────────────────────────────
@@ -70,7 +72,7 @@ export function ConversationalAccelerator({
   const addEvent = useLifeEventsStore((s) => s.addEvent);
   const editEvent = useLifeEventsStore((s) => s.editEvent);
 
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   // Lazy-initialise with the opening assistant turn so it reflects the current
@@ -82,6 +84,9 @@ export function ConversationalAccelerator({
   const [streamingDraft, setStreamingDraft] = useState('');
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
+  // Distinguishes the post-turn event-extraction phase from the streaming phase
+  // so the UI can show a distinct "reading your message…" indicator.
+  const [gathering, setGathering] = useState(false);
   const [captured, setCaptured] = useState<readonly RectificationEventInput[]>([]);
   const [chatError, setChatError] = useState<string | null>(null);
 
@@ -93,7 +98,7 @@ export function ConversationalAccelerator({
     return (
       <div
         data-testid="chat-gated"
-        className="rounded-lg border border-border-subtle bg-surface-secondary p-4"
+        className="rounded-xl border border-ui-border bg-background-secondary p-4"
       >
         <p className="text-sm text-text-secondary">{t('chat.gated_note')}</p>
       </div>
@@ -101,8 +106,7 @@ export function ConversationalAccelerator({
   }
 
   // ── Submit handler ────────────────────────────────────────────────────────
-  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
-    e.preventDefault();
+  const runSubmit = async (): Promise<void> => {
     const trimmed = input.trim();
     if (!trimmed || busy) return;
 
@@ -142,7 +146,11 @@ export function ConversationalAccelerator({
       setStreamingDraft('');
 
       // ── Extract and flush life events ──────────────────────────────────
+      // Surface a distinct "reading your message…" indicator while the
+      // extractor works (the streaming phase is already done here).
+      setGathering(true);
       const extracted = await gatherFn(trimmed, config, language);
+      setGathering(false);
       if (extracted.length > 0) {
         // Snapshot the current event count so we can identify newly added rows.
         const beforeCount = useLifeEventsStore.getState().getEvents(profileId).length;
@@ -179,54 +187,94 @@ export function ConversationalAccelerator({
       setChatError(t('chat.error'));
     } finally {
       setStreamingDraft('');
+      setGathering(false);
       setBusy(false);
       inputRef.current?.focus();
     }
   };
 
+  /** Form submit (button click) — prevent default, then run the turn. */
+  const handleSubmit = (e: React.FormEvent): void => {
+    e.preventDefault();
+    void runSubmit();
+  };
+
+  /** Enter submits; Shift+Enter inserts a newline (chart-chat parity). */
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>): void => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      void runSubmit();
+    }
+  };
+
+  // Awaiting the model's first token — mirror ChatPanel's typing indicator
+  // (busy, no streamed draft yet, and not in the post-turn extraction phase).
+  const showThinking = busy && streamingDraft === '' && !gathering;
+
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col gap-3">
       {/* Egress warning — informs user that transcript text is sent to the configured AI endpoint */}
-      <p className="text-xs text-text-secondary">{t('accelerator.warning')}</p>
+      <p className="text-xs text-text-muted">{t('accelerator.warning')}</p>
 
-      {/* Completed transcript — role="log" implies aria-live="polite" */}
-      <div
-        role="log"
-        aria-label={t('chat.transcript_label')}
-        className="flex flex-col gap-2"
-      >
+      {/* Completed transcript — role="log" implies aria-live="polite". Messages
+          reuse the shared chart-chat MessageBubble so the interview looks and
+          feels like "Ask About Your Chart". */}
+      <div role="log" aria-label={t('chat.transcript_label')} className="flex flex-col">
         {messages.map((msg, i) => (
           <div
             key={i}
             data-testid={i === 0 && msg.role === 'assistant' ? 'chat-opening' : undefined}
-            className={
-              msg.role === 'assistant'
-                ? 'rounded-lg bg-surface-secondary px-3 py-2 text-sm text-text-primary'
-                : 'self-end rounded-lg bg-accent-primary/10 px-3 py-2 text-sm text-text-secondary'
-            }
           >
-            {msg.content}
+            <MessageBubble role={msg.role} content={msg.content} />
           </div>
         ))}
 
         {/* Streaming draft — live region so screen readers announce tokens */}
         {streamingDraft && (
+          <div aria-live="polite" aria-atomic="false">
+            <MessageBubble role="assistant" content={streamingDraft} />
+          </div>
+        )}
+
+        {/* Thinking indicator — animated dots while awaiting the first token
+            (mirrors ChatPanel's typing indicator). */}
+        {showThinking && (
+          <div className="mb-4 flex justify-start" data-testid="chat-thinking">
+            <div className="rounded-2xl rounded-bl-sm bg-background-tertiary px-4 py-3">
+              <div className="flex gap-1" aria-label={t('chat.thinking')} role="status">
+                <span
+                  className="h-2 w-2 animate-bounce rounded-full bg-text-muted"
+                  style={{ animationDelay: '0ms' }}
+                />
+                <span
+                  className="h-2 w-2 animate-bounce rounded-full bg-text-muted"
+                  style={{ animationDelay: '150ms' }}
+                />
+                <span
+                  className="h-2 w-2 animate-bounce rounded-full bg-text-muted"
+                  style={{ animationDelay: '300ms' }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Reading indicator — the post-turn event-extraction phase, so the
+            user knows their message is being read for dates + event types. */}
+        {gathering && (
           <div
-            aria-live="polite"
-            aria-atomic="false"
-            className="rounded-lg bg-surface-secondary px-3 py-2 text-sm text-text-primary"
+            className="mb-4 flex items-center gap-2 text-xs text-text-muted"
+            data-testid="chat-reading"
           >
-            {streamingDraft}
+            <Spinner size="sm" className="text-accent-gold" />
+            <span>{t('chat.reading')}</span>
           </div>
         )}
 
         {/* Inline error — transient, calm; cleared on next submit */}
         {chatError && (
-          <div
-            role="status"
-            className="rounded-lg px-3 py-2 text-sm text-text-secondary"
-          >
+          <div role="status" className="rounded-lg px-3 py-2 text-sm text-text-secondary">
             {chatError}
           </div>
         )}
@@ -239,7 +287,7 @@ export function ConversationalAccelerator({
             <span
               key={i}
               data-testid="captured-chip"
-              className="rounded-full bg-accent-primary/10 px-2 py-0.5 text-xs text-accent-primary"
+              className="rounded-full bg-accent-gold/10 px-2 py-0.5 text-xs text-accent-gold"
             >
               {formatChip(ev)}
             </span>
@@ -247,26 +295,25 @@ export function ConversationalAccelerator({
         </div>
       )}
 
-      {/* Input row */}
-      <form
-        onSubmit={(e) => void handleSubmit(e)}
-        className="flex gap-2"
-      >
-        <input
+      {/* Input row — a roomier textarea mirroring the chart chat's composer.
+          Enter submits; Shift+Enter inserts a newline. */}
+      <form onSubmit={handleSubmit} className="flex gap-2">
+        <textarea
           ref={inputRef}
           id="chat-input"
-          type="text"
+          rows={2}
           value={input}
           onChange={(e) => setInput(e.target.value)}
+          onKeyDown={handleKeyDown}
           disabled={busy}
           placeholder={t('chat.input_placeholder')}
           aria-label={t('chat.input_label')}
-          className="flex-1 rounded-lg border border-border-subtle bg-surface-primary px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-1 focus:ring-accent-primary disabled:opacity-40"
+          className="min-w-0 flex-1 resize-none rounded-xl border border-ui-border bg-background-primary px-4 py-3 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-accent-gold/50 disabled:opacity-50"
         />
         <button
           type="submit"
           disabled={busy || !input.trim()}
-          className="rounded-lg bg-accent-primary px-4 py-2 text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-accent-primary focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40"
+          className="self-end rounded-xl bg-accent-gold px-4 py-3 text-sm font-semibold text-background-primary transition-colors hover:bg-accent-gold/90 focus:outline-none focus:ring-2 focus:ring-accent-gold/50 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {t('chat.send')}
         </button>
