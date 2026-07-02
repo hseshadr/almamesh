@@ -114,7 +114,9 @@
     "input_label": "Tu mensaje",
     "send": "Enviar",
     "transcript_label": "Conversación",
-    "error": "No pude comunicarme con la IA en este momento — por favor, inténtalo de nuevo o agrega los eventos manualmente a continuación."
+    "error": "No pude comunicarme con la IA en este momento — por favor, inténtalo de nuevo o agrega los eventos manualmente a continuación.",
+    "thinking": "Pensando…",
+    "reading": "Leyendo tu mensaje…"
   },
   "summary": {
     "label": "Qué pasó",

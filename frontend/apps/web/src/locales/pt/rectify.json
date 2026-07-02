@@ -114,7 +114,9 @@
     "input_label": "Sua mensagem",
     "send": "Enviar",
     "transcript_label": "Conversa",
-    "error": "Não consegui contatar a IA agora — tente novamente ou adicione os eventos manualmente abaixo."
+    "error": "Não consegui contatar a IA agora — tente novamente ou adicione os eventos manualmente abaixo.",
+    "thinking": "Pensando…",
+    "reading": "Lendo sua mensagem…"
   },
   "summary": {
     "label": "O que aconteceu",

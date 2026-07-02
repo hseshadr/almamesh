@@ -113,7 +113,9 @@
     "input_label": "Your message",
     "send": "Send",
     "transcript_label": "Conversation",
-    "error": "I couldn't reach the AI just now — please try again, or enter events manually below."
+    "error": "I couldn't reach the AI just now — please try again, or enter events manually below.",
+    "thinking": "Thinking…",
+    "reading": "Reading your message…"
   },
   "summary": {
     "label": "What happened",

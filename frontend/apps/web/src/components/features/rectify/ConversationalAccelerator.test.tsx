@@ -369,5 +369,112 @@ describe('ConversationalAccelerator', () => {
       // Gather returned [] so no events should be in the store.
       expect(useLifeEventsStore.getState().getEvents(PROFILE_ID).length).toBe(0);
     });
+
+    // ── Chart-chat parity: textarea, MessageBubble, processing indicators ────
+
+    it('renders the interview input as a multi-line <textarea>, not a single-line input', () => {
+      render(
+        <ConversationalAccelerator
+          profileId={PROFILE_ID}
+          streamFn={makeStubStream([])}
+          gatherFn={makeStubGather([])}
+        />,
+      );
+      const box = screen.getByRole('textbox');
+      expect(box.tagName).toBe('TEXTAREA');
+    });
+
+    it('renders the opening turn with the shared MessageBubble (assistant bubble testid)', () => {
+      render(
+        <ConversationalAccelerator
+          profileId={PROFILE_ID}
+          streamFn={makeStubStream([])}
+          gatherFn={makeStubGather([])}
+        />,
+      );
+      // MessageBubble stamps data-testid="chat-message-<role>" — proves reuse.
+      expect(screen.getByTestId('chat-message-assistant')).toBeTruthy();
+    });
+
+    it('renders the submitted user turn as a MessageBubble', async () => {
+      render(
+        <ConversationalAccelerator
+          profileId={PROFILE_ID}
+          streamFn={makeStubStream(['ok'])}
+          gatherFn={makeStubGather([])}
+        />,
+      );
+      fireEvent.change(screen.getByRole('textbox'), { target: { value: 'A memorable move' } });
+      fireEvent.click(screen.getByRole('button', { name: /send/i }));
+      await waitFor(() => expect(screen.getByTestId('chat-message-user')).toBeTruthy());
+    });
+
+    it('submits on Enter and does not submit on Shift+Enter', async () => {
+      const gatherStub = vi.fn(async (): Promise<RectificationEventInput[]> => []);
+      render(
+        <ConversationalAccelerator
+          profileId={PROFILE_ID}
+          streamFn={makeStubStream(['ok'])}
+          gatherFn={gatherStub}
+        />,
+      );
+      const box = screen.getByRole('textbox');
+      fireEvent.change(box, { target: { value: 'my event' } });
+      // Shift+Enter inserts a newline — must NOT submit.
+      fireEvent.keyDown(box, { key: 'Enter', shiftKey: true });
+      expect(gatherStub).not.toHaveBeenCalled();
+      // Plain Enter submits.
+      fireEvent.keyDown(box, { key: 'Enter' });
+      await waitFor(() => expect(gatherStub).toHaveBeenCalledOnce());
+    });
+
+    it('shows a thinking indicator while awaiting the model, then hides it once tokens stream', async () => {
+      let release!: () => void;
+      const gate = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      const gatedStream: NonNullable<ConversationalAcceleratorProps['streamFn']> =
+        async function* (_params) {
+          await gate;
+          yield 'first token';
+        };
+      render(
+        <ConversationalAccelerator
+          profileId={PROFILE_ID}
+          streamFn={gatedStream}
+          gatherFn={makeStubGather([])}
+        />,
+      );
+      fireEvent.change(screen.getByRole('textbox'), { target: { value: 'my event' } });
+      fireEvent.click(screen.getByRole('button', { name: /send/i }));
+      // Awaiting the first token: thinking indicator visible, no draft yet.
+      await waitFor(() => expect(screen.getByTestId('chat-thinking')).toBeTruthy());
+      release();
+      // Once tokens stream, the thinking indicator yields to the draft.
+      await waitFor(() => expect(screen.queryByTestId('chat-thinking')).toBeNull());
+    });
+
+    it('shows a reading indicator during post-turn event extraction (not the thinking one)', async () => {
+      let releaseGather!: (events: RectificationEventInput[]) => void;
+      const gatherGate = new Promise<RectificationEventInput[]>((resolve) => {
+        releaseGather = resolve;
+      });
+      const gatedGather: NonNullable<ConversationalAcceleratorProps['gatherFn']> = async () =>
+        gatherGate;
+      render(
+        <ConversationalAccelerator
+          profileId={PROFILE_ID}
+          streamFn={makeStubStream(['done'])}
+          gatherFn={gatedGather}
+        />,
+      );
+      fireEvent.change(screen.getByRole('textbox'), { target: { value: 'my event' } });
+      fireEvent.click(screen.getByRole('button', { name: /send/i }));
+      // Extraction in-flight: reading indicator shown, thinking indicator not.
+      await waitFor(() => expect(screen.getByTestId('chat-reading')).toBeTruthy());
+      expect(screen.queryByTestId('chat-thinking')).toBeNull();
+      releaseGather([]);
+      await waitFor(() => expect(screen.queryByTestId('chat-reading')).toBeNull());
+    });
   });
 });
