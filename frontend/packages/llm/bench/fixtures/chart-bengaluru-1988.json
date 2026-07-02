@@ -1,0 +1,1520 @@
+{
+  "ayanamsa_value": 23.6973,
+  "lagna": {
+    "longitude": 112.94217379305907,
+    "sign": "Cancer",
+    "sign_degrees": 22.94217379305907,
+    "sign_lord": "moon",
+    "nakshatra": "Ashlesha",
+    "nakshatra_pada": 2,
+    "nakshatra_lord": "mercury",
+    "lagna_cusp_distance_deg": 7.0578262069409305,
+    "lagna_adjacent_sign": "Leo",
+    "is_near_cusp": false
+  },
+  "planets": {
+    "sun": {
+      "name": "sun",
+      "longitude": 111.9975779752531,
+      "latitude": 8.902027517656925e-05,
+      "distance": 1.0139761036291244,
+      "speed": 0.9589927391326398,
+      "is_retrograde": false,
+      "sign": "Cancer",
+      "sign_degrees": 21.997577975253094,
+      "sign_lord": "moon",
+      "nakshatra": "Ashlesha",
+      "nakshatra_pada": 2,
+      "nakshatra_lord": "mercury",
+      "house": 1,
+      "dignity": "neutral",
+      "is_combust": false,
+      "combustion_separation_deg": null,
+      "houses_ruled": [
+        2
+      ],
+      "is_yogakaraka": false
+    },
+    "moon": {
+      "name": "moon",
+      "longitude": 61.51599799986923,
+      "latitude": 5.12653954210037,
+      "distance": 0.002628005915412832,
+      "speed": 12.5060707438289,
+      "is_retrograde": false,
+      "sign": "Gemini",
+      "sign_degrees": 1.515997999869228,
+      "sign_lord": "mercury",
+      "nakshatra": "Mrigashira",
+      "nakshatra_pada": 3,
+      "nakshatra_lord": "mars",
+      "house": 12,
+      "dignity": "neutral",
+      "is_combust": false,
+      "combustion_separation_deg": 50.48157997538385,
+      "houses_ruled": [
+        1
+      ],
+      "is_yogakaraka": false
+    },
+    "mars": {
+      "name": "mars",
+      "longitude": 345.44093783145235,
+      "latitude": -4.847942522015739,
+      "distance": 0.5130777124490232,
+      "speed": 0.23685086770751695,
+      "is_retrograde": false,
+      "sign": "Pisces",
+      "sign_degrees": 15.440937831452345,
+      "sign_lord": "jupiter",
+      "nakshatra": "Uttara Bhadrapada",
+      "nakshatra_pada": 4,
+      "nakshatra_lord": "saturn",
+      "house": 9,
+      "dignity": "neutral",
+      "is_combust": false,
+      "combustion_separation_deg": 126.55664014380073,
+      "houses_ruled": [
+        5,
+        10
+      ],
+      "is_yogakaraka": true
+    },
+    "mercury": {
+      "name": "mercury",
+      "longitude": 117.24684949755665,
+      "latitude": 1.7540097433988742,
+      "distance": 1.351990596795142,
+      "speed": 1.971545974505176,
+      "is_retrograde": false,
+      "sign": "Cancer",
+      "sign_degrees": 27.246849497556653,
+      "sign_lord": "moon",
+      "nakshatra": "Ashlesha",
+      "nakshatra_pada": 4,
+      "nakshatra_lord": "mercury",
+      "house": 1,
+      "dignity": "neutral",
+      "is_combust": true,
+      "combustion_separation_deg": 5.249271522303559,
+      "houses_ruled": [
+        3,
+        12
+      ],
+      "is_yogakaraka": false
+    },
+    "jupiter": {
+      "name": "jupiter",
+      "longitude": 38.94431958409744,
+      "latitude": -0.9458989254672533,
+      "distance": 5.196506082620916,
+      "speed": 0.1363832088094057,
+      "is_retrograde": false,
+      "sign": "Taurus",
+      "sign_degrees": 8.944319584097443,
+      "sign_lord": "venus",
+      "nakshatra": "Krittika",
+      "nakshatra_pada": 4,
+      "nakshatra_lord": "sun",
+      "house": 11,
+      "dignity": "neutral",
+      "is_combust": false,
+      "combustion_separation_deg": 73.05325839115565,
+      "houses_ruled": [
+        6,
+        9
+      ],
+      "is_yogakaraka": false
+    },
+    "venus": {
+      "name": "venus",
+      "longitude": 67.16499913046464,
+      "latitude": -4.136756004098238,
+      "distance": 0.5950861399485418,
+      "speed": 0.8291071143642625,
+      "is_retrograde": false,
+      "sign": "Gemini",
+      "sign_degrees": 7.164999130464636,
+      "sign_lord": "mercury",
+      "nakshatra": "Ardra",
+      "nakshatra_pada": 1,
+      "nakshatra_lord": "rahu",
+      "house": 12,
+      "dignity": "neutral",
+      "is_combust": false,
+      "combustion_separation_deg": 44.83257884478846,
+      "houses_ruled": [
+        4,
+        11
+      ],
+      "is_yogakaraka": false
+    },
+    "saturn": {
+      "name": "saturn",
+      "longitude": 242.62838993288358,
+      "latitude": 1.0371503398389492,
+      "distance": 9.354716175221755,
+      "speed": -0.034040007089060964,
+      "is_retrograde": true,
+      "sign": "Sagittarius",
+      "sign_degrees": 2.6283899328835787,
+      "sign_lord": "jupiter",
+      "nakshatra": "Mula",
+      "nakshatra_pada": 1,
+      "nakshatra_lord": "ketu",
+      "house": 6,
+      "dignity": "neutral",
+      "is_combust": false,
+      "combustion_separation_deg": 130.6308119576305,
+      "houses_ruled": [
+        7,
+        8
+      ],
+      "is_yogakaraka": false
+    },
+    "rahu": {
+      "name": "rahu",
+      "longitude": 321.8185943738369,
+      "latitude": 0.0,
+      "distance": 1.0,
+      "speed": -0.05295377776735677,
+      "is_retrograde": true,
+      "sign": "Aquarius",
+      "sign_degrees": 21.818594373836902,
+      "sign_lord": "saturn",
+      "nakshatra": "Purva Bhadrapada",
+      "nakshatra_pada": 1,
+      "nakshatra_lord": "jupiter",
+      "house": 8,
+      "dignity": "neutral",
+      "is_combust": false,
+      "combustion_separation_deg": null,
+      "houses_ruled": [],
+      "is_yogakaraka": false
+    },
+    "ketu": {
+      "name": "ketu",
+      "longitude": 141.8185943738369,
+      "latitude": 0.0,
+      "distance": 1.0,
+      "speed": -0.05295377776735677,
+      "is_retrograde": true,
+      "sign": "Leo",
+      "sign_degrees": 21.818594373836902,
+      "sign_lord": "sun",
+      "nakshatra": "Purva Phalguni",
+      "nakshatra_pada": 3,
+      "nakshatra_lord": "venus",
+      "house": 2,
+      "dignity": "neutral",
+      "is_combust": false,
+      "combustion_separation_deg": null,
+      "houses_ruled": [],
+      "is_yogakaraka": false
+    }
+  },
+  "houses": {
+    "1": {
+      "house": 1,
+      "longitude": 90.0,
+      "sign": "Cancer",
+      "sign_lord": "moon"
+    },
+    "2": {
+      "house": 2,
+      "longitude": 120.0,
+      "sign": "Leo",
+      "sign_lord": "sun"
+    },
+    "3": {
+      "house": 3,
+      "longitude": 150.0,
+      "sign": "Virgo",
+      "sign_lord": "mercury"
+    },
+    "4": {
+      "house": 4,
+      "longitude": 180.0,
+      "sign": "Libra",
+      "sign_lord": "venus"
+    },
+    "5": {
+      "house": 5,
+      "longitude": 210.0,
+      "sign": "Scorpio",
+      "sign_lord": "mars"
+    },
+    "6": {
+      "house": 6,
+      "longitude": 240.0,
+      "sign": "Sagittarius",
+      "sign_lord": "jupiter"
+    },
+    "7": {
+      "house": 7,
+      "longitude": 270.0,
+      "sign": "Capricorn",
+      "sign_lord": "saturn"
+    },
+    "8": {
+      "house": 8,
+      "longitude": 300.0,
+      "sign": "Aquarius",
+      "sign_lord": "saturn"
+    },
+    "9": {
+      "house": 9,
+      "longitude": 330.0,
+      "sign": "Pisces",
+      "sign_lord": "jupiter"
+    },
+    "10": {
+      "house": 10,
+      "longitude": 0.0,
+      "sign": "Aries",
+      "sign_lord": "mars"
+    },
+    "11": {
+      "house": 11,
+      "longitude": 30.0,
+      "sign": "Taurus",
+      "sign_lord": "venus"
+    },
+    "12": {
+      "house": 12,
+      "longitude": 60.0,
+      "sign": "Gemini",
+      "sign_lord": "mercury"
+    }
+  },
+  "dashas": {
+    "maha_dasha_sequence": [
+      {
+        "lord": "mars",
+        "start_date": "1988-08-08T00:44:00Z",
+        "end_date": "1991-04-22T16:52:59.297647Z",
+        "duration_years": 2.704101050068657,
+        "antar_sequence": [
+          {
+            "lord": "mars",
+            "start_date": "1988-08-08T00:44:00Z",
+            "end_date": "1988-10-04T15:28:31.459029Z",
+            "duration_years": 0.15773922792067166
+          },
+          {
+            "lord": "rahu",
+            "start_date": "1988-10-04T15:28:31.459029Z",
+            "end_date": "1989-03-01T19:05:52.353676Z",
+            "duration_years": 0.40561515751029853
+          },
+          {
+            "lord": "jupiter",
+            "start_date": "1989-03-01T19:05:52.353676Z",
+            "end_date": "1989-07-11T11:39:04.260029Z",
+            "duration_years": 0.3605468066758209
+          },
+          {
+            "lord": "saturn",
+            "start_date": "1989-07-11T11:39:04.260029Z",
+            "end_date": "1989-12-14T20:48:29.648823Z",
+            "duration_years": 0.4281493329275373
+          },
+          {
+            "lord": "mercury",
+            "start_date": "1989-12-14T20:48:29.648823Z",
+            "end_date": "1990-05-03T18:53:46.049323Z",
+            "duration_years": 0.3830809820930597
+          },
+          {
+            "lord": "ketu",
+            "start_date": "1990-05-03T18:53:46.049323Z",
+            "end_date": "1990-06-30T09:38:17.508352Z",
+            "duration_years": 0.15773922792067166
+          },
+          {
+            "lord": "venus",
+            "start_date": "1990-06-30T09:38:17.508352Z",
+            "end_date": "1990-12-12T00:19:47.391293Z",
+            "duration_years": 0.4506835083447761
+          },
+          {
+            "lord": "sun",
+            "start_date": "1990-12-12T00:19:47.391293Z",
+            "end_date": "1991-01-30T09:32:14.356175Z",
+            "duration_years": 0.13520505250343284
+          },
+          {
+            "lord": "moon",
+            "start_date": "1991-01-30T09:32:14.356175Z",
+            "end_date": "1991-04-22T16:52:59.297646Z",
+            "duration_years": 0.22534175417238805
+          }
+        ]
+      },
+      {
+        "lord": "rahu",
+        "start_date": "1991-04-22T16:52:59.297647Z",
+        "end_date": "2009-04-22T04:52:59.297647Z",
+        "duration_years": 18.0,
+        "antar_sequence": [
+          {
+            "lord": "rahu",
+            "start_date": "1991-04-22T16:52:59.297647Z",
+            "end_date": "1994-01-02T21:04:59.297647Z",
+            "duration_years": 2.6999999999999997
+          },
+          {
+            "lord": "jupiter",
+            "start_date": "1994-01-02T21:04:59.297647Z",
+            "end_date": "1996-05-28T11:28:59.297647Z",
+            "duration_years": 2.4
+          },
+          {
+            "lord": "saturn",
+            "start_date": "1996-05-28T11:28:59.297647Z",
+            "end_date": "1999-04-04T10:34:59.297647Z",
+            "duration_years": 2.8499999999999996
+          },
+          {
+            "lord": "mercury",
+            "start_date": "1999-04-04T10:34:59.297647Z",
+            "end_date": "2001-10-21T19:52:59.297647Z",
+            "duration_years": 2.55
+          },
+          {
+            "lord": "ketu",
+            "start_date": "2001-10-21T19:52:59.297647Z",
+            "end_date": "2002-11-09T08:10:59.297647Z",
+            "duration_years": 1.05
+          },
+          {
+            "lord": "venus",
+            "start_date": "2002-11-09T08:10:59.297647Z",
+            "end_date": "2005-11-09T02:10:59.297647Z",
+            "duration_years": 3.0
+          },
+          {
+            "lord": "sun",
+            "start_date": "2005-11-09T02:10:59.297647Z",
+            "end_date": "2006-10-03T19:34:59.297647Z",
+            "duration_years": 0.9
+          },
+          {
+            "lord": "moon",
+            "start_date": "2006-10-03T19:34:59.297647Z",
+            "end_date": "2008-04-03T16:34:59.297647Z",
+            "duration_years": 1.5
+          },
+          {
+            "lord": "mars",
+            "start_date": "2008-04-03T16:34:59.297647Z",
+            "end_date": "2009-04-22T04:52:59.297647Z",
+            "duration_years": 1.05
+          }
+        ]
+      },
+      {
+        "lord": "jupiter",
+        "start_date": "2009-04-22T04:52:59.297647Z",
+        "end_date": "2025-04-22T04:52:59.297647Z",
+        "duration_years": 16.0,
+        "antar_sequence": [
+          {
+            "lord": "jupiter",
+            "start_date": "2009-04-22T04:52:59.297647Z",
+            "end_date": "2011-06-10T09:40:59.297647Z",
+            "duration_years": 2.1333333333333333
+          },
+          {
+            "lord": "saturn",
+            "start_date": "2011-06-10T09:40:59.297647Z",
+            "end_date": "2013-12-21T16:52:59.297647Z",
+            "duration_years": 2.533333333333333
+          },
+          {
+            "lord": "mercury",
+            "start_date": "2013-12-21T16:52:59.297647Z",
+            "end_date": "2016-03-28T14:28:59.297647Z",
+            "duration_years": 2.2666666666666666
+          },
+          {
+            "lord": "ketu",
+            "start_date": "2016-03-28T14:28:59.297647Z",
+            "end_date": "2017-03-04T12:04:59.297647Z",
+            "duration_years": 0.9333333333333333
+          },
+          {
+            "lord": "venus",
+            "start_date": "2017-03-04T12:04:59.297647Z",
+            "end_date": "2019-11-03T12:04:59.297647Z",
+            "duration_years": 2.6666666666666665
+          },
+          {
+            "lord": "sun",
+            "start_date": "2019-11-03T12:04:59.297647Z",
+            "end_date": "2020-08-21T16:52:59.297647Z",
+            "duration_years": 0.8
+          },
+          {
+            "lord": "moon",
+            "start_date": "2020-08-21T16:52:59.297647Z",
+            "end_date": "2021-12-21T16:52:59.297647Z",
+            "duration_years": 1.3333333333333333
+          },
+          {
+            "lord": "mars",
+            "start_date": "2021-12-21T16:52:59.297647Z",
+            "end_date": "2022-11-27T14:28:59.297647Z",
+            "duration_years": 0.9333333333333333
+          },
+          {
+            "lord": "rahu",
+            "start_date": "2022-11-27T14:28:59.297647Z",
+            "end_date": "2025-04-22T04:52:59.297647Z",
+            "duration_years": 2.4
+          }
+        ]
+      },
+      {
+        "lord": "saturn",
+        "start_date": "2025-04-22T04:52:59.297647Z",
+        "end_date": "2044-04-21T22:52:59.297647Z",
+        "duration_years": 19.0,
+        "antar_sequence": [
+          {
+            "lord": "saturn",
+            "start_date": "2025-04-22T04:52:59.297647Z",
+            "end_date": "2028-04-24T23:55:59.297647Z",
+            "duration_years": 3.0083333333333333
+          },
+          {
+            "lord": "mercury",
+            "start_date": "2028-04-24T23:55:59.297647Z",
+            "end_date": "2031-01-03T03:04:59.297647Z",
+            "duration_years": 2.6916666666666664
+          },
+          {
+            "lord": "ketu",
+            "start_date": "2031-01-03T03:04:59.297647Z",
+            "end_date": "2032-02-11T22:43:59.297647Z",
+            "duration_years": 1.1083333333333334
+          },
+          {
+            "lord": "venus",
+            "start_date": "2032-02-11T22:43:59.297647Z",
+            "end_date": "2035-04-13T13:43:59.297647Z",
+            "duration_years": 3.1666666666666665
+          },
+          {
+            "lord": "sun",
+            "start_date": "2035-04-13T13:43:59.297647Z",
+            "end_date": "2036-03-25T13:25:59.297647Z",
+            "duration_years": 0.9500000000000001
+          },
+          {
+            "lord": "moon",
+            "start_date": "2036-03-25T13:25:59.297647Z",
+            "end_date": "2037-10-24T20:55:59.297647Z",
+            "duration_years": 1.5833333333333333
+          },
+          {
+            "lord": "mars",
+            "start_date": "2037-10-24T20:55:59.297647Z",
+            "end_date": "2038-12-03T16:34:59.297647Z",
+            "duration_years": 1.1083333333333334
+          },
+          {
+            "lord": "rahu",
+            "start_date": "2038-12-03T16:34:59.297647Z",
+            "end_date": "2041-10-09T15:40:59.297647Z",
+            "duration_years": 2.85
+          },
+          {
+            "lord": "jupiter",
+            "start_date": "2041-10-09T15:40:59.297647Z",
+            "end_date": "2044-04-21T22:52:59.297647Z",
+            "duration_years": 2.533333333333333
+          }
+        ]
+      },
+      {
+        "lord": "mercury",
+        "start_date": "2044-04-21T22:52:59.297647Z",
+        "end_date": "2061-04-22T04:52:59.297647Z",
+        "duration_years": 17.0,
+        "antar_sequence": [
+          {
+            "lord": "mercury",
+            "start_date": "2044-04-21T22:52:59.297647Z",
+            "end_date": "2046-09-18T14:19:59.297647Z",
+            "duration_years": 2.408333333333333
+          },
+          {
+            "lord": "ketu",
+            "start_date": "2046-09-18T14:19:59.297647Z",
+            "end_date": "2047-09-15T19:16:59.297647Z",
+            "duration_years": 0.9916666666666667
+          },
+          {
+            "lord": "venus",
+            "start_date": "2047-09-15T19:16:59.297647Z",
+            "end_date": "2050-07-16T16:16:59.297647Z",
+            "duration_years": 2.833333333333333
+          },
+          {
+            "lord": "sun",
+            "start_date": "2050-07-16T16:16:59.297647Z",
+            "end_date": "2051-05-23T03:22:59.297647Z",
+            "duration_years": 0.8500000000000001
+          },
+          {
+            "lord": "moon",
+            "start_date": "2051-05-23T03:22:59.297647Z",
+            "end_date": "2052-10-21T13:52:59.297647Z",
+            "duration_years": 1.4166666666666665
+          },
+          {
+            "lord": "mars",
+            "start_date": "2052-10-21T13:52:59.297647Z",
+            "end_date": "2053-10-18T18:49:59.297647Z",
+            "duration_years": 0.9916666666666667
+          },
+          {
+            "lord": "rahu",
+            "start_date": "2053-10-18T18:49:59.297647Z",
+            "end_date": "2056-05-07T04:07:59.297647Z",
+            "duration_years": 2.55
+          },
+          {
+            "lord": "jupiter",
+            "start_date": "2056-05-07T04:07:59.297647Z",
+            "end_date": "2058-08-13T01:43:59.297647Z",
+            "duration_years": 2.2666666666666666
+          },
+          {
+            "lord": "saturn",
+            "start_date": "2058-08-13T01:43:59.297647Z",
+            "end_date": "2061-04-22T04:52:59.297647Z",
+            "duration_years": 2.6916666666666664
+          }
+        ]
+      },
+      {
+        "lord": "ketu",
+        "start_date": "2061-04-22T04:52:59.297647Z",
+        "end_date": "2068-04-21T22:52:59.297647Z",
+        "duration_years": 7.0,
+        "antar_sequence": [
+          {
+            "lord": "ketu",
+            "start_date": "2061-04-22T04:52:59.297647Z",
+            "end_date": "2061-09-18T08:19:59.297647Z",
+            "duration_years": 0.4083333333333333
+          },
+          {
+            "lord": "venus",
+            "start_date": "2061-09-18T08:19:59.297647Z",
+            "end_date": "2062-11-18T11:19:59.297647Z",
+            "duration_years": 1.1666666666666665
+          },
+          {
+            "lord": "sun",
+            "start_date": "2062-11-18T11:19:59.297647Z",
+            "end_date": "2063-03-26T07:25:59.297647Z",
+            "duration_years": 0.35000000000000003
+          },
+          {
+            "lord": "moon",
+            "start_date": "2063-03-26T07:25:59.297647Z",
+            "end_date": "2063-10-25T08:55:59.297647Z",
+            "duration_years": 0.5833333333333333
+          },
+          {
+            "lord": "mars",
+            "start_date": "2063-10-25T08:55:59.297647Z",
+            "end_date": "2064-03-22T12:22:59.297647Z",
+            "duration_years": 0.4083333333333333
+          },
+          {
+            "lord": "rahu",
+            "start_date": "2064-03-22T12:22:59.297647Z",
+            "end_date": "2065-04-10T00:40:59.297647Z",
+            "duration_years": 1.05
+          },
+          {
+            "lord": "jupiter",
+            "start_date": "2065-04-10T00:40:59.297647Z",
+            "end_date": "2066-03-16T22:16:59.297647Z",
+            "duration_years": 0.9333333333333333
+          },
+          {
+            "lord": "saturn",
+            "start_date": "2066-03-16T22:16:59.297647Z",
+            "end_date": "2067-04-25T17:55:59.297647Z",
+            "duration_years": 1.1083333333333334
+          },
+          {
+            "lord": "mercury",
+            "start_date": "2067-04-25T17:55:59.297647Z",
+            "end_date": "2068-04-21T22:52:59.297647Z",
+            "duration_years": 0.9916666666666667
+          }
+        ]
+      },
+      {
+        "lord": "venus",
+        "start_date": "2068-04-21T22:52:59.297647Z",
+        "end_date": "2088-04-21T22:52:59.297647Z",
+        "duration_years": 20.0,
+        "antar_sequence": [
+          {
+            "lord": "venus",
+            "start_date": "2068-04-21T22:52:59.297647Z",
+            "end_date": "2071-08-22T10:52:59.297647Z",
+            "duration_years": 3.333333333333333
+          },
+          {
+            "lord": "sun",
+            "start_date": "2071-08-22T10:52:59.297647Z",
+            "end_date": "2072-08-21T16:52:59.297647Z",
+            "duration_years": 1.0
+          },
+          {
+            "lord": "moon",
+            "start_date": "2072-08-21T16:52:59.297647Z",
+            "end_date": "2074-04-22T10:52:59.297647Z",
+            "duration_years": 1.6666666666666665
+          },
+          {
+            "lord": "mars",
+            "start_date": "2074-04-22T10:52:59.297647Z",
+            "end_date": "2075-06-22T13:52:59.297647Z",
+            "duration_years": 1.1666666666666667
+          },
+          {
+            "lord": "rahu",
+            "start_date": "2075-06-22T13:52:59.297647Z",
+            "end_date": "2078-06-22T07:52:59.297647Z",
+            "duration_years": 3.0
+          },
+          {
+            "lord": "jupiter",
+            "start_date": "2078-06-22T07:52:59.297647Z",
+            "end_date": "2081-02-20T07:52:59.297647Z",
+            "duration_years": 2.6666666666666665
+          },
+          {
+            "lord": "saturn",
+            "start_date": "2081-02-20T07:52:59.297647Z",
+            "end_date": "2084-04-21T22:52:59.297647Z",
+            "duration_years": 3.1666666666666665
+          },
+          {
+            "lord": "mercury",
+            "start_date": "2084-04-21T22:52:59.297647Z",
+            "end_date": "2087-02-20T19:52:59.297647Z",
+            "duration_years": 2.833333333333333
+          },
+          {
+            "lord": "ketu",
+            "start_date": "2087-02-20T19:52:59.297647Z",
+            "end_date": "2088-04-21T22:52:59.297647Z",
+            "duration_years": 1.1666666666666667
+          }
+        ]
+      },
+      {
+        "lord": "sun",
+        "start_date": "2088-04-21T22:52:59.297647Z",
+        "end_date": "2094-04-22T10:52:59.297647Z",
+        "duration_years": 6.0,
+        "antar_sequence": [
+          {
+            "lord": "sun",
+            "start_date": "2088-04-21T22:52:59.297647Z",
+            "end_date": "2088-08-09T12:40:59.297647Z",
+            "duration_years": 0.30000000000000004
+          },
+          {
+            "lord": "moon",
+            "start_date": "2088-08-09T12:40:59.297647Z",
+            "end_date": "2089-02-08T03:40:59.297647Z",
+            "duration_years": 0.5
+          },
+          {
+            "lord": "mars",
+            "start_date": "2089-02-08T03:40:59.297647Z",
+            "end_date": "2089-06-15T23:46:59.297647Z",
+            "duration_years": 0.35
+          },
+          {
+            "lord": "rahu",
+            "start_date": "2089-06-15T23:46:59.297647Z",
+            "end_date": "2090-05-10T17:10:59.297647Z",
+            "duration_years": 0.8999999999999999
+          },
+          {
+            "lord": "jupiter",
+            "start_date": "2090-05-10T17:10:59.297647Z",
+            "end_date": "2091-02-26T21:58:59.297647Z",
+            "duration_years": 0.8
+          },
+          {
+            "lord": "saturn",
+            "start_date": "2091-02-26T21:58:59.297647Z",
+            "end_date": "2092-02-08T21:40:59.297647Z",
+            "duration_years": 0.95
+          },
+          {
+            "lord": "mercury",
+            "start_date": "2092-02-08T21:40:59.297647Z",
+            "end_date": "2092-12-15T08:46:59.297647Z",
+            "duration_years": 0.85
+          },
+          {
+            "lord": "ketu",
+            "start_date": "2092-12-15T08:46:59.297647Z",
+            "end_date": "2093-04-22T04:52:59.297647Z",
+            "duration_years": 0.35
+          },
+          {
+            "lord": "venus",
+            "start_date": "2093-04-22T04:52:59.297647Z",
+            "end_date": "2094-04-22T10:52:59.297647Z",
+            "duration_years": 1.0
+          }
+        ]
+      },
+      {
+        "lord": "moon",
+        "start_date": "2094-04-22T10:52:59.297647Z",
+        "end_date": "2104-04-22T22:52:59.297647Z",
+        "duration_years": 10.0,
+        "antar_sequence": [
+          {
+            "lord": "moon",
+            "start_date": "2094-04-22T10:52:59.297647Z",
+            "end_date": "2095-02-20T19:52:59.297647Z",
+            "duration_years": 0.8333333333333333
+          },
+          {
+            "lord": "mars",
+            "start_date": "2095-02-20T19:52:59.297647Z",
+            "end_date": "2095-09-21T21:22:59.297647Z",
+            "duration_years": 0.5833333333333334
+          },
+          {
+            "lord": "rahu",
+            "start_date": "2095-09-21T21:22:59.297647Z",
+            "end_date": "2097-03-22T18:22:59.297647Z",
+            "duration_years": 1.5
+          },
+          {
+            "lord": "jupiter",
+            "start_date": "2097-03-22T18:22:59.297647Z",
+            "end_date": "2098-07-22T18:22:59.297647Z",
+            "duration_years": 1.3333333333333333
+          },
+          {
+            "lord": "saturn",
+            "start_date": "2098-07-22T18:22:59.297647Z",
+            "end_date": "2100-02-21T01:52:59.297647Z",
+            "duration_years": 1.5833333333333333
+          },
+          {
+            "lord": "mercury",
+            "start_date": "2100-02-21T01:52:59.297647Z",
+            "end_date": "2101-07-23T12:22:59.297647Z",
+            "duration_years": 1.4166666666666665
+          },
+          {
+            "lord": "ketu",
+            "start_date": "2101-07-23T12:22:59.297647Z",
+            "end_date": "2102-02-21T13:52:59.297647Z",
+            "duration_years": 0.5833333333333334
+          },
+          {
+            "lord": "venus",
+            "start_date": "2102-02-21T13:52:59.297647Z",
+            "end_date": "2103-10-23T07:52:59.297647Z",
+            "duration_years": 1.6666666666666665
+          },
+          {
+            "lord": "sun",
+            "start_date": "2103-10-23T07:52:59.297647Z",
+            "end_date": "2104-04-22T22:52:59.297647Z",
+            "duration_years": 0.5
+          }
+        ]
+      }
+    ],
+    "current_maha": {
+      "lord": "saturn",
+      "start_date": "2025-04-22T04:52:59.297647Z",
+      "end_date": "2044-04-21T22:52:59.297647Z",
+      "duration_years": 19.0
+    },
+    "current_antar": {
+      "lord": "saturn",
+      "start_date": "2025-04-22T04:52:59.297647Z",
+      "end_date": "2028-04-24T23:55:59.297647Z",
+      "duration_years": 3.0083333333333333
+    },
+    "current_pratyantar": {
+      "lord": "venus",
+      "start_date": "2026-05-20T22:30:33.797647Z",
+      "end_date": "2026-11-20T01:41:03.797647Z",
+      "duration_years": 0.5013888888888889
+    },
+    "pratyantar_sequence": [
+      {
+        "lord": "saturn",
+        "start_date": "2025-04-22T04:52:59.297647Z",
+        "end_date": "2025-10-13T04:17:57.797647Z",
+        "duration_years": 0.4763194444444444
+      },
+      {
+        "lord": "mercury",
+        "start_date": "2025-10-13T04:17:57.797647Z",
+        "end_date": "2026-03-17T20:11:53.297647Z",
+        "duration_years": 0.42618055555555556
+      },
+      {
+        "lord": "ketu",
+        "start_date": "2026-03-17T20:11:53.297647Z",
+        "end_date": "2026-05-20T22:30:33.797647Z",
+        "duration_years": 0.17548611111111112
+      },
+      {
+        "lord": "venus",
+        "start_date": "2026-05-20T22:30:33.797647Z",
+        "end_date": "2026-11-20T01:41:03.797647Z",
+        "duration_years": 0.5013888888888889
+      },
+      {
+        "lord": "sun",
+        "start_date": "2026-11-20T01:41:03.797647Z",
+        "end_date": "2027-01-14T00:14:12.797647Z",
+        "duration_years": 0.15041666666666667
+      },
+      {
+        "lord": "moon",
+        "start_date": "2027-01-14T00:14:12.797647Z",
+        "end_date": "2027-04-15T13:49:27.797647Z",
+        "duration_years": 0.25069444444444444
+      },
+      {
+        "lord": "mars",
+        "start_date": "2027-04-15T13:49:27.797647Z",
+        "end_date": "2027-06-18T16:08:08.297647Z",
+        "duration_years": 0.17548611111111112
+      },
+      {
+        "lord": "rahu",
+        "start_date": "2027-06-18T16:08:08.297647Z",
+        "end_date": "2027-11-30T11:47:35.297647Z",
+        "duration_years": 0.45125
+      },
+      {
+        "lord": "jupiter",
+        "start_date": "2027-11-30T11:47:35.297647Z",
+        "end_date": "2028-04-24T23:55:59.297647Z",
+        "duration_years": 0.4011111111111111
+      }
+    ],
+    "convention": "julian_365_25"
+  },
+  "yogas": [
+    {
+      "name": "Budha-Aditya Yoga",
+      "display_name": "Budha-Aditya Yoga (Sun and Mercury conjunct in Cancer (the 1st))",
+      "category": "auspicious",
+      "description": "Sun-Mercury conjunction",
+      "effects": "Sharp intellect, administrative and communicative skill",
+      "grade": "moderate",
+      "strength_factors": [
+        {
+          "factor_type": "dignity",
+          "planet": "mercury",
+          "value": "neutral",
+          "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine"
+        },
+        {
+          "factor_type": "house_class",
+          "planet": "mercury",
+          "value": "kendra (house 1)",
+          "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)"
+        },
+        {
+          "factor_type": "combustion",
+          "planet": "mercury",
+          "value": "combust (5.25 deg from the Sun)",
+          "basis": "Asta (combustion) within the classical orb of the Sun (Surya-Siddhanta tradition; B.V. Raman, Graha and Bhava Balas)"
+        },
+        {
+          "factor_type": "dignity",
+          "planet": "sun",
+          "value": "neutral",
+          "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine"
+        },
+        {
+          "factor_type": "house_class",
+          "planet": "sun",
+          "value": "kendra (house 1)",
+          "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)"
+        }
+      ],
+      "planets_involved": [
+        "mercury",
+        "sun"
+      ],
+      "houses_involved": [
+        1
+      ],
+      "planetary_signature": "mercury_sun_h1",
+      "formation_rules": [
+        {
+          "rule": "budha_aditya.conjunction",
+          "description": "Sun and Mercury conjunct in Cancer (the 1st)",
+          "source": "Classical two-graha combination (Saravali; 300IC)",
+          "planets": [
+            "mercury",
+            "sun"
+          ],
+          "houses": [
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Dhana Yoga",
+      "display_name": "Dhana Yoga (9th lord Jupiter in the 11th)",
+      "category": "dhana",
+      "description": "9th lord Jupiter in the 11th",
+      "effects": "Wealth accumulation through the linked houses",
+      "grade": "moderate",
+      "strength_factors": [
+        {
+          "factor_type": "dignity",
+          "planet": "jupiter",
+          "value": "neutral",
+          "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine"
+        },
+        {
+          "factor_type": "house_class",
+          "planet": "jupiter",
+          "value": "upachaya (house 11)",
+          "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)"
+        }
+      ],
+      "planets_involved": [
+        "jupiter"
+      ],
+      "houses_involved": [
+        9,
+        11
+      ],
+      "planetary_signature": "jupiter_h9_h11",
+      "formation_rules": [
+        {
+          "rule": "dhana.lord_placed",
+          "description": "9th lord Jupiter in the 11th",
+          "source": "BPHS, Dhana-yoga adhyaya: associations of the 2nd/5th/9th/11th lords",
+          "planets": [
+            "jupiter"
+          ],
+          "houses": [
+            9,
+            11
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Vasi Yoga",
+      "display_name": "Vasi Yoga (Planets (other than the Moon) in the 12th from the Sun)",
+      "category": "surya",
+      "description": "Planets (other than the Moon) in the 12th from the Sun",
+      "effects": "Balanced fortunes, eloquence and supportive circumstances",
+      "grade": "moderate",
+      "strength_factors": [
+        {
+          "factor_type": "dignity",
+          "planet": "sun",
+          "value": "neutral",
+          "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine"
+        },
+        {
+          "factor_type": "house_class",
+          "planet": "sun",
+          "value": "kendra (house 1)",
+          "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)"
+        },
+        {
+          "factor_type": "dignity",
+          "planet": "venus",
+          "value": "neutral",
+          "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine"
+        },
+        {
+          "factor_type": "house_class",
+          "planet": "venus",
+          "value": "dusthana (house 12)",
+          "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)"
+        }
+      ],
+      "planets_involved": [
+        "sun",
+        "venus"
+      ],
+      "houses_involved": [
+        1,
+        12
+      ],
+      "planetary_signature": "sun_venus_h1_h12",
+      "formation_rules": [
+        {
+          "rule": "surya.vasi",
+          "description": "Planets (other than the Moon) in the 12th from the Sun",
+          "source": "BPHS, Surya-yoga adhyaya (Vesi/Vasi/Ubhayachari)",
+          "planets": [
+            "sun",
+            "venus"
+          ],
+          "houses": [
+            1,
+            12
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Vipareeta Raja Yoga",
+      "display_name": "Vipareeta Raja Yoga (Sarala: the 8th lord Saturn placed in the 6th (dusthana))",
+      "category": "raja",
+      "description": "Sarala: the 8th lord Saturn placed in the 6th (dusthana)",
+      "effects": "Rise precipitated through adversity and its reversal",
+      "grade": "moderate",
+      "strength_factors": [
+        {
+          "factor_type": "dignity",
+          "planet": "saturn",
+          "value": "neutral",
+          "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine"
+        },
+        {
+          "factor_type": "house_class",
+          "planet": "saturn",
+          "value": "dusthana (house 6)",
+          "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)"
+        },
+        {
+          "factor_type": "retrograde",
+          "planet": "saturn",
+          "value": "retrograde",
+          "basis": "Vakra (retrograde) motion confers high cheshta-bala (BPHS, Shadbala adhyaya)"
+        }
+      ],
+      "planets_involved": [
+        "saturn"
+      ],
+      "houses_involved": [
+        6,
+        8
+      ],
+      "planetary_signature": "saturn_h6_h8",
+      "formation_rules": [
+        {
+          "rule": "vipareeta.sarala",
+          "description": "Sarala: the 8th lord Saturn placed in the 6th (dusthana)",
+          "source": "UK: Vipareeta Raja Yoga (Harsha/Sarala/Vimala - dusthana lords in dusthanas)",
+          "planets": [
+            "saturn"
+          ],
+          "houses": [
+            6,
+            8
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Yogakaraka",
+      "display_name": "Mars is Yogakaraka (Mars lords both a kendra and a trikona (5th and 10th))",
+      "category": "raja",
+      "description": "Mars lords both a kendra and a trikona (5th and 10th)",
+      "effects": "A single graha empowered to confer rank and fortune",
+      "grade": "moderate",
+      "strength_factors": [
+        {
+          "factor_type": "dignity",
+          "planet": "mars",
+          "value": "neutral",
+          "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine"
+        },
+        {
+          "factor_type": "house_class",
+          "planet": "mars",
+          "value": "trikona (house 9)",
+          "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)"
+        }
+      ],
+      "planets_involved": [
+        "mars"
+      ],
+      "houses_involved": [
+        5,
+        10
+      ],
+      "planetary_signature": "mars_h5_h10",
+      "formation_rules": [
+        {
+          "rule": "yogakaraka.kendra_trikona_lord",
+          "description": "Mars lords both a kendra and a trikona (5th and 10th)",
+          "source": "BPHS, Yogakaraka adhyaya: one graha lording a kendra and a trikona",
+          "planets": [
+            "mars"
+          ],
+          "houses": [
+            5,
+            10
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Durudhara Yoga",
+      "display_name": "Durudhara Yoga (Planets (other than the Sun) on both sides of the Moon)",
+      "category": "chandra",
+      "description": "Planets (other than the Sun) on both sides of the Moon",
+      "effects": "Resources and supportive company on both sides",
+      "grade": "weak",
+      "strength_factors": [
+        {
+          "factor_type": "dignity",
+          "planet": "jupiter",
+          "value": "neutral",
+          "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine"
+        },
+        {
+          "factor_type": "house_class",
+          "planet": "jupiter",
+          "value": "upachaya (house 11)",
+          "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)"
+        },
+        {
+          "factor_type": "dignity",
+          "planet": "mercury",
+          "value": "neutral",
+          "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine"
+        },
+        {
+          "factor_type": "house_class",
+          "planet": "mercury",
+          "value": "kendra (house 1)",
+          "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)"
+        },
+        {
+          "factor_type": "combustion",
+          "planet": "mercury",
+          "value": "combust (5.25 deg from the Sun)",
+          "basis": "Asta (combustion) within the classical orb of the Sun (Surya-Siddhanta tradition; B.V. Raman, Graha and Bhava Balas)"
+        },
+        {
+          "factor_type": "dignity",
+          "planet": "moon",
+          "value": "neutral",
+          "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine"
+        },
+        {
+          "factor_type": "house_class",
+          "planet": "moon",
+          "value": "dusthana (house 12)",
+          "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)"
+        }
+      ],
+      "planets_involved": [
+        "jupiter",
+        "mercury",
+        "moon"
+      ],
+      "houses_involved": [
+        1,
+        11,
+        12
+      ],
+      "planetary_signature": "jupiter_mercury_moon_h1_h11_h12",
+      "formation_rules": [
+        {
+          "rule": "chandra.durudhara",
+          "description": "Planets (other than the Sun) on both sides of the Moon",
+          "source": "BPHS, Chandra-yoga adhyaya (Sunapha/Anapha/Durudhara/Kemadruma)",
+          "planets": [
+            "jupiter",
+            "mercury",
+            "moon"
+          ],
+          "houses": [
+            1,
+            11,
+            12
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Parivartana Yoga",
+      "display_name": "Parivartana Yoga (Dainya Parivartana: Moon and Mercury exchange signs (houses 1st and 12th))",
+      "category": "special",
+      "description": "Dainya Parivartana: Moon and Mercury exchange signs (houses 1st and 12th)",
+      "effects": "The two houses' agendas become interlocked and mutually felt",
+      "grade": "weak",
+      "strength_factors": [
+        {
+          "factor_type": "dignity",
+          "planet": "mercury",
+          "value": "neutral",
+          "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine"
+        },
+        {
+          "factor_type": "house_class",
+          "planet": "mercury",
+          "value": "kendra (house 1)",
+          "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)"
+        },
+        {
+          "factor_type": "combustion",
+          "planet": "mercury",
+          "value": "combust (5.25 deg from the Sun)",
+          "basis": "Asta (combustion) within the classical orb of the Sun (Surya-Siddhanta tradition; B.V. Raman, Graha and Bhava Balas)"
+        },
+        {
+          "factor_type": "dignity",
+          "planet": "moon",
+          "value": "neutral",
+          "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine"
+        },
+        {
+          "factor_type": "house_class",
+          "planet": "moon",
+          "value": "dusthana (house 12)",
+          "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)"
+        }
+      ],
+      "planets_involved": [
+        "mercury",
+        "moon"
+      ],
+      "houses_involved": [
+        1,
+        12
+      ],
+      "planetary_signature": "mercury_moon_h1_h12",
+      "formation_rules": [
+        {
+          "rule": "parivartana.dainya",
+          "description": "Dainya Parivartana: Moon and Mercury exchange signs (houses 1st and 12th)",
+          "source": "Parivartana (exchange) sambandha; Maha/Khala/Dainya per the UK tradition",
+          "planets": [
+            "mercury",
+            "moon"
+          ],
+          "houses": [
+            1,
+            12
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Raja Yoga",
+      "display_name": "Raja Yoga (Saturn (kendra lord) and Moon (trikona lord) in mutual_aspect)",
+      "category": "raja",
+      "description": "A kendra lord and a trikona lord in sambandha",
+      "effects": "Authority, rise and recognition",
+      "grade": "weak",
+      "strength_factors": [
+        {
+          "factor_type": "dignity",
+          "planet": "moon",
+          "value": "neutral",
+          "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine"
+        },
+        {
+          "factor_type": "house_class",
+          "planet": "moon",
+          "value": "dusthana (house 12)",
+          "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)"
+        },
+        {
+          "factor_type": "dignity",
+          "planet": "saturn",
+          "value": "neutral",
+          "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine"
+        },
+        {
+          "factor_type": "house_class",
+          "planet": "saturn",
+          "value": "dusthana (house 6)",
+          "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)"
+        },
+        {
+          "factor_type": "retrograde",
+          "planet": "saturn",
+          "value": "retrograde",
+          "basis": "Vakra (retrograde) motion confers high cheshta-bala (BPHS, Shadbala adhyaya)"
+        }
+      ],
+      "planets_involved": [
+        "moon",
+        "saturn"
+      ],
+      "houses_involved": [
+        1,
+        6,
+        7,
+        12
+      ],
+      "planetary_signature": "moon_saturn_h1_h6_h7_h12",
+      "formation_rules": [
+        {
+          "rule": "raja.kendra_trikona_mutual_aspect",
+          "description": "Saturn (kendra lord) and Moon (trikona lord) in mutual_aspect",
+          "source": "BPHS, Raja-yoga adhyaya: kendra-lord and trikona-lord in sambandha",
+          "planets": [
+            "moon",
+            "saturn"
+          ],
+          "houses": [
+            1,
+            6,
+            7,
+            12
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Raja Yoga",
+      "display_name": "Raja Yoga (Venus (kendra lord) and Moon (trikona lord) in conjunction)",
+      "category": "raja",
+      "description": "A kendra lord and a trikona lord in sambandha",
+      "effects": "Authority, rise and recognition",
+      "grade": "weak",
+      "strength_factors": [
+        {
+          "factor_type": "dignity",
+          "planet": "moon",
+          "value": "neutral",
+          "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine"
+        },
+        {
+          "factor_type": "house_class",
+          "planet": "moon",
+          "value": "dusthana (house 12)",
+          "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)"
+        },
+        {
+          "factor_type": "dignity",
+          "planet": "venus",
+          "value": "neutral",
+          "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine"
+        },
+        {
+          "factor_type": "house_class",
+          "planet": "venus",
+          "value": "dusthana (house 12)",
+          "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)"
+        }
+      ],
+      "planets_involved": [
+        "moon",
+        "venus"
+      ],
+      "houses_involved": [
+        1,
+        4,
+        12
+      ],
+      "planetary_signature": "moon_venus_h1_h4_h12",
+      "formation_rules": [
+        {
+          "rule": "raja.kendra_trikona_conjunction",
+          "description": "Venus (kendra lord) and Moon (trikona lord) in conjunction",
+          "source": "BPHS, Raja-yoga adhyaya: kendra-lord and trikona-lord in sambandha",
+          "planets": [
+            "moon",
+            "venus"
+          ],
+          "houses": [
+            1,
+            4,
+            12
+          ]
+        }
+      ]
+    }
+  ],
+  "navamsa": {
+    "name": "D9",
+    "lagna_sign": "Capricorn",
+    "lagna_sign_lord": "saturn",
+    "planets": {
+      "sun": {
+        "name": "sun",
+        "sign": "Capricorn",
+        "sign_lord": "saturn",
+        "is_combust": false
+      },
+      "moon": {
+        "name": "moon",
+        "sign": "Libra",
+        "sign_lord": "venus",
+        "is_combust": false
+      },
+      "mars": {
+        "name": "mars",
+        "sign": "Scorpio",
+        "sign_lord": "mars",
+        "is_combust": false
+      },
+      "mercury": {
+        "name": "mercury",
+        "sign": "Pisces",
+        "sign_lord": "jupiter",
+        "is_combust": true
+      },
+      "jupiter": {
+        "name": "jupiter",
+        "sign": "Pisces",
+        "sign_lord": "jupiter",
+        "is_combust": false
+      },
+      "venus": {
+        "name": "venus",
+        "sign": "Sagittarius",
+        "sign_lord": "jupiter",
+        "is_combust": false
+      },
+      "saturn": {
+        "name": "saturn",
+        "sign": "Aries",
+        "sign_lord": "mars",
+        "is_combust": false
+      },
+      "rahu": {
+        "name": "rahu",
+        "sign": "Aries",
+        "sign_lord": "mars",
+        "is_combust": false
+      },
+      "ketu": {
+        "name": "ketu",
+        "sign": "Libra",
+        "sign_lord": "venus",
+        "is_combust": false
+      }
+    }
+  }
+}

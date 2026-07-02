@@ -109,7 +109,7 @@ export async function chatCompletionJson(
   ensurePrivacy(options.config);
 
   const doFetch = options.fetchImpl ?? fetch;
-  const response = await doFetch(joinUrl(options.config.baseUrl), {
+  const response = await doFetch(joinUrl(requireBaseUrl(options.config)), {
     method: "POST",
     headers: buildHeaders(options.config),
     body: JSON.stringify({
@@ -143,6 +143,20 @@ function joinUrl(baseUrl: string): string {
   return `${baseUrl.replace(/\/$/, "")}/chat/completions`;
 }
 
+/**
+ * The HTTP transport needs an endpoint. An on-device (`webllm`) config carries
+ * none — it must be routed through `route.ts`, never reach this client — so a
+ * missing baseUrl here is a clean, diagnosable error rather than a URL crash.
+ */
+function requireBaseUrl(config: ProviderConfig): string {
+  if (!config.baseUrl) {
+    throw new LlmRequestError(
+      "No OpenAI-compatible base URL configured (on-device configs are served by the WebLLM engine, not the HTTP client)",
+    );
+  }
+  return config.baseUrl;
+}
+
 /** Extract the token delta from one parsed SSE `data:` payload, if any. */
 function deltaContent(payload: OpenAiDelta): string | null {
   return payload.choices?.[0]?.delta?.content ?? null;
@@ -168,7 +182,7 @@ function* parseSseChunk(chunk: string): Generator<string> {
 
 async function openStream(options: StreamChatOptions): Promise<Response> {
   const doFetch = options.fetchImpl ?? fetch;
-  const response = await doFetch(joinUrl(options.config.baseUrl), {
+  const response = await doFetch(joinUrl(requireBaseUrl(options.config)), {
     method: "POST",
     headers: buildHeaders(options.config),
     body: buildRequestBody(options),

@@ -24,7 +24,7 @@
 | In-browser engine | `pyodide` (WASM) in a Web Worker |
 | Bundle signing | `cryptography` (ed25519) |
 | PWA / service worker | `vite-plugin-pwa` |
-| LLM (optional) | OpenAI-compatible client in `@almamesh/llm` (OpenRouter / BYO-cloud default; WebLLM dormant) |
+| LLM (optional) | `@almamesh/llm` — no AI by default; opt-in tiers: on-device (`@mlc-ai/web-llm`, beta, chat+interview scope) or cloud (OpenRouter / BYO OpenAI-compatible, stronger) |
 
 Only write custom code when:
 - No suitable library exists (verify!)

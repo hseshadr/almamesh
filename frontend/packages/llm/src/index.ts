@@ -111,7 +111,7 @@ export type { PromptLanguage } from "./language";
 export { chatCompletionJson } from "./client";
 export type { ChatCompletionJsonOptions } from "./client";
 
-export { streamStructuredInterpretation } from "./structured-interpretation";
+export { streamStructuredInterpretation, usesLitePrompt } from "./structured-interpretation";
 export type {
   InterpretationSectionKey,
   InterpretationEvent,
@@ -119,9 +119,30 @@ export type {
 } from "./structured-interpretation";
 
 // --- Chat transport + multi-turn public surface ---
-export { routeChatCompletion } from "./route";
-export type { RouteChatOptions } from "./route";
+export { routeChatCompletion, routeCompletionJson } from "./route";
+export type { RouteChatOptions, RouteCompletionJsonOptions } from "./route";
 export type { ChatStreamProvider, LlmEngine } from "./provider";
+
+// --- On-device (WebLLM) tier — Spec 063 ---
+// Capability probe, blessed model picker data, download/delete lifecycle, and
+// the typed scope-fence error. The heavy `@mlc-ai/web-llm` library is loaded
+// ONLY via dynamic import inside the engine module (lazy-import invariant).
+export { probeOnDeviceCapability } from "./webllm/capability";
+export type {
+  OnDeviceCapability,
+  OnDeviceUnsupportedReason,
+  NavigatorGpuLike,
+} from "./webllm/capability";
+export { BLESSED_ONDEVICE_MODELS, DEFAULT_ONDEVICE_MODEL } from "./webllm/models";
+export type { OnDeviceModelSpec } from "./webllm/models";
+export { preloadOnDeviceModel, deleteCachedModel, hasCachedModel } from "./webllm/engine";
+export type {
+  OnDeviceProgress,
+  OnDeviceProgressCallback,
+  OnDeviceProgressPhase,
+} from "./webllm/engine";
+export { OnDeviceUnsupportedError } from "./webllm/errors";
+import { OnDeviceUnsupportedError } from "./webllm/errors";
 export { estimateTokens, trimHistoryToBudget } from "./budget";
 export type { ChatTurn } from "./budget";
 
@@ -176,6 +197,11 @@ export interface StreamInterpretationParams {
 export async function* streamChartInterpretation(
   params: StreamInterpretationParams,
 ): AsyncGenerator<string> {
+  if (params.config.engine === "webllm") {
+    // Same scope fence as the structured path: the full written reading is
+    // not served on-device (see Spec 063) — even for future library callers.
+    throw new OnDeviceUnsupportedError("markdown interpretation");
+  }
   const sanitized = sanitizeChartForLlm(params.chart, params.now ?? new Date());
   const messages = buildInterpretationMessages(
     sanitized,

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CHAT_CLOUD_MODEL, RECOMMENDED_CLOUD_MODEL, type LlmEnv } from "../config";
+import { DEFAULT_ONDEVICE_MODEL } from "../webllm/models";
 import {
   applyChatSettings,
   applyInterpretationSettings,
@@ -131,5 +132,25 @@ describe("applyInterpretationSettings / applyChatSettings — explicit env resol
     const settings = { interpretationModel: "qwen2.5:7b", chatModel: "gemma3:4b" };
     expect(applyInterpretationSettings(localUser, settings).VITE_LLM_MODEL).toBe("qwen2.5:7b");
     expect(applyChatSettings(localUser, settings).VITE_LLM_MODEL).toBe("gemma3:4b");
+  });
+
+  it("NEVER forces a cloud slug onto an ON-DEVICE config — the blessed default applies (Spec 063)", () => {
+    // Even when the build env carries the OpenRouter preset, an on-device
+    // engine selection must resolve to an MLC model id, never a cloud slug.
+    const onDevice = { engine: "webllm" };
+    expect(applyInterpretationSettings({}, onDevice).VITE_LLM_MODEL).toBe(DEFAULT_ONDEVICE_MODEL);
+    expect(applyChatSettings({}, onDevice).VITE_LLM_MODEL).toBe(DEFAULT_ONDEVICE_MODEL);
+    expect(applyInterpretationSettings(ENV, onDevice).VITE_LLM_MODEL).toBe(DEFAULT_ONDEVICE_MODEL);
+    expect(applyChatSettings(ENV, onDevice).VITE_LLM_MODEL).toBe(DEFAULT_ONDEVICE_MODEL);
+  });
+
+  it("keeps the user's chosen on-device model for both tiers", () => {
+    const onDevice = { engine: "webllm", model: "Llama-3.2-1B-Instruct-q4f16_1-MLC" };
+    expect(applyInterpretationSettings({}, onDevice).VITE_LLM_MODEL).toBe(
+      "Llama-3.2-1B-Instruct-q4f16_1-MLC",
+    );
+    expect(applyChatSettings({}, onDevice).VITE_LLM_MODEL).toBe(
+      "Llama-3.2-1B-Instruct-q4f16_1-MLC",
+    );
   });
 });

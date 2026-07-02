@@ -88,6 +88,7 @@
   "ai_badge": {
     "setup": "Configurar IA",
     "label": "IA: {{provider}}",
+    "on_device": "En el dispositivo",
     "title_ready": "Modelo de IA: {{provider}} — cambiar",
     "title_setup": "Conecta un modelo de IA (p. ej. OpenRouter) para habilitar las interpretaciones",
     "title_finish": "Modelo de IA: {{provider}} — completar configuración"

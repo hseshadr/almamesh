@@ -159,7 +159,7 @@
   },
   "chat": {
     "opening": "¡Hola! Te haré preguntas sobre un evento de vida a la vez — un matrimonio, una mudanza, un cambio de carrera. Empieza con cualquier evento que recuerdes bien y cuéntame aproximadamente cuándo ocurrió.",
-    "gated_note": "El chat de IA requiere un endpoint en la nube. Aún puedes agregar eventos manualmente a continuación.",
+    "gated_note": "El chat de IA necesita IA en el dispositivo o un endpoint en la nube — activa uno en los ajustes de IA. Aún puedes agregar eventos manualmente a continuación.",
     "input_placeholder": "Comparte un evento…",
     "input_label": "Tu mensaje",
     "send": "Enviar",

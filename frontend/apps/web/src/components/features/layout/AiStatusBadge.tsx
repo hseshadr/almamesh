@@ -29,20 +29,26 @@ export function AiStatusBadge() {
   }, []);
 
   const ready = status.configured;
+  // Provider names (OpenRouter/Local/Cloud) read fine as-is; the on-device
+  // tier's label is a real phrase, so it is translated (Spec 063).
+  const provider = status.kind === 'on_device' ? t('ai_badge.on_device') : status.label;
   const label =
     status.kind === 'none'
       ? t('ai_badge.setup')
-      : t('ai_badge.label', { provider: status.label });
+      : t('ai_badge.label', { provider });
   const title = ready
-    ? t('ai_badge.title_ready', { provider: status.label })
+    ? t('ai_badge.title_ready', { provider })
     : status.kind === 'none'
       ? t('ai_badge.title_setup')
-      : t('ai_badge.title_finish', { provider: status.label });
+      : t('ai_badge.title_finish', { provider });
 
   return (
     <Link
       to="/settings/ai"
       title={title}
+      // Mobile hides the text span (icon-only dot) — the link keeps an
+      // accessible name for screen readers regardless of viewport.
+      aria-label={label}
       data-testid="ai-status-badge"
       className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ${
         ready

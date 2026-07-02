@@ -2,7 +2,7 @@
  * Shared LLM-configuration helpers for the rectification wizard.
  *
  * Shared by ConversationalAccelerator and any future wizard panel to reuse
- * the cloud-gate check, provider config resolver, and language mapper
+ * the AI-usable gate check, provider config resolver, and language mapper
  * without duplicating the logic.
  */
 import {
@@ -15,10 +15,18 @@ import {
   type ProviderConfig,
 } from '@almamesh/llm';
 
-/** Returns true when the user has opted into a cloud AI endpoint. */
-export function isCloudConfigured(): boolean {
+/**
+ * Returns true when the interview's AI loop can actually run (Spec 063 D2):
+ * a cloud endpoint (OpenRouter / custom) OR the on-device tier. A BYO `local`
+ * endpoint stays gated exactly as before 063 — the typed event-extraction
+ * contract is only enforced on cloud (server-side) and on-device (xgrammar).
+ */
+export function isAiUsable(): boolean {
   const status = describeLlmStatus(readLlmSettings());
-  return (status.kind === 'openrouter' || status.kind === 'cloud') && status.configured;
+  return (
+    (status.kind === 'openrouter' || status.kind === 'cloud' || status.kind === 'on_device') &&
+    status.configured
+  );
 }
 
 /** Build a ProviderConfig from the persisted user settings + Vite env. */

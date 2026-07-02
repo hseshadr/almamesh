@@ -44,7 +44,11 @@ import { getUserFriendlyError } from "../lib/errors";
 import { type SSEMetaData } from "../lib/streaming";
 import { useContentModeStore } from "../stores/contentMode";
 import type { ViewMode } from "../lib/types";
-import { useStreamingInterpretation, withRawPredictive } from "../hooks/useStreamingInterpretation";
+import {
+  ON_DEVICE_READING_UNSUPPORTED,
+  useStreamingInterpretation,
+  withRawPredictive,
+} from "../hooks/useStreamingInterpretation";
 import { useElapsedSeconds, formatElapsed } from "../hooks/useElapsedSeconds";
 import { canExportPdf, isPlaceholderContent } from "./exportGate";
 import { personaText, resolveReportAudience } from "../lib/reportSelectors";
@@ -171,9 +175,15 @@ export default function DashboardPage() {
     reset: resetStreaming,
   } = useStreamingInterpretation(chartId);
 
-  // Whether an AI model is configured (local or cloud) — gates auto-generation
-  // and decides between the progress panel and the "connect a model" CTA.
+  // Whether an AI model is configured (on-device, local or cloud) — gates
+  // auto-generation and decides between the progress panel and the CTA.
   const aiConfigured = describeLlmStatus().configured;
+
+  // The on-device tier deliberately does not serve the full written reading in
+  // v1 (Spec 063 scope fence). The hook stores a stable sentinel for that case;
+  // here it becomes honest guidance copy (chat + interview still work) instead
+  // of a raw error, and the pointless Retry/Switch-model actions are hidden.
+  const isOnDeviceScopeNotice = streamingError === ON_DEVICE_READING_UNSUPPORTED;
 
   // Honest, live "time so far" for the generation panel (replaces a fixed,
   // usually-wrong "about 30 seconds" estimate).
@@ -514,14 +524,25 @@ export default function DashboardPage() {
             </p>
 
             {streamingError && (
-              <div className="mt-2 text-sm text-status-error" data-testid="interpretation-error">
-                {isModelUnavailableError(streamingError) ? (
+              <div
+                className={`mt-2 text-sm ${isOnDeviceScopeNotice ? 'text-text-secondary' : 'text-status-error'}`}
+                data-testid="interpretation-error"
+              >
+                {isOnDeviceScopeNotice ? (
+                  // Honest scope guidance, not a failure: on-device AI covers
+                  // chat + the interview; the reading needs cloud/local.
+                  <p data-testid="on-device-scope-note">
+                    {t('dashboard:generation.on_device_scope')}
+                  </p>
+                ) : isModelUnavailableError(streamingError) ? (
                   <p>{t('dashboard:generation.model_unavailable')}</p>
                 ) : (
                   <p>{streamingError}</p>
                 )}
                 <div className="mt-3 flex flex-wrap items-center gap-3">
-                  {isModelUnavailableError(streamingError) && Boolean(readLlmSettings().apiKey) && (
+                  {!isOnDeviceScopeNotice &&
+                    isModelUnavailableError(streamingError) &&
+                    Boolean(readLlmSettings().apiKey) && (
                     <button
                       onClick={handleSwitchToRecommendedModel}
                       className="rounded-md bg-accent-gold px-3 py-1.5 font-medium text-background-primary transition-colors hover:bg-accent-gold-bright"
@@ -530,12 +551,16 @@ export default function DashboardPage() {
                       {t('dashboard:actions.switch_recommended')}
                     </button>
                   )}
-                  <button
-                    onClick={handleGenerateSeparatedInterpretation}
-                    className="underline hover:no-underline"
-                  >
-                    {t('dashboard:actions.retry')}
-                  </button>
+                  {/* Retrying the identical on-device config would just re-throw
+                      the scope fence — only the settings door helps there. */}
+                  {!isOnDeviceScopeNotice && (
+                    <button
+                      onClick={handleGenerateSeparatedInterpretation}
+                      className="underline hover:no-underline"
+                    >
+                      {t('dashboard:actions.retry')}
+                    </button>
+                  )}
                   <Link to="/settings/ai" className="underline hover:no-underline">
                     {t('dashboard:actions.ai_settings')}
                   </Link>

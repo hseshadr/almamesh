@@ -158,7 +158,7 @@
   },
   "chat": {
     "opening": "Hi! I'll ask you about one life event at a time — a marriage, a move, a career change. Start with any event you remember well, and tell me roughly when it happened.",
-    "gated_note": "AI chat requires a cloud endpoint. You can still add events manually below.",
+    "gated_note": "AI chat needs on-device AI or a cloud endpoint — enable one in AI settings. You can still add events manually below.",
     "input_placeholder": "Share an event…",
     "input_label": "Your message",
     "send": "Send",

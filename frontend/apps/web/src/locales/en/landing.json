@@ -40,7 +40,7 @@
       },
       {
         "title": "Bring your own AI",
-        "body": "Plug in any OpenAI-compatible model (OpenRouter or your own endpoint). You choose; nothing's locked in."
+        "body": "Default: no AI — your chart is pure calculation, nothing leaves your device. Optional: add narration on-device (private, beta) or via any OpenAI-compatible cloud model (stronger)."
       },
       {
         "title": "Chat with your chart",

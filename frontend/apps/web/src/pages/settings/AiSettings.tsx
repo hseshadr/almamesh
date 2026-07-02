@@ -1,10 +1,11 @@
 /**
- * AiSettings — the dedicated "AI Model" settings tab.
+ * AiSettings — the dedicated "AI Model" settings tab (Spec 063).
  *
- * Home of the OpenRouter / bring-your-own-endpoint configuration. It used to be
- * buried inside the "Preferences" tab (undiscoverable), which is why users could
- * not find where to select OpenRouter. It now has its own clearly-labeled tab and
- * is linked from the header AI-status badge.
+ * Home of the three AI tiers: None (the default — the chart is pure
+ * calculation), On-device AI (private, beta), and Cloud AI (stronger,
+ * OpenRouter / bring-your-own endpoint). It used to be buried inside the
+ * "Preferences" tab (undiscoverable); it now has its own clearly-labeled tab
+ * and is linked from the header AI-status badge.
  */
 
 import { useTranslation } from 'react-i18next';

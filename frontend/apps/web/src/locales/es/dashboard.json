@@ -22,14 +22,15 @@
   },
   "cta": {
     "title": "Conecta un modelo de IA para generar tu interpretación",
-    "body": "Tu carta se calcula en tu dispositivo. Para convertirla en una lectura personalizada, conecta un modelo de IA: usa la configuración rápida de OpenRouter con un clic o apunta AlmaMesh a un modelo local (por ejemplo, Ollama)."
+    "body": "Tu carta se calcula en tu dispositivo. Para convertirla en una lectura personalizada, conecta un modelo de IA: usa la configuración rápida de OpenRouter con un clic o apunta AlmaMesh a un modelo local (por ejemplo, Ollama). ¿Prefieres privacidad total? También hay una opción de IA en el dispositivo (beta) en los ajustes de IA."
   },
   "generation": {
     "title_generating": "Generando tu interpretación personalizada",
     "title_failed": "No se pudo generar la interpretación",
     "elapsed": "Generando desde tu modelo: {{elapsed}} transcurridos. Una lectura completa puede tardar entre 1 y 3 minutos en un modelo en la nube.",
     "model_unavailable": "El modelo de IA de tu configuración no está disponible en tu endpoint, por lo que no se pudo generar la lectura. Cambia al modelo recomendado e inténtalo de nuevo.",
-    "partial_failure": "Algunas secciones no se pudieron generar esta vez: {{sections}}. El resto de la lectura está completa — regenérala para completar lo que falta."
+    "partial_failure": "Algunas secciones no se pudieron generar esta vez: {{sections}}. El resto de la lectura está completa — regenérala para completar lo que falta.",
+    "on_device_scope": "La IA en el dispositivo se encarga del chat y de la entrevista de la hora de nacimiento. La lectura escrita completa necesita un endpoint en la nube o local — añade uno en los ajustes de IA."
   },
   "sections": {
     "core": "Identidad y personalidad",
