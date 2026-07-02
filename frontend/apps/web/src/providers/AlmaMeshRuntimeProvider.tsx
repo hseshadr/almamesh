@@ -48,10 +48,15 @@ const SKYFIELD_DATA_PATHS = [
 ] as const
 
 /** Build the RuntimeConfig from Vite env, with same-origin dev defaults. */
-function readRuntimeConfig(): RuntimeConfig {
+export function readRuntimeConfig(): RuntimeConfig {
   return {
     bundleBaseUrl: import.meta.env.VITE_BUNDLE_BASE_URL ?? '/bundle',
-    pubkeyUrl: new URL('public.key', document.baseURI).toString(),
+    // ROOT-absolute on purpose, matching '/bundle' + '/pyodide/' and the SW
+    // NetworkFirst rule (`url.pathname === '/public.key'`). Resolving against
+    // document.baseURI broke deep links: a hard load of /rectify/<id> requested
+    // /rectify/public.key, the SPA fallback answered with index.html, and
+    // ed25519 signature verification failed closed on every nested route.
+    pubkeyUrl: new URL('/public.key', globalThis.location.origin).toString(),
     pyodideIndexUrl: '/pyodide/',
     wheelPaths: [...WHEEL_PATHS],
     skyfieldDataPaths: [...SKYFIELD_DATA_PATHS],

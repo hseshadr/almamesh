@@ -102,12 +102,13 @@ async function expectReadOutContains(page: Page, needle: string, why: string) {
  * SPA-navigate to a route WITHOUT a full document reload, so the already-booted
  * engine singleton (and the AlmaMeshRuntimeProvider holding it) stays alive.
  *
- * WHY not page.goto: a hard load of a NESTED route (e.g. /settings/profile) sets
- * document.baseURI to that nested path, and the runtime resolves its pinned
- * `public.key` relative to baseURI -> `/settings/public.key` (a 404), so the
- * bundle signature re-verification fails and the engine never re-boots. A real
- * user reaches Settings by clicking (client-side routing), never a hard refresh,
- * so we mirror that: push the path and let BrowserRouter pick up the popstate.
+ * WHY not page.goto: a hard load tears down the booted engine and forces a
+ * full re-bootstrap before the live preview works again. A real user reaches
+ * Settings by clicking (client-side routing), never a hard refresh, so we
+ * mirror that: push the path and let BrowserRouter pick up the popstate.
+ * (The historic hard-load breaker — the pinned `public.key` resolving
+ * route-relatively against baseURI, 404ing from nested routes — is fixed:
+ * the key now resolves root-absolutely as `/public.key`.)
  */
 async function spaNavigate(page: Page, path: string) {
   await page.evaluate((to) => {
@@ -152,8 +153,7 @@ test('rectification live preview: Leo+Cancer-cusp at 06:44, flips to Cancer at 0
   expect(String(seeded.lagna).toLowerCase()).toBe('leo');
 
   // 2. Hard-load /dashboard so the chart-library store re-hydrates with the
-  //    seeded chart (a single-segment route — the pinned public.key still
-  //    resolves; mirrors interpretation.spec.ts). The reload re-boots the
+  //    seeded chart (mirrors interpretation.spec.ts). The reload re-boots the
   //    engine and the live preview needs it, so wait for ready again.
   await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
   await waitForEngineReady(page);
