@@ -142,6 +142,7 @@ export type {
   OnDeviceProgressPhase,
 } from "./webllm/engine";
 export { OnDeviceUnsupportedError } from "./webllm/errors";
+import { OnDeviceUnsupportedError } from "./webllm/errors";
 export { estimateTokens, trimHistoryToBudget } from "./budget";
 export type { ChatTurn } from "./budget";
 
@@ -196,6 +197,11 @@ export interface StreamInterpretationParams {
 export async function* streamChartInterpretation(
   params: StreamInterpretationParams,
 ): AsyncGenerator<string> {
+  if (params.config.engine === "webllm") {
+    // Same scope fence as the structured path: the full written reading is
+    // not served on-device (see Spec 063) — even for future library callers.
+    throw new OnDeviceUnsupportedError("markdown interpretation");
+  }
   const sanitized = sanitizeChartForLlm(params.chart, params.now ?? new Date());
   const messages = buildInterpretationMessages(
     sanitized,

@@ -298,7 +298,7 @@ export function OnDeviceTierCard({
             type="button"
             onClick={() => void removeModel()}
             disabled={busy !== 'idle'}
-            className="rounded-md border border-ui-border px-3 py-1.5 text-sm text-text-secondary transition-colors hover:border-status-error/50 hover:text-status-error disabled:opacity-50"
+            className="rounded-md border border-ui-border px-3 py-1.5 text-sm text-text-secondary transition-colors hover:border-status-error/50 hover:text-status-error focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-gold/50 disabled:opacity-50"
             data-testid="ondevice-remove"
           >
             {busy === 'removing' ? t('model.removing') : t('model.remove')}

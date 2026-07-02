@@ -89,3 +89,18 @@ describe("usesLitePrompt — the generalized LITE gate", () => {
     expect(usesLitePrompt(ONDEVICE_CFG)).toBe(true);
   });
 });
+
+describe("streamChartInterpretation (legacy markdown path) — same on-device scope fence", () => {
+  it("throws OnDeviceUnsupportedError before any work on a webllm config", async () => {
+    const { streamChartInterpretation } = await import("../index");
+    const fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+
+    const gen = streamChartInterpretation({ chart: realChart, config: ONDEVICE_CFG });
+    await expect(gen.next()).rejects.toBeInstanceOf(OnDeviceUnsupportedError);
+
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(fake.CreateMLCEngine).not.toHaveBeenCalled();
+    expect(fake.__state.requests).toHaveLength(0);
+  });
+});
