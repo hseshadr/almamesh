@@ -11,7 +11,7 @@
  */
 
 import type { ReactElement, ReactNode } from 'react';
-import { act, renderHook } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   useChartLibraryStore,
@@ -494,6 +494,21 @@ describe('useRectification — engine warming + recovery', () => {
     renderHook(() => useRectification(PROFILE_ID), { wrapper: makeWrapper(ctx) });
     expect(ctx.reboot).toHaveBeenCalled();
     expect(ctx.startBootstrap).not.toHaveBeenCalled();
+  });
+
+  it('logs a WARNING when the pre-warm reboot fails (best-effort, but never silent)', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const ctx = makeWarmingCtx({
+        error: new Error('stale bundle'),
+        reboot: vi.fn(() => Promise.reject(new Error('reboot exploded'))),
+      });
+      renderHook(() => useRectification(PROFILE_ID), { wrapper: makeWrapper(ctx) });
+      await waitFor(() => expect(warnSpy).toHaveBeenCalled());
+      expect(String(warnSpy.mock.calls[0]?.[0])).toContain('pre-warm');
+    } finally {
+      warnSpy.mockRestore();
+    }
   });
 
   it('warmingTimedOut flips true after the warm timeout when the engine never boots', () => {

@@ -11,7 +11,7 @@ Task 8 adds the HONEST-CONFIDENCE core on top of that per-event extraction:
 
 * ``score_candidate`` aggregates per-event evidence into one candidate, applying
   DE-CORRELATION so stacking many same-category events cannot manufacture
-  confidence (``_decorrelated_total``).
+  confidence (``_decorrelate_by_category``).
 * ``rank_candidates`` turns the ranked fits into a normalised margin and an
   honest band, FORCING ``NEAR_TIE`` below a minimum-evidence bar — under-claiming
   is the safe failure for an anti-scam tool.
@@ -473,6 +473,26 @@ def _central_snapshot(fired: list[tuple[str, float]]) -> list[str]:
     return [key for key, _ in fired] if fired else [MISS_UNEXPLAINED_KEY]
 
 
+def _fired_per_instant(
+    context: SiderealContext,
+    event: RectificationEventInput,
+    transit_signs: Mapping[datetime, Mapping[PlanetName, ZodiacSign]] | None,
+) -> list[list[tuple[str, float]]]:
+    """The valence-weighted signals fired at EVERY instant of the precision grid."""
+    houses = category_houses(event.category)
+    zero_transit = event.precision is EventDatePrecision.APPROX
+    return [
+        _instant_signals(
+            context,
+            event,
+            houses,
+            when,
+            frozenset() if zero_transit else _transit_houses_at(context, when, transit_signs),
+        )
+        for when in _event_instants(event.date, event.precision)
+    ]
+
+
 def _score_event(
     context: SiderealContext,
     event: RectificationEventInput,
@@ -480,28 +500,16 @@ def _score_event(
     transit_signs: Mapping[datetime, Mapping[PlanetName, ZodiacSign]] | None,
 ) -> _EventScore:
     """Marginalize hits AND form-1 misses over the event's precision grid."""
-    houses = category_houses(event.category)
-    instants = _event_instants(event.date, event.precision)
-    zero_transit = event.precision is EventDatePrecision.APPROX
-    positive = penalty = 0.0
-    for when in instants:
-        t_houses = frozenset() if zero_transit else _transit_houses_at(context, when, transit_signs)
-        fired = _instant_signals(context, event, houses, when, t_houses)
-        if fired:
-            positive += sum(weight for _, weight in fired)
-        else:
-            penalty += MISS_UNEXPLAINED  # the event happened; a silent chart loses ground
-    n = len(instants)
-    central = instants[n // 2]
-    central_transit = (
-        frozenset() if zero_transit else _transit_houses_at(context, central, transit_signs)
-    )
-    snapshot = _central_snapshot(_instant_signals(context, event, houses, central, central_transit))
+    per_instant = _fired_per_instant(context, event, transit_signs)
+    positive = sum(sum(weight for _, weight in fired) for fired in per_instant if fired)
+    # The event happened; a fully-silent grid sample loses ground (form-1 miss).
+    penalty = sum(MISS_UNEXPLAINED for fired in per_instant if not fired)
+    n = len(per_instant)
     evidence = EventEvidence(
         event_index=event_index,
         category=event.category,
         date=event.date,
-        signals=snapshot,
+        signals=_central_snapshot(per_instant[n // 2]),
         contribution=(positive - penalty) / n,
     )
     return _EventScore(evidence, positive / n, penalty / n)
@@ -554,11 +562,6 @@ def _decorrelate_by_category(pairs: Iterable[tuple[EventType, float]]) -> float:
     for category, value in pairs:
         by_category[category].append(value)
     return sum(_category_total(values) for values in by_category.values())
-
-
-def _decorrelated_total(evidences: Sequence[EventEvidence]) -> float:
-    """De-correlated total of the evidences' net contributions (kept for reuse/tests)."""
-    return _decorrelate_by_category((e.category, e.contribution) for e in evidences)
 
 
 def _period_explained(

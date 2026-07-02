@@ -317,7 +317,11 @@ export function useRectification(profileId: string): UseRectificationResult {
     const ctx = engineCtxRef.current;
     if (ctx !== null && ctx.engine === null) {
       if (ctx.error !== null) {
-        void ctx.reboot().catch(() => {});
+        // Best-effort: the Run click has its own recovery path, but never
+        // swallow the failure silently — leave a trace for diagnosis.
+        void ctx.reboot().catch((error: unknown) => {
+          console.warn('[useRectification] engine pre-warm reboot failed (Run will retry):', error);
+        });
       } else {
         ctx.startBootstrap();
       }

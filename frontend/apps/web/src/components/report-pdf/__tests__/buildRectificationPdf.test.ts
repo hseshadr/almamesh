@@ -109,6 +109,25 @@ describe('buildRectificationPdf — v1 fallback', () => {
   });
 });
 
+describe('buildRectificationPdf — method label honesty', () => {
+  beforeEach(() => {
+    useLanguageStore.setState({ language: 'en' });
+  });
+
+  it('window-mode method copy never claims a full-day scan (bounded ±windows use the same mode)', () => {
+    // spanMinutes does NOT survive into the record, so the ONE window label
+    // must be honest for both a ±1h window and a whole-day scan.
+    const slice = buildRectificationPdf({
+      record: { ...V1_RECORD, mode: 'window' },
+      events: EVENTS,
+      t,
+    });
+    const method = slice.facts.find((f) => f.label === t('rectification.mode_label'));
+    expect(method?.value).toMatch(/window/i);
+    expect(method?.value).not.toMatch(/full[- ]day|whole[- ]day/i);
+  });
+});
+
 describe('buildRectificationPdf — phase 2 snapshot', () => {
   beforeEach(() => {
     useLanguageStore.setState({ language: 'en' });

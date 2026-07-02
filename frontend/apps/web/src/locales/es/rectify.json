@@ -165,6 +165,7 @@
     "send": "Enviar",
     "transcript_label": "Conversación",
     "error": "No pude comunicarme con la IA en este momento — por favor, inténtalo de nuevo o agrega los eventos manualmente a continuación.",
+    "gather_error": "No pude extraer eventos con fecha de ese mensaje, así que puede que no se haya contado — envíalo de nuevo o agrega el evento manualmente a continuación.",
     "thinking": "Pensando…",
     "reading": "Leyendo tu mensaje…"
   },

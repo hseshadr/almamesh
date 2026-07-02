@@ -139,7 +139,7 @@ chart path): a lazy second engine entry `edge/chart_runtime.py::compute_predicti
 (antar/pratyantar), all 16 vargas D1–D60, Ashtakavarga + Shadbala, and per-life-domain
 forecasts. It flows through `@almamesh/browser` (pyodide/predictive.ts) ->
 `@almamesh/store` (adapters/predictive.ts + the `usePredictiveStore`) -> shared-types
--> the `/predictive` route, the dashboard timing section, and report sections VI–IX.
+-> the `/predictive` route, the dashboard timing section, and report sections VIII–XI.
 Same determinism + byte-parity rules apply (transit + predictive golden fixtures).
 
 Mesh layer (the relational surface, computed on-device, off the natal chart path):
@@ -156,24 +156,39 @@ Rectification layer (the birth-time authority surface, computed on-device, off t
 chart path): a lazy engine entry `edge/chart_runtime.py::compute_rectification` ->
 `rectification/` package -> `compute_rectification_result` emits `RectificationResult`
 (ranked `RectificationCandidate` list, qualitative `RectificationBand` per result,
-per-event `EventEvidence` table). Two modes: `cusp` (2 adjacent signs near a cusp,
-~sub-second) and `window` (unknown/rough time, full-day scan with warm-astronomy reuse,
-~0.6s). Ascendant-dependent signals: dasha-lord↔house-lordship match + transit-to-house
-at event dates. Honest confidence: margin→band, min-evidence gate forces `near_tie`,
-de-correlation caps stacked same-category events; no headline %. Engine computes; the
-LLM only optionally structures. It flows through `@almamesh/browser`
+per-event `EventEvidence` table). Wire input: 17 `LifeEventCategory` values (Spec 062 E6,
+incl. `family_rupture`) + optional `spanMinutes` (bounded ±window) + `AnchorConfidence`
+(`'about' | 'unknown'`). Two modes: `cusp` (2 adjacent signs near a cusp, ~sub-second)
+and `window` (bounded ±window via `spanMinutes`, or whole-day when the time is unknown;
+warm-astronomy reuse, ~0.6s). Ascendant-dependent signals: dasha-lord↔house-lordship
+match + transit-to-house at event dates + D9 lagna signals. Candidates carry a labeled
+score anatomy — `navamsaLagnaSign`, `positiveTotal`/`penaltyTotal` split, `priorBonus`
+(the weak anchor prior, never hidden in the score), `misses` (form-1 unexplained +
+form-2 silent-activation). Honest confidence: margin→band, min-evidence gate forces
+`near_tie`, de-correlation caps stacked same-category events; no headline %. Engine
+computes; the LLM only optionally structures. It flows through `@almamesh/browser`
 (pyodide/rectification.ts, `ChartEngine.computeRectification`) -> `@almamesh/store`
 (adapters/rectification.ts reshape + transient `useRectificationStore`; extended
-`lifeEvents` store with date+category+persist-v1 migration) -> shared-types
-(`RectificationResult`/`RectificationCandidate`/`EventEvidence`/`LifeEventCategory`/
-`RectificationMode`/`RectificationBand`) -> the `/rectify/:profileId` wizard (3 entry
-CTAs: onboarding unknown-time, ProfileSettings panel, dashboard cusp callout). Confirm
-routes through the existing birth-info-changed→regenerate pipeline so the rectified time
-becomes the working authority. Optional `@almamesh/llm` `structureLifeEvents` +
-`RECTIFICATION_FENCE` (structure-only, typed `{date, category}` output = privacy
-boundary; LLM never sees event narrative). Same determinism + byte-parity rules: pin
-`reference_date`; Pyodide==CPython parity gate covers the new entry; golden fixtures use
-synthetic natives only (no real birth data).
+`lifeEvents` store with date+category+persist-v1 migration; `rectificationRecords`
+store persists a display-only record — v2 adds `resultSnapshot` + `eventSummaries` so
+the evidence story survives revisits) -> shared-types (`RectificationResult`/
+`RectificationCandidate`/`EventEvidence`/`LifeEventCategory`/`RectificationMode`/
+`RectificationBand`/`AnchorConfidence`) -> the `/rectify/:profileId` wizard (3 entry
+CTAs: onboarding unknown-time, ProfileSettings panel, dashboard cusp callout) and the
+report: the comprehensive PDF + web report render Section XII "Birth Time Authority"
+(`buildRectificationPdf` — facts, candidate table, per-event evidence; qualitative
+only). Confirm routes through the existing birth-info-changed→regenerate pipeline so
+the rectified time becomes the working authority. LLM grounding (all optional, all
+PII-safe): `structureLifeEvents` + `RECTIFICATION_FENCE` (structure-only, typed
+`{date, category}` output = privacy boundary; LLM never sees event narrative); the
+interview (`streamRectificationInterview`) carries a gathered-state block of
+`{date, category, precision}` rows only, and `gatherEventsFromTurn` returns a
+discriminated ok/error result so a failed extraction is never silently dropped; chart
+chat receives a PII-safe record slice (band + entered/working signs + mode, no
+times/dates/margins); interpretation + chat also compose the persisted raw predictive
+contexts (the active predictive pipeline) via `withRawPredictive`. Same determinism +
+byte-parity rules: pin `reference_date`; Pyodide==CPython parity gate covers the new
+entry; golden fixtures use synthetic natives only (no real birth data).
 
 Optional interpretation + chat (off the chart path): @almamesh/llm — OpenRouter /
 BYO OpenAI-compatible endpoint by default (one-click preset, one shared model;

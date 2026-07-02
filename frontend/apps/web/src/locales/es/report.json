@@ -4,6 +4,7 @@
   },
   "title": "Tu informe védico",
   "download_pdf": "Descargar PDF",
+  "pdf_error": "No se pudo generar el PDF. Inténtalo de nuevo — si sigue fallando, recarga la página y vuelve a intentarlo.",
   "narrative_hint": "Genera tu interpretación en el panel para añadir la lectura escrita a este informe. La carta, el kundli, el dasha y los yogas de abajo ya están listos.",
   "pdf_title": "Informe védico de AlmaMesh — {{name}} ({{date}})",
   "pdf": {
@@ -175,7 +176,7 @@
     "mode_label": "Método",
     "mode": {
       "cusp": "Resolución de cúspide — se compararon dos signos ascendentes adyacentes",
-      "window": "Barrido de día completo — hora de nacimiento desconocida o aproximada"
+      "window": "Barrido de ventana de tiempo — se compararon horas de nacimiento candidatas dentro de la ventana indicada con eventos de vida fechados"
     },
     "band_label": "Confianza",
     "confirmed_label": "Confirmada",

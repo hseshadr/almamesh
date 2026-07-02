@@ -95,7 +95,7 @@
     "band_consistent": "Consistente com os seus eventos",
     "method_label": "Método:",
     "mode_cusp": "Comparação de cúspide",
-    "mode_window": "Varredura do dia inteiro",
+    "mode_window": "Varredura de janela de tempo",
     "events_informed_one": "Baseada em {{count}} evento da sua vida que você registrou.",
     "events_informed_other": "Baseada em {{count}} eventos da sua vida que você registrou.",
     "rerun_link": "Executar a retificação novamente →"

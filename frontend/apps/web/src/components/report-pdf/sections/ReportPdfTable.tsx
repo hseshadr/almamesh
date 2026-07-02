@@ -29,8 +29,10 @@ const local = StyleSheet.create({
   headCell: {
     paddingRight: 6,
   },
+  // Mirrors the theme's emphasized-row treatment (`tableRowLagna`): the
+  // recessed paperDeep tint + a strong top rule — no hardcoded hex.
   rowEmphasis: {
-    backgroundColor: '#FDFBF5',
+    backgroundColor: palette.paperDeep,
     borderTopWidth: 1,
     borderTopColor: palette.ruleStrong,
   },

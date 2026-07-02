@@ -189,6 +189,29 @@ function partializePredictive(state: PredictiveStore): PersistedPredictiveState 
   };
 }
 
+/** The four raw engine slices a persisted `rawContexts` must carry. */
+const RAW_CONTEXT_KEYS = [
+  'transit_context',
+  'varga_context_full',
+  'strength_context',
+  'domains_context',
+] as const;
+
+/**
+ * Structurally validate a persisted `rawContexts` blob: a plain record whose
+ * four engine slices are each plain records. Anything else (tampered storage,
+ * a partial write, an old shape) is DROPPED — the LLM composition layer then
+ * degrades to natal-only, exactly like a v1 blob. Never throws.
+ */
+function coerceRawContexts(value: unknown): PredictiveContexts | undefined {
+  if (!isPlainRecord(value)) {
+    return undefined;
+  }
+  return RAW_CONTEXT_KEYS.every((key) => isPlainRecord(value[key]))
+    ? (value as unknown as PredictiveContexts)
+    : undefined;
+}
+
 /**
  * Coerce ANY persisted blob into a SAFE snapshot. Only a fully-formed `ready`
  * result (its contexts plus a `requestKey` identity) survives a reload; a
@@ -211,10 +234,9 @@ export function coercePersistedPredictive(persisted: unknown): PersistedPredicti
     vargaCtxFull: persisted.vargaCtxFull as VargaCtxFull | undefined,
     strengthCtx: persisted.strengthCtx as StrengthCtx | undefined,
     domainsCtx: persisted.domainsCtx as DomainsCtx | undefined,
-    // Absent on v1 blobs: LLM composition then degrades to natal-only (never an error).
-    rawContexts: isPlainRecord(persisted.rawContexts)
-      ? (persisted.rawContexts as unknown as PredictiveContexts)
-      : undefined,
+    // Absent on v1 blobs, and DROPPED when malformed: LLM composition then
+    // degrades to natal-only (never an error, never a throw).
+    rawContexts: coerceRawContexts(persisted.rawContexts),
     profileKey: typeof persisted.profileKey === 'string' ? persisted.profileKey : undefined,
     requestKey: persisted.requestKey,
   };

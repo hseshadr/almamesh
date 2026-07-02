@@ -18,6 +18,7 @@
  */
 
 import type { ReactElement } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
@@ -171,7 +172,7 @@ export default function ReportView(): ReactElement {
   // on-screen (never printed) affordance to compute before printing.
   const predictive = usePredictiveLayer();
 
-  // Birth Time Authority (Section XI): the profile's CONFIRMED rectification
+  // Birth Time Authority (Section XII): the profile's CONFIRMED rectification
   // record + its supporting life events, resolved in record order (read-only
   // store usage; ids that no longer resolve are simply dropped).
   const activeProfileId = useProfilesStore((s) => s.activeProfileId);
@@ -190,6 +191,10 @@ export default function ReportView(): ReactElement {
   // `?mode=` wins; otherwise fall back to the dashboard's content mode.
   const fallbackMode = contentMode === 'technical' ? 'astrologer' : 'you';
   const audience = resolveReportAudience(searchParams.get('mode') ?? fallbackMode);
+
+  // PDF-generation failure notice (on-screen only, never printed). Cleared at
+  // the start of every download attempt so a retry starts clean.
+  const [pdfError, setPdfError] = useState<string | null>(null);
 
   const personName = storedChart?.person_name ?? '';
 
@@ -285,6 +290,9 @@ export default function ReportView(): ReactElement {
         narrativeIntro: t('pdf.narrative_intro'),
       },
     };
+    // A rejected render (font fetch, @react-pdf failure, pdf().toBlob()) must
+    // surface on screen — never a silent unhandled rejection.
+    setPdfError(null);
     void downloadReportPdf({
       birth,
       lagna,
@@ -319,6 +327,8 @@ export default function ReportView(): ReactElement {
           })
         : undefined,
       fileBaseName: t('pdf_title', { name: personName, date: isoDate(new Date()) }),
+    }).catch(() => {
+      setPdfError(t('pdf_error'));
     });
   };
 
@@ -342,6 +352,14 @@ export default function ReportView(): ReactElement {
           {t('common:actions.back')}
         </button>
       </div>
+
+      {/* PDF-generation failure — visible, calm, on-screen only (reuses the
+          report's pending/notice treatment). */}
+      {pdfError ? (
+        <div className="report-pending no-print" role="alert" data-testid="report-pdf-error">
+          <p>{pdfError}</p>
+        </div>
+      ) : null}
 
       {/* Natal-only hint: the report is fully usable without the written reading;
           this nudges the user to generate it for the complete report. */}
@@ -377,7 +395,7 @@ export default function ReportView(): ReactElement {
           <ReportInterpretation interpretation={readyInterpretation} audience={audience} />
         ) : null}
         {/* Predictive sections — rendered only when the lazy contexts are
-            computed (sections VII–X live after the fixed I–VI numbering). */}
+            computed (sections VIII–XI live after the fixed I–VII numbering). */}
         {predictive.status === 'ready' && predictive.transitCtx && (
           <ReportTransits transitCtx={predictive.transitCtx} />
         )}
@@ -390,7 +408,7 @@ export default function ReportView(): ReactElement {
         {predictive.status === 'ready' && predictive.domainsCtx && (
           <ReportDomains domainsCtx={predictive.domainsCtx} />
         )}
-        {/* Birth Time Authority (XI) — only when a rectification was confirmed. */}
+        {/* Birth Time Authority (XII) — only when a rectification was confirmed. */}
         {rectificationRecord ? (
           <ReportRectification record={rectificationRecord} events={supportingEvents} />
         ) : null}

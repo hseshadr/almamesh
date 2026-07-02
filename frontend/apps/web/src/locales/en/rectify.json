@@ -164,6 +164,7 @@
     "send": "Send",
     "transcript_label": "Conversation",
     "error": "I couldn't reach the AI just now — please try again, or enter events manually below.",
+    "gather_error": "I couldn't read that message for dated events, so it may not have been counted — please send it again, or add the event manually below.",
     "thinking": "Thinking…",
     "reading": "Reading your message…"
   },

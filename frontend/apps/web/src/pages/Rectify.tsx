@@ -147,10 +147,21 @@ export function RectifyPage(): ReactElement {
     const localDt = birthData?.birth_datetime_local ?? '';
     const enteredTime =
       birthData?.birth_time_original ?? localDt.split('T')[1]?.slice(0, 5) ?? '';
+    // The working natal chart IS the recorded-time chart before confirmation —
+    // its lagna carries the engine's actual in-sign degrees. Guard on the sign
+    // matching the result's recordedTimeSign (engine Title-Case vs result
+    // lowercase) so a mid-flow regeneration can never pair the wrong degrees
+    // with the sign; when they disagree the degrees are OMITTED — never an
+    // invented 0° that would misleadingly read as a cusp birth.
+    const lagna = chart?.sidereal_chart?.lagna;
+    const signDegrees =
+      lagna != null && lagna.sign.toLowerCase() === state.result.recordedTimeSign.toLowerCase()
+        ? lagna.sign_degrees
+        : undefined;
     return {
       time: enteredTime,
       sign: state.result.recordedTimeSign,
-      signDegrees: 0,
+      ...(signDegrees != null ? { signDegrees } : {}),
     };
   }, [isUnknownTime, state.result, profileId, charts]);
 

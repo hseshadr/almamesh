@@ -318,3 +318,45 @@ describe("usePredictiveStore — raw contexts persistence (Spec 062 delta 1)", (
     expect(usePredictiveStore.getState().rawContexts).toBeUndefined();
   });
 });
+
+describe("usePredictiveStore — persisted rawContexts SHAPE validation", () => {
+  beforeEach(() => {
+    installMemoryStorage();
+    usePredictiveStore.getState().reset();
+  });
+
+  // A tampered/corrupt persisted blob must never wedge rehydration: malformed
+  // rawContexts are DROPPED (LLM composition degrades to natal-only) while the
+  // ready UI contexts survive. Never a throw.
+  const MALFORMED: readonly unknown[] = [
+    "garbage",
+    42,
+    null,
+    [],
+    { transit_context: "not-a-record" },
+    { transit_context: {} }, // missing the other three context slices
+    { transit_context: {}, varga_context_full: {}, strength_context: {}, domains_context: null },
+  ];
+
+  it.each(MALFORMED.map((m) => [JSON.stringify(m) ?? String(m), m]))(
+    "drops malformed rawContexts %s on rehydrate, keeping the ready UI contexts",
+    async (_label, malformed) => {
+      await usePredictiveStore.getState().ensurePredictive(makeRuntime(), INPUT);
+      const blob = JSON.parse(memMap.get(PREDICTIVE_PERSIST_NAME)!);
+      blob.state.rawContexts = malformed;
+      usePredictiveStore.getState().reset();
+      memMap.set(PREDICTIVE_PERSIST_NAME, JSON.stringify(blob));
+      await expect(usePredictiveStore.persist.rehydrate()).resolves.not.toThrow();
+
+      const s = usePredictiveStore.getState();
+      expect(s.status).toBe("ready");
+      expect(s.rawContexts).toBeUndefined();
+      expect(s.strengthCtx?.ashtakavarga.sarva.total).toBe(337);
+    },
+  );
+
+  it("keeps a well-formed persisted rawContexts intact", async () => {
+    await seedReadyThenReload();
+    expect(usePredictiveStore.getState().rawContexts).toEqual(RAW);
+  });
+});

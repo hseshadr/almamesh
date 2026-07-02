@@ -28,8 +28,13 @@ export interface CandidateReading {
   readonly time: string;
   /** Engine rising-sign name (any casing). */
   readonly sign: string;
-  /** In-sign degrees (0..30) as computed by the engine. */
-  readonly signDegrees: number;
+  /**
+   * In-sign degrees (0..30) as computed by the engine. OPTIONAL: when the
+   * caller has no engine-computed value it is omitted and the readout shows
+   * the clock time only — never an invented 0° (which would falsely read as
+   * a cusp birth on an anti-scam surface).
+   */
+  readonly signDegrees?: number;
 }
 
 export interface BirthTimeComparisonProps {
@@ -52,7 +57,9 @@ function Column({ heading, reading }: { heading: string; reading: CandidateReadi
       <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-text-tertiary">{heading}</p>
       <p className="mt-1 text-sm font-medium text-text-primary">{titleCase(reading.sign)}</p>
       <p className="font-mono text-xs text-text-secondary">
-        {formatDegree(reading.signDegrees)} · {reading.time}
+        {reading.signDegrees != null
+          ? `${formatDegree(reading.signDegrees)} · ${reading.time}`
+          : reading.time}
       </p>
     </div>
   );

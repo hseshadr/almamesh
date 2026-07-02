@@ -4,6 +4,7 @@
   },
   "title": "Seu relatório védico",
   "download_pdf": "Baixar PDF",
+  "pdf_error": "Não foi possível gerar o PDF. Tente novamente — se continuar falhando, recarregue a página e tente outra vez.",
   "narrative_hint": "Gere sua interpretação no painel para adicionar a leitura escrita a este relatório. O mapa, o kundli, o dasha e os yogas abaixo já estão prontos.",
   "pdf_title": "Relatório védico da AlmaMesh — {{name}} ({{date}})",
   "pdf": {
@@ -175,7 +176,7 @@
     "mode_label": "Método",
     "mode": {
       "cusp": "Resolução de cúspide — dois signos ascendentes adjacentes comparados",
-      "window": "Varredura de dia inteiro — hora de nascimento desconhecida ou aproximada"
+      "window": "Varredura de janela de tempo — horários de nascimento candidatos dentro da janela indicada comparados com eventos de vida datados"
     },
     "band_label": "Confiança",
     "confirmed_label": "Confirmada",

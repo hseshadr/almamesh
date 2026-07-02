@@ -62,11 +62,14 @@ vi.mock('../components/features/rectify/RectifyResults', () => ({
     onConfirm: (c: unknown) => void;
     onKeepRecorded: () => void;
     result: { candidates: unknown[] };
-    recordedReading: unknown | null;
+    recordedReading: { signDegrees?: number } | null;
   }) => (
     <div
       data-testid="rectify-results"
       data-has-recorded={recordedReading != null ? 'true' : 'false'}
+      data-recorded-degrees={
+        recordedReading?.signDegrees != null ? String(recordedReading.signDegrees) : ''
+      }
     >
       <button onClick={() => onConfirm(result.candidates[0])} data-testid="confirm-candidate-btn">
         Use this time
@@ -149,6 +152,13 @@ const MOCK_CHART = {
       location_name: 'Pune, India',
     },
     birth_time_original: '07:30',
+  },
+  // The working natal chart at the RECORDED time — its lagna carries the
+  // engine's actual in-sign degrees (synthetic values; sign matches
+  // MOCK_RESULT.recordedTimeSign case-insensitively, as the engine emits
+  // Title-Case while the result sign is lowercase).
+  sidereal_chart: {
+    lagna: { sign: 'Aquarius', sign_degrees: 22.93 },
   },
 };
 
@@ -397,6 +407,36 @@ describe('RectifyPage', () => {
     fireEvent.click(await screen.findByTestId('events-continue-btn'));
     await navigateToResults(rerender);
     expect(screen.getByTestId('rectify-results')).toBeTruthy();
+  });
+
+  it('threads the ENGINE recorded-lagna degrees into the AS RECORDED reading (regression: hardcoded 0°)', async () => {
+    // The stored working chart's lagna is Aquarius 22.93° — the results page
+    // must show those real degrees, never a misleading 0°00' cusp reading.
+    const { rerender } = renderRectify();
+    fireEvent.click(await screen.findByTestId('intro-start-btn'));
+    fireEvent.click(await screen.findByTestId('events-continue-btn'));
+    await navigateToResults(rerender);
+    expect(screen.getByTestId('rectify-results').getAttribute('data-recorded-degrees')).toBe(
+      '22.93',
+    );
+  });
+
+  it('omits the recorded degrees (no invented 0°) when the stored chart lagna does not match the result sign', async () => {
+    useChartLibraryStore.setState({
+      charts: {
+        'chart-1': {
+          ...MOCK_CHART,
+          sidereal_chart: { lagna: { sign: 'Pisces', sign_degrees: 1.2 } },
+        } as never,
+      },
+    });
+    const { rerender } = renderRectify();
+    fireEvent.click(await screen.findByTestId('intro-start-btn'));
+    fireEvent.click(await screen.findByTestId('events-continue-btn'));
+    await navigateToResults(rerender);
+    // Comparison still renders (sign + time), but with NO degrees value.
+    expect(screen.getByTestId('rectify-results').getAttribute('data-has-recorded')).toBe('true');
+    expect(screen.getByTestId('rectify-results').getAttribute('data-recorded-degrees')).toBe('');
   });
 
   it('confirm candidate with sign flip opens modal and blocks without ack', async () => {

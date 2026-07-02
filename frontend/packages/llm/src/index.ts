@@ -79,7 +79,7 @@ export {
   streamRectificationInterview,
   gatherEventsFromTurn,
 } from "./rectification-interview";
-export type { InterviewGatheredEvent } from "./rectification-interview";
+export type { GatherEventsResult, InterviewGatheredEvent } from "./rectification-interview";
 
 export {
   isLocalEndpoint,

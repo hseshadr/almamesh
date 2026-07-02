@@ -165,6 +165,7 @@
     "send": "Enviar",
     "transcript_label": "Conversa",
     "error": "Não consegui contatar a IA agora — tente novamente ou adicione os eventos manualmente abaixo.",
+    "gather_error": "Não consegui extrair eventos datados dessa mensagem, então ela pode não ter sido contada — envie novamente ou adicione o evento manualmente abaixo.",
     "thinking": "Pensando…",
     "reading": "Lendo sua mensagem…"
   },

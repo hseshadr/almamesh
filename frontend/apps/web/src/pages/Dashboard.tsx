@@ -164,6 +164,7 @@ export default function DashboardPage() {
     streamInterpretation,
     interpretation,
     sections: interpretationSections,
+    failedSections: failedInterpretationSections,
     isStreaming: isStreamingInterpretation,
     status: interpretationStatus,
     error: streamingError,
@@ -547,8 +548,16 @@ export default function DashboardPage() {
                 {interpretationSections.map((s) => (
                   <li key={s.key} className="flex items-center justify-between">
                     <span>{t(`dashboard:sections.${s.key}`)}</span>
-                    <span className={s.complete ? 'text-status-success' : 'text-text-tertiary'}>
-                      {s.complete ? '✓' : '…'}
+                    <span
+                      className={
+                        s.failed
+                          ? 'text-status-error'
+                          : s.complete
+                            ? 'text-status-success'
+                            : 'text-text-tertiary'
+                      }
+                    >
+                      {s.failed ? '✗' : s.complete ? '✓' : '…'}
                     </span>
                   </li>
                 ))}
@@ -567,6 +576,31 @@ export default function DashboardPage() {
                 {t('life:reading.heading')}
               </h2>
             </header>
+            {/* Honest partial-failure notice: per-section LLM failures degrade
+                those sections to empty — say which ones and offer a regenerate
+                instead of silently rendering blank sections. */}
+            {failedInterpretationSections.length > 0 && (
+              <div
+                className="text-sm text-text-secondary"
+                role="status"
+                data-testid="interpretation-partial-failure"
+              >
+                <p>
+                  {t('dashboard:generation.partial_failure', {
+                    sections: failedInterpretationSections
+                      .map((key) => t(`dashboard:sections.${key}`))
+                      .join(', '),
+                  })}
+                </p>
+                <button
+                  onClick={handleGenerateSeparatedInterpretation}
+                  className="mt-1 underline hover:no-underline"
+                  data-testid="interpretation-partial-retry"
+                >
+                  {t('dashboard:actions.retry')}
+                </button>
+              </div>
+            )}
             <MarkdownContent content={summaryText} />
             {hasPeriodGuidance && periodGuidance && (
               <div className="space-y-1.5 border-l-2 border-accent-gold/40 pl-4">

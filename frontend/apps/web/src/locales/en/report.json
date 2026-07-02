@@ -1,6 +1,7 @@
 {
   "title": "Your Vedic Report",
   "download_pdf": "Download PDF",
+  "pdf_error": "The PDF could not be generated. Please try again — if it keeps failing, reload the page and retry.",
   "narrative_hint": "Generate your interpretation on the dashboard to add the written reading to this report. The chart, kundli, dasha, and yogas below are ready now.",
   "pdf_title": "AlmaMesh Vedic Report — {{name}} ({{date}})",
   "pdf": {
@@ -172,7 +173,7 @@
     "mode_label": "Method",
     "mode": {
       "cusp": "Cusp resolution — two adjacent rising signs compared",
-      "window": "Full-day scan — birth time unknown or approximate"
+      "window": "Time-window scan — candidate birth times across the stated window compared against dated life events"
     },
     "band_label": "Confidence",
     "confirmed_label": "Confirmed",

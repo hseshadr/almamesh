@@ -92,7 +92,7 @@
     "band_consistent": "Consistent across your events",
     "method_label": "Method:",
     "mode_cusp": "Cusp comparison",
-    "mode_window": "Whole-day scan",
+    "mode_window": "Time-window scan",
     "events_informed_one": "Informed by {{count}} life event you recorded.",
     "events_informed_other": "Informed by {{count}} life events you recorded.",
     "rerun_link": "Re-run rectification →"

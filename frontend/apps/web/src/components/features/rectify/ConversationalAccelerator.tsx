@@ -170,8 +170,16 @@ export function ConversationalAccelerator({
       // Surface a distinct "reading your message…" indicator while the
       // extractor works (the streaming phase is already done here).
       setGathering(true);
-      const extracted = await gatherFn(trimmed, config, language);
+      const gathered = await gatherFn(trimmed, config, language);
       setGathering(false);
+      if (gathered.status === 'error') {
+        // A REAL extraction failure (network/parse) — distinct from a turn with
+        // nothing datable. Say so, or the user's dated milestone silently
+        // wouldn't count toward the rectification.
+        setChatError(t('chat.gather_error'));
+        return;
+      }
+      const extracted = gathered.events;
       if (extracted.length > 0) {
         // Snapshot the current event count so we can identify newly added rows.
         const beforeCount = useLifeEventsStore.getState().getEvents(profileId).length;

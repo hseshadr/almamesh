@@ -291,10 +291,10 @@ describe("streamRectificationInterview", () => {
 describe("gatherEventsFromTurn", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("returns [] when structureLifeEvents returns status:'error'", async () => {
+  it("returns status:'error' when structureLifeEvents returns status:'error' (a real failure, NOT an empty turn)", async () => {
     mockStructure.mockResolvedValue({ status: "error" });
     const result = await gatherEventsFromTurn("unparseable text", HTTP_CFG);
-    expect(result).toEqual([]);
+    expect(result).toEqual({ status: "error" });
   });
 
   it("returns typed events (with precision) and attaches the user's own text as each event's summary", async () => {
@@ -303,9 +303,12 @@ describe("gatherEventsFromTurn", () => {
     ];
     mockStructure.mockResolvedValue({ status: "ok", events });
     const result = await gatherEventsFromTurn("I married in June 2004", HTTP_CFG);
-    expect(result).toEqual([
-      { date: "2004-06-15", category: "marriage", precision: "month", summary: "I married in June 2004" },
-    ]);
+    expect(result).toEqual({
+      status: "ok",
+      events: [
+        { date: "2004-06-15", category: "marriage", precision: "month", summary: "I married in June 2004" },
+      ],
+    });
   });
 
   it("attaches the SAME user text as summary to every event from a multi-event turn", async () => {
@@ -316,7 +319,11 @@ describe("gatherEventsFromTurn", () => {
     mockStructure.mockResolvedValue({ status: "ok", events });
     const userText = "Married in June 2004, then moved cities in 2008";
     const result = await gatherEventsFromTurn(userText, HTTP_CFG);
-    expect(result.map((e) => e.summary)).toEqual([userText, userText]);
+    expect(result.status).toBe("ok");
+    expect(result.status === "ok" && result.events.map((e) => e.summary)).toEqual([
+      userText,
+      userText,
+    ]);
   });
 
   it("trims surrounding whitespace from the attached summary", async () => {
@@ -325,13 +332,13 @@ describe("gatherEventsFromTurn", () => {
       events: [{ date: "2004-06-15", category: "marriage", precision: "exact" }],
     });
     const result = await gatherEventsFromTurn("   I married in 2004  ", HTTP_CFG);
-    expect(result[0]?.summary).toBe("I married in 2004");
+    expect(result.status === "ok" && result.events[0]?.summary).toBe("I married in 2004");
   });
 
-  it("returns [] for status:'ok' with an empty events array", async () => {
+  it("returns status:'ok' with an empty events array for a genuinely empty turn", async () => {
     mockStructure.mockResolvedValue({ status: "ok", events: [] });
     const result = await gatherEventsFromTurn("nothing datable here", HTTP_CFG);
-    expect(result).toEqual([]);
+    expect(result).toEqual({ status: "ok", events: [] });
   });
 
   it("passes language through to structureLifeEvents", async () => {
@@ -346,8 +353,8 @@ describe("gatherEventsFromTurn", () => {
     expect(mockStructure).toHaveBeenCalledWith("text", HTTP_CFG, "en");
   });
 
-  it("never throws — returns [] even if structureLifeEvents rejects", async () => {
+  it("never throws — returns status:'error' even if structureLifeEvents rejects", async () => {
     mockStructure.mockRejectedValue(new Error("network error"));
-    await expect(gatherEventsFromTurn("text", HTTP_CFG)).resolves.toEqual([]);
+    await expect(gatherEventsFromTurn("text", HTTP_CFG)).resolves.toEqual({ status: "error" });
   });
 });

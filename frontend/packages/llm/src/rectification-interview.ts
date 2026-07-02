@@ -183,10 +183,23 @@ export async function* streamRectificationInterview(params: {
 }
 
 /**
+ * Result of extracting events from one user turn: real failures (network,
+ * parse, `status:'error'` from the structurer) are DISTINGUISHED from a
+ * genuinely event-free turn (`status:'ok'`, `events: []`) so the caller can
+ * tell the user their dated milestone may not have counted instead of
+ * silently dropping it.
+ */
+export type GatherEventsResult =
+  | { readonly status: "ok"; readonly events: RectificationEventInput[] }
+  | { readonly status: "error" };
+
+/**
  * Extract typed life events from a single user turn.
  *
- * Thin wrapper over `structureLifeEvents`. Returns `[]` on any failure
- * (network error, parse failure, or `status:'error'`) — never throws.
+ * Thin wrapper over `structureLifeEvents`. Never throws: any real failure
+ * (network error, parse failure, or `status:'error'`) resolves to
+ * `{ status: 'error' }`, while a well-formed turn with nothing datable
+ * resolves to `{ status: 'ok', events: [] }`.
  *
  * Each extracted event is annotated with a `summary` set to the user's OWN turn
  * text, so the gathered list is human-readable and events with the same
@@ -199,15 +212,18 @@ export async function gatherEventsFromTurn(
   userText: string,
   config: ProviderConfig,
   language: PromptLanguage = "en",
-): Promise<RectificationEventInput[]> {
+): Promise<GatherEventsResult> {
   try {
     const res = await structureLifeEvents(userText, config, language);
     if (res.status !== "ok") {
-      return [];
+      return { status: "error" };
     }
     const summary = userText.trim();
-    return summary ? res.events.map((e) => ({ ...e, summary })) : res.events;
+    return {
+      status: "ok",
+      events: summary ? res.events.map((e) => ({ ...e, summary })) : res.events,
+    };
   } catch {
-    return [];
+    return { status: "error" };
   }
 }

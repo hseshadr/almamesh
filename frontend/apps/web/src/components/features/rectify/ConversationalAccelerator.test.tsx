@@ -56,11 +56,11 @@ function makeStubStream(
   };
 }
 
-/** Build a stub gatherFn that returns the given events. */
+/** Build a stub gatherFn that succeeds with the given events. */
 function makeStubGather(
   events: RectificationEventInput[],
 ): NonNullable<ConversationalAcceleratorProps['gatherFn']> {
-  return async (_userText, _config, _language) => events;
+  return async (_userText, _config, _language) => ({ status: 'ok', events });
 }
 
 describe('ConversationalAccelerator', () => {
@@ -345,12 +345,59 @@ describe('ConversationalAccelerator', () => {
       });
     });
 
+    it('surfaces the chat error affordance when gather FAILS (a dated milestone must never silently not count)', async () => {
+      // gatherFn resolving { status: 'error' } is a REAL failure (network/parse),
+      // distinct from a genuinely event-free turn — the user must see it.
+      const failingGather: NonNullable<ConversationalAcceleratorProps['gatherFn']> = async () => ({
+        status: 'error',
+      });
+
+      render(
+        <ConversationalAccelerator
+          profileId={PROFILE_ID}
+          streamFn={makeStubStream(['Thanks — noted!'])}
+          gatherFn={failingGather}
+        />,
+      );
+
+      fireEvent.change(screen.getByRole('textbox'), { target: { value: 'I married in June 2004' } });
+      fireEvent.click(screen.getByRole('button', { name: /send/i }));
+
+      // The inline chat error must appear, with the gather-specific copy.
+      await waitFor(() => expect(screen.getByRole('status')).toBeTruthy());
+      expect(screen.getByRole('status').textContent).toMatch(/may not have been counted/i);
+
+      // No events flushed, and the input is usable again (no wedge).
+      expect(useLifeEventsStore.getState().getEvents(PROFILE_ID).length).toBe(0);
+      await waitFor(() =>
+        expect((screen.getByRole('textbox') as HTMLTextAreaElement).disabled).toBe(false),
+      );
+    });
+
+    it('does not show an error for a genuinely event-free turn (ok + empty)', async () => {
+      const emptyOkGather = vi.fn(makeStubGather([]));
+
+      render(
+        <ConversationalAccelerator
+          profileId={PROFILE_ID}
+          streamFn={makeStubStream(['Tell me more!'])}
+          gatherFn={emptyOkGather}
+        />,
+      );
+
+      fireEvent.change(screen.getByRole('textbox'), { target: { value: 'not sure about dates' } });
+      fireEvent.click(screen.getByRole('button', { name: /send/i }));
+
+      await waitFor(() => expect(emptyOkGather).toHaveBeenCalledOnce());
+      expect(screen.queryByRole('status')).toBeNull();
+    });
+
     it('does not add to the store when gather returns no events', async () => {
       // Use vi.fn() so we can wait for the gather call as the completion sentinel.
       // The gather call is registered synchronously (before the returned Promise
       // resolves), giving waitFor a reliable polling target that doesn't require
       // React to flush a re-render.
-      const gatherStub = vi.fn(async (): Promise<RectificationEventInput[]> => []);
+      const gatherStub = vi.fn(makeStubGather([]));
 
       render(
         <ConversationalAccelerator
@@ -410,7 +457,7 @@ describe('ConversationalAccelerator', () => {
     });
 
     it('submits on Enter and does not submit on Shift+Enter', async () => {
-      const gatherStub = vi.fn(async (): Promise<RectificationEventInput[]> => []);
+      const gatherStub = vi.fn(makeStubGather([]));
       render(
         <ConversationalAccelerator
           profileId={PROFILE_ID}
@@ -455,8 +502,9 @@ describe('ConversationalAccelerator', () => {
     });
 
     it('shows a reading indicator during post-turn event extraction (not the thinking one)', async () => {
-      let releaseGather!: (events: RectificationEventInput[]) => void;
-      const gatherGate = new Promise<RectificationEventInput[]>((resolve) => {
+      type GatherResult = Awaited<ReturnType<NonNullable<ConversationalAcceleratorProps['gatherFn']>>>;
+      let releaseGather!: (result: GatherResult) => void;
+      const gatherGate = new Promise<GatherResult>((resolve) => {
         releaseGather = resolve;
       });
       const gatedGather: NonNullable<ConversationalAcceleratorProps['gatherFn']> = async () =>
@@ -473,7 +521,7 @@ describe('ConversationalAccelerator', () => {
       // Extraction in-flight: reading indicator shown, thinking indicator not.
       await waitFor(() => expect(screen.getByTestId('chat-reading')).toBeTruthy());
       expect(screen.queryByTestId('chat-thinking')).toBeNull();
-      releaseGather([]);
+      releaseGather({ status: 'ok', events: [] });
       await waitFor(() => expect(screen.queryByTestId('chat-reading')).toBeNull());
     });
   });

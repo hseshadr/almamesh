@@ -53,7 +53,7 @@ from almamesh.rectification.scorer import (
     W_PRATYANTAR,
     W_PRIMARY,
     _active_lords_at,
-    _decorrelated_total,
+    _decorrelate_by_category,
     _event_instant,
     _event_instants,
     _transit_houses,
@@ -288,17 +288,6 @@ def _candidate(fit: float) -> RectificationCandidate:
     )
 
 
-def _evidence(contribution: float, category: EventType = EventType.MARRIAGE) -> EventEvidence:
-    """Synthetic evidence with a fixed contribution for de-correlation math."""
-    return EventEvidence(
-        event_index=0,
-        category=category,
-        date=date(2020, 1, 1),
-        signals=[],
-        contribution=contribution,
-    )
-
-
 def test_two_separated_candidates_are_consistent() -> None:
     # Given one candidate fitting the events far better than the other
     ranked, margin, band = rank_candidates(
@@ -351,9 +340,10 @@ def test_min_evidence_gate_forces_near_tie_despite_large_margin() -> None:
 
 
 def test_decorrelation_caps_stacked_same_category_events() -> None:
-    # Given five identical same-category events vs a single one
-    total_one = _decorrelated_total([_evidence(1.0)])
-    total_five = _decorrelated_total([_evidence(1.0) for _ in range(5)])
+    # Given five identical same-category contributions vs a single one
+    # (exercised through the LIVE aggregation path used by score_candidate)
+    total_one = _decorrelate_by_category([(EventType.MARRIAGE, 1.0)])
+    total_five = _decorrelate_by_category([(EventType.MARRIAGE, 1.0)] * 5)
     # Then a single event scores its full weight
     assert total_one == pytest.approx(1.0)
     # And five duplicates are hard-capped (never the naive 5.0) and sub-linear
@@ -363,10 +353,10 @@ def test_decorrelation_caps_stacked_same_category_events() -> None:
 
 
 def test_decorrelation_is_per_category_not_global() -> None:
-    # Given two events in DIFFERENT categories (independent evidence)
-    mixed = [_evidence(1.0, EventType.MARRIAGE), _evidence(1.0, EventType.PROMOTION)]
+    # Given two contributions in DIFFERENT categories (independent evidence)
+    mixed = [(EventType.MARRIAGE, 1.0), (EventType.PROMOTION, 1.0)]
     # Then they add up fully — de-correlation only damps same-category clusters
-    assert _decorrelated_total(mixed) == pytest.approx(2.0)
+    assert _decorrelate_by_category(mixed) == pytest.approx(2.0)
 
 
 def test_score_candidate_fills_candidate_from_context(ctx_a: SiderealContext) -> None:
