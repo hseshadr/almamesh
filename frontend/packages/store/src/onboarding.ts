@@ -259,18 +259,25 @@ export const onboardingStoreCreator: StateCreator<OnboardingStore> = (set, get) 
   isStepValid: (step: number) => {
     const { data } = get();
 
+    // Step numbers follow the FLOW ORDER (Onboarding's STEP_KEYS):
+    // 1=name, 2=birth-date, 3=birth-LOCATION, 4=birth-TIME, 5=life-events.
+    // Onboarding syncs its local step key FROM `currentStep`, so a stale
+    // numbering here made nextStep() validate the (empty) time when leaving
+    // the location step, stranding the store one step behind the UI — the
+    // first Continue on the time step then rubber-banded the UI back (the
+    // "swallowed" first click). Keep this switch aligned with STEP_KEYS.
     switch (step) {
       case 1:
         return data.name.trim().length >= 1;
       case 2:
         return data.birthDate !== null;
       case 3:
+        return data.city.trim().length >= 1;
+      case 4:
         // Time is valid if provided, or if user selected "unknown"
         return data.timeConfidence === 'unknown' || data.birthTime.length >= 4;
-      case 4:
-        return data.city.trim().length >= 1;
       case 5:
-        return true; // Preferences are optional
+        return true; // Life events are optional
       default:
         return false;
     }

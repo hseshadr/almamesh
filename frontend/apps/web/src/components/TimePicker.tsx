@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { TimePicker as MuiTimePicker } from '@mui/x-date-pickers/TimePicker';
@@ -175,31 +176,62 @@ const clockSx = {
   },
 };
 
+// Convert HH:mm string to Dayjs object for the picker
+const timeToDayjs = (timeStr: string): Dayjs | null => {
+  if (!timeStr) return null;
+  const parsed = dayjs(timeStr, 'HH:mm', true);
+  return parsed.isValid() ? parsed : null;
+};
+
 /**
  * Time picker component using MUI X TimePicker
  * Accepts and returns time as string in "HH:mm" format (24-hour)
  * Displays in 12-hour AM/PM format for user convenience
+ *
+ * The picker holds an internal DRAFT Dayjs value and only propagates
+ * complete, valid times ("HH:mm") to the parent — the same draft-buffer
+ * pattern as BirthDatePicker, fixing the same controlled-component desync
+ * class: the old fully-controlled wiring echoed every emission back as the
+ * controlled `value` (re-parsed into a fresh Dayjs identity each render,
+ * with incomplete/cleared states propagating '' into the store), forcing
+ * MUI to resync its sections mid-edit; the forced re-render swallowed the
+ * first Continue click after typing the time. jsdom/happy-dom's synchronous
+ * flush hides the race; the Playwright probe against a preview build
+ * reproduces it.
  */
 export function TimePicker({ value, onChange, className, placeholder }: TimePickerProps) {
   const { t } = useTranslation();
   // `placeholder` is an optional override; default to the translated value
   // resolved at render (a prop default can't call a hook).
   const resolvedPlaceholder = placeholder ?? t('time_picker.placeholder');
-  // Convert HH:mm string to Dayjs object for the picker
-  const timeToDayjs = (timeStr: string): Dayjs | null => {
-    if (!timeStr) return null;
-    const parsed = dayjs(timeStr, 'HH:mm', true);
-    return parsed.isValid() ? parsed : null;
-  };
 
-  // Convert Dayjs object to HH:mm string
-  const dayjsToTime = (date: Dayjs | null): string => {
-    if (!date || !date.isValid()) return '';
-    return date.format('HH:mm');
-  };
+  // Draft buffer: the field renders from this, never from a mid-edit echo.
+  const [draft, setDraft] = useState<Dayjs | null>(() => timeToDayjs(value));
+  // The last "HH:mm" THIS picker emitted upward, so a parent re-render
+  // echoing our own emission is never treated as an external reset.
+  const lastEmitted = useRef<string>(value);
+
+  // Sync parent -> draft ONLY for genuine external changes (profile reset,
+  // store rehydration), i.e. when the parent value differs from what we
+  // last emitted. Our own echoes are ignored, so in-progress typing is
+  // never clobbered.
+  useEffect(() => {
+    if (value !== lastEmitted.current) {
+      lastEmitted.current = value;
+      setDraft(timeToDayjs(value));
+    }
+  }, [value]);
 
   const handleChange = (newValue: Dayjs | null) => {
-    onChange(dayjsToTime(newValue));
+    setDraft(newValue);
+    // Only complete, valid times propagate up. MUI emits null for any
+    // incomplete state (mid-typing, a cleared section, a full clear) —
+    // those stay in the draft and the parent keeps the last committed time.
+    if (newValue !== null && newValue.isValid()) {
+      const time = newValue.format('HH:mm');
+      lastEmitted.current = time;
+      onChange(time);
+    }
   };
 
   return (
@@ -207,7 +239,7 @@ export function TimePicker({ value, onChange, className, placeholder }: TimePick
       <LocalizationProvider dateAdapter={AdapterDayjs}>
         <div className={className || "w-full"}>
           <MuiTimePicker
-            value={timeToDayjs(value)}
+            value={draft}
             onChange={handleChange}
             ampm={true}
             timeSteps={{ minutes: 1 }}
