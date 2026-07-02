@@ -1,10 +1,11 @@
 /**
- * AiModelSettings — the AI model configuration card.
+ * AiModelSettings — the AI model configuration card (Spec 063).
  *
- * OpenRouter / BYO build: this renders the BYO `LlmModelSettings` form directly
- * — a one-click OpenRouter cloud preset, or any OpenAI-compatible endpoint (e.g.
- * a local Ollama). The same resolved `ProviderConfig` drives both interpretation
- * and chat. The enclosing page supplies the "AI Model" heading.
+ * Renders the three-tier `LlmModelSettings`: None (the default — no AI at
+ * all), On-device AI (private, beta; capability-probed WebLLM), and Cloud AI
+ * (stronger; the one-click OpenRouter preset or any OpenAI-compatible
+ * endpoint, e.g. a local Ollama). The same resolved `ProviderConfig` drives
+ * both interpretation and chat. The enclosing page supplies the heading.
  */
 
 import { Card } from '../../ui';

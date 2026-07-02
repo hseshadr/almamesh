@@ -49,15 +49,17 @@ on your device. Install it as a PWA and it works offline after the first load.
 - **3D planetary force-field** — a `three.js` hero (`apps/web/src/components/forcefield/`)
   that places each graha at its real ecliptic longitude from a pure
   `buildEnergyFrame(SiderealChart, t)` adapter, with 2D⇄3D cross-highlighting.
-- **AI interpretation + multi-turn chat** — `@almamesh/llm` talks to any
-  **OpenAI-compatible endpoint** (a one-click **OpenRouter** preset for a hosted
-  model, or a local **Ollama**-style endpoint you bring yourself). One model
-  powers *both* the interpretation and the follow-up chat; your API key lives
-  only in the browser and is never bundled. The chart is **PII-redacted** before
-  the prompt, and `local_only` is **fail-closed** (a cloud host is refused under
-  the privacy gate). AI is **never required to draw a chart**. (An in-browser
-  WebLLM engine ships dormant in the tree — disabled in this build, kept for a
-  future re-enable.)
+- **AI in three tiers — default: none at all** — your chart is pure
+  calculation; nothing leaves your device until you opt in. **On-device AI
+  (private, beta)**: a blessed WebLLM model (Qwen3-1.7B default) runs on your
+  own GPU via WebGPU — prompts never leave your hardware; scoped to chat + the
+  birth-time interview (the full written reading needs a cloud or local
+  endpoint). **Cloud AI (stronger)**: `@almamesh/llm` talks to any
+  **OpenAI-compatible endpoint** (a one-click **OpenRouter** preset, or a local
+  **Ollama**-style endpoint you bring yourself); your API key lives only in the
+  browser and is never bundled. The chart is **PII-redacted** before any cloud
+  prompt, and `local_only` is **fail-closed** (a cloud host is refused under
+  the privacy gate). AI is **never required to draw a chart**.
 - **D9 Navamsa divisional chart** — the engine computes the Navamsa (D9) and it
   renders alongside the rasi (D1) in both kundli styles (and in the print report).
   Reshaped by the same pure store adapter; the astrology stays in Python.
@@ -220,9 +222,10 @@ Browser (the product) ─ installable PWA, offline after first load
 │    ├─ buildEnergyFrame(SiderealChart, t)  (3D force-field frame)
 │    ├─ profiles + members                  (named, password-less people; typed relationships)
 │    └─ mesh                                (MeshEdgeContext per pair → the /mesh edge view)
-├─ @almamesh/llm                 optional interpretation + chat: OpenRouter /
-│                                BYO OpenAI-compatible endpoint by default (one
-│                                shared model; WebLLM dormant); PII-redacted,
+├─ @almamesh/llm                 optional interpretation + chat, NO AI by default;
+│                                opt-in tiers: on-device (WebLLM/WebGPU, beta —
+│                                chat + interview scope) or cloud (OpenRouter /
+│                                BYO OpenAI-compatible, stronger); PII-redacted,
 │                                fail-closed local_only; mesh narration is
 │                                role-anonymized (no names leave the device)
 └─ @almamesh/{shared-types,constants}   constants = single design-token source
@@ -279,7 +282,7 @@ full set of dev/build/test commands.
 | Predictive layer ("Sky & Timing") | Transits/Gochara + Sade Sati, dasha depth (antar/pratyantar), Ashtakavarga + Shadbala, per-life-domain forecasts; `/predictive` route (incl. a Periods explorer + Road Ahead) + report sections VI–IX | ✅ shipped |
 | The mesh (relational astrology) | Per-pair relationship read of two whole charts: Ashtakoota Guna Milan + Mangal screening (cited classical tables, partner edges only), chart overlay, daśā synchrony, significators; role-anonymized AI narration, read-only by construction; `/mesh` constellation + `/mesh/:memberId` edge view | ✅ shipped |
 | Members | People you add to your mesh, with typed relationships (spouse/partner/family/friend/…), each owning a full chart; persisted with a versioned migration; managed in Settings → People | ✅ shipped |
-| AI interpretation + chat | OpenRouter / BYO OpenAI-compatible, one-click preset, one shared model; PII-redacted, fail-closed; WebLLM dormant | ✅ shipped |
+| AI interpretation + chat | Three tiers — default none (pure calculation); on-device AI (WebLLM, private, beta; chat + interview) opt-in; cloud (OpenRouter / BYO OpenAI-compatible, one-click preset, stronger); PII-redacted, fail-closed | ✅ shipped |
 | PDF export | Branded print report (cover + D1/D9 + interpretation + predictive sections VI–IX); gated on a completed interpretation | ✅ shipped |
 | Birth-time rectification | Per-profile rectified time + confidence in Settings; recomputes the chart | ✅ shipped |
 | Named profiles | Multiple password-less people per device, each owning its charts; rename + delete (chart cascade) | ✅ shipped |

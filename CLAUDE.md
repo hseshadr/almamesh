@@ -52,7 +52,7 @@ build-time bundle publisher; the browser app is the entire product surface.
 | Bundle publisher | `almamesh-bundle` CLI | Build-time: assembles + ed25519-signs a content-addressed edge-proc bundle (de421 + skyfield/pyodide wheels + almamesh wheel + provenance meta) |
 | In-browser engine | Pyodide (WASM) in a Web Worker | `@almamesh/browser` — syncs the signed bundle into OPFS, boots the unchanged wheel, computes charts off the UI thread |
 | Frontend | React + Vite + Tailwind CSS | Bun workspace monorepo; installable PWA (vite-plugin-pwa + service worker), offline after first load |
-| LLM (optional) | Client-side, OpenAI-compatible | `@almamesh/llm` — OpenRouter / BYO OpenAI-compatible by default (one-click preset; WebLLM dormant), PII-redacted, fail-closed `local_only`; never required to draw a chart |
+| LLM (optional) | Client-side, three tiers | `@almamesh/llm` — **default: none** (chart is pure calculation); opt-in **on-device** (`@mlc-ai/web-llm` via WebGPU, beta — scoped to chat + rectification interview) or **cloud** (OpenRouter / BYO OpenAI-compatible, stronger; one-click preset), PII-redacted, fail-closed `local_only`; never required to draw a chart |
 | State | Zustand | Persisted stores (`@almamesh/store`) |
 | i18n | react-i18next | Offline bundled en/es/pt catalogs (`apps/web/src/locales/*`, static-imported + SW-precached, zero-egress); persisted language Zustand store (`@almamesh/store` `useLanguageStore`) + `<html lang>` sync; AI narrates in-language; en authoritative, es/pt machine-translated |
 | Tests | Vitest (unit) + Playwright (live-browser exit gate) | |
@@ -65,7 +65,7 @@ build-time bundle publisher; the browser app is the entire product surface.
 | `@almamesh/constants` | Single design-token source (colors/typography/astrology) + Tailwind preset |
 | `@almamesh/browser` | In-browser engine: edge-proc bundle sync (OPFS) + Pyodide chart Worker + `AlmaMeshRuntime` |
 | `@almamesh/store` | Zustand stores + pure adapters: `chart` (`SiderealChart → ChartData`, incl. the D9 Navamsa `varga_ctx`), `chartGeometry` (`buildChartGeometry` → N/S kundli, `buildVargaGeometry` → D9), `energy` (`buildEnergyFrame(chart, t)` → 3D force-field), `profiles` store (rename/delete with chart cascade) + **`members`** (typed relationships, persist-v1 migration) and **`mesh`** (per-pair `MeshEdgeContext` from `compute_mesh`, read-only) |
-| `@almamesh/llm` | Interpretation + multi-turn chat: **OpenRouter / BYO OpenAI-compatible endpoint by default** (one-click preset, `cloud_premium`, one shared model for interpretation + chat); WebLLM (`@mlc-ai/web-llm`) dormant/hidden; PII-redacted, fail-closed `local_only` for local endpoints. **Mesh narration** (`mesh-reading`/`mesh-facts`/`mesh-sanitize`): role-anonymized pair sanitizer (no names leave the device) + 3-section `streamMeshReading` behind the **ANTI-SCAM RELATIONSHIP FENCE** (band = convention, never a verdict) |
+| `@almamesh/llm` | Interpretation + multi-turn chat, **no AI by default**. Opt-in tiers (Spec 063): **on-device** (`@mlc-ai/web-llm` on WebGPU, blessed `BLESSED_ONDEVICE_MODELS` picker, dynamic-import-only `webllm-*` chunk excluded from the SW precache; serves chat + interview + life-event extractor, structured reading throws typed `OnDeviceUnsupportedError`) and **cloud** (OpenRouter / BYO OpenAI-compatible endpoint, one-click preset, `cloud_premium`, stronger models); PII-redacted, fail-closed `local_only` for local endpoints. **Mesh narration** (`mesh-reading`/`mesh-facts`/`mesh-sanitize`): role-anonymized pair sanitizer (no names leave the device) + 3-section `streamMeshReading` behind the **ANTI-SCAM RELATIONSHIP FENCE** (band = convention, never a verdict) |
 | `apps/web` | The React/Vite "Observatory" PWA: UI primitives (`components/ui/`), `AppLayout`, N/S charts, `forcefield/` 3D hero, self-hosted fonts (no CDN) |
 
 (`@almamesh/api-client` and `@almamesh/hooks` were DELETED with the SaaS runtime.)
@@ -190,11 +190,15 @@ contexts (the active predictive pipeline) via `withRawPredictive`. Same determin
 byte-parity rules: pin `reference_date`; Pyodide==CPython parity gate covers the new
 entry; golden fixtures use synthetic natives only (no real birth data).
 
-Optional interpretation + chat (off the chart path): @almamesh/llm — OpenRouter /
-BYO OpenAI-compatible endpoint by default (one-click preset, one shared model;
-WebLLM dormant/hidden). PII-redacted, fail-closed local_only for local endpoints.
-The chart engine is zero-egress; the only outbound requests are the optional AI
-calls the user opts into (to the configured endpoint). NOTE: the engine emits the
+Optional interpretation + chat (off the chart path): @almamesh/llm — NO AI by
+default (the chart is pure calculation). Opt-in tiers (Spec 063): on-device
+(`engine:'webllm'`, blessed Qwen3-1.7B/Llama-3.2-1B, WebGPU-probed, chat +
+interview scope — the structured reading throws `OnDeviceUnsupportedError`) or
+cloud (OpenRouter / BYO OpenAI-compatible endpoint, one-click preset, stronger).
+PII-redacted, fail-closed local_only for local endpoints. The chart engine is
+zero-egress; the only outbound requests are the optional AI calls the user opts
+into (the configured endpoint, or the one-time on-device weights download from
+huggingface.co). NOTE: the engine emits the
 full D1–D60 varga set; the adapter populates `varga_ctx` (D9 Navamsa rendered in
 both kundli styles + the print report, D1–D60 in the predictive "Divisional Charts"
 tab) and the predictive contexts above.

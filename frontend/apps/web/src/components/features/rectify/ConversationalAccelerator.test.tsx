@@ -106,6 +106,24 @@ describe('ConversationalAccelerator', () => {
       expect(screen.queryByRole('textbox')).toBeNull();
       expect(screen.getByTestId('chat-gated')).toBeTruthy();
     });
+
+    it('the on-device tier is NOT gated — the interview runs locally (Spec 063)', () => {
+      vi.mocked(describeLlmStatus).mockReturnValue({
+        kind: 'on_device',
+        label: 'On-device',
+        configured: true,
+      });
+      render(
+        <ConversationalAccelerator
+          profileId={PROFILE_ID}
+          streamFn={makeStubStream([])}
+          gatherFn={makeStubGather([])}
+        />,
+      );
+      expect(screen.queryByTestId('chat-gated')).toBeNull();
+      expect(screen.getByRole('textbox')).toBeTruthy();
+      expect(screen.getByTestId('chat-opening')).toBeTruthy();
+    });
   });
 
   // ── Cloud opted-in ───────────────────────────────────────────────────────

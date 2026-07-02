@@ -11,7 +11,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 
-import { useStreamingInterpretation } from '../useStreamingInterpretation';
+import {
+  ON_DEVICE_READING_UNSUPPORTED,
+  useStreamingInterpretation,
+} from '../useStreamingInterpretation';
 
 // Mock the local LLM package: we drive the structured event stream + errors.
 vi.mock('@almamesh/llm', async () => {
@@ -35,6 +38,7 @@ vi.mock('@almamesh/store', async () => {
 
 import {
   streamStructuredInterpretation,
+  OnDeviceUnsupportedError,
   PrivacyViolationError,
   LlmRequestError,
   type InterpretationEvent,
@@ -233,6 +237,23 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
 
     await waitFor(() => expect(result.current.status).toBe('error'));
     expect(result.current.error).toMatch(/Configure a local or OpenRouter model/);
+  });
+
+  it('maps the on-device scope fence to the stable sentinel, never raw text (Spec 063)', async () => {
+    mockedStream.mockImplementation(
+      failingStream(new OnDeviceUnsupportedError('structured interpretation')),
+    );
+
+    const { result } = renderHook(() => useStreamingInterpretation('chart-123'));
+    await act(async () => {
+      await result.current.streamInterpretation('chart-123');
+    });
+
+    await waitFor(() => expect(result.current.status).toBe('error'));
+    // The sentinel — the dashboard translates it into honest guidance copy.
+    expect(result.current.error).toBe(ON_DEVICE_READING_UNSUPPORTED);
+    // Never the raw error message.
+    expect(result.current.error).not.toMatch(/does not serve/);
   });
 
   it('surfaces the privacy violation message verbatim (fail-closed)', async () => {

@@ -9,18 +9,24 @@
 
 import type { LlmEngine } from "./provider";
 import type { LlmSettings } from "./settings";
+import { DEFAULT_ONDEVICE_MODEL } from "./webllm/models";
 
 /** Mirror of the backend `PrivacyMode` enum (edgeproc.PrivacyMode). */
 export type PrivacyMode = "local_only" | "cloud_premium";
 
 /** Resolved description of which chat backend + endpoint a call should use. */
 export interface ProviderConfig {
-  /** Which engine serves the completion. Always `openai-http`. */
+  /** Which engine serves the completion: `openai-http` or on-device `webllm`. */
   readonly engine: LlmEngine;
+  /** An endpoint model slug (`openai-http`) or an MLC model id (`webllm`). */
   readonly model: string;
   readonly privacyMode: PrivacyMode;
-  /** OpenAI-compatible base URL, e.g. `http://localhost:11434/v1` (Ollama). */
-  readonly baseUrl: string;
+  /**
+   * OpenAI-compatible base URL, e.g. `http://localhost:11434/v1` (Ollama).
+   * Required by the `openai-http` engine; ABSENT for the on-device `webllm`
+   * engine, which has no endpoint at all.
+   */
+  readonly baseUrl?: string;
   /** Optional API key. Never bundled; supplied by env or local settings. */
   readonly apiKey?: string;
 }
@@ -72,6 +78,12 @@ export function isLocalEndpoint(baseUrl: string | undefined): boolean {
 
 /** Fail closed: local_only must resolve to a local endpoint, else throw. */
 export function ensurePrivacy(config: ProviderConfig): void {
+  if (config.engine === "webllm") {
+    // On-device inference is trivially private: there is no endpoint and no
+    // baseUrl — nothing can leave the device. (The optional weights download
+    // is the library's own opt-in concern, disclosed in the settings UI.)
+    return;
+  }
   if (config.privacyMode === "local_only" && !isLocalEndpoint(config.baseUrl)) {
     throw new PrivacyViolationError(
       `PrivacyMode 'local_only' requires a local OpenAI-compatible endpoint ` +
@@ -85,10 +97,11 @@ function asPrivacyMode(value: string | undefined): PrivacyMode {
   return value === "cloud_premium" ? "cloud_premium" : DEFAULT_PRIVACY_MODE;
 }
 
-function resolveEngine(_env: LlmEnv): LlmEngine {
-  // The engine is always the OpenAI-compatible HTTP path regardless of any
-  // (legacy) `VITE_LLM_ENGINE` value.
-  return DEFAULT_ENGINE;
+function resolveEngine(env: LlmEnv): LlmEngine {
+  // Spec 063 three-kind world: exactly "webllm" selects the on-device engine;
+  // any other (unknown/legacy) value still falls back to the OpenAI-compatible
+  // HTTP path, so a stale saved blob can never select a nonexistent backend.
+  return env.VITE_LLM_ENGINE?.trim() === "webllm" ? "webllm" : DEFAULT_ENGINE;
 }
 
 /** Raw env values a host app supplies (Vite `import.meta.env`, or settings). */
@@ -97,7 +110,7 @@ export interface LlmEnv {
   readonly VITE_LLM_API_KEY?: string;
   readonly VITE_LLM_MODEL?: string;
   readonly VITE_LLM_PRIVACY_MODE?: string;
-  /** Legacy engine selector; the only supported value is "openai-http". */
+  /** Engine selector: "webllm" = on-device; anything else → "openai-http". */
   readonly VITE_LLM_ENGINE?: string;
 }
 
@@ -109,6 +122,15 @@ export interface LlmEnv {
 export function resolveProviderConfig(env: LlmEnv = {}): ProviderConfig {
   const engine = resolveEngine(env);
   const apiKey = env.VITE_LLM_API_KEY?.trim();
+  if (engine === "webllm") {
+    // On-device: an MLC model id only — no endpoint, no key. The blessed
+    // default applies when nothing is chosen; a cloud slug is never forced.
+    return {
+      engine,
+      model: env.VITE_LLM_MODEL?.trim() || DEFAULT_ONDEVICE_MODEL,
+      privacyMode: asPrivacyMode(env.VITE_LLM_PRIVACY_MODE?.trim()),
+    };
+  }
   return {
     engine,
     model: env.VITE_LLM_MODEL?.trim() || DEFAULT_MODEL,

@@ -22,6 +22,7 @@ import { useCallback, useRef } from 'react';
 import {
   applyInterpretationSettings,
   LlmRequestError,
+  OnDeviceUnsupportedError,
   PrivacyViolationError,
   resolveProviderConfig,
   streamStructuredInterpretation,
@@ -82,6 +83,15 @@ export interface UseStreamingInterpretationResult {
   cancel: () => void;
 }
 
+/**
+ * Stable sentinel stored as the interpretation "error" when the reading was
+ * requested on the on-device (webllm) tier, which deliberately does not serve
+ * the full structured reading in v1 (Spec 063 scope fence). The dashboard maps
+ * this sentinel to honest, translated guidance copy (chat + interview work
+ * on-device; the reading needs a cloud or local endpoint) — never a raw error.
+ */
+export const ON_DEVICE_READING_UNSUPPORTED = 'on_device_reading_unsupported';
+
 // Friendly, non-technical guidance shown when on-device narration cannot run.
 const NOT_CONFIGURED_NOTICE =
   'Configure a local or OpenRouter model to generate interpretations. ' +
@@ -138,6 +148,11 @@ export function withRawPredictive(chart: SiderealChart, chartId: string | null):
 
 /** Map a thrown error to a friendly, user-facing message. */
 function describeError(err: unknown): string {
+  if (err instanceof OnDeviceUnsupportedError) {
+    // The typed scope-fence error: not a failure of the user's setup. The UI
+    // renders translated guidance for this sentinel instead of raw text.
+    return ON_DEVICE_READING_UNSUPPORTED;
+  }
   if (err instanceof PrivacyViolationError) {
     return err.message;
   }

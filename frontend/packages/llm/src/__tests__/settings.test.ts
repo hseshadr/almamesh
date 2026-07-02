@@ -159,4 +159,31 @@ describe("describeLlmStatus — human-readable provider state", () => {
     expect(status.label).toBe("Cloud");
     expect(status.configured).toBe(true);
   });
+
+  it("recognizes the on-device engine — no key, no URL required (Spec 063)", () => {
+    expect(describeLlmStatus({ engine: "webllm", model: "Qwen3-1.7B-q4f16_1-MLC" })).toEqual({
+      kind: "on_device",
+      label: "On-device",
+      configured: true,
+    });
+  });
+
+  it("on-device with no explicit model is still configured (blessed default applies)", () => {
+    const status = describeLlmStatus({ engine: "webllm" });
+    expect(status.kind).toBe("on_device");
+    expect(status.configured).toBe(true);
+  });
+
+  it("the on-device engine wins over leftover cloud fields from an earlier tier", () => {
+    // Switching tiers merges over old settings; the engine selector decides.
+    const status = describeLlmStatus({
+      engine: "webllm",
+      model: "Qwen3-1.7B-q4f16_1-MLC",
+      apiBase: "https://openrouter.ai/api/v1",
+      apiKey: "sk-or-123",
+      privacyMode: "cloud_premium",
+    });
+    expect(status.kind).toBe("on_device");
+    expect(status.configured).toBe(true);
+  });
 });

@@ -12,10 +12,10 @@
 
 import { LIFE_EVENT_CATEGORIES, type EventDatePrecision, type LifeEventCategory, type RectificationEventInput } from "@almamesh/shared-types";
 
-import { chatCompletionJson, type ChatCompletionJsonOptions } from "./client";
 import type { ProviderConfig } from "./config";
 import { withLanguage, type PromptLanguage } from "./language";
 import { RECTIFICATION_FENCE } from "./prompt";
+import { routeCompletionJson } from "./route";
 
 // =============================================================================
 // System prompt
@@ -43,6 +43,28 @@ const STRUCTURER_SYSTEM_PROMPT = [
 // =============================================================================
 // Validation helpers
 // =============================================================================
+
+// JSON schema for the structurer output — enforced by xgrammar on the
+// on-device engine (grammar-constrained decoding), advisory elsewhere. The
+// typed validation below stays as the second wall regardless of engine.
+const LIFE_EVENTS_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    events: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          date: { type: "string" },
+          category: { type: "string", enum: [...LIFE_EVENT_CATEGORIES] },
+          precision: { type: "string", enum: ["exact", "month", "year", "approx"] },
+        },
+        required: ["date", "category", "precision"],
+      },
+    },
+  },
+  required: ["events"],
+};
 
 const YYYY_MM_DD = /^(\d{4})-(\d{2})-(\d{2})$/;
 
@@ -102,16 +124,15 @@ export async function structureLifeEvents(
   config: ProviderConfig,
   language: PromptLanguage = "en",
 ): Promise<StructureLifeEventsResult> {
-  const options: ChatCompletionJsonOptions = {
-    config,
-    messages: [
-      { role: "system", content: withLanguage(STRUCTURER_SYSTEM_PROMPT, language) },
-      { role: "user", content: text },
-    ],
-  };
+  const messages = [
+    { role: "system", content: withLanguage(STRUCTURER_SYSTEM_PROMPT, language) },
+    { role: "user", content: text },
+  ] as const;
 
   try {
-    const raw = await chatCompletionJson(options);
+    // Routed seam (Spec 063): openai-http behavior is byte-preserved; the
+    // on-device engine additionally gets the schema for xgrammar enforcement.
+    const raw = await routeCompletionJson({ config, messages, schema: LIFE_EVENTS_SCHEMA });
     const parsed: unknown = JSON.parse(raw);
 
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {

@@ -14,13 +14,15 @@
   },
   "scripts": {
     "typecheck": "tsc -b --pretty false",
+    "bench": "bun bench/src/run.ts",
     "test": "vitest run",
     "test:unit": "vitest run",
     "clean": "rm -rf dist"
   },
   "dependencies": {
     "@almamesh/browser": "workspace:*",
-    "@almamesh/shared-types": "workspace:*"
+    "@almamesh/shared-types": "workspace:*",
+    "@mlc-ai/web-llm": "^0.2.84"
   },
   "devDependencies": {
     "typescript": "~5.7.0",

@@ -5,8 +5,10 @@
  * flushes them into the life-events store as reviewable draft rows. The
  * transcript is local to this component — only the extracted events persist.
  *
- * GATING — only actionable with a CLOUD AI endpoint configured. The gated state
- * renders a calm static note so users always have the manual-entry fallback.
+ * GATING — actionable with a CLOUD AI endpoint OR the on-device tier (Spec 063;
+ * BYO local endpoints stay gated — no typed-extraction enforcement there). The
+ * gated state renders a calm static note so users always have the manual-entry
+ * fallback.
  *
  * EGRESS — an explicit one-line warning is shown before every submission so the
  * user knows their message is sent to their configured AI endpoint.
@@ -30,7 +32,7 @@ import {
 import type { RectificationEventInput } from '@almamesh/shared-types';
 import { MessageBubble } from '../chat/MessageBubble';
 import { Spinner } from '../../ui/Spinner';
-import { isCloudConfigured, resolveConfig, toPromptLanguage } from './rectifyLlmConfig';
+import { isAiUsable, resolveConfig, toPromptLanguage } from './rectifyLlmConfig';
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -111,8 +113,8 @@ export function ConversationalAccelerator({
   // Abort any in-flight stream on unmount to avoid setState on an unmounted component.
   useEffect(() => () => { abortRef.current?.abort(); }, []);
 
-  // ── Cloud gate ────────────────────────────────────────────────────────────
-  if (!isCloudConfigured()) {
+  // ── AI gate (cloud OR on-device; BYO local stays gated) ──────────────────
+  if (!isAiUsable()) {
     return (
       <div
         data-testid="chat-gated"

@@ -34,6 +34,7 @@ import type { SiderealChart } from "@almamesh/browser/types";
 import { estimateTokens } from "./budget";
 import { chatCompletionJson, type ChatMessage } from "./client";
 import { ensurePrivacy, isLocalEndpoint, type ProviderConfig } from "./config";
+import { OnDeviceUnsupportedError } from "./webllm/errors";
 import { withLanguage, type PromptLanguage } from "./language";
 import { buildPredictiveFactsBlock } from "./predictive-facts";
 import { OUTPUT_DISCIPLINE_RULES, type ViewMode } from "./prompt";
@@ -875,14 +876,23 @@ type SectionOutcome =
   | { section: InterpretationSectionKey; ok: true; raw: string }
   | { section: InterpretationSectionKey; ok: false; message: string };
 
+/**
+ * The LITE-prompt gate, generalized (Spec 063): a local OpenAI-compatible
+ * endpoint (Ollama et al.) OR the on-device engine means a small model that
+ * needs the LITE prompt; a cloud endpoint gets the full prompt. (The on-device
+ * arm is future-proofing — v1 fences structured interpretation off on-device
+ * entirely, see `streamStructuredInterpretation`.)
+ */
+export function usesLitePrompt(config: ProviderConfig): boolean {
+  return isLocalEndpoint(config.baseUrl) || config.engine === "webllm";
+}
+
 function runOneSection(
   section: InterpretationSectionKey,
   chart: SanitizedChart,
   params: StructuredInterpretationParams,
 ): Promise<SectionOutcome> {
-  // Locality gate: a local OpenAI-compatible endpoint (Ollama et al.) means a
-  // small model that needs the LITE prompt; a cloud endpoint gets the full prompt.
-  const lite = isLocalEndpoint(params.config.baseUrl);
+  const lite = usesLitePrompt(params.config);
   const messages = buildSectionMessages(
     section,
     chart,
@@ -931,6 +941,13 @@ function summarizeFailures(messages: readonly string[]): string {
 export async function* streamStructuredInterpretation(
   params: StructuredInterpretationParams,
 ): AsyncGenerator<InterpretationEvent> {
+  // SCOPE FENCE (Spec 063): the structured six-section reading is NOT served
+  // on-device in v1 — thrown BEFORE any work (no sanitize, no engine, no
+  // network) so the UI maps it to honest "use a cloud/local endpoint" copy.
+  if (params.config.engine === "webllm") {
+    throw new OnDeviceUnsupportedError("structured interpretation");
+  }
+
   if (params.signal?.aborted) {
     throw abortError();
   }
