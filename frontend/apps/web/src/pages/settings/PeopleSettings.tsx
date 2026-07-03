@@ -9,9 +9,7 @@
  */
 
 import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useQueryClient } from '@tanstack/react-query';
 import {
   useAnchorProfile,
   useMembers,
@@ -19,33 +17,13 @@ import {
   useProfilesStore,
   type Profile,
 } from '@almamesh/store';
-import { MEMBER_RELATIONSHIPS, type MemberRelationship } from '@almamesh/shared-types';
-import { Badge, Button, Dialog, Input, Select } from '../../components/ui';
+import { Badge, Button, Select } from '../../components/ui';
 import { AvatarChip } from '../../components/features/profiles/AvatarChip';
-
-/** Narrow a raw `<select>` value to a member relationship (no casts). */
-function asMemberRelationship(value: string): MemberRelationship | undefined {
-  return MEMBER_RELATIONSHIPS.find((r) => r === value);
-}
-
-interface RelationshipOptionsProps {
-  /** i18n `t` bound to the `settings` namespace. */
-  readonly t: (key: string, options?: Record<string, unknown>) => string;
-}
-
-/** The shared option list: "no relationship" + the backend-aligned values. */
-function RelationshipOptions({ t }: RelationshipOptionsProps) {
-  return (
-    <>
-      <option value="">{t('people.no_relationship')}</option>
-      {MEMBER_RELATIONSHIPS.map((r) => (
-        <option key={r} value={r}>
-          {t(`people.relationships.${r}`)}
-        </option>
-      ))}
-    </>
-  );
-}
+import {
+  AddPersonDialog,
+  RelationshipOptions,
+  asMemberRelationship,
+} from '../../components/features/people/AddPersonDialog';
 
 interface PersonRowProps {
   readonly profile: Profile;
@@ -110,82 +88,10 @@ function PersonRow({
   );
 }
 
-interface AddPersonDialogProps {
-  readonly open: boolean;
-  readonly onClose: () => void;
-  readonly onAdd: (name: string, relationship: MemberRelationship | undefined) => void;
-}
-
-/** Name + relationship; submission hands off to the existing onboarding flow. */
-function AddPersonDialog({ open, onClose, onAdd }: AddPersonDialogProps) {
-  const { t } = useTranslation('settings');
-  const [name, setName] = useState('');
-  const [relationship, setRelationship] = useState('');
-
-  const submit = () => {
-    const trimmed = name.trim();
-    if (!trimmed) {
-      return;
-    }
-    onAdd(trimmed, asMemberRelationship(relationship));
-    setName('');
-    setRelationship('');
-  };
-
-  return (
-    <Dialog open={open} onClose={onClose} title={t('people.add_title')}>
-      <div className="space-y-4">
-        <div>
-          <label
-            htmlFor="add-person-name"
-            className="mb-1 block text-sm font-medium text-text-secondary"
-          >
-            {t('people.add_name_label')}
-          </label>
-          <Input
-            id="add-person-name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder={t('people.add_name_placeholder')}
-          />
-        </div>
-        <div>
-          <label
-            htmlFor="add-person-relationship"
-            className="mb-1 block text-sm font-medium text-text-secondary"
-          >
-            {t('people.add_relationship_label')}
-          </label>
-          <Select
-            id="add-person-relationship"
-            value={relationship}
-            onChange={(e) => setRelationship(e.target.value)}
-          >
-            <RelationshipOptions t={t} />
-          </Select>
-        </div>
-        <p className="text-xs text-text-muted">{t('people.add_hint')}</p>
-        <div className="flex justify-end gap-2">
-          <Button variant="ghost" onClick={onClose}>
-            {t('people.add_cancel')}
-          </Button>
-          <Button onClick={submit} disabled={!name.trim()}>
-            {t('people.add_continue')}
-          </Button>
-        </div>
-      </div>
-    </Dialog>
-  );
-}
-
 export default function PeopleSettings() {
   const { t } = useTranslation('settings');
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
 
   const profiles = useProfilesStore((s) => s.profiles);
-  const createProfile = useProfilesStore((s) => s.createProfile);
-  const setActiveProfile = useProfilesStore((s) => s.setActiveProfile);
   const setAnchor = useProfilesStore((s) => s.setAnchor);
   const setRelationship = useProfilesStore((s) => s.setRelationship);
   const clearRelationship = useProfilesStore((s) => s.clearRelationship);
@@ -221,23 +127,6 @@ export default function PeopleSettings() {
     } else {
       clearRelationship(id);
     }
-  };
-
-  /**
-   * The EXISTING add-a-person flow (mirrors the header ProfileSwitcher): create
-   * the profile, assign its relationship, make it active, refresh the chart
-   * query, and send the user into onboarding to enter birth details — the
-   * chart itself is always computed by the one shared onboarding path.
-   */
-  const handleAdd = (name: string, relationship: MemberRelationship | undefined) => {
-    const id = createProfile(name);
-    if (relationship) {
-      setRelationship(id, relationship);
-    }
-    setActiveProfile(id);
-    setAddOpen(false);
-    void queryClient.invalidateQueries({ queryKey: ['primary-chart'] });
-    navigate('/onboarding');
   };
 
   return (
@@ -293,7 +182,7 @@ export default function PeopleSettings() {
         </div>
       )}
 
-      <AddPersonDialog open={addOpen} onClose={() => setAddOpen(false)} onAdd={handleAdd} />
+      <AddPersonDialog open={addOpen} onClose={() => setAddOpen(false)} />
     </div>
   );
 }

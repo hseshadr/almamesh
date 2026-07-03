@@ -12,12 +12,14 @@
     "kicker": "La malla",
     "title": "Teje tu primer hilo",
     "body": "AlmaMesh lee relaciones entre cartas completas: la tuya y las de las personas cercanas a ti. Marca tu propio perfil como \"esta soy yo\" y añade al menos una persona para empezar.",
-    "cta": "Añadir personas",
-    "hint": "Las personas viven en Ajustes. Cada una recibe su propia carta completa."
+    "cta": "Añadir una persona",
+    "hint": "Después introducirás sus datos de nacimiento. Cada persona recibe su propia carta completa."
   },
   "graph": {
     "you": "Tú",
     "no_chart": "Aún sin carta",
+    "add": "Añadir persona",
+    "add_aria": "Añadir una persona a tu malla",
     "generate": "Generar carta",
     "open_edge": "Abrir tu vínculo con {{name}}",
     "generate_for": "Generar la carta de {{name}}",

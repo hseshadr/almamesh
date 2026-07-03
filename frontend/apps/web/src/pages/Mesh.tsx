@@ -5,13 +5,16 @@
  *
  * States, honestly rendered:
  *  - profiles still rehydrating → quiet spinner (no false "empty mesh");
- *  - mesh not ready (no anchor or no members) → an elegant invitation routing
- *    to Settings → People;
+ *  - mesh not ready (no anchor or no members) → an elegant invitation whose
+ *    CTA opens the shared add-person dialog right here;
  *  - a person without a generated chart → muted node with a "generate chart"
  *    affordance that reuses the established flow (switch profile → onboarding).
+ *
+ * Growth lives IN the constellation: the ghost "+" star and the invitation CTA
+ * both open the shared AddPersonDialog in place — no detour to Settings.
  */
 
-import type { ReactElement } from 'react';
+import { useState, type ReactElement } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
@@ -26,10 +29,11 @@ import {
 
 import { buttonVariants, Spinner } from '../components/ui';
 import { MeshConstellation, type MeshNodeVM } from '../components/features/mesh';
+import { AddPersonDialog } from '../components/features/people/AddPersonDialog';
 import { hasBirthChart, lagnaSignOf, profileChartOf } from '../lib/mesh';
 
 /** The mesh has no anchor or no members yet — invite, don't apologize. */
-function MeshInvitation(): ReactElement {
+function MeshInvitation({ onAddPerson }: { onAddPerson: () => void }): ReactElement {
   const { t } = useTranslation('mesh');
   return (
     <div className="mx-auto max-w-xl space-y-6 py-10 text-center" data-testid="mesh-invitation">
@@ -50,20 +54,29 @@ function MeshInvitation(): ReactElement {
         {t('invitation.body')}
       </p>
       <div className="space-y-3">
-        <Link
-          to="/settings/people"
+        <button
+          type="button"
+          onClick={onAddPerson}
           className={buttonVariants({ variant: 'primary' })}
           data-testid="mesh-invitation-cta"
         >
           {t('invitation.cta')}
-        </Link>
+        </button>
         <p className="text-xs text-text-tertiary">{t('invitation.hint')}</p>
       </div>
     </div>
   );
 }
 
-function MeshGraph({ anchor, members }: { anchor: Profile; members: Profile[] }): ReactElement {
+function MeshGraph({
+  anchor,
+  members,
+  onAddPerson,
+}: {
+  anchor: Profile;
+  members: Profile[];
+  onAddPerson: () => void;
+}): ReactElement {
   const { t } = useTranslation('mesh');
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -105,6 +118,7 @@ function MeshGraph({ anchor, members }: { anchor: Profile; members: Profile[] })
         anchor={toNode(anchor)}
         members={members.map(toNode)}
         onGenerateChart={handleGenerateChart}
+        onAddPerson={onAddPerson}
       />
 
       <footer className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2 border-t border-ui-border pt-5">
@@ -130,6 +144,7 @@ export default function MeshPage(): ReactElement {
   const meshReady = useMeshReady();
   const anchor = useAnchorProfile();
   const members = useMembers();
+  const [addOpen, setAddOpen] = useState(false);
 
   if (!hydrated) {
     return (
@@ -138,8 +153,15 @@ export default function MeshPage(): ReactElement {
       </div>
     );
   }
-  if (!meshReady || !anchor) {
-    return <MeshInvitation />;
-  }
-  return <MeshGraph anchor={anchor} members={members} />;
+  const openAdd = (): void => setAddOpen(true);
+  return (
+    <>
+      {!meshReady || !anchor ? (
+        <MeshInvitation onAddPerson={openAdd} />
+      ) : (
+        <MeshGraph anchor={anchor} members={members} onAddPerson={openAdd} />
+      )}
+      <AddPersonDialog open={addOpen} onClose={() => setAddOpen(false)} />
+    </>
+  );
 }
