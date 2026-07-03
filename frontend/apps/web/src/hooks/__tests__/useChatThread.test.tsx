@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 
 import { useChatThread } from '../useChatThread';
+import { OnDeviceContextOverflowError, OnDeviceModelRecordError } from '@almamesh/llm';
 import { useChatStore } from '@almamesh/store';
 import {
   __setMemoryForTest,
@@ -148,5 +149,80 @@ describe('useChatThread', () => {
       // An assistant error bubble is appended so the user is not left hanging.
       expect(roles).toContain('assistant');
     });
+  });
+
+  it('an error turn is flagged and NEVER re-enters the model-visible history', async () => {
+    const { memory } = fakeMemory();
+    __setMemoryForTest(memory);
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+    const { result } = renderHook(() => useChatThread(PROFILE, CHART));
+
+    const failing = vi.fn().mockRejectedValue(new Error('endpoint down'));
+    await act(async () => {
+      await result.current.submit('Q1', failing);
+    });
+    await waitFor(() => expect(result.current.messages.length).toBe(2));
+    // The error turn carries the flag so the UI can render it as an error bubble.
+    expect(result.current.messages[1]).toMatchObject({ role: 'assistant', error: true });
+
+    // The NEXT submit must not feed the error bubble back to the model.
+    const second = makeStreamFn('A2');
+    await act(async () => {
+      await result.current.submit('Q2', second);
+    });
+    const callInput = second.mock.calls[0][0];
+    expect(callInput.history).toEqual([{ role: 'user', content: 'Q1' }]);
+  });
+
+  it('a context-window overflow gets actionable "shorter question / new chat" copy', async () => {
+    const { memory } = fakeMemory();
+    __setMemoryForTest(memory);
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const failing = vi.fn().mockRejectedValue(new OnDeviceContextOverflowError());
+
+    const { result } = renderHook(() => useChatThread(PROFILE, CHART));
+    await act(async () => {
+      await result.current.submit('a very long question', failing);
+    });
+
+    await waitFor(() => expect(result.current.messages.length).toBe(2));
+    const bubble = result.current.messages[1];
+    expect(bubble.error).toBe(true);
+    expect(bubble.content).toContain('shorter question');
+  });
+
+  it('a missing on-device model gets actionable re-download guidance', async () => {
+    const { memory } = fakeMemory();
+    __setMemoryForTest(memory);
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const failing = vi.fn().mockRejectedValue(new OnDeviceModelRecordError());
+
+    const { result } = renderHook(() => useChatThread(PROFILE, CHART));
+    await act(async () => {
+      await result.current.submit('hello', failing);
+    });
+
+    await waitFor(() => expect(result.current.messages.length).toBe(2));
+    const bubble = result.current.messages[1];
+    expect(bubble.error).toBe(true);
+    expect(bubble.content).toMatch(/re-select or re-download/i);
+  });
+
+  it('an unknown failure keeps the generic QA_001 fallback (still flagged)', async () => {
+    const { memory } = fakeMemory();
+    __setMemoryForTest(memory);
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const failing = vi.fn().mockRejectedValue(new Error('mystery'));
+
+    const { result } = renderHook(() => useChatThread(PROFILE, CHART));
+    await act(async () => {
+      await result.current.submit('hello', failing);
+    });
+
+    await waitFor(() => expect(result.current.messages.length).toBe(2));
+    const bubble = result.current.messages[1];
+    expect(bubble.error).toBe(true);
+    expect(bubble.content).toContain('QA_001');
   });
 });

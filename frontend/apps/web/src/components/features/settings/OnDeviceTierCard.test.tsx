@@ -185,6 +185,10 @@ describe('OnDeviceTierCard', () => {
     const saved = readSaved();
     expect(saved.engine).toBe('webllm');
     expect(saved.model).toBe(DEFAULT_ONDEVICE_MODEL);
+    // Belt-and-braces vs a stale per-tier chatModel (writeLlmSettings MERGES,
+    // so a leftover cloud/Ollama chatModel would otherwise survive and target a
+    // nonexistent MLC record): enabling on-device pins the chat tier too.
+    expect(saved.chatModel).toBe(DEFAULT_ONDEVICE_MODEL);
   });
 
   it('downloads the LIGHTER model when it is the selected one', async () => {
@@ -202,6 +206,7 @@ describe('OnDeviceTierCard', () => {
     fireEvent.click(screen.getByTestId('ondevice-download'));
     await waitFor(() => expect(preloadFn).toHaveBeenCalledWith(LIGHTER.id, expect.any(Function)));
     await waitFor(() => expect(readSaved().model).toBe(LIGHTER.id));
+    expect(readSaved().chatModel).toBe(LIGHTER.id);
   });
 
   it('requests persistent storage when the download starts', async () => {

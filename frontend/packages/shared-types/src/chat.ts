@@ -40,6 +40,13 @@ export interface ChatMessage {
   content: string;
   created_at: string;
   token_count?: number;
+  /**
+   * Marks a failed-turn notice (e.g. "the model could not answer"). Error
+   * turns render as error bubbles in the UI but are EXCLUDED from the
+   * model-visible history — feeding an error notice back to the model as a
+   * prior assistant turn poisons every subsequent answer.
+   */
+  error?: true;
 }
 
 /**

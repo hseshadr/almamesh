@@ -141,6 +141,35 @@ describe('chatStore', () => {
       store.getState().appendMessage(threadId, 'user', 'first question');
       expect(store.getState().getActiveThread('p1')?.title).toBe('Pinned');
     });
+
+    it('appendMessage records the optional error flag (and omits it otherwise)', () => {
+      // Error bubbles are rendered in the UI but must be excludable from the
+      // model-visible history — the flag rides on the persisted message.
+      const store = newStore();
+      const threadId = store.getState().ensureThread('p1');
+      const ok = store.getState().appendMessage(threadId, 'assistant', 'All good.');
+      const failed = store
+        .getState()
+        .appendMessage(threadId, 'assistant', 'That did not work.', { error: true });
+      expect(ok.error).toBeUndefined();
+      expect(failed.error).toBe(true);
+      const persisted = store.getState().getMessages(threadId);
+      expect(persisted[0].error).toBeUndefined();
+      expect(persisted[1].error).toBe(true);
+    });
+
+    it('the error flag survives a serialize → fresh-store round-trip', () => {
+      const before = newStore();
+      const threadId = before.getState().ensureThread('p1');
+      before.getState().appendMessage(threadId, 'assistant', 'boom', { error: true });
+      const snapshot = JSON.stringify({
+        threads: before.getState().threads,
+        messages: before.getState().messages,
+      });
+      const after = newStore();
+      after.setState(JSON.parse(snapshot) as Partial<ChatStore>);
+      expect(after.getState().getMessages(threadId)[0].error).toBe(true);
+    });
   });
 
   describe('profile scoping', () => {

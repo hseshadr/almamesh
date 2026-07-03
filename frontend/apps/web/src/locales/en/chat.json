@@ -58,5 +58,9 @@
     "analysis": "Analysis",
     "timing_analysis": "Timing Analysis",
     "recommended_remedies": "Recommended Remedies"
+  },
+  "errors": {
+    "context_overflow": "This conversation has grown too long for the on-device model. Start a new chat or ask a shorter question.",
+    "model_missing": "The selected on-device model isn't available on this device. Re-select or re-download it in Settings → AI."
   }
 }

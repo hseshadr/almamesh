@@ -182,7 +182,15 @@ export function ChatPanel({
                     isHighlighted ? 'rounded-xl ring-2 ring-accent-gold/60 transition-shadow' : undefined
                   }
                 >
-                  {isLaymanMode ? (
+                  {message.error ? (
+                    // A failed-turn notice: visually distinct from real answers,
+                    // and excluded from the model-visible history by the hook.
+                    <div className="flex justify-start mb-4" data-testid="chat-error-bubble" role="alert">
+                      <div className="max-w-[85%] rounded-2xl rounded-bl-sm border border-status-error/40 bg-status-error/10 px-4 py-3 text-sm text-status-error">
+                        {message.content}
+                      </div>
+                    </div>
+                  ) : isLaymanMode ? (
                     <MessageBubble role={role} content={message.content} timestamp={message.created_at} />
                   ) : (
                     <ReferenceEntry role={role} content={message.content} timestamp={message.created_at} />

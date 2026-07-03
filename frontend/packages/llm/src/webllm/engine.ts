@@ -48,8 +48,14 @@ export interface OnDeviceChatCompletion {
 export interface OnDeviceChatRequest {
   readonly messages: ReadonlyArray<{ readonly role: string; readonly content: string }>;
   readonly stream?: boolean;
+  /** Generation cap — leaves headroom inside the 4096-token context window. */
+  readonly max_tokens?: number;
   readonly response_format?: { readonly type: "json_object"; readonly schema?: string };
-  /** Qwen3 `<think>`-block hazard: every request pins `enable_thinking: false`. */
+  /**
+   * Qwen3 `<think>`-block hazard: sent ONLY for models whose spec carries
+   * `suppressThinking` (see `models.ts`) — WebLLM injects a literal empty
+   * think block for models whose tokenizer lacks the token.
+   */
   readonly extra_body?: { readonly enable_thinking: boolean };
 }
 
