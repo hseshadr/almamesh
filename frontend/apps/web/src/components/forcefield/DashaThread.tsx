@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
-// @ts-nocheck
 /**
  * DashaThread - one visible thread from a dasha lord (or the strongest
  * discordant planet) to the native core. Replaces the 27 one-pixel WaveBeam
@@ -14,8 +12,6 @@
  *
  * Entrance: `drawProgress` (0..1) draws the tube in from the planet toward the
  * core with the pulse riding the tip.
- *
- * Note: @ts-nocheck — R3F9 intrinsic-element JSX clashes with React 19 typing.
  */
 
 import { useRef, useMemo, useEffect } from 'react';
