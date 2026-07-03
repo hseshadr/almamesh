@@ -19,13 +19,7 @@
 import { useCallback, useState } from 'react';
 import { useChatStore } from '@almamesh/store';
 import type { ChatMessage } from '@almamesh/shared-types';
-import {
-  LlmRequestError,
-  OnDeviceContextOverflowError,
-  OnDeviceModelRecordError,
-  PrivacyViolationError,
-  type ChatTurn,
-} from '@almamesh/llm';
+import type { ChatTurn, LlmRequestError } from '@almamesh/llm';
 
 import i18n from '../i18n/config';
 import { indexChatMessage, retrieveContext } from '../lib/chatMemory';
@@ -73,18 +67,47 @@ function toHistory(messages: readonly ChatMessage[]): ChatTurn[] {
   return turns;
 }
 
-/** Match a typed cause even if class identity was lost across a boundary. */
-function isNamed(error: unknown, name: string): boolean {
-  return error instanceof Error && error.name === name;
-}
+/**
+ * The SINGLE source of truth for the typed causes the chat error mapper
+ * handles: cause name → the actionable copy for its error bubble. Matched by
+ * `error.name` so a typed cause is recognized even if class identity was lost
+ * across a boundary. Both `isMappedChatStreamError` (the page-catch rethrow
+ * contract) and `describeChatStreamError` (the bubble copy) derive from this
+ * map, so the two can never drift apart. Exported for the test that locks it.
+ */
+export const CHAT_STREAM_ERROR_COPY: Readonly<
+  Record<string, (error: Error & Partial<LlmRequestError>) => string>
+> = {
+  OnDeviceContextOverflowError: () => i18n.t('chat:errors.context_overflow'),
+  OnDeviceModelRecordError: () => i18n.t('chat:errors.model_missing'),
+  // The fail-closed privacy fence writes a specific, user-facing message
+  // (which endpoint was refused and why): show it verbatim, never a code.
+  PrivacyViolationError: (error) => error.message,
+  // A dead/retired/typo'd model → "pick a different model"; any other non-2xx
+  // → retry/settings guidance.
+  LlmRequestError: (error) => {
+    if (
+      error.status === 404 ||
+      isModelUnavailableMessage(`${error.message} ${error.body ?? ''}`)
+    ) {
+      return i18n.t('chat:errors.model_unavailable');
+    }
+    return i18n.t('chat:errors.request_failed');
+  },
+  // `fetch` throws a TypeError when the endpoint is unreachable — a mapped,
+  // actionable cause even though it carries no custom class.
+  TypeError: () => i18n.t('chat:errors.endpoint_unreachable'),
+};
 
-/** The typed `@almamesh/llm` cause names `describeChatStreamError` maps. */
-const MAPPED_ERROR_NAMES = [
-  'OnDeviceContextOverflowError',
-  'OnDeviceModelRecordError',
-  'PrivacyViolationError',
-  'LlmRequestError',
-] as const;
+/** The map entry for a thrown cause, or undefined for unmapped/untyped ones. */
+function chatStreamErrorCopy(
+  error: unknown,
+): ((error: Error & Partial<LlmRequestError>) => string) | undefined {
+  if (!(error instanceof Error) || !Object.hasOwn(CHAT_STREAM_ERROR_COPY, error.name)) {
+    return undefined;
+  }
+  return CHAT_STREAM_ERROR_COPY[error.name];
+}
 
 /**
  * True for causes `describeChatStreamError` maps to specific, actionable copy.
@@ -93,12 +116,7 @@ const MAPPED_ERROR_NAMES = [
  * happens in exactly one place.
  */
 export function isMappedChatStreamError(error: unknown): boolean {
-  // `fetch` throws a TypeError when the endpoint is unreachable — a mapped,
-  // actionable cause even though it carries no custom class.
-  if (error instanceof TypeError) {
-    return true;
-  }
-  return MAPPED_ERROR_NAMES.some((name) => isNamed(error, name));
+  return chatStreamErrorCopy(error) !== undefined;
 }
 
 /**
@@ -109,26 +127,9 @@ export function isMappedChatStreamError(error: unknown): boolean {
  * anything unknown keeps the generic QA_001 fallback. Exported for tests.
  */
 export function describeChatStreamError(error: unknown): string {
-  if (error instanceof OnDeviceContextOverflowError || isNamed(error, 'OnDeviceContextOverflowError')) {
-    return i18n.t('chat:errors.context_overflow');
-  }
-  if (error instanceof OnDeviceModelRecordError || isNamed(error, 'OnDeviceModelRecordError')) {
-    return i18n.t('chat:errors.model_missing');
-  }
-  if (error instanceof PrivacyViolationError || isNamed(error, 'PrivacyViolationError')) {
-    // The fail-closed privacy fence writes a specific, user-facing message
-    // (which endpoint was refused and why): show it verbatim, never a code.
-    return (error as Error).message;
-  }
-  if (error instanceof LlmRequestError || isNamed(error, 'LlmRequestError')) {
-    const { status, body, message } = error as Partial<LlmRequestError> & Error;
-    if (status === 404 || isModelUnavailableMessage(`${message} ${body ?? ''}`)) {
-      return i18n.t('chat:errors.model_unavailable');
-    }
-    return i18n.t('chat:errors.request_failed');
-  }
-  if (error instanceof TypeError) {
-    return i18n.t('chat:errors.endpoint_unreachable');
+  const describe = chatStreamErrorCopy(error);
+  if (describe !== undefined && error instanceof Error) {
+    return describe(error);
   }
   return getChatErrorMessage('QA_001', error);
 }

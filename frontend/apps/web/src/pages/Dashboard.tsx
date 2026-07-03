@@ -49,6 +49,7 @@ import { useContentModeStore } from "../stores/contentMode";
 import type { ViewMode } from "../lib/types";
 import {
   ON_DEVICE_READING_UNSUPPORTED,
+  READING_MODEL_UNAVAILABLE,
   resolveInterpretationConfig,
   useStreamingInterpretation,
   withRawPredictive,
@@ -195,6 +196,14 @@ export default function DashboardPage() {
   // here it becomes honest guidance copy (chat + interview still work) instead
   // of a raw error, and the pointless Retry/Switch-model actions are hidden.
   const isOnDeviceScopeNotice = streamingError === ON_DEVICE_READING_UNSUPPORTED;
+
+  // Dead/retired/typo'd model → the switch-model prompt. The hook stores the
+  // stable sentinel for this case; the raw-message sniff keeps recognizing
+  // entries persisted before the sentinel existed.
+  const isModelUnavailableNotice =
+    streamingError !== null &&
+    !isOnDeviceScopeNotice &&
+    (streamingError === READING_MODEL_UNAVAILABLE || isModelUnavailableMessage(streamingError));
 
   // Honest, live "time so far" for the generation panel (replaces a fixed,
   // usually-wrong "about 30 seconds" estimate).
@@ -600,14 +609,13 @@ export default function DashboardPage() {
                   <p data-testid="on-device-scope-note">
                     {t('dashboard:generation.on_device_scope')}
                   </p>
-                ) : isModelUnavailableMessage(streamingError) ? (
+                ) : isModelUnavailableNotice ? (
                   <p>{t('dashboard:generation.model_unavailable')}</p>
                 ) : (
                   <p>{streamingError}</p>
                 )}
                 <div className="mt-3 flex flex-wrap items-center gap-3">
-                  {!isOnDeviceScopeNotice &&
-                    isModelUnavailableMessage(streamingError) &&
+                  {isModelUnavailableNotice &&
                     Boolean(readLlmSettings().apiKey) && (
                     <button
                       onClick={handleSwitchToRecommendedModel}
@@ -734,13 +742,12 @@ export default function DashboardPage() {
                   <p className="text-status-error">
                     {isOnDeviceScopeNotice
                       ? t('dashboard:generation.on_device_scope')
-                      : isModelUnavailableMessage(streamingError)
+                      : isModelUnavailableNotice
                         ? t('dashboard:generation.model_unavailable')
                         : t('dashboard:generation.regen_failed', { error: streamingError })}
                   </p>
                   <div className="flex flex-wrap items-center gap-3">
-                    {!isOnDeviceScopeNotice &&
-                      isModelUnavailableMessage(streamingError) &&
+                    {isModelUnavailableNotice &&
                       Boolean(readLlmSettings().apiKey) && (
                       <button
                         onClick={handleSwitchToRecommendedModel}

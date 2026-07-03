@@ -13,6 +13,7 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 
 import {
   ON_DEVICE_READING_UNSUPPORTED,
+  READING_MODEL_UNAVAILABLE,
   resolveInterpretationConfig,
   useStreamingInterpretation,
 } from '../useStreamingInterpretation';
@@ -231,7 +232,7 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
     expect(mockedStream.mock.calls[0][0].language).toBe('es');
   });
 
-  it('surfaces a friendly notice when the endpoint is unreachable', async () => {
+  it('maps a request failure to friendly retry copy — never env-var names or endpoints', async () => {
     mockedStream.mockImplementation(failingStream(new LlmRequestError('LLM endpoint returned 0')));
 
     const { result } = renderHook(() => useStreamingInterpretation('chart-123'));
@@ -240,7 +241,82 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
     });
 
     await waitFor(() => expect(result.current.status).toBe('error'));
-    expect(result.current.error).toMatch(/Configure a local or OpenRouter model/);
+    // The same actionable classification the chat path uses — never the old
+    // developer-facing "set VITE_LLM_API_BASE / localhost:11434" notice.
+    expect(result.current.error).toMatch(/try again in a moment/i);
+    expect(result.current.error).not.toMatch(/VITE_/);
+    expect(result.current.error).not.toMatch(/localhost/);
+  });
+
+  it('maps an unreachable endpoint (fetch TypeError) to "check AI settings" copy', async () => {
+    mockedStream.mockImplementation(failingStream(new TypeError('Failed to fetch')));
+
+    const { result } = renderHook(() => useStreamingInterpretation('chart-123'));
+    await act(async () => {
+      await result.current.streamInterpretation('chart-123');
+    });
+
+    await waitFor(() => expect(result.current.status).toBe('error'));
+    expect(result.current.error).toMatch(/couldn.t reach your ai endpoint/i);
+  });
+
+  it('REGRESSION: a failure whose message embeds the endpoint URL surfaces friendly copy, never the URL', async () => {
+    // The all-sections-failed aggregate is a plain Error whose message can
+    // carry the configured VITE_LLM_API_BASE endpoint — it must never render.
+    mockedStream.mockImplementation(
+      failingStream(
+        new Error(
+          'Interpretation failed: all 5 sections failed. ' +
+            'LLM request to https://openrouter.example/api/v1/chat/completions failed (HTTP 401)',
+        ),
+      ),
+    );
+
+    const { result } = renderHook(() => useStreamingInterpretation('chart-123'));
+    await act(async () => {
+      await result.current.streamInterpretation('chart-123');
+    });
+
+    await waitFor(() => expect(result.current.status).toBe('error'));
+    expect(result.current.error).not.toContain('https://');
+    expect(result.current.error).not.toContain('openrouter.example');
+    expect(result.current.error).toMatch(/settings/i);
+  });
+
+  it('maps an aggregate of per-section network failures to the unreachable-endpoint copy', async () => {
+    mockedStream.mockImplementation(
+      failingStream(
+        new Error('Interpretation failed: all 5 sections failed. Failed to fetch; Failed to fetch'),
+      ),
+    );
+
+    const { result } = renderHook(() => useStreamingInterpretation('chart-123'));
+    await act(async () => {
+      await result.current.streamInterpretation('chart-123');
+    });
+
+    await waitFor(() => expect(result.current.status).toBe('error'));
+    expect(result.current.error).toMatch(/couldn.t reach your ai endpoint/i);
+  });
+
+  it('maps a dead/retired model to the stable model-unavailable sentinel (switch-model prompt)', async () => {
+    mockedStream.mockImplementation(
+      failingStream(
+        new LlmRequestError('HTTP 404: No endpoints found for test-org/retired-model', {
+          status: 404,
+        }),
+      ),
+    );
+
+    const { result } = renderHook(() => useStreamingInterpretation('chart-123'));
+    await act(async () => {
+      await result.current.streamInterpretation('chart-123');
+    });
+
+    await waitFor(() => expect(result.current.status).toBe('error'));
+    // The sentinel — the dashboard maps it to the switch-model prompt, and the
+    // raw "No endpoints found" body never reaches the screen.
+    expect(result.current.error).toBe(READING_MODEL_UNAVAILABLE);
   });
 
   it('maps the on-device scope fence to the stable sentinel, never raw text (Spec 063)', async () => {

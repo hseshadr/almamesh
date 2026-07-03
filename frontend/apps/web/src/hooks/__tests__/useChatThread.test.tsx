@@ -1,7 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 
-import { isMappedChatStreamError, useChatThread } from '../useChatThread';
+import {
+  CHAT_STREAM_ERROR_COPY,
+  describeChatStreamError,
+  isMappedChatStreamError,
+  useChatThread,
+} from '../useChatThread';
 import {
   LlmRequestError,
   OnDeviceContextOverflowError,
@@ -330,5 +335,39 @@ describe('isMappedChatStreamError — the page-catch rethrow contract', () => {
     expect(isMappedChatStreamError(new Error('mystery'))).toBe(false);
     expect(isMappedChatStreamError('not an error')).toBe(false);
     expect(isMappedChatStreamError(undefined)).toBe(false);
+  });
+});
+
+describe('the chat error mapping derives from ONE map (rethrow contract and copy cannot drift)', () => {
+  it('covers exactly the typed causes the mapper is contracted to handle', () => {
+    expect(Object.keys(CHAT_STREAM_ERROR_COPY).sort()).toEqual([
+      'LlmRequestError',
+      'OnDeviceContextOverflowError',
+      'OnDeviceModelRecordError',
+      'PrivacyViolationError',
+      'TypeError',
+    ]);
+  });
+
+  it('every mapped cause name is BOTH rethrown by the page catch AND given non-generic copy', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    for (const name of Object.keys(CHAT_STREAM_ERROR_COPY)) {
+      // Name-based match: class identity may be lost across a boundary.
+      const error = new Error('synthetic failure');
+      error.name = name;
+      expect(isMappedChatStreamError(error), `${name} must be rethrown`).toBe(true);
+      expect(
+        describeChatStreamError(error),
+        `${name} must get specific copy`,
+      ).not.toContain('QA_001');
+    }
+  });
+
+  it('an unmapped cause name stays on the generic QA_001 path in BOTH functions', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const error = new Error('mystery');
+    error.name = 'SomeUnmappedError';
+    expect(isMappedChatStreamError(error)).toBe(false);
+    expect(describeChatStreamError(error)).toContain('QA_001');
   });
 });
