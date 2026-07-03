@@ -62,6 +62,13 @@
   },
   "errors": {
     "context_overflow": "Esta conversación es demasiado larga para el modelo en el dispositivo. Empieza un chat nuevo o haz una pregunta más corta.",
-    "model_missing": "El modelo en el dispositivo seleccionado no está disponible. Vuelve a seleccionarlo o descargarlo en Ajustes → IA."
+    "model_missing": "El modelo en el dispositivo seleccionado no está disponible. Vuelve a seleccionarlo o descargarlo en Ajustes → IA.",
+    "model_unavailable": "El modelo de IA configurado no está disponible en tu endpoint. Elige otro modelo en Ajustes → IA.",
+    "endpoint_unreachable": "No se pudo conectar con tu endpoint de IA. Comprueba que esté en funcionamiento y que la dirección en Ajustes → IA sea correcta.",
+    "request_failed": "La solicitud a la IA falló. Inténtalo de nuevo en un momento o revisa tu modelo y endpoint en Ajustes → IA."
+  },
+  "not_configured": {
+    "notice": "Conecta un modelo de IA para hacer preguntas sobre tu carta — tu carta ya está calculada en tu dispositivo.",
+    "cta": "Conectar un modelo de IA"
   }
 }

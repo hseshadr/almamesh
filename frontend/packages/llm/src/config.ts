@@ -14,19 +14,40 @@ import { DEFAULT_ONDEVICE_MODEL } from "./webllm/models";
 /** Mirror of the backend `PrivacyMode` enum (edgeproc.PrivacyMode). */
 export type PrivacyMode = "local_only" | "cloud_premium";
 
-/** Resolved description of which chat backend + endpoint a call should use. */
-export interface ProviderConfig {
-  /** Which engine serves the completion: `openai-http` or on-device `webllm`. */
-  readonly engine: LlmEngine;
-  /** An endpoint model slug (`openai-http`) or an MLC model id (`webllm`). */
+/**
+ * Resolved description of which chat backend + endpoint a call should use.
+ *
+ * A DISCRIMINATED UNION keyed on `engine`, so illegal combinations are
+ * unrepresentable: the on-device (`webllm`) engine has no endpoint and no key,
+ * while the OpenAI-compatible HTTP engine ALWAYS carries a `baseUrl` (with an
+ * optional apiKey). Consumers narrow on `config.engine` before touching
+ * `baseUrl` / `apiKey`.
+ */
+export type ProviderConfig = OnDeviceProviderConfig | HttpProviderConfig;
+
+/**
+ * On-device (`webllm`) inference (Spec 063): an MLC model id only. There is no
+ * endpoint and no apiKey — nothing can leave the device.
+ */
+export interface OnDeviceProviderConfig {
+  readonly engine: "webllm";
+  /** An MLC model id from WebLLM's prebuilt registry. */
   readonly model: string;
   readonly privacyMode: PrivacyMode;
-  /**
-   * OpenAI-compatible base URL, e.g. `http://localhost:11434/v1` (Ollama).
-   * Required by the `openai-http` engine; ABSENT for the on-device `webllm`
-   * engine, which has no endpoint at all.
-   */
-  readonly baseUrl?: string;
+}
+
+/**
+ * OpenAI-compatible HTTP inference: a `baseUrl` endpoint is REQUIRED (a local
+ * Ollama-style URL by default, or the opt-in cloud preset); the apiKey is
+ * optional and NEVER bundled — read from Vite env or the settings store.
+ */
+export interface HttpProviderConfig {
+  readonly engine: "openai-http";
+  /** An endpoint model slug served by the OpenAI-compatible endpoint. */
+  readonly model: string;
+  readonly privacyMode: PrivacyMode;
+  /** OpenAI-compatible base URL, e.g. `http://localhost:11434/v1` (Ollama). */
+  readonly baseUrl: string;
   /** Optional API key. Never bundled; supplied by env or local settings. */
   readonly apiKey?: string;
 }

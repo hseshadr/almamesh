@@ -80,7 +80,7 @@ on your device. Install it as a PWA and it works offline after the first load.
   per-life-domain forecasts (career, finances, health, relationships, …). It
   surfaces on the `/predictive` route — including a full **Periods** explorer
   (the 120-year Vimśottarī tree, drillable to antar/pratyantar) and a **Road
-  Ahead** timeline — plus a dashboard timing section and report sections VI–IX,
+  Ahead** timeline — plus a dashboard timing section and report sections VIII–XI,
   same zero-egress, byte-identical determinism as the natal chart.
 - **Named profiles** — multiple people share one device with **no passwords**;
   each profile owns its own saved charts, switchable from the header. Profiles
@@ -279,11 +279,11 @@ full set of dev/build/test commands.
 | 3D force-field | three.js hero, planets at real ecliptic longitude | ✅ shipped |
 | D9 Navamsa | Engine computes the Navamsa; renders in both kundli styles + the print report | ✅ shipped |
 | Divisional charts (D1–D60) | Full Shodasavarga set; D9 also rendered as a kundli, the rest as tables | ✅ shipped |
-| Predictive layer ("Sky & Timing") | Transits/Gochara + Sade Sati, dasha depth (antar/pratyantar), Ashtakavarga + Shadbala, per-life-domain forecasts; `/predictive` route (incl. a Periods explorer + Road Ahead) + report sections VI–IX | ✅ shipped |
+| Predictive layer ("Sky & Timing") | Transits/Gochara + Sade Sati, dasha depth (antar/pratyantar), Ashtakavarga + Shadbala, per-life-domain forecasts; `/predictive` route (incl. a Periods explorer + Road Ahead) + report sections VIII–XI | ✅ shipped |
 | The mesh (relational astrology) | Per-pair relationship read of two whole charts: Ashtakoota Guna Milan + Mangal screening (cited classical tables, partner edges only), chart overlay, daśā synchrony, significators; role-anonymized AI narration, read-only by construction; `/mesh` constellation + `/mesh/:memberId` edge view | ✅ shipped |
 | Members | People you add to your mesh, with typed relationships (spouse/partner/family/friend/…), each owning a full chart; persisted with a versioned migration; managed in Settings → People | ✅ shipped |
 | AI interpretation + chat | Three tiers — default none (pure calculation); on-device AI (WebLLM, private, beta; chat + interview) opt-in; cloud (OpenRouter / BYO OpenAI-compatible, one-click preset, stronger); PII-redacted, fail-closed | ✅ shipped |
-| PDF export | Branded print report (cover + D1/D9 + interpretation + predictive sections VI–IX); gated on a completed interpretation | ✅ shipped |
+| PDF export | Branded print report (cover + D1/D9 + interpretation + predictive sections VIII–XI); gated on a completed interpretation | ✅ shipped |
 | Birth-time rectification | Per-profile rectified time + confidence in Settings; recomputes the chart | ✅ shipped |
 | Named profiles | Multiple password-less people per device, each owning its charts; rename + delete (chart cascade) | ✅ shipped |
 | Offline geocoder | Client-side birth-location lookup, zero network | ✅ shipped |

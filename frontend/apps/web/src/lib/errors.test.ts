@@ -5,6 +5,7 @@ import {
   getChatErrorMessage,
   getEngineWarmingMessage,
   getUserFriendlyError,
+  isModelUnavailableMessage,
 } from './errors';
 
 // The error helpers are a plain (non-React) TS module that localizes via the
@@ -64,6 +65,32 @@ describe('getEngineWarmingMessage', () => {
     const msg = getEngineWarmingMessage();
     expect(msg).toContain('motor astrológico');
     expect(msg).not.toContain('astrology engine');
+  });
+});
+
+describe('isModelUnavailableMessage', () => {
+  it('matches a typo\'d OpenRouter model id (live 400 "is not a valid model ID")', () => {
+    // Verified against the live OpenRouter API 2026-07-03: a mistyped slug now
+    // returns HTTP 400 "...is not a valid model ID", not the old 404. This is
+    // the MOST COMMON real user error and must get the precise model-unavailable
+    // copy, not the generic request-failed fallback.
+    expect(
+      isModelUnavailableMessage(
+        'LLM endpoint returned 400: not-a-real/model-xyz is not a valid model ID',
+      ),
+    ).toBe(true);
+  });
+
+  it('still matches the legacy 404 / no-endpoints / model_not_found shapes', () => {
+    expect(isModelUnavailableMessage('No endpoints found for foo/bar')).toBe(true);
+    expect(isModelUnavailableMessage('error: model_not_found')).toBe(true);
+    expect(isModelUnavailableMessage('HTTP 404: model foo/bar does not exist')).toBe(true);
+  });
+
+  it('does NOT match unrelated failures (unreachable endpoint, rate limit)', () => {
+    expect(isModelUnavailableMessage('Failed to fetch')).toBe(false);
+    expect(isModelUnavailableMessage('HTTP 429: rate limit exceeded')).toBe(false);
+    expect(isModelUnavailableMessage('HTTP 400: messages array is required')).toBe(false);
   });
 });
 

@@ -57,6 +57,18 @@ export function AddPersonDialog({ open, onClose }: AddPersonDialogProps): ReactE
   const [name, setName] = useState('');
   const [relationshipValue, setRelationshipValue] = useState('');
 
+  const resetForm = (): void => {
+    setName('');
+    setRelationshipValue('');
+  };
+
+  // Reset on ANY close (Cancel, Escape, overlay) so a cancelled entry never
+  // lingers into the next open.
+  const handleClose = (): void => {
+    resetForm();
+    onClose();
+  };
+
   const submit = (): void => {
     const trimmed = name.trim();
     if (!trimmed) {
@@ -76,7 +88,7 @@ export function AddPersonDialog({ open, onClose }: AddPersonDialogProps): ReactE
   };
 
   return (
-    <Dialog open={open} onClose={onClose} title={t('people.add_title')}>
+    <Dialog open={open} onClose={handleClose} title={t('people.add_title')}>
       <div className="space-y-4">
         <div>
           <label
@@ -109,7 +121,7 @@ export function AddPersonDialog({ open, onClose }: AddPersonDialogProps): ReactE
         </div>
         <p className="text-xs text-text-muted">{t('people.add_hint')}</p>
         <div className="flex justify-end gap-2">
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="ghost" onClick={handleClose}>
             {t('people.add_cancel')}
           </Button>
           <Button onClick={submit} disabled={!name.trim()}>
