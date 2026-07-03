@@ -38,6 +38,7 @@ import { FeedbackWidget } from "../components/features/feedback/FeedbackWidget";
 import { ProvenanceFooter } from "../components/ProvenanceFooter";
 import {
   ChartVisualization,
+  DashboardInterpretation,
   IdentityStrip,
   LifeAtlas,
 } from "../components/features/dashboard";
@@ -807,6 +808,10 @@ export default function DashboardPage() {
               </div>
             )}
             <MarkdownContent content={summaryText} />
+            {/* The full reading: core narrative (always visible) + collapsible
+                depth (yogas, life-area guidance, remedies, the road ahead).
+                Voice-driven by `audience`; empty sections drop themselves. */}
+            <DashboardInterpretation interpretation={interpretation} audience={audience} />
             {hasPeriodGuidance && periodGuidance && (
               <div className="space-y-1.5 border-l-2 border-accent-gold/40 pl-4">
                 <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-text-tertiary">

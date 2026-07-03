@@ -40,6 +40,26 @@
     "generated_at": "Generada el {{date}}",
     "regen_no_ai": "Conecta un modelo de IA para regenerar esta lectura."
   },
+  "interpretation": {
+    "strengths": "Fortalezas",
+    "challenges": "Desafíos",
+    "life_themes": "Grandes temas de vida",
+    "yogas": "Yogas",
+    "road_ahead": "El camino por delante",
+    "explore": "Explora en profundidad",
+    "expand": "Ampliar",
+    "collapse": "Contraer",
+    "guidance": {
+      "health": "Salud y bienestar",
+      "relationship": "Relaciones y vínculos",
+      "career": "Carrera y vida profesional",
+      "education": "Aprendizaje y educación",
+      "finances": "Finanzas y dinero",
+      "spiritual": "Crecimiento espiritual y desarrollo interior",
+      "life_evolution": "Evolución de vida",
+      "remedial": "Medidas correctivas"
+    }
+  },
   "sections": {
     "core": "Identidad y personalidad",
     "yoga": "Trayectoria de vida (yogas)",

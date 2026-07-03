@@ -39,6 +39,26 @@
     "generated_at": "Generated {{date}}",
     "regen_no_ai": "Connect an AI model to regenerate this reading."
   },
+  "interpretation": {
+    "strengths": "Strengths",
+    "challenges": "Challenges",
+    "life_themes": "Major Life Themes",
+    "yogas": "Yogas",
+    "road_ahead": "The Road Ahead",
+    "explore": "Explore in depth",
+    "expand": "Expand",
+    "collapse": "Collapse",
+    "guidance": {
+      "health": "Health & Wellness",
+      "relationship": "Relationships & Connections",
+      "career": "Career & Professional Life",
+      "education": "Learning & Education",
+      "finances": "Finances & Money",
+      "spiritual": "Spiritual Growth & Inner Development",
+      "life_evolution": "Life Evolution",
+      "remedial": "Remedies"
+    }
+  },
   "sections": {
     "core": "Identity & personality",
     "yoga": "Life journey (yogas)",
