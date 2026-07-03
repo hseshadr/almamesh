@@ -3,8 +3,10 @@
  *
  * This is the only force-field file the rest of the app imports, so it is fully
  * typed (NO `@ts-nocheck`). The JSX-heavy scene below it (`ForceFieldScene` and
- * its `PlanetMesh` / `WaveBeam` / `WaveInterference` / `NativeCore` children)
- * keep `@ts-nocheck` because R3F9 intrinsic-element JSX clashes with React 19.
+ * its `PlanetMesh` / `DashaThread` / `NativeCore` children) keeps `@ts-nocheck`
+ * because R3F9 intrinsic-element JSX clashes with React 19. The pure
+ * presentation decisions (lord hierarchy, thread selection, entrance timeline)
+ * live typed + unit-tested in `astrolabe.ts`.
  *
  * Data feed (local-first, no server, no hooks): the static per-planet wave
  * params are computed ONCE from the persisted `SiderealChart` via the pure store
@@ -162,15 +164,21 @@ export function ForceFieldExperience({
     return () => document.removeEventListener('visibilitychange', onVisibility);
   }, []);
 
-  // rAF wave clock — only runs when visible and motion is allowed.
+  // rAF wave clock — only runs when visible and motion is allowed. Advances
+  // by REAL elapsed time (not a fixed per-frame step) so the entrance
+  // choreography completes in ~2.5 wall-seconds even when the device renders
+  // at low FPS; long gaps (tab jank) are clamped so the clock never jumps.
   useEffect(() => {
     if (reducedMotion || !inView) {
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
       return;
     }
-    const tick = (): void => {
-      setAnimationTime((t) => t + 0.016);
+    let last: number | null = null;
+    const tick = (now: number): void => {
+      const delta = last === null ? 0.016 : Math.min((now - last) / 1000, 0.1);
+      last = now;
+      setAnimationTime((t) => t + delta);
       rafRef.current = requestAnimationFrame(tick);
     };
     rafRef.current = requestAnimationFrame(tick);

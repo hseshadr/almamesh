@@ -1,48 +1,61 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 // @ts-nocheck
 /**
- * PlanetMesh - one graha glyph in the force field.
+ * PlanetMesh - one graha glyph in the Living Astrolabe.
  *
- * Ported from esoteric `aura/PlanetMesh.tsx`. Placement is the planet's TRUE
- * ecliptic longitude (shared `planetPosition`), so the scene reads as the chart
- * wheel. Cues added: combust -> desaturated glyph + faint "burnt" tint;
- * retrograde -> a small reversed-arc marker ring. Selection lifts the planet's
- * lowercase `id` (matches the 2D kundli `selectedPlanet` name) for 2D<->3D
- * cross-highlight.
+ * Placement is the planet's TRUE ecliptic longitude (shared `planetPosition`),
+ * so the scene reads as the chart wheel. The glyph is a token-coloured shaded
+ * disc (the shader reconstructs a lit sphere from the flat billboard) — no
+ * photo textures, one coherent engraved-astrolabe language. Rahu/Ketu get a
+ * slow smoky swirl on the same material (tints promoted to
+ * `colors.forcefield` design tokens).
  *
- * Keeps the GLSL CircularPlanetMaterial / ShadowNodeMaterial + glow.
+ * Focal hierarchy (see `astrolabe.ts`): the current dasha lords render larger,
+ * full-opacity, with a gentle breath; the other seven recede and hold still.
+ * Progressive disclosure: the label and the friendliness halo appear only on
+ * hover/selection, and the label BILLBOARDS (copies the camera quaternion) so
+ * it never renders edge-on under the auto-orbit. Combust -> desaturated disc.
+ * Selection lifts the lowercase `id` for 2D<->3D cross-highlight.
  *
  * Note: @ts-nocheck — R3F9 intrinsic-element JSX clashes with React 19 typing.
  */
 
-import { useRef, useState, useEffect, useMemo } from 'react';
+import { useRef, useState, useMemo, useEffect } from 'react';
 import { useFrame, type ThreeEvent, extend } from '@react-three/fiber';
 import { Text } from '@react-three/drei';
 import * as THREE from 'three';
 import { colors } from '@almamesh/constants';
 import type { PlanetWave } from '@almamesh/shared-types';
 import { planetPosition } from './placement';
+import { labelVisible, type PlanetRole } from './astrolabe';
 
-// Observatory-token colours for the non-glyph cues (rings / labels).
+// Observatory-token colours for the non-glyph cues (halo / labels).
 const RING_FRIEND = colors.status.exalted; // verdant — friendly to the dasha
 const RING_ENEMY = colors.status.debilitated; // dim red — hostile
 const RING_NEUTRAL = colors.text.secondary; // muted brass-gray
-const ORBIT_LINE = colors.text.secondary; // faint engraved orbit shell
-const RETRO_MARK = colors.accent['gold-bright']; // brass retro arc
 const LABEL_COLOR = colors.text.primary; // parchment label
 const LABEL_OUTLINE = colors.background.darkest; // obsidian outline
+const RAHU_TINT = new THREE.Color(colors.forcefield.rahuTint);
+const KETU_TINT = new THREE.Color(colors.forcefield.ketuTint);
 
-class CircularPlanetMaterial extends THREE.ShaderMaterial {
+/**
+ * One shader for all nine glyphs: a flat disc shaded as a lit sphere
+ * (reconstructed normal + lambert + fresnel rim), tinted by the planet's
+ * observatory token colour. `swirl` adds the slow smoky banding that marks
+ * the shadow nodes.
+ */
+class AstrolabeDiscMaterial extends THREE.ShaderMaterial {
   constructor() {
     super({
       uniforms: {
-        map: { value: null },
+        baseColor: { value: new THREE.Color(1, 1, 1) },
         glowColor: { value: new THREE.Color(1, 1, 1) },
-        glowIntensity: { value: 0.4 },
+        glowIntensity: { value: 0.3 },
         opacity: { value: 1.0 },
         isHovered: { value: 0.0 },
         isSelected: { value: 0.0 },
         desaturate: { value: 0.0 },
+        swirl: { value: 0.0 },
         time: { value: 0.0 },
       },
       vertexShader: `
@@ -53,13 +66,14 @@ class CircularPlanetMaterial extends THREE.ShaderMaterial {
         }
       `,
       fragmentShader: `
-        uniform sampler2D map;
+        uniform vec3 baseColor;
         uniform vec3 glowColor;
         uniform float glowIntensity;
         uniform float opacity;
         uniform float isHovered;
         uniform float isSelected;
         uniform float desaturate;
+        uniform float swirl;
         uniform float time;
         varying vec2 vUv;
 
@@ -67,13 +81,6 @@ class CircularPlanetMaterial extends THREE.ShaderMaterial {
           vec2 centeredUv = (vUv - 0.5) * 2.0;
           float dist = length(centeredUv);
           if (dist > 1.0) discard;
-
-          vec2 textureUv = vUv * 0.85 + 0.075;
-          vec4 texColor = texture2D(map, textureUv);
-
-          // Combust: pull texture toward its own luminance (desaturate / "burnt").
-          float lum = dot(texColor.rgb, vec3(0.299, 0.587, 0.114));
-          texColor.rgb = mix(texColor.rgb, vec3(lum), desaturate * 0.8);
 
           // Reconstruct a sphere normal from the disc so the flat billboard
           // reads as a lit 3D body (soft brass key from the upper-left).
@@ -81,94 +88,24 @@ class CircularPlanetMaterial extends THREE.ShaderMaterial {
           vec3 normal = normalize(vec3(centeredUv, z));
           vec3 lightDir = normalize(vec3(-0.5, 0.6, 0.85));
           float lambert = clamp(dot(normal, lightDir), 0.0, 1.0);
-          float shade = 0.45 + 0.55 * lambert; // ambient floor + key
-          texColor.rgb *= shade;
+          float shade = 0.42 + 0.58 * lambert;
+          vec3 col = baseColor * shade;
 
-          float edgeSmoothness = 0.03;
-          float alpha = 1.0 - smoothstep(1.0 - edgeSmoothness, 1.0, dist);
-
-          // Fresnel-style rim that brightens the limb (lit-sphere terminator).
-          float fresnel = pow(1.0 - z, 2.2);
-
-          float glowStart = 0.7;
-          float glowStrength = smoothstep(glowStart, 1.0, dist) * glowIntensity;
-          glowStrength *= (1.0 + isHovered * 0.5 + isSelected * 0.8);
-          float pulse = sin(time * 3.0) * 0.1 + 1.0;
-          glowStrength *= mix(1.0, pulse, isSelected);
-
-          vec3 finalColor = mix(texColor.rgb, glowColor, glowStrength * 0.6);
-          finalColor += glowColor * fresnel * (0.28 + isHovered * 0.2 + isSelected * 0.2);
-
-          // Dim non-selected planets when something else is selected handled in opacity.
-          gl_FragColor = vec4(finalColor, alpha * opacity);
-        }
-      `,
-      transparent: true,
-      depthWrite: false,
-      side: THREE.DoubleSide,
-    });
-  }
-}
-extend({ CircularPlanetMaterial });
-
-class ShadowNodeMaterial extends THREE.ShaderMaterial {
-  constructor() {
-    super({
-      uniforms: {
-        map: { value: null },
-        nodeColor: { value: new THREE.Color(0.5, 0.5, 0.6) },
-        opacity: { value: 1.0 },
-        isHovered: { value: 0.0 },
-        isSelected: { value: 0.0 },
-        time: { value: 0.0 },
-        isKetu: { value: 0.0 },
-      },
-      vertexShader: `
-        varying vec2 vUv;
-        void main() {
-          vUv = uv;
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }
-      `,
-      fragmentShader: `
-        uniform sampler2D map;
-        uniform vec3 nodeColor;
-        uniform float opacity;
-        uniform float isHovered;
-        uniform float isSelected;
-        uniform float time;
-        uniform float isKetu;
-        varying vec2 vUv;
-
-        void main() {
-          vec2 centeredUv = (vUv - 0.5) * 2.0;
-          float dist = length(centeredUv);
-          if (dist > 1.0) discard;
-
-          vec4 texColor = texture2D(map, vUv);
-
+          // Shadow-node smoke: slow subtle banding, only when swirl = 1.
           float angle = atan(centeredUv.y, centeredUv.x);
-          float swirl = sin(angle * 6.0 + time * 2.0) * 0.1;
-          float nebula = sin(dist * 10.0 - time * 1.5 + swirl) * 0.15 + 0.85;
+          float band = sin(angle * 5.0 + dist * 7.0 - time * 0.6) * 0.5 + 0.5;
+          col *= mix(1.0, 0.82 + band * 0.24, swirl);
 
-          float edgeSmoothness = 0.05;
-          float alpha = 1.0 - smoothstep(1.0 - edgeSmoothness, 1.0, dist);
+          // Combust: pull toward luminance (the "burnt" graha).
+          float lum = dot(col, vec3(0.299, 0.587, 0.114));
+          col = mix(col, vec3(lum), desaturate * 0.8);
 
-          float outerGlow = smoothstep(0.6, 1.0, dist) * 0.8;
-          float innerDark = 1.0 - smoothstep(0.0, 0.5, dist) * 0.3;
+          // Rim light on the limb — the only glow; bloom lifts it gently.
+          float fresnel = pow(1.0 - z, 2.2);
+          col += glowColor * fresnel * (glowIntensity + isHovered * 0.25 + isSelected * 0.4);
 
-          vec3 rahuColor = vec3(0.4, 0.45, 0.6);
-          vec3 ketuColor = vec3(0.6, 0.45, 0.35);
-          vec3 baseColor = mix(rahuColor, ketuColor, isKetu);
-
-          vec3 finalColor = texColor.rgb * nebula * innerDark;
-          finalColor = mix(finalColor, baseColor, 0.4 + outerGlow * 0.3);
-          finalColor += baseColor * outerGlow * (0.5 + isHovered * 0.3 + isSelected * 0.5);
-
-          float shimmer = sin(time * 4.0 + dist * 8.0) * 0.05 * (isHovered + isSelected * 0.5);
-          finalColor += vec3(shimmer);
-
-          gl_FragColor = vec4(finalColor, alpha * opacity * max(texColor.a, 0.7));
+          float alpha = (1.0 - smoothstep(0.97, 1.0, dist)) * opacity;
+          gl_FragColor = vec4(col, alpha);
         }
       `,
       transparent: true,
@@ -177,14 +114,19 @@ class ShadowNodeMaterial extends THREE.ShaderMaterial {
     });
   }
 }
-extend({ ShadowNodeMaterial });
+extend({ AstrolabeDiscMaterial });
 
 interface PlanetMeshProps {
   planet: PlanetWave;
   time: number;
+  /** Visual role under the current dasha lords (scale/opacity/pulse). */
+  role: PlanetRole;
+  /** Entrance reveal 0..1 (sequential fade/scale-in by longitude). */
+  reveal?: number;
   onSelect?: (id: string) => void;
   isSelected?: boolean;
   isDimmed?: boolean;
+  /** Parent-gated label visibility (selection); hover reveals it locally. */
   showLabel?: boolean;
   reducedMotion?: boolean;
   useRealLongitude?: boolean;
@@ -196,122 +138,88 @@ function getFriendlinessColor(friendliness: number): string {
   return RING_NEUTRAL;
 }
 
-const textureCache = new Map<string, THREE.Texture>();
-
-function usePlanetTexture(planetId: string): THREE.Texture | null {
-  const [texture, setTexture] = useState<THREE.Texture | null>(null);
-  useEffect(() => {
-    const normalizedId = planetId.toLowerCase();
-    if (textureCache.has(normalizedId)) {
-      setTexture(textureCache.get(normalizedId)!);
-      return;
-    }
-    const extension = normalizedId === 'rahu' || normalizedId === 'ketu' ? 'png' : 'jpg';
-    const loader = new THREE.TextureLoader();
-    loader.load(
-      `/planets/planet-${normalizedId}.${extension}`,
-      (loadedTexture) => {
-        loadedTexture.colorSpace = THREE.SRGBColorSpace;
-        loadedTexture.needsUpdate = true;
-        textureCache.set(normalizedId, loadedTexture);
-        setTexture(loadedTexture);
-      },
-      undefined,
-      (error) => console.warn(`Failed to load planet texture for ${planetId}:`, error),
-    );
-  }, [planetId]);
-  return texture;
-}
-
 export function PlanetMesh({
   planet,
   time,
+  role,
+  reveal = 1,
   onSelect,
   isSelected = false,
   isDimmed = false,
-  showLabel = true,
+  showLabel = false,
   reducedMotion = false,
   useRealLongitude = true,
 }: PlanetMeshProps) {
   const planetMeshRef = useRef<THREE.Mesh>(null);
-  const glowRef = useRef<THREE.Mesh>(null);
   const labelGroupRef = useRef<THREE.Group>(null);
-  const friendlinessRingRef = useRef<THREE.Mesh>(null);
-  const retroRingRef = useRef<THREE.Mesh>(null);
+  const haloRef = useRef<THREE.Mesh>(null);
   const materialRef = useRef<THREE.ShaderMaterial>(null);
   const [hovered, setHovered] = useState(false);
 
   const isShadowNode = planet.id === 'rahu' || planet.id === 'ketu';
-  const isKetu = planet.id === 'ketu';
-  const texture = usePlanetTexture(planet.id);
 
-  const planetColor = useMemo(
-    () => new THREE.Color(planet.waveColor[0], planet.waveColor[1], planet.waveColor[2]),
-    [planet.waveColor],
-  );
+  const planetColor = useMemo(() => {
+    if (planet.id === 'rahu') return RAHU_TINT.clone();
+    if (planet.id === 'ketu') return KETU_TINT.clone();
+    return new THREE.Color(planet.waveColor[0], planet.waveColor[1], planet.waveColor[2]);
+  }, [planet.id, planet.waveColor]);
 
+  // ShaderMaterial subclasses do NOT map JSX props onto uniforms — every
+  // uniform must be written imperatively (the slow-changing ones here, the
+  // per-frame ones in useFrame below).
   useEffect(() => {
-    if (materialRef.current && texture) {
-      materialRef.current.uniforms.map.value = texture;
-      materialRef.current.uniforms.glowColor = { value: planetColor };
-      materialRef.current.needsUpdate = true;
-    }
-  }, [texture, planetColor]);
+    const material = materialRef.current;
+    if (!material) return;
+    material.uniforms.baseColor.value = planetColor;
+    material.uniforms.glowColor.value = planetColor;
+    material.uniforms.glowIntensity.value = role.isLord ? 0.5 : 0.24;
+    material.uniforms.swirl.value = isShadowNode ? 1.0 : 0.0;
+  }, [planetColor, role.isLord, isShadowNode]);
 
   useFrame((state) => {
     const mesh = planetMeshRef.current;
-    if (!mesh || !glowRef.current) return;
+    if (!mesh) return;
 
     const animTime = reducedMotion ? time : state.clock.elapsedTime;
     const { x, y, z } = planetPosition(planet, animTime, useRealLongitude);
 
     mesh.position.set(x, y, z);
-    glowRef.current.position.set(x, y, z);
     mesh.quaternion.copy(state.camera.quaternion);
 
-    if (labelGroupRef.current) labelGroupRef.current.position.set(x, y + 0.55, z);
-    if (friendlinessRingRef.current) friendlinessRingRef.current.position.set(x, y - 0.05, z);
-    if (retroRingRef.current) {
-      retroRingRef.current.position.set(x, y - 0.05, z);
-      retroRingRef.current.rotation.z = -animTime * 0.8; // reversed spin cue
+    if (labelGroupRef.current) {
+      labelGroupRef.current.position.set(x, y + 0.55, z);
+      // BILLBOARD the label — the auto-orbit rotates the camera, so a static
+      // orientation would render the text edge-on / mirrored.
+      labelGroupRef.current.quaternion.copy(state.camera.quaternion);
     }
+    if (haloRef.current) haloRef.current.position.set(x, y - 0.05, z);
 
-    const basePulse = 1 + Math.sin(animTime * planet.frequency * 2) * 0.1;
-    const scale = (0.3 + planet.amplitude * 0.4) * basePulse;
+    // Motion economy: only the dasha lords breathe; the field holds still.
+    const pulse = 1 + Math.sin(animTime * 1.1) * role.pulseAmplitude;
+    const revealScale = 0.4 + 0.6 * reveal;
+    const scale = (0.3 + planet.amplitude * 0.4) * role.scale * pulse * revealScale;
     mesh.scale.setScalar(scale);
-    glowRef.current.scale.setScalar(scale * (1.5 + planet.coherence * 0.5));
 
     if (materialRef.current) {
       materialRef.current.uniforms.time.value = animTime;
       materialRef.current.uniforms.isHovered.value = hovered ? 1.0 : 0.0;
       materialRef.current.uniforms.isSelected.value = isSelected ? 1.0 : 0.0;
-      if ('desaturate' in materialRef.current.uniforms) {
-        materialRef.current.uniforms.desaturate.value = planet.isCombust ? 1.0 : 0.0;
-      }
-      const baseOpacity = isSelected ? 1.0 : hovered ? 0.95 : 0.85;
-      materialRef.current.uniforms.opacity.value = isDimmed ? baseOpacity * 0.35 : baseOpacity;
+      materialRef.current.uniforms.desaturate.value = planet.isCombust ? 1.0 : 0.0;
+      const baseOpacity = isSelected ? 1.0 : hovered ? Math.min(role.opacity + 0.25, 1) : role.opacity;
+      const dimFactor = isDimmed ? 0.35 : 1;
+      materialRef.current.uniforms.opacity.value = baseOpacity * dimFactor * reveal;
     }
   });
 
-  const glowOpacity = 0.15 + planet.coherence * 0.2;
   const displayName = planet.id.charAt(0).toUpperCase() + planet.id.slice(1);
   const initialX = Math.cos((-planet.eclipticLongitude * Math.PI) / 180) * planet.orbitRadius;
   const initialZ = Math.sin((-planet.eclipticLongitude * Math.PI) / 180) * planet.orbitRadius;
+  const revealLabel = labelVisible(hovered, showLabel || isSelected);
+  const revealHalo = labelVisible(hovered, isSelected);
 
   return (
     <group>
-      <mesh rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[planet.orbitRadius - 0.02, planet.orbitRadius + 0.02, 64]} />
-        <meshBasicMaterial color={ORBIT_LINE} transparent opacity={0.1} side={THREE.DoubleSide} />
-      </mesh>
-
-      <mesh ref={glowRef}>
-        <sphereGeometry args={[1, 16, 16]} />
-        <meshBasicMaterial color={planetColor} transparent opacity={glowOpacity} depthWrite={false} />
-      </mesh>
-
       <mesh
-        key={`${planet.id}-${texture ? 'loaded' : 'loading'}`}
         ref={planetMeshRef}
         scale={[1, 1, 1]}
         onClick={(e: ThreeEvent<MouseEvent>) => {
@@ -329,32 +237,11 @@ export function PlanetMesh({
         }}
       >
         <planeGeometry args={[1, 1]} />
-        {texture ? (
-          isShadowNode ? (
-            <shadowNodeMaterial
-              ref={materialRef}
-              attach="material"
-              map={texture}
-              isKetu={isKetu ? 1.0 : 0.0}
-              opacity={isSelected ? 1.0 : hovered ? 0.95 : 0.85}
-            />
-          ) : (
-            <circularPlanetMaterial
-              ref={materialRef}
-              attach="material"
-              map={texture}
-              glowColor={planetColor}
-              glowIntensity={0.4 + planet.coherence * 0.3}
-              desaturate={planet.isCombust ? 1.0 : 0.0}
-              opacity={isSelected ? 1.0 : hovered ? 0.95 : 0.85}
-            />
-          )
-        ) : (
-          <meshBasicMaterial color={planetColor} transparent opacity={0.8} side={THREE.DoubleSide} />
-        )}
+        <astrolabeDiscMaterial ref={materialRef} attach="material" />
       </mesh>
 
-      {showLabel && (
+      {/* Progressive disclosure: label only on hover / selection. */}
+      {revealLabel && (
         <group ref={labelGroupRef} position={[initialX, 0.55, initialZ]}>
           <Text
             font="/fonts/HankenGrotesk-Bold.ttf"
@@ -371,28 +258,19 @@ export function PlanetMesh({
         </group>
       )}
 
-      <mesh
-        ref={friendlinessRingRef}
-        position={[initialX, -0.05, initialZ]}
-        rotation={[-Math.PI / 2, 0, 0]}
-      >
-        <ringGeometry args={[0.4, 0.48, 32]} />
-        <meshBasicMaterial
-          color={getFriendlinessColor(planet.friendlinessToActive)}
-          transparent
-          opacity={hovered || isSelected ? 0.8 : 0.35}
-        />
-      </mesh>
-
-      {planet.isRetrograde && (
+      {/* Friendliness halo — hover/selection-only detail, not ambient noise. */}
+      {revealHalo && (
         <mesh
-          ref={retroRingRef}
+          ref={haloRef}
           position={[initialX, -0.05, initialZ]}
           rotation={[-Math.PI / 2, 0, 0]}
         >
-          {/* Partial arc -> visually reads as the reversed retrograde loop. */}
-          <ringGeometry args={[0.52, 0.58, 32, 1, 0, Math.PI * 1.4]} />
-          <meshBasicMaterial color={RETRO_MARK} transparent opacity={0.7} side={THREE.DoubleSide} />
+          <ringGeometry args={[0.42, 0.5, 32]} />
+          <meshBasicMaterial
+            color={getFriendlinessColor(planet.friendlinessToActive)}
+            transparent
+            opacity={0.8}
+          />
         </mesh>
       )}
     </group>

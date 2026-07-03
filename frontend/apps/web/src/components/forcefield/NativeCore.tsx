@@ -1,10 +1,17 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 // @ts-nocheck
 /**
- * NativeCore - the central "native" energy core (renamed from esoteric
- * `AuraSphere`). No OAuth avatar: the centre is a lagna-tinted Fresnel/rim-lit
- * core that pulses with `aura.glow` and tints by `aura.color`. Energy-pulse
- * rings respond to incoming wave flux exactly as before.
+ * NativeCore - the single hero of the Living Astrolabe.
+ *
+ * The centre is a lagna-tinted Fresnel/rim-lit nucleus wrapped in two soft
+ * aura shells, plus ONE expanding flux ring. The old three EnergyPulseRings +
+ * the separate CentralInterferenceRing are merged into that single ring
+ * system: its colour carries the aura's net flux (brass = constructive,
+ * lapis = destructive, ivory = balanced — `colors.forcefield` tokens) and its
+ * rate comes from `ringRateFromNetFlux` (≤ 0.5 rad/s, decoupled from planet
+ * count) so the core breathes instead of strobing.
+ *
+ * `ignition` (0..1) drives the entrance: the core scales/brightens in first.
  *
  * Note: @ts-nocheck — R3F9 intrinsic-element JSX clashes with React 19 typing.
  */
@@ -12,7 +19,13 @@
 import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import { colors } from '@almamesh/constants';
 import type { AuraState } from '@almamesh/shared-types';
+import { ringRateFromNetFlux } from './astrolabe';
+
+const FLUX_CONSTRUCTIVE = new THREE.Color(colors.forcefield.fluxConstructive);
+const FLUX_DESTRUCTIVE = new THREE.Color(colors.forcefield.fluxDestructive);
+const FLUX_BALANCED = new THREE.Color(colors.forcefield.fluxBalanced);
 
 interface NativeCoreProps {
   aura: AuraState;
@@ -20,61 +33,67 @@ interface NativeCoreProps {
   reducedMotion?: boolean;
   /** Lagna (ascendant) tint, RGB 0-1, identifies "the native". */
   lagnaColor?: [number, number, number];
-  /** Number of active planet waves for pulse intensity. */
-  activePlanetCount?: number;
+  /** Entrance ignition 0..1 (1 = fully lit). */
+  ignition?: number;
 }
 
-function EnergyPulseRing({
+/**
+ * Net-flux colour from the observatory tokens — a CONTINUOUS lapis→brass lerp
+ * (netFlux oscillates each frame; discrete state bands would pop). A touch of
+ * ivory softens the balanced middle.
+ */
+function fluxColor(netFlux: number): THREE.Color {
+  const t = (Math.max(-1, Math.min(1, netFlux)) + 1) / 2;
+  const c = FLUX_DESTRUCTIVE.clone().lerp(FLUX_CONSTRUCTIVE, t);
+  return c.lerp(FLUX_BALANCED, 0.12 * (1 - Math.abs(Math.max(-1, Math.min(1, netFlux)))));
+}
+
+/**
+ * The ONE ring system: a single ring expanding outward and fading, colour +
+ * rate carrying the net flux. Calm by construction (rate capped at 0.5 rad/s).
+ */
+function FluxRing({
   color,
   netFlux,
-  activePlanetCount,
+  intensity,
+  time,
   reducedMotion,
 }: {
   color: THREE.Color;
   netFlux: number;
-  activePlanetCount: number;
+  intensity: number;
+  time: number;
   reducedMotion: boolean;
 }) {
-  const r1 = useRef<THREE.Mesh>(null);
-  const r2 = useRef<THREE.Mesh>(null);
-  const r3 = useRef<THREE.Mesh>(null);
-  const m1 = useRef<THREE.MeshBasicMaterial>(null);
-  const m2 = useRef<THREE.MeshBasicMaterial>(null);
-  const m3 = useRef<THREE.MeshBasicMaterial>(null);
+  const ringRef = useRef<THREE.Mesh>(null);
+  const matRef = useRef<THREE.MeshBasicMaterial>(null);
+  const rate = ringRateFromNetFlux(netFlux);
 
   useFrame((state) => {
-    if (reducedMotion) return;
-    const time = state.clock.elapsedTime;
-    const baseFrequency = 0.8 + activePlanetCount * 0.15;
-    const pulseIntensity = 0.3 + Math.abs(netFlux) * 0.5;
-    const phases = [0, Math.PI * 0.67, Math.PI * 1.33];
-    const rings = [r1, r2, r3];
-    const mats = [m1, m2, m3];
-    rings.forEach((ringRef, index) => {
-      if (!ringRef.current) return;
-      const pulseCycle =
-        ((time * baseFrequency + phases[index]) % (Math.PI * 2)) / (Math.PI * 2);
-      ringRef.current.scale.setScalar(0.8 + pulseCycle * 0.7);
-      const matRef = mats[index];
-      if (matRef.current) matRef.current.opacity = (1 - pulseCycle) * pulseIntensity * 0.4;
-    });
+    if (!ringRef.current || !matRef.current) return;
+    const animTime = reducedMotion ? time : state.clock.elapsedTime;
+    // One angular cycle at `rate` rad/s -> one slow outward wash.
+    const cycle = reducedMotion
+      ? 0.35
+      : ((animTime * rate) % (Math.PI * 2)) / (Math.PI * 2);
+    ringRef.current.scale.setScalar(0.9 + cycle * 1.1);
+    matRef.current.opacity = (1 - cycle) * intensity;
   });
 
   return (
-    <group position={[0, 0.4, 0]}>
-      <mesh ref={r1} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[0.9, 0.95, 64]} />
-        <meshBasicMaterial ref={m1} color={color} transparent opacity={0.3} side={THREE.DoubleSide} depthWrite={false} />
-      </mesh>
-      <mesh ref={r2} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[0.9, 0.95, 64]} />
-        <meshBasicMaterial ref={m2} color={color} transparent opacity={0.3} side={THREE.DoubleSide} depthWrite={false} />
-      </mesh>
-      <mesh ref={r3} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[0.9, 0.95, 64]} />
-        <meshBasicMaterial ref={m3} color={color} transparent opacity={0.3} side={THREE.DoubleSide} depthWrite={false} />
-      </mesh>
-    </group>
+    <mesh ref={ringRef} position={[0, 0, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      {/* Starts just outside the aura shells so the wash reads as radiating. */}
+      <ringGeometry args={[1.5, 1.56, 64]} />
+      <meshBasicMaterial
+        ref={matRef}
+        color={color}
+        transparent
+        opacity={intensity}
+        side={THREE.DoubleSide}
+        blending={THREE.AdditiveBlending}
+        depthWrite={false}
+      />
+    </mesh>
   );
 }
 
@@ -83,31 +102,31 @@ export function NativeCore({
   time,
   reducedMotion = false,
   lagnaColor,
-  activePlanetCount = 9,
+  ignition = 1,
 }: NativeCoreProps) {
   const meshRef = useRef<THREE.Mesh>(null);
   const innerMeshRef = useRef<THREE.Mesh>(null);
 
-  const auraColor = useMemo(
-    () => new THREE.Color(aura.color[0], aura.color[1], aura.color[2]),
-    [aura.color],
-  );
-
-  // The native's identity tint = lagna sign colour; falls back to the aura hue.
+  // The native's identity tint = lagna sign colour; falls back to warm brass.
   const coreColor = useMemo(() => {
-    if (!lagnaColor) return auraColor.clone();
+    if (!lagnaColor) return FLUX_CONSTRUCTIVE.clone();
     return new THREE.Color(lagnaColor[0], lagnaColor[1], lagnaColor[2]);
-  }, [lagnaColor, auraColor]);
+  }, [lagnaColor]);
 
-  const innerColor = useMemo(() => coreColor.clone().offsetHSL(0, 0, 0.1), [coreColor]);
+  const shellColor = useMemo(() => fluxColor(aura.netFlux), [aura.netFlux]);
+  const innerColor = useMemo(
+    () => shellColor.clone().offsetHSL(0, 0, 0.08),
+    [shellColor],
+  );
 
   useFrame((state) => {
     if (!meshRef.current || !innerMeshRef.current) return;
     const animTime = reducedMotion ? time : state.clock.elapsedTime;
-    const pulseSpeed = 0.5 + (1 - aura.stability) * 1.5;
-    const pulseAmount = 0.05 + (1 - aura.stability) * 0.1;
+    // Calm breath — slow, small, stability-eased.
+    const pulseSpeed = 0.4 + (1 - aura.stability) * 0.5;
+    const pulseAmount = 0.04 + (1 - aura.stability) * 0.05;
     const pulse = 1 + Math.sin(animTime * pulseSpeed) * pulseAmount;
-    const scale = aura.baseRadius * pulse;
+    const scale = aura.baseRadius * pulse * (0.55 + 0.45 * ignition);
     meshRef.current.scale.setScalar(scale);
     const innerPulse = 1 + Math.sin(animTime * pulseSpeed + Math.PI) * pulseAmount * 0.5;
     innerMeshRef.current.scale.setScalar(scale * 0.85 * innerPulse);
@@ -117,43 +136,40 @@ export function NativeCore({
     }
   });
 
-  const outerOpacity = 0.18 + aura.glow * 0.28;
-  const innerOpacity = 0.12 + aura.glow * 0.18;
-  const emissiveIntensity = 0.35 + Math.abs(aura.netFlux) * 0.45;
+  const outerOpacity = (0.07 + aura.glow * 0.11) * ignition;
+  const innerOpacity = (0.05 + aura.glow * 0.09) * ignition;
+  const emissiveIntensity = (0.35 + Math.abs(aura.netFlux) * 0.45) * ignition;
+  const ringIntensity = (0.4 + Math.abs(aura.netFlux) * 0.25) * ignition;
 
   return (
     <group>
-      {/* Solid lagna-tinted nucleus (replaces the OAuth avatar disk). */}
-      <mesh>
+      {/* Solid lagna-tinted nucleus — the native's identity, bright enough to
+          catch the bloom pass and read as the single radiant focal point. */}
+      <mesh scale={0.4 + 0.6 * ignition}>
         <icosahedronGeometry args={[0.45, 2]} />
         <meshStandardMaterial
           color={coreColor}
           emissive={coreColor}
-          emissiveIntensity={emissiveIntensity * 1.5}
+          emissiveIntensity={emissiveIntensity * 3.2}
           roughness={0.35}
           metalness={0.2}
         />
       </mesh>
 
-      <EnergyPulseRing
-        color={auraColor}
+      <FluxRing
+        color={shellColor}
         netFlux={aura.netFlux}
-        activePlanetCount={activePlanetCount}
+        intensity={ringIntensity}
+        time={time}
         reducedMotion={reducedMotion}
       />
-
-      {/* Lagna marker ground ring. */}
-      <mesh position={[0, -0.25, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[0.3, 0.35, 32]} />
-        <meshBasicMaterial color={coreColor} transparent opacity={0.5} />
-      </mesh>
 
       <mesh ref={meshRef}>
         <icosahedronGeometry args={[1.2, 3]} />
         <meshStandardMaterial
-          color={auraColor}
-          emissive={auraColor}
-          emissiveIntensity={emissiveIntensity}
+          color={shellColor}
+          emissive={shellColor}
+          emissiveIntensity={emissiveIntensity * 1.6}
           transparent
           opacity={outerOpacity}
           side={THREE.DoubleSide}
@@ -166,7 +182,7 @@ export function NativeCore({
         <meshStandardMaterial
           color={innerColor}
           emissive={innerColor}
-          emissiveIntensity={emissiveIntensity * 1.3}
+          emissiveIntensity={emissiveIntensity * 2}
           transparent
           opacity={innerOpacity}
           side={THREE.DoubleSide}
@@ -174,7 +190,12 @@ export function NativeCore({
         />
       </mesh>
 
-      <pointLight color={auraColor} intensity={aura.glow * 2} distance={5} decay={2} />
+      <pointLight
+        color={shellColor}
+        intensity={aura.glow * 2 * ignition}
+        distance={5}
+        decay={2}
+      />
     </group>
   );
 }

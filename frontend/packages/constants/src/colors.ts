@@ -84,6 +84,18 @@ export const colors = {
     combust: '#E3B85A', // Combust / retrograde (brass amber)
   },
 
+  // 3D force-field scene tokens (the Living Astrolabe). Promoted from
+  // renderer-local literals so the scene never carries off-palette hues:
+  // net-flux state colours for the core's single flux ring, and the smoky
+  // node-disc tints for Rahu/Ketu (previously ad-hoc GLSL vec3 literals).
+  forcefield: {
+    fluxConstructive: '#E3B85A', // polished brass — net constructive flux
+    fluxDestructive: '#3A4FB0', // lapis-indigo — net destructive flux
+    fluxBalanced: '#ECE6D8', // warm ivory — balanced flux
+    rahuTint: '#7A7E8C', // slate — Rahu's smoky shadow-node disc
+    ketuTint: '#5C5F6B', // deep slate — Ketu's smoky shadow-node disc
+  },
+
   // UI element colors — hairline engraved borders, low contrast.
   ui: {
     border: '#262B38', // Hairline engraved border
