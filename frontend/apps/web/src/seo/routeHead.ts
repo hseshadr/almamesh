@@ -1,0 +1,121 @@
+/**
+ * Spec 064 — the single typed source of per-route SEO head data for the five
+ * PUBLIC routes (the only ones prerendered at build time and listed in
+ * sitemap.xml). Consumed by:
+ *   - `src/prerender-entry.tsx` (build-time head injection via
+ *     vite-prerender-plugin)
+ *   - `src/seo/publicFiles.test.ts` (locks public/sitemap.xml + robots.txt +
+ *     the IndexNow key to this source)
+ *
+ * Private app routes are deliberately NOT here: they are client-rendered only,
+ * Disallowed in robots.txt, and excluded from the sitemap.
+ */
+
+export const SITE_ORIGIN = 'https://almamesh.com';
+
+/** The existing brand OG card (1200x630) — shared by every public route. */
+export const OG_IMAGE_URL = `${SITE_ORIGIN}/og-card.png`;
+
+/** Shape vite-prerender-plugin serializes into `<head>` (`{type, props}`). */
+export interface HeadElement {
+  readonly type: string;
+  readonly props: Record<string, string>;
+}
+
+export interface RouteHead {
+  /** App route path, e.g. `/welcome`. */
+  readonly path: string;
+  /** Unique `<title>` (≤ 70 chars). */
+  readonly title: string;
+  /** Unique meta description (50–160 chars, search-snippet sized). */
+  readonly description: string;
+  /** Absolute canonical URL on almamesh.com. */
+  readonly canonical: string;
+}
+
+function route(path: string, title: string, description: string): RouteHead {
+  return {
+    path,
+    title,
+    description,
+    canonical: path === '/' ? `${SITE_ORIGIN}/` : `${SITE_ORIGIN}${path}`,
+  };
+}
+
+export const PUBLIC_ROUTE_HEADS: readonly RouteHead[] = [
+  route(
+    '/',
+    'AlmaMesh — Free Local-First Vedic Astrology in Your Browser',
+    'Free Vedic (sidereal) astrology computed entirely in your browser. No accounts, no server, offline after first load. Open-source engine, honest readings.',
+  ),
+  route(
+    '/welcome',
+    'Welcome to AlmaMesh — Vedic Astrology That Respects Your Data',
+    'Meet AlmaMesh: authentic Vedic charts — planets, nakshatras, dashas — calculated on your device, free forever. No sign-up, no scams, no data collection.',
+  ),
+  route(
+    '/privacy',
+    'Privacy Policy — AlmaMesh',
+    'AlmaMesh runs entirely in your browser: your birth data never leaves your device. How the local-first design makes privacy the default, not a promise.',
+  ),
+  route(
+    '/terms',
+    'Terms of Service — AlmaMesh',
+    'The terms for using AlmaMesh, the free open-source Vedic astrology app: no accounts, honest disclaimers, and astrology offered as reflection, not fact.',
+  ),
+  route(
+    '/data-deletion',
+    'Data Deletion — AlmaMesh',
+    'Your data lives only in your browser. Deleting it is a local action you control — clear it in-app or via browser storage. No server copies exist.',
+  ),
+];
+
+export const PUBLIC_ROUTE_PATHS: readonly string[] = PUBLIC_ROUTE_HEADS.map((h) => h.path);
+
+/**
+ * Every private app surface, by prefix — the robots.txt Disallow list.
+ * (`/life` covers `/life/:domain`, `/mesh` covers `/mesh/:memberId`, etc.)
+ */
+export const PRIVATE_ROUTE_PREFIXES: readonly string[] = [
+  '/dashboard',
+  '/onboarding',
+  '/predictive',
+  '/report',
+  '/mesh',
+  '/rectify',
+  '/settings',
+  '/life',
+];
+
+export function getRouteHead(path: string): RouteHead | undefined {
+  return PUBLIC_ROUTE_HEADS.find((h) => h.path === path);
+}
+
+/**
+ * The full per-route head-tag set (description + canonical + Open Graph +
+ * Twitter card) in vite-prerender-plugin's `{type, props}` element shape.
+ * The `<title>` travels separately (the plugin's `head.title` replaces the
+ * template title). The SoftwareApplication JSON-LD stays static in
+ * `index.html` — valid site-level entity data on every page.
+ */
+export function headElementsFor(path: string): HeadElement[] {
+  const head = getRouteHead(path);
+  if (!head) return [];
+  const meta = (props: Record<string, string>): HeadElement => ({ type: 'meta', props });
+  return [
+    meta({ name: 'description', content: head.description }),
+    { type: 'link', props: { rel: 'canonical', href: head.canonical } },
+    meta({ property: 'og:type', content: 'website' }),
+    meta({ property: 'og:site_name', content: 'AlmaMesh' }),
+    meta({ property: 'og:title', content: head.title }),
+    meta({ property: 'og:description', content: head.description }),
+    meta({ property: 'og:url', content: head.canonical }),
+    meta({ property: 'og:image', content: OG_IMAGE_URL }),
+    meta({ property: 'og:image:width', content: '1200' }),
+    meta({ property: 'og:image:height', content: '630' }),
+    meta({ name: 'twitter:card', content: 'summary_large_image' }),
+    meta({ name: 'twitter:title', content: head.title }),
+    meta({ name: 'twitter:description', content: head.description }),
+    meta({ name: 'twitter:image', content: OG_IMAGE_URL }),
+  ];
+}

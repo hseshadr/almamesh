@@ -1,6 +1,7 @@
 import { createLogger, defineConfig, Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import { vitePrerenderPlugin } from 'vite-prerender-plugin'
 import path from 'path'
 import { writeFileSync, readFileSync } from 'fs'
 import { createHash } from 'crypto'
@@ -100,6 +101,11 @@ function pwaPlugin(): Plugin[] {
         // via manualChunks below so this pattern is stable. (The model weights
         // themselves are WebLLM-cache-managed — no SW rule for them.)
         'assets/webllm-*.js',
+        // Spec 064: the build-time prerender entry chunk (vite-prerender-plugin
+        // executes it in Node during `vite build`). Nothing in the browser ever
+        // imports it — index.html carries no reference — so precaching it would
+        // ship ~200 KB of dead code to every client at SW install.
+        'assets/prerender-entry-*.js',
       ],
       // App-shell SPA fallback: an offline navigation to any route serves the
       // precached index.html (then React Router takes over).
@@ -212,10 +218,63 @@ function pwaPlugin(): Plugin[] {
   }) as Plugin[]
 }
 
+// Spec 064 — build-time prerender of the PUBLIC routes only (landing + legal).
+// `src/prerender-entry.tsx` runs IN NODE during `vite build` and renders the
+// engine-free public shells to real per-route HTML (dist/index.html,
+// dist/welcome/index.html, dist/{privacy,terms,data-deletion}/index.html) with
+// per-route head tags from src/seo/routeHead.ts — so crawlers get content, not
+// an empty JS shell. Private app routes stay 100% client-rendered. Runs BEFORE
+// VitePWA in the plugin list: the prerendered pages are emitted during
+// generateBundle, so the SW precache manifest (built at closeBundle) includes
+// them with correct revisions.
+//
+// The plugin's bundled `serve-prerendered-html` preview middleware is DROPPED:
+// it rewrites EVERY extensionless path without a matching index.html to the
+// prerendered /index.html — including the engine's extensionless
+// `/bundle/latest` pointer, which then returns HTML to a JSON fetch and kills
+// the engine bootstrap (CHART_GEN_001) under `vite preview` / `poe demo` / the
+// CI exit gate. The closed-allowlist middleware below replaces it.
+function prerenderPublicRoutesPlugin(): Plugin[] {
+  const plugins = vitePrerenderPlugin({
+    renderTarget: '#root',
+    prerenderScript: path.resolve(__dirname, 'src/prerender-entry.tsx'),
+    additionalPrerenderRoutes: ['/welcome', '/privacy', '/terms', '/data-deletion'],
+  }) as Plugin[]
+  return plugins.filter((p) => p.name !== 'serve-prerendered-html')
+}
+
+// Preview-only: serve the per-route prerendered HTML for EXACTLY the public
+// routes (mirroring how Cloudflare Pages resolves /welcome ->
+// welcome/index.html in production, per public/_redirects). A closed
+// allowlist so no engine/data path can ever be rewritten to HTML.
+function previewPublicRoutesMiddleware(): Plugin {
+  const publicRoutes = new Set(['/welcome', '/privacy', '/terms', '/data-deletion'])
+  return {
+    name: 'almamesh-preview-public-routes',
+    configurePreviewServer(server) {
+      server.middlewares.use((req, _res, next) => {
+        if (req.url) {
+          const pathname = new URL(req.url, 'http://localhost').pathname.replace(/\/+$/, '')
+          if (publicRoutes.has(pathname)) {
+            req.url = `${pathname}/index.html`
+          }
+        }
+        next()
+      })
+    },
+  }
+}
+
 // https://vite.dev/config/
 export default defineConfig({
   customLogger: quietLogger,
-  plugins: [react(), versionPlugin(), ...pwaPlugin()],
+  plugins: [
+    react(),
+    versionPlugin(),
+    ...prerenderPublicRoutesPlugin(),
+    previewPublicRoutesMiddleware(),
+    ...pwaPlugin(),
+  ],
   // Inline the app version at build time so client code (e.g. the feedback
   // widget's X-App-Version header) reports the running release. Absent in
   // `vite dev` / unit tests, where the reader falls back to 'dev'.

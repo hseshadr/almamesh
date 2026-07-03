@@ -185,6 +185,38 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: bunx wrangler@4.103.0 pages deploy dist --project-name=almamesh --branch=main
 
+      # Spec 064: tell IndexNow-consuming engines (Bing, Yandex, …) the public
+      # pages changed. Key file ships in the build (public/<key>.txt). This is
+      # best-effort by contract — `|| true` on every path so a search-engine
+      # hiccup can NEVER fail a deploy. (Google ignores IndexNow; the sitemap +
+      # Search Console cover it.)
+      - name: Ping IndexNow with the public URLs (non-fatal)
+        working-directory: ${{ github.workspace }}
+        run: |
+          # The IndexNow key is PUBLIC by protocol design (engines verify
+          # ownership by fetching https://<host>/<key>.txt). Derive it from the
+          # shipped key file's name so no hex literal lives in this workflow
+          # (gitleaks false-positives on inline keys) and rotation is automatic.
+          KEY_FILE=$(cd frontend/apps/web/public && ls | grep -E '^[0-9a-f]{32}\.txt$' | head -1) || true
+          KEY="${KEY_FILE%.txt}"
+          if [ -n "$KEY" ]; then
+            curl -sS -X POST 'https://api.indexnow.org/indexnow' \
+              -H 'Content-Type: application/json; charset=utf-8' \
+              --max-time 30 \
+              --data '{
+                "host": "almamesh.com",
+                "key": "'"$KEY"'",
+                "keyLocation": "https://almamesh.com/'"$KEY"'.txt",
+                "urlList": [
+                  "https://almamesh.com/",
+                  "https://almamesh.com/welcome",
+                  "https://almamesh.com/privacy",
+                  "https://almamesh.com/terms",
+                  "https://almamesh.com/data-deletion"
+                ]
+              }' || true
+          fi
+
       - name: Shred the restored private key
         # `if: always()` means this can fire even when the job failed before
         # checkout — so run from the workspace root (not `backend/`, which may
