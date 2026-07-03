@@ -8,9 +8,14 @@
 //   1. Every public route emits a FLAT `<slug>.html` (root -> index.html) and
 //      NOT a nested `<slug>/index.html` (the nested form is what CF 308-redirects
 //      the no-slash canonical away to — the bug this fix removes).
-//   2. Each flat file declares the matching NO-slash canonical + og:url.
+//   2. Each flat file declares the matching NO-slash canonical + og:url, and
+//      carries its OWN per-route og:image + twitter:image (/og/<slug>.png,
+//      present in dist) — never the shared brand card.
 //   3. The SW precache manifest (sw.js) lists the flat HTML files and STILL
 //      excludes the build-time `prerender-entry-*.js` chunk (Spec 064 guarantee).
+//      The /og/*.png share cards must NOT be precached either — they are
+//      scraper-fetched preview assets, not app shell (same treatment as
+//      og-card.png).
 //
 // Exit non-zero on the first failed invariant so CI / the exit gate can gate on it.
 import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
@@ -55,6 +60,9 @@ const prerenderOutputFile =
   routeHead?.prerenderOutputFile ??
   ((p) => (p === '/' ? 'index.html' : `${p.replace(/^\//, '')}.html`));
 const canonicalFor = (p) => (p === '/' ? `${SITE_ORIGIN}/` : `${SITE_ORIGIN}${p}`);
+const ogSlugFor = routeHead?.ogSlugFor ?? ((p) => (p === '/' ? 'home' : p.replace(/^\//, '')));
+const ogImageUrlFor =
+  routeHead?.ogImageUrlFor ?? ((p) => `${SITE_ORIGIN}/og/${ogSlugFor(p)}.png`);
 
 console.log(`\nVerifying prerender dist layout in ${distDir}\n`);
 
@@ -81,6 +89,28 @@ for (const route of PUBLIC_ROUTE_PATHS) {
     ok(`${file} og:url is ${canonical}`);
   } else {
     fail(`${file} og:url missing/!= ${canonical}`);
+  }
+
+  // Per-route OG card: this route's own /og/<slug>.png in og:image AND
+  // twitter:image, and the referenced PNG actually shipped in dist.
+  const ogImage = ogImageUrlFor(route);
+  const ogImageTag = html.match(/<meta[^>]+property=["']og:image["'][^>]*>/i)?.[0] ?? '';
+  if (ogImageTag.includes(`content="${ogImage}"`) || ogImageTag.includes(`content='${ogImage}'`)) {
+    ok(`${file} og:image is its own card ${ogImage}`);
+  } else {
+    fail(`${file} og:image missing/!= ${ogImage} — got: ${ogImageTag || '(none)'}`);
+  }
+  const twImageTag = html.match(/<meta[^>]+name=["']twitter:image["'][^>]*>/i)?.[0] ?? '';
+  if (twImageTag.includes(`content="${ogImage}"`) || twImageTag.includes(`content='${ogImage}'`)) {
+    ok(`${file} twitter:image matches`);
+  } else {
+    fail(`${file} twitter:image missing/!= ${ogImage} — got: ${twImageTag || '(none)'}`);
+  }
+  const ogAsset = path.join(distDir, 'og', `${ogSlugFor(route)}.png`);
+  if (existsSync(ogAsset) && statSync(ogAsset).isFile()) {
+    ok(`dist ships og/${ogSlugFor(route)}.png`);
+  } else {
+    fail(`dist MISSING og/${ogSlugFor(route)}.png (referenced by ${file})`);
   }
 
   // The nested directory form must NOT exist (it is what 308s the canonical away).
@@ -117,6 +147,11 @@ if (!existsSync(swPath)) {
   const leaked = [...precached].filter((u) => /(^|\/)prerender-entry-[^/]*\.js$/.test(u));
   if (leaked.length) fail(`prerender-entry chunk LEAKED into precache: ${leaked.join(', ')}`);
   else ok('prerender-entry-*.js excluded from precache (Spec 064 guarantee holds)');
+  // The per-route OG cards are scraper-fetched share assets, NOT app shell —
+  // keep them out of the precache (same treatment as og-card.png).
+  const ogLeaked = [...precached].filter((u) => /^og\//.test(u) || u === 'og-card.png');
+  if (ogLeaked.length) fail(`OG share cards LEAKED into precache: ${ogLeaked.join(', ')}`);
+  else ok('og/*.png share cards excluded from precache');
 }
 
 // Sanity: the engine's extensionless pointer + shell are intact.
