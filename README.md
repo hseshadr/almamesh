@@ -1,27 +1,21 @@
 # AlmaMesh
 
-**A free, offline, local-first Vedic astrology app that runs entirely in your
-browser.** Give it a birth date, time, and place; it computes a full sidereal
-chart — planets, signs, houses, nakshatras, and Vimshottari dasha periods —
-on your own device, in a tab. You get **degree-accurate North- and South-Indian
-kundli charts**, a **live 3D planetary force-field** of the sky at your birth
-moment, and **optional AI interpretation and chat** (bring your own
-OpenAI-compatible model — a one-click OpenRouter preset or a local endpoint).
-No account, no server, no data harvesting; the chart engine itself runs entirely
-on your device. Install it as a PWA and it works offline after the first load.
+**A free, local-first Vedic astrology app that runs entirely in your browser.**
+Give it a birth date, time, and place; it computes a full sidereal chart —
+planets, signs, houses, nakshatras, and Vimshottari dasha periods — on your own
+device, in a tab. You get **degree-accurate North- and South-Indian kundli
+charts** and a **live 3D planetary force-field** of the sky at your birth
+moment. **Your chart is pure calculation — no AI touches it by default.** AI
+interpretation and chat are strictly opt-in, two ways: **on-device** (a small
+model on your own GPU — prompts never leave your hardware) or **bring your own
+cloud** (a one-click OpenRouter preset, or any OpenAI-compatible endpoint, for
+stronger models). No account, no server, no data harvesting. Install it as a
+PWA and it works offline after the first load.
 
 **▶ Try it live: [almamesh.com](https://almamesh.com)** — no install, no sign-up.
 
 ![AlmaMesh landing — the Observatory PWA](docs/assets/landing.png)
 
-- **What it is:** an installable web app whose chart engine is the *unchanged*
-  Python `almamesh` package compiled to WebAssembly via **Pyodide** and run in a
-  Web Worker. The chart you see in the browser is **byte-identical** to the one
-  CPython computes.
-- **Why it works offline:** a **signed, content-addressed bundle** (the DE421
-  ephemeris + the Skyfield/Pyodide wheels + the `almamesh` wheel + provenance
-  metadata) is synced into the browser's OPFS once. After that, every chart is
-  pure on-device compute — no cloud call is ever needed to draw a chart.
 - **Why it exists:** astrology apps are riddled with paywalls, account walls, and
   quiet data harvesting. AlmaMesh is the opposite — auditable, gratis, private by
   construction, and the same on every OS because it's just a browser tab. The
@@ -40,6 +34,18 @@ on your device. Install it as a PWA and it works offline after the first load.
   readings between people) and the **Sky & Timing** predictive layer, and
   PWA/offline delivery all work today — see [Status](#status). There is **no
   backend**: the Python side is a build-time bundle publisher plus the engine.
+
+## Under the hood
+
+- **The engine is real Python, unchanged:** the chart engine is the *unchanged*
+  Python `almamesh` package compiled to WebAssembly via **Pyodide** and run in a
+  Web Worker. The chart you see in the browser is **byte-identical** to the one
+  CPython computes.
+- **Why it works offline:** a **signed, content-addressed bundle** (the DE421
+  ephemeris + the Skyfield/Pyodide wheels + the `almamesh` wheel + provenance
+  metadata) is synced once into OPFS, the browser's private on-disk storage.
+  After that, every chart is pure on-device compute — no cloud call is ever
+  needed to draw a chart.
 
 ## What you get
 

@@ -1,108 +1,77 @@
 # AlmaMesh Tech Stack
 
-**Last Updated**: 2026-05-30
+**Last Updated**: 2026-07-03
 
-AlmaMesh is **local-first and shipped**: the astrology engine runs on the user's
-device — in the browser, under Pyodide/WASM in a Web Worker — not on a server.
-There is no backend API, database, cache, or auth. The network is used only to
-deliver a signed, content-addressed bundle, after which the installable PWA works
-offline.
+**TL;DR — AlmaMesh is a static, local-first PWA. There is no server, no
+database, no accounts.** The chart engine is the unchanged Python `almamesh`
+package running in the browser under Pyodide (WebAssembly) in a Web Worker,
+**byte-identical to CPython**. The network is used exactly twice: once to load
+the app, once to sync a **signed, content-addressed bundle** into the browser's
+private storage (OPFS) — after that the app works fully offline. **AI is off by
+default** (the chart is pure calculation) and strictly opt-in.
 
-## Overview
+Why this shape: local-first is the anti-scam guarantee. If the compute never
+leaves the device, there is nothing to harvest, nothing to paywall, and every
+result can be reproduced bit-for-bit from the open engine.
 
-```
-Engine:    Python 3.13 — deterministic sidereal calc (Skyfield + DE421 + Lahiri table)
-Delivery:  edge-proc — signed (ed25519) content-addressed bundles, fail-closed
-Browser:   Pyodide/WASM (shipped) — the same engine, in-tab Web Worker
-Frontend:  React + Vite + TypeScript + Bun — local-first installable PWA (shipped)
-LLM:       optional, client-side — any OpenAI-compatible endpoint, privacy-gated
-Deploy:    static origin + CDN + PWA (no server)
-```
+## At a glance
 
-## Engine (works today)
+| Layer | Tech | Notes |
+|-------|------|-------|
+| Engine | Python 3.13 `almamesh` package | Pydantic models, `uv` deps; deterministic — same inputs → byte-identical chart on CPython and Pyodide |
+| Astronomy | Skyfield + DE421 ephemeris | Sidereal; Lahiri ayanamsa default (True-Chitra + True-node selectable); externally validated against astropy + JPL Horizons to sub-arcsecond (no Swiss Ephemeris) |
+| Delivery | `almamesh-bundle` CLI (build-time) | ed25519-signed, content-addressed bundle: DE421 + Skyfield/Pyodide wheels + the `almamesh` wheel + provenance metadata; verification is fail-closed |
+| In-browser engine | Pyodide (WASM) in a Web Worker | `@almamesh/browser` syncs the signed bundle into OPFS, boots the unchanged wheel, computes off the UI thread |
+| Frontend | React ^19 + Vite ^6 + TypeScript ~5.7 + Tailwind ^3.4 | Bun-workspace monorepo; installable PWA (vite-plugin-pwa + service worker), offline after first load |
+| State | Zustand ^5 | Persisted stores + pure adapters in `@almamesh/store` — reshape only, **no astrology in TypeScript** |
+| AI (optional) | Three tiers, all client-side (`@almamesh/llm`) | **Default: none** — the chart is pure calculation. Opt-in **on-device** (WebLLM via WebGPU, beta; chat + interview scope) or **cloud** (one-click OpenRouter preset / BYO OpenAI-compatible endpoint, stronger). Prompts are PII-redacted; `local_only` fail-closes against cloud hosts. Never required to draw a chart |
+| Chat memory | `@almamesh/memory` | Zero-egress RAG over chat history: on-device embeddings (Transformers.js, self-hosted weights, in a Worker) + IndexedDB vector store + cosine retrieval |
+| i18n | react-i18next | en / es / pt, offline bundled catalogs (zero egress); AI narrates in-language; en authoritative, es/pt machine-translated |
+| Tests | Vitest (unit) + Playwright (live-browser exit gate) | Plus the `test:parity` gate asserting Pyodide == CPython byte-identical charts |
+| Deploy | Cloudflare Pages (static) | CI runs `wrangler pages deploy dist`; the origin is plain static files + the signed bundle — any static host would do |
 
-| Component | Technology | Notes |
-|-----------|------------|-------|
-| Language | Python | 3.13, managed with `uv` |
-| Astronomy | Skyfield | sidereal positions from the DE ephemeris |
-| Ayanamsa | Lahiri lookup table | shipped as a construct, not computed online |
-| Validation | Pydantic | typed boundaries on every public surface |
-| Packaging | hatchling wheel | the unit compiled into Pyodide for the browser |
+## How a chart happens (one paragraph)
 
-The engine is pure and deterministic: identical inputs yield byte-identical
-charts (verified across CPython and Pyodide).
-
-## Delivery — edge-proc bundles
-
-| Component | Technology | Purpose |
-|-----------|------------|---------|
-| Signing | ed25519 (raw 32-byte keys) | sign the construct manifest; pin the public key |
-| Addressing | content-addressed chunks | immutable `/chunk/<hash>`, `/manifest/<hash>` |
-| Verification | fail-closed | a bad signature or hash raises; never downgrades |
-| Provenance | `almamesh_meta.json` | engine + ephemeris + ayanamsa versions per bundle |
-
-Published via `almamesh-bundle`; consumed on-device. The origin is a plain
-static directory — any web server or CDN serves it.
-
-## Browser (shipped)
-
-The same Python engine runs in the browser via **Pyodide** (WebAssembly), in a
-Web Worker off the UI thread. The full chart computation is **byte-equal to
-CPython** (asserted by an offline parity gate, `packages/browser` →
-`test:parity`). The app (`@almamesh/browser`) syncs the signed bundle into OPFS,
-verifies it ed25519+sha256 fail-closed, boots the unchanged `almamesh` wheel, and
-computes in-tab — no server. It is an installable PWA (service worker), offline
-after first load, with an in-app provenance footer showing the bundle's
-engine/ephemeris versions. Birth-location lookup uses a bundled **offline
-geocoder** (zero network).
-
-## Frontend
-
-| Component | Technology | Version |
-|-----------|------------|---------|
-| UI Framework | React | ^19 |
-| Build Tool | Vite | ^6 |
-| Language | TypeScript | ~5.7 |
-| Package Manager | Bun | latest |
-| Styling | Tailwind CSS | ^3.4 |
-| State | Zustand | ^5 |
-
-> The `frontend/` is a Bun-workspace monorepo: `@almamesh/{shared-types,
-> constants,browser,store,llm}` plus `apps/web`. The Supabase auth + REST client
-> are **gone**; the app is fully backend-free. See
-> [`../frontend/README.md`](../frontend/README.md). Note: the engine's module
-> Workers only resolve in a production build, so run the app with `bun run build
-> && bun run preview`, not `vite dev`.
-
-## LLM (optional, client-side)
-
-Narration is never required to draw a chart. When enabled, `@almamesh/llm` calls
-any OpenAI-compatible endpoint **directly from the browser** (local-model
-default). Privacy is enforced client-side: a `local_only` egress gate fails
-closed unless the endpoint is a loopback/private host, and chart payloads are
-PII-redacted before any call (see the package's `egress`/`sanitize` tests). The
-Python `llm.py` is retained only as the reference for this client-side port.
+The browser app (`@almamesh/browser`) verifies and syncs the signed bundle into
+OPFS, boots the `almamesh` wheel under Pyodide in a Web Worker, and calls the
+same `calculate_sidereal_context()` entrypoint the offline CLI calls. TypeScript
+then only *reshapes* the result (`SiderealChart → ChartData` plus kundli
+geometry and the 3D force-field frame) — every piece of astrology math lives in
+Python. The same worker lazily serves the predictive ("Sky & Timing"), mesh
+(relationship), and rectification (birth-time) entrypoints. Full pipeline detail
+lives in the root [`CLAUDE.md`](../CLAUDE.md) Data Contract section.
 
 ## Commands
 
 ```bash
-# Engine + delivery (Python)
+# Engine + bundle publisher (Python)
 cd backend
 uv sync --extra dev
-uv run almamesh-chart "1990-01-15T12:00:00+00:00" 40.7128 -74.0060   # offline chart
+uv run almamesh-chart "1990-01-15T12:00:00+00:00" 40.7128 -74.0060   # offline chart, no browser
 uv run ruff check . && uv run mypy src/ && uv run pytest -q          # quality gate
+
+# Turnkey demo (from the repo root): install + dev assets + build + open the PWA
+uv run poe demo                                           # http://localhost:4173
 
 # Frontend (the product — local-first PWA)
 cd frontend && bun install
-cd frontend/apps/web && ./scripts/setup-dev-assets.sh   # one-time: Pyodide dist + signed dev bundle
-cd frontend/apps/web && bun run build && bun run preview # run end-to-end (NOT `vite dev`)
-cd frontend/packages/browser && bun run test:parity      # Pyodide == CPython byte-parity gate
+cd frontend/apps/web && ./scripts/setup-dev-assets.sh     # one-time: Pyodide dist + signed dev bundle
+cd frontend/apps/web && bun run build && bun run preview  # run end-to-end (NOT `vite dev` — module Workers need a real build)
+cd frontend/packages/browser && bun run test:parity       # Pyodide == CPython byte-parity gate
+cd frontend/apps/web && node scripts/verify-exit-gate.mjs # live headless-Chromium exit gate
 ```
+
+> The `frontend/` monorepo packages are `@almamesh/{shared-types,constants,
+> browser,store,llm,memory}` + the vendored `@edgeproc/browser` bundle-sync tier,
+> plus `apps/web` (the "Observatory" PWA). See
+> [`../frontend/README.md`](../frontend/README.md).
 
 ## Not using
 
 | Technology | Reason |
 |------------|--------|
-| Any backend server / DB / cache | Local-first: compute on-device, no server |
-| Accounts / auth | No sign-in; charts are computed, not stored remotely |
+| Any backend server / DB / cache | Local-first: compute on-device; the network is delivery-only |
+| Accounts / auth / login | No sign-in; profiles are named, password-less, and live on the device |
 | GraphQL / REST API | There is no API to call |
+| Font / asset CDNs | Fonts are self-hosted; a loaded app makes zero cross-origin requests to draw a chart |
+| Swiss Ephemeris | License-encumbered; Skyfield + DE421 validated independently instead |
