@@ -4,11 +4,11 @@
  * Both charts render in the `paper` variant (light cells, dark ink, brass lagna)
  * inside matching framed paper PLATES so they reproduce faithfully under
  * `print-color-adjust: exact`. The D9 is rendered DIRECTLY here via
- * `buildVargaGeometry` + the shared paper-variant SVG — it deliberately does NOT
- * reuse `DivisionalChartView`, whose dark `Card` chrome (obsidian panel, app
- * toggle, on-screen subtitle) belongs to the observatory app and looked like a
- * debug widget pasted onto the report. The active North/South display style is
- * honored so both plates match the user's on-screen preference.
+ * `buildVargaGeometry` + the shared paper-variant SVG — deliberately NOT inside
+ * the app's dark `Card` chrome (obsidian panel, toggle, on-screen subtitle),
+ * which looked like a debug widget pasted onto the report. The active
+ * North/South display style is honored so both plates match the user's
+ * on-screen preference.
  */
 
 import { useMemo, type ReactElement } from 'react';

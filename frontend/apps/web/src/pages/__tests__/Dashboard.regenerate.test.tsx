@@ -12,7 +12,7 @@
  * All chart/interpretation data below is SYNTHETIC.
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
@@ -324,6 +324,88 @@ describe('Dashboard — regenerate reading', () => {
     // The stale reading survives the failed run.
     const reading = screen.getByTestId('reading-section');
     expect(reading.textContent ?? '').toContain(LAYMAN_SUMMARY);
+  });
+
+  it('a FAILED manual regeneration surfaces an inline, dismissible error strip in the reading section', async () => {
+    configureCloudAi();
+    // Provenance matches: nothing auto-regenerates — only the manual click runs.
+    seedCompleteReading(currentProvenance());
+    mockedStream.mockImplementation(failingStream(new Error('HTTP 500 from endpoint')));
+    renderDashboard();
+
+    fireEvent.click(await screen.findByTestId('regenerate-reading'));
+    await waitFor(() => expect(mockedStream).toHaveBeenCalledTimes(1));
+
+    // The failure is VISIBLE inside the reading section — not swallowed by
+    // keep-old-until-success — while the old reading stays on screen.
+    const strip = await screen.findByTestId('reading-regen-error');
+    expect(within(screen.getByTestId('reading-section')).getByTestId('reading-regen-error')).toBe(strip);
+    expect(screen.getByTestId('reading-section').textContent ?? '').toContain(LAYMAN_SUMMARY);
+
+    // Actionable: Retry + the AI-settings door.
+    expect(within(strip).getByTestId('reading-regen-retry')).toBeTruthy();
+    const settingsLink = within(strip).getByTestId('reading-regen-ai-settings');
+    expect(settingsLink.getAttribute('href')).toBe('/settings/ai');
+
+    // Dismissible: the strip goes away, the reading stays.
+    fireEvent.click(within(strip).getByTestId('reading-regen-dismiss'));
+    expect(screen.queryByTestId('reading-regen-error')).toBeNull();
+    expect(screen.getByTestId('reading-section').textContent ?? '').toContain(LAYMAN_SUMMARY);
+  });
+
+  it('Retry on the error strip starts a fresh generation (and clears the strip while running)', async () => {
+    configureCloudAi();
+    seedCompleteReading(currentProvenance());
+    mockedStream.mockImplementation(failingStream(new Error('HTTP 500 from endpoint')));
+    renderDashboard();
+
+    fireEvent.click(await screen.findByTestId('regenerate-reading'));
+    const strip = await screen.findByTestId('reading-regen-error');
+    // Let the (pre-existing) single follow-up auto-attempt settle so the call
+    // count below is stable before Retry is exercised.
+    await settle();
+    const callsBefore = mockedStream.mock.calls.length;
+
+    mockedStream.mockImplementation(pendingStream());
+    fireEvent.click(within(strip).getByTestId('reading-regen-retry'));
+
+    await waitFor(() => expect(mockedStream.mock.calls.length).toBe(callsBefore + 1));
+    // While the retry is in flight the error strip yields (status: generating).
+    await waitFor(() => expect(screen.queryByTestId('reading-regen-error')).toBeNull());
+  });
+
+  it('the on-device tier disables Regenerate WITH an explanatory caption (never a silent no-op)', async () => {
+    // On-device (webllm) is configured AI, but the structured reading is out
+    // of its Spec 063 scope — the button must not invite a doomed click.
+    writeLlmSettings({
+      ...openRouterPreset('sk-or-v1-0000-synthetic-test-key', 'test-org/test-model'),
+      engine: 'webllm',
+    });
+    seedCompleteReading(STALE_PROVENANCE);
+    renderDashboard();
+
+    const button = await screen.findByTestId<HTMLButtonElement>('regenerate-reading');
+    expect(button.disabled).toBe(true);
+
+    // The caption says WHY and points at AI settings.
+    const note = screen.getByTestId('regenerate-unavailable');
+    expect(note.textContent ?? '').toMatch(/cloud or local/i);
+    expect(note.querySelector('a')?.getAttribute('href')).toBe('/settings/ai');
+
+    await settle();
+    expect(mockedStream).not.toHaveBeenCalled();
+  });
+
+  it('with NO AI configured the disabled Regenerate also carries the connect-AI caption', async () => {
+    // No settings written: tier is none — same rule, different guidance copy.
+    seedCompleteReading(STALE_PROVENANCE);
+    renderDashboard();
+
+    await screen.findByTestId('reading-section');
+    expect(screen.getByTestId<HTMLButtonElement>('regenerate-reading').disabled).toBe(true);
+    const note = screen.getByTestId('regenerate-unavailable');
+    expect(note.textContent ?? '').toContain('Connect an AI model');
+    expect(note.querySelector('a')?.getAttribute('href')).toBe('/settings/ai');
   });
 
   it('does NOT auto-regenerate on the on-device tier (reading cannot be produced there)', async () => {

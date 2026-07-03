@@ -19,8 +19,6 @@ import {
   writeLlmSettings,
   openRouterPreset,
   RECOMMENDED_CLOUD_MODEL,
-  OnDeviceContextOverflowError,
-  OnDeviceModelRecordError,
   type ChatTurn,
   type LlmEnv,
 } from "@almamesh/llm";
@@ -43,7 +41,8 @@ import {
   IdentityStrip,
   LifeAtlas,
 } from "../components/features/dashboard";
-import { getUserFriendlyError } from "../lib/errors";
+import { getUserFriendlyError, isModelUnavailableMessage } from "../lib/errors";
+import { isMappedChatStreamError } from "../hooks/useChatThread";
 import { type SSEMetaData } from "../lib/streaming";
 import { useContentModeStore } from "../stores/contentMode";
 import type { ViewMode } from "../lib/types";
@@ -57,19 +56,6 @@ import { useElapsedSeconds, formatElapsed } from "../hooks/useElapsedSeconds";
 import { canExportPdf, isPlaceholderContent } from "./exportGate";
 import { personaText, resolveReportAudience } from "../lib/reportSelectors";
 import { rectificationDelta } from "../lib/rectification";
-
-// A model-not-found failure from an OpenAI-compatible endpoint — e.g. OpenRouter
-// returns HTTP 404 "No endpoints found for <model>" when the configured model id
-// is retired/typo'd. We surface this as an actionable "switch model" prompt
-// instead of a raw error body, since "Retry" with the same dead model just loops.
-function isModelUnavailableError(message: string): boolean {
-  const m = message.toLowerCase();
-  return (
-    m.includes("no endpoints found") ||
-    m.includes("model_not_found") ||
-    (m.includes("404") && m.includes("model"))
-  );
-}
 
 // Resolve the LLM env: build-time Vite env with any browser-local Settings
 // overrides taking precedence — mirrors useStreamingInterpretation so the
@@ -191,6 +177,18 @@ export default function DashboardPage() {
   // auto-generation and decides between the progress panel and the CTA.
   const aiConfigured = describeLlmStatus().configured;
 
+  // Whether the ACTIVE interpretation tier can produce the structured reading:
+  // configured AI that is NOT the on-device (webllm) tier — the reading is out
+  // of its Spec 063 scope. Gates the Regenerate button (with an explanatory
+  // caption) so a click is never a silent no-op; mirrors the auto-generate
+  // effect's `canProduceReading` fence.
+  const canRegenerateReading = aiConfigured && resolveInterpretationConfig().engine !== 'webllm';
+
+  // A failed regeneration with a kept reading surfaces an inline error strip
+  // in the reading section (keep-old-until-success keeps the reading itself).
+  // Dismissed locally; a new generation attempt re-arms it.
+  const [regenErrorDismissed, setRegenErrorDismissed] = useState(false);
+
   // The on-device tier deliberately does not serve the full written reading in
   // v1 (Spec 063 scope fence). The hook stores a stable sentinel for that case;
   // here it becomes honest guidance copy (chat + interview still work) instead
@@ -286,9 +284,10 @@ export default function DashboardPage() {
         onToken(delta);
       }
     } catch (err) {
-      // Typed on-device causes must reach useChatThread intact so the user
-      // gets an actionable message (new chat / re-download) instead of QA_001.
-      if (err instanceof OnDeviceContextOverflowError || err instanceof OnDeviceModelRecordError) throw err;
+      // Typed @almamesh/llm causes (on-device, privacy fence, request/endpoint
+      // failures) must reach useChatThread intact so `describeChatStreamError`
+      // can give the user an actionable message instead of the generic QA_001.
+      if (isMappedChatStreamError(err)) throw err;
       throw new Error(getUserFriendlyError('QA_001', err instanceof Error ? err.message : undefined, t('dashboard:chat.not_configured_notice')));
     }
     return {
@@ -300,6 +299,9 @@ export default function DashboardPage() {
 
   const handleGenerateSeparatedInterpretation = async () => {
     if (!chartId) return;
+    // A fresh attempt re-arms the regeneration-failure strip (it was for the
+    // PREVIOUS failure; a new one must be visible again).
+    setRegenErrorDismissed(false);
     // Abort any in-flight run WITHOUT deleting the stored entry: the store
     // keeps a previously completed reading through a regeneration
     // (keep-old-until-success), so a failed run never leaves the user with
@@ -597,14 +599,14 @@ export default function DashboardPage() {
                   <p data-testid="on-device-scope-note">
                     {t('dashboard:generation.on_device_scope')}
                   </p>
-                ) : isModelUnavailableError(streamingError) ? (
+                ) : isModelUnavailableMessage(streamingError) ? (
                   <p>{t('dashboard:generation.model_unavailable')}</p>
                 ) : (
                   <p>{streamingError}</p>
                 )}
                 <div className="mt-3 flex flex-wrap items-center gap-3">
                   {!isOnDeviceScopeNotice &&
-                    isModelUnavailableError(streamingError) &&
+                    isModelUnavailableMessage(streamingError) &&
                     Boolean(readLlmSettings().apiKey) && (
                     <button
                       onClick={handleSwitchToRecommendedModel}
@@ -665,12 +667,21 @@ export default function DashboardPage() {
               </h2>
               {/* Regenerate the reading with the currently configured AI. The
                   old reading stays on screen until the new one lands; while a
-                  run is in flight (or with no AI configured) this is inert. */}
+                  run is in flight — or when the active tier cannot produce
+                  readings (none / on-device) — this is disabled, WITH the
+                  caption below explaining why (never a silent no-op). */}
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleRegenerateReading}
-                disabled={isStreamingInterpretation || !aiConfigured}
+                disabled={isStreamingInterpretation || !canRegenerateReading}
+                title={
+                  !canRegenerateReading
+                    ? aiConfigured
+                      ? t('dashboard:generation.on_device_scope')
+                      : t('dashboard:reading.regen_no_ai')
+                    : undefined
+                }
                 data-testid="regenerate-reading"
               >
                 {isStreamingInterpretation ? (
@@ -694,6 +705,82 @@ export default function DashboardPage() {
                 {t('dashboard:actions.regenerate')}
               </Button>
             </header>
+            {/* WHY Regenerate is unavailable: no capable tier (none, or the
+                on-device scope fence) — with the door to AI settings. */}
+            {!canRegenerateReading && (
+              <p
+                className="text-xs leading-relaxed text-text-tertiary"
+                data-testid="regenerate-unavailable"
+              >
+                {aiConfigured
+                  ? t('dashboard:generation.on_device_scope')
+                  : t('dashboard:reading.regen_no_ai')}{' '}
+                <Link to="/settings/ai" className="underline hover:no-underline">
+                  {t('dashboard:actions.ai_settings')}
+                </Link>
+              </p>
+            )}
+            {/* A FAILED regeneration must be VISIBLE: keep-old-until-success
+                keeps the reading below, and this dismissible strip carries the
+                why + the recovery actions (Retry / switch model / AI settings). */}
+            {interpretationStatus === 'error' && streamingError && !regenErrorDismissed && (
+              <div
+                className="flex items-start justify-between gap-3 rounded-lg border border-status-error/40 bg-status-error/10 px-4 py-3 text-sm"
+                role="alert"
+                data-testid="reading-regen-error"
+              >
+                <div className="space-y-2">
+                  <p className="text-status-error">
+                    {isOnDeviceScopeNotice
+                      ? t('dashboard:generation.on_device_scope')
+                      : isModelUnavailableMessage(streamingError)
+                        ? t('dashboard:generation.model_unavailable')
+                        : t('dashboard:generation.regen_failed', { error: streamingError })}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-3">
+                    {!isOnDeviceScopeNotice &&
+                      isModelUnavailableMessage(streamingError) &&
+                      Boolean(readLlmSettings().apiKey) && (
+                      <button
+                        onClick={handleSwitchToRecommendedModel}
+                        className="rounded-md bg-accent-gold px-3 py-1.5 font-medium text-background-primary transition-colors hover:bg-accent-gold-bright"
+                        data-testid="reading-regen-switch-recommended"
+                      >
+                        {t('dashboard:actions.switch_recommended')}
+                      </button>
+                    )}
+                    {/* Retrying the identical on-device config would just
+                        re-throw the scope fence — only the settings door helps. */}
+                    {!isOnDeviceScopeNotice && (
+                      <button
+                        onClick={handleRegenerateReading}
+                        className="underline hover:no-underline"
+                        data-testid="reading-regen-retry"
+                      >
+                        {t('dashboard:actions.retry')}
+                      </button>
+                    )}
+                    <Link
+                      to="/settings/ai"
+                      className="underline hover:no-underline"
+                      data-testid="reading-regen-ai-settings"
+                    >
+                      {t('dashboard:actions.ai_settings')}
+                    </Link>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setRegenErrorDismissed(true)}
+                  className="shrink-0 text-text-tertiary transition-colors hover:text-text-primary"
+                  aria-label={t('dashboard:actions.dismiss')}
+                  data-testid="reading-regen-dismiss"
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            )}
             {/* Honest partial-failure notice: per-section LLM failures degrade
                 those sections to empty — say which ones and offer a regenerate
                 instead of silently rendering blank sections. */}

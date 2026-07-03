@@ -226,6 +226,37 @@ describe("defensive leading empty <think> strip — chat and JSON paths", () => 
   });
 });
 
+describe("empty streaming completion — typed error, never a blank answer", () => {
+  it("throws LlmRequestError when the stream ends with no content", async () => {
+    fake.__state.streamChunks = [];
+    await expect(
+      collect(webLlmChatProvider.stream({ config: ONDEVICE_CFG, messages: MESSAGES })),
+    ).rejects.toBeInstanceOf(LlmRequestError);
+  });
+
+  it("throws LlmRequestError when the stream is whitespace only", async () => {
+    fake.__state.streamChunks = ["  ", "\n"];
+    await expect(
+      collect(webLlmChatProvider.stream({ config: ONDEVICE_CFG, messages: MESSAGES })),
+    ).rejects.toBeInstanceOf(LlmRequestError);
+  });
+
+  it("a stream that is ONLY the empty <think> block is an empty completion (typed error)", async () => {
+    fake.__state.streamChunks = ["<think>", "\n\n</think>", "\n\n"];
+    await expect(
+      collect(webLlmChatProvider.stream({ config: LLAMA_CFG, messages: MESSAGES })),
+    ).rejects.toBeInstanceOf(LlmRequestError);
+  });
+
+  it("still streams deltas verbatim when real content follows (no behavior change)", async () => {
+    fake.__state.streamChunks = ["Namas", "te"];
+    const deltas = await collect(
+      webLlmChatProvider.stream({ config: ONDEVICE_CFG, messages: MESSAGES }),
+    );
+    expect(deltas).toEqual(["Namas", "te"]);
+  });
+});
+
 describe("context-window discipline (4096) — bounded generation + typed overflow", () => {
   it("sets a bounded max_tokens on the streaming request (generation headroom)", async () => {
     await collect(webLlmChatProvider.stream({ config: ONDEVICE_CFG, messages: MESSAGES }));

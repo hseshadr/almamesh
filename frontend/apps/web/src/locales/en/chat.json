@@ -61,6 +61,13 @@
   },
   "errors": {
     "context_overflow": "This conversation has grown too long for the on-device model. Start a new chat or ask a shorter question.",
-    "model_missing": "The selected on-device model isn't available on this device. Re-select or re-download it in Settings → AI."
+    "model_missing": "The selected on-device model isn't available on this device. Re-select or re-download it in Settings → AI.",
+    "model_unavailable": "The configured AI model isn't available on your endpoint. Pick a different model in Settings → AI.",
+    "endpoint_unreachable": "Couldn't reach your AI endpoint. Check that it's running and that the address in Settings → AI is correct.",
+    "request_failed": "The AI request failed — try again in a moment, or check your model and endpoint in Settings → AI."
+  },
+  "not_configured": {
+    "notice": "Connect an AI model to ask questions about your chart — your chart itself is already calculated on your device.",
+    "cta": "Connect an AI model"
   }
 }

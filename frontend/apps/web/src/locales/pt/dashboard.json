@@ -11,7 +11,8 @@
     "regenerate": "Regenerar leitura",
     "connect_ai": "Conectar um modelo de IA",
     "switch_recommended": "Mudar para o recomendado (DeepSeek V4)",
-    "ai_settings": "Configurações de IA"
+    "ai_settings": "Configurações de IA",
+    "dismiss": "Dispensar"
   },
   "loading": {
     "title": "Carregando seu mapa",
@@ -31,11 +32,13 @@
     "elapsed": "Gerando a partir do seu modelo — {{elapsed}} decorridos. Uma leitura completa pode levar de 1 a 3 minutos em um modelo na nuvem.",
     "model_unavailable": "O modelo de IA nas suas configurações não está disponível no seu endpoint, então a leitura não pôde ser gerada. Mude para o modelo recomendado e tente novamente.",
     "partial_failure": "Algumas seções não puderam ser geradas desta vez: {{sections}}. O restante da leitura está completo — gere novamente para preencher a lacuna.",
-    "on_device_scope": "A IA no dispositivo cuida do chat e da entrevista da hora de nascimento. A leitura escrita completa precisa de um endpoint na nuvem ou local — adicione um nas configurações de IA."
+    "on_device_scope": "A IA no dispositivo cuida do chat e da entrevista da hora de nascimento. A leitura escrita completa precisa de um endpoint na nuvem ou local — adicione um nas configurações de IA.",
+    "regen_failed": "Não foi possível regenerar a leitura ({{error}}). Sua leitura anterior está mantida abaixo."
   },
   "reading": {
     "generated_by": "Gerada por {{model}} · {{date}}",
-    "generated_at": "Gerada em {{date}}"
+    "generated_at": "Gerada em {{date}}",
+    "regen_no_ai": "Conecte um modelo de IA para regenerar esta leitura."
   },
   "sections": {
     "core": "Identidade e personalidade",

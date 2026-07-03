@@ -33,8 +33,6 @@ import {
   applyChatSettings,
   resolveProviderConfig,
   streamChartChat,
-  OnDeviceContextOverflowError,
-  OnDeviceModelRecordError,
   type ChatTurn,
   type LlmEnv,
   type MeshEdgeContext as LlmMeshEdgeContext,
@@ -52,6 +50,7 @@ import {
   SynchronySection,
 } from '../components/features/mesh';
 import { useElapsedSeconds, formatElapsed } from '../hooks/useElapsedSeconds';
+import { isMappedChatStreamError } from '../hooks/useChatThread';
 import { useOptionalChartEngine } from '../providers/chartEngineContext';
 import { getUserFriendlyError } from '../lib/errors';
 import {
@@ -320,9 +319,10 @@ function MeshEdgeContent({
         onToken(delta);
       }
     } catch (err) {
-      // Typed on-device causes must reach useChatThread intact so the user
-      // gets an actionable message (new chat / re-download) instead of QA_001.
-      if (err instanceof OnDeviceContextOverflowError || err instanceof OnDeviceModelRecordError) throw err;
+      // Typed @almamesh/llm causes (on-device, privacy fence, request/endpoint
+      // failures) must reach useChatThread intact so `describeChatStreamError`
+      // can give the user an actionable message instead of the generic QA_001.
+      if (isMappedChatStreamError(err)) throw err;
       throw new Error(
         getUserFriendlyError(
           'QA_001',

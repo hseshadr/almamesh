@@ -17,7 +17,8 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { ChatTurn } from '@almamesh/llm';
+import { Link, useNavigate } from 'react-router-dom';
+import { describeLlmStatus, type ChatTurn } from '@almamesh/llm';
 import { MessageBubble } from './MessageBubble';
 import { ReferenceEntry } from './ReferenceEntry';
 import { SuggestedQuestions } from './SuggestedQuestions';
@@ -60,7 +61,13 @@ export function ChatPanel({
   hideHeader = false,
 }: ChatPanelProps) {
   const { t } = useTranslation('chat');
+  const navigate = useNavigate();
   const { messages, isStreaming, streamingDraft, submit } = useChatThread(profileId, chartId);
+  // Whether ANY AI tier is configured (on-device, local or cloud). With none,
+  // a sent question is doomed — so the send affordance is replaced by the
+  // Connect-AI CTA (the dashboard's existing pattern) instead of inviting a
+  // failure bubble.
+  const aiConfigured = describeLlmStatus().configured;
   const [inputValue, setInputValue] = useState('');
   const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -75,7 +82,7 @@ export function ChatPanel({
   const handleSubmit = useCallback(
     async (question: string) => {
       const q = question.trim();
-      if (!q || isStreaming) {
+      if (!q || isStreaming || !aiConfigured) {
         return;
       }
       setInputValue('');
@@ -83,7 +90,7 @@ export function ChatPanel({
       await submit(q, (input: ChatStreamInput) => streamAnswer(input, onAskQuestionStream, viewMode));
       inputRef.current?.focus();
     },
-    [isStreaming, submit, onAskQuestionStream, viewMode],
+    [aiConfigured, isStreaming, submit, onAskQuestionStream, viewMode],
   );
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -94,6 +101,12 @@ export function ChatPanel({
   };
 
   const handleSuggestedQuestion = (question: string) => {
+    if (!aiConfigured) {
+      // A chip tap with no AI is a doomed question: route to the Connect-AI
+      // CTA's destination instead of persisting a turn that can only fail.
+      navigate('/settings/ai');
+      return;
+    }
     setInputValue(question);
     void handleSubmit(question);
   };
@@ -244,8 +257,21 @@ export function ChatPanel({
         </div>
       )}
 
-      {/* Input area */}
+      {/* Input area — or, with no AI configured, the Connect-AI CTA (a typed
+          question could only fail; never invite one). */}
       <div className="p-4 border-t border-ui-border bg-background-tertiary">
+        {!aiConfigured ? (
+          <div className="flex flex-col items-start gap-2" data-testid="chat-connect-ai" role="note">
+            <p className="text-sm text-text-secondary">{t('not_configured.notice')}</p>
+            <Link
+              to="/settings/ai"
+              className="inline-flex items-center gap-2 rounded-lg border border-accent-gold px-4 py-2 text-sm font-semibold text-accent-gold transition-colors hover:bg-accent-gold/10"
+              data-testid="chat-connect-ai-link"
+            >
+              {t('not_configured.cta')}
+            </Link>
+          </div>
+        ) : (
         <div className="flex gap-2">
           <textarea
             ref={inputRef}
@@ -276,6 +302,7 @@ export function ChatPanel({
             )}
           </button>
         </div>
+        )}
       </div>
     </div>
   );

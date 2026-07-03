@@ -884,7 +884,8 @@ type SectionOutcome =
  * entirely, see `streamStructuredInterpretation`.)
  */
 export function usesLitePrompt(config: ProviderConfig): boolean {
-  return isLocalEndpoint(config.baseUrl) || config.engine === "webllm";
+  // Narrow first: only the HTTP engine has a baseUrl to inspect.
+  return config.engine === "webllm" || isLocalEndpoint(config.baseUrl);
 }
 
 function runOneSection(

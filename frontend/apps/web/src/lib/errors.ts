@@ -69,6 +69,25 @@ export function getUserFriendlyError(
 }
 
 /**
+ * A model-not-found failure from an OpenAI-compatible endpoint — surfaced as an
+ * actionable "switch model / check AI settings" prompt instead of a raw error
+ * body, since retrying the same dead model just loops. Shared by the reading
+ * card (Dashboard) and the chat error mapper. OpenRouter reports this two ways:
+ * the legacy HTTP 404 "No endpoints found for <model>" (retired model), and —
+ * verified live 2026-07-03 — HTTP 400 "<slug> is not a valid model ID" for a
+ * typo'd slug, which is the more common user error.
+ */
+export function isModelUnavailableMessage(message: string): boolean {
+  const m = message.toLowerCase();
+  return (
+    m.includes('no endpoints found') ||
+    m.includes('model_not_found') ||
+    m.includes('is not a valid model id') ||
+    (m.includes('404') && m.includes('model'))
+  );
+}
+
+/**
  * Get a user-friendly error message for chat/Q&A errors.
  * These are shown inline in the chat interface.
  */

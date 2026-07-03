@@ -123,7 +123,20 @@ export const webLlmChatProvider: ChatStreamProvider = {
       max_tokens: ONDEVICE_MAX_COMPLETION_TOKENS,
       ...thinkingExtraBody(args.config.model),
     };
-    yield* stripLeadingEmptyThinkStream(rawOnDeviceDeltas(engine, request, args.signal));
+    // A stream that ends with zero real content (after the think-strip) is the
+    // streaming twin of the JSON path's empty completion: throw the SAME typed
+    // error so the failure rides the error-bubble path instead of silently
+    // persisting a blank assistant turn.
+    let sawContent = false;
+    for await (const delta of stripLeadingEmptyThinkStream(
+      rawOnDeviceDeltas(engine, request, args.signal),
+    )) {
+      sawContent ||= delta.trim() !== "";
+      yield delta;
+    }
+    if (!sawContent) {
+      throw new LlmRequestError("On-device model returned an empty completion");
+    }
   },
 };
 

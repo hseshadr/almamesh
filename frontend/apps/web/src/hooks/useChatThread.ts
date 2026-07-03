@@ -20,14 +20,16 @@ import { useCallback, useState } from 'react';
 import { useChatStore } from '@almamesh/store';
 import type { ChatMessage } from '@almamesh/shared-types';
 import {
+  LlmRequestError,
   OnDeviceContextOverflowError,
   OnDeviceModelRecordError,
+  PrivacyViolationError,
   type ChatTurn,
 } from '@almamesh/llm';
 
 import i18n from '../i18n/config';
 import { indexChatMessage, retrieveContext } from '../lib/chatMemory';
-import { getChatErrorMessage } from '../lib/errors';
+import { getChatErrorMessage, isModelUnavailableMessage } from '../lib/errors';
 
 /** Input the caller's stream fn receives; it wires `streamChartChat` with these. */
 export interface ChatStreamInput {
@@ -76,11 +78,35 @@ function isNamed(error: unknown, name: string): boolean {
   return error instanceof Error && error.name === name;
 }
 
+/** The typed `@almamesh/llm` cause names `describeChatStreamError` maps. */
+const MAPPED_ERROR_NAMES = [
+  'OnDeviceContextOverflowError',
+  'OnDeviceModelRecordError',
+  'PrivacyViolationError',
+  'LlmRequestError',
+] as const;
+
 /**
- * Map a failed stream to actionable, recoverable copy. Typed on-device causes
- * get specific guidance (a too-long conversation → new chat/shorter question;
- * a missing model record → re-select/re-download); anything unknown keeps the
- * generic QA_001 fallback. Exported for tests.
+ * True for causes `describeChatStreamError` maps to specific, actionable copy.
+ * Page-level ask wrappers (Dashboard, MeshEdge) rethrow these UNTOUCHED —
+ * instead of flattening them to the generic QA_001 wrap — so the mapping
+ * happens in exactly one place.
+ */
+export function isMappedChatStreamError(error: unknown): boolean {
+  // `fetch` throws a TypeError when the endpoint is unreachable — a mapped,
+  // actionable cause even though it carries no custom class.
+  if (error instanceof TypeError) {
+    return true;
+  }
+  return MAPPED_ERROR_NAMES.some((name) => isNamed(error, name));
+}
+
+/**
+ * Map a failed stream to actionable, recoverable copy. Typed causes get
+ * specific guidance (a too-long conversation → new chat/shorter question; a
+ * missing model record → re-select/re-download; a privacy-fence refusal → its
+ * own message; a dead model / unreachable endpoint → point at AI settings);
+ * anything unknown keeps the generic QA_001 fallback. Exported for tests.
  */
 export function describeChatStreamError(error: unknown): string {
   if (error instanceof OnDeviceContextOverflowError || isNamed(error, 'OnDeviceContextOverflowError')) {
@@ -88,6 +114,21 @@ export function describeChatStreamError(error: unknown): string {
   }
   if (error instanceof OnDeviceModelRecordError || isNamed(error, 'OnDeviceModelRecordError')) {
     return i18n.t('chat:errors.model_missing');
+  }
+  if (error instanceof PrivacyViolationError || isNamed(error, 'PrivacyViolationError')) {
+    // The fail-closed privacy fence writes a specific, user-facing message
+    // (which endpoint was refused and why): show it verbatim, never a code.
+    return (error as Error).message;
+  }
+  if (error instanceof LlmRequestError || isNamed(error, 'LlmRequestError')) {
+    const { status, body, message } = error as Partial<LlmRequestError> & Error;
+    if (status === 404 || isModelUnavailableMessage(`${message} ${body ?? ''}`)) {
+      return i18n.t('chat:errors.model_unavailable');
+    }
+    return i18n.t('chat:errors.request_failed');
+  }
+  if (error instanceof TypeError) {
+    return i18n.t('chat:errors.endpoint_unreachable');
   }
   return getChatErrorMessage('QA_001', error);
 }

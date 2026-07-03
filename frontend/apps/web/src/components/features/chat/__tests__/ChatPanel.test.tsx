@@ -1,9 +1,16 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 
 import { ChatPanel } from '../ChatPanel';
 import { useChatStore } from '@almamesh/store';
+import { openRouterPreset, writeLlmSettings } from '@almamesh/llm';
 import { __setMemoryForTest, __resetMemoryForTest } from '../../../../lib/chatMemory';
+
+/** Configure a synthetic cloud tier so the panel's send affordance is live. */
+function configureCloudAi(): void {
+  writeLlmSettings(openRouterPreset('sk-or-v1-0000-synthetic-test-key', 'test-org/test-model'));
+}
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -15,6 +22,10 @@ function deferred<T>() {
 
 describe('ChatPanel — typing indicator vs streamed text', () => {
   beforeEach(() => {
+    localStorage.clear();
+    // These tests exercise the live-send path, which requires a configured AI
+    // tier (the panel replaces the input with the Connect-AI CTA otherwise).
+    configureCloudAi();
     useChatStore.setState({ threads: {}, messages: {} });
     // Stub memory so no embedder worker boots; retrieve resolves immediately.
     __setMemoryForTest({
@@ -24,6 +35,7 @@ describe('ChatPanel — typing indicator vs streamed text', () => {
   });
 
   afterEach(() => {
+    localStorage.clear();
     useChatStore.setState({ threads: {}, messages: {} });
     __resetMemoryForTest();
     vi.restoreAllMocks();
@@ -38,13 +50,15 @@ describe('ChatPanel — typing indicator vs streamed text', () => {
     });
 
     render(
-      <ChatPanel
-        personName="Test"
-        profileId="profile-1"
-        chartId="chart-1"
-        viewMode="layman"
-        onAskQuestionStream={onAskQuestionStream as never}
-      />,
+      <MemoryRouter>
+        <ChatPanel
+          personName="Test"
+          profileId="profile-1"
+          chartId="chart-1"
+          viewMode="layman"
+          onAskQuestionStream={onAskQuestionStream as never}
+        />
+      </MemoryRouter>,
     );
 
     fireEvent.change(screen.getByTestId('chat-input'), {
@@ -90,13 +104,15 @@ describe('ChatPanel — typing indicator vs streamed text', () => {
     );
 
     render(
-      <ChatPanel
-        personName="Test"
-        profileId="profile-1"
-        chartId="chart-1"
-        viewMode="layman"
-        onAskQuestionStream={vi.fn() as never}
-      />,
+      <MemoryRouter>
+        <ChatPanel
+          personName="Test"
+          profileId="profile-1"
+          chartId="chart-1"
+          viewMode="layman"
+          onAskQuestionStream={vi.fn() as never}
+        />
+      </MemoryRouter>,
     );
 
     const bubble = await screen.findByTestId('chat-error-bubble');
@@ -106,13 +122,15 @@ describe('ChatPanel — typing indicator vs streamed text', () => {
   it('renders the normal empty state with a usable input (no setup branch)', () => {
     const onAskQuestionStream = vi.fn();
     render(
-      <ChatPanel
-        personName="Test"
-        profileId="profile-1"
-        chartId="chart-1"
-        viewMode="layman"
-        onAskQuestionStream={onAskQuestionStream as never}
-      />,
+      <MemoryRouter>
+        <ChatPanel
+          personName="Test"
+          profileId="profile-1"
+          chartId="chart-1"
+          viewMode="layman"
+          onAskQuestionStream={onAskQuestionStream as never}
+        />
+      </MemoryRouter>,
     );
 
     // The normal empty state (not the removed setup card) is shown.
@@ -123,5 +141,95 @@ describe('ChatPanel — typing indicator vs streamed text', () => {
     expect(input.placeholder).toBe('Ask a question about your chart...');
     // Send button is disabled only because the input is empty (not by setup).
     expect((screen.getByTestId('chat-send-button') as HTMLButtonElement).disabled).toBe(true);
+  });
+});
+
+describe('ChatPanel — no-AI-configured gate (never invite a doomed question)', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    useChatStore.setState({ threads: {}, messages: {} });
+    __setMemoryForTest({
+      indexMessage: vi.fn().mockResolvedValue(undefined),
+      retrieve: vi.fn().mockResolvedValue([]),
+    });
+  });
+
+  afterEach(() => {
+    localStorage.clear();
+    useChatStore.setState({ threads: {}, messages: {} });
+    __resetMemoryForTest();
+    vi.restoreAllMocks();
+  });
+
+  it('replaces the send affordance with a Connect-AI CTA when no AI is configured', () => {
+    render(
+      <MemoryRouter>
+        <ChatPanel
+          personName="Test"
+          profileId="profile-1"
+          chartId="chart-1"
+          viewMode="layman"
+          onAskQuestionStream={vi.fn() as never}
+        />
+      </MemoryRouter>,
+    );
+
+    // No live input/send: a typed question could only fail.
+    expect(screen.queryByTestId('chat-input')).toBeNull();
+    expect(screen.queryByTestId('chat-send-button')).toBeNull();
+    // The existing Connect-AI CTA pattern, pointing at AI settings.
+    const link = screen.getByTestId('chat-connect-ai-link');
+    expect(link.getAttribute('href')).toBe('/settings/ai');
+    expect(screen.getByTestId('chat-connect-ai').textContent ?? '').toContain(
+      'Connect an AI model',
+    );
+  });
+
+  it('a suggested-question chip routes to AI settings instead of submitting a doomed question', async () => {
+    const onAskQuestionStream = vi.fn();
+    render(
+      <MemoryRouter initialEntries={['/dashboard']}>
+        <Routes>
+          <Route
+            path="/dashboard"
+            element={
+              <ChatPanel
+                personName="Test"
+                profileId="profile-1"
+                chartId="chart-1"
+                viewMode="layman"
+                onAskQuestionStream={onAskQuestionStream as never}
+              />
+            }
+          />
+          <Route path="/settings/ai" element={<div data-testid="ai-settings-page" />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByText('What are my career strengths?'));
+
+    expect(await screen.findByTestId('ai-settings-page')).toBeTruthy();
+    expect(onAskQuestionStream).not.toHaveBeenCalled();
+    // No user turn was persisted for the doomed question.
+    expect(Object.keys(useChatStore.getState().messages)).toHaveLength(0);
+  });
+
+  it('keeps the live input and send button once an AI tier is configured', () => {
+    configureCloudAi();
+    render(
+      <MemoryRouter>
+        <ChatPanel
+          personName="Test"
+          profileId="profile-1"
+          chartId="chart-1"
+          viewMode="layman"
+          onAskQuestionStream={vi.fn() as never}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.queryByTestId('chat-connect-ai')).toBeNull();
+    expect((screen.getByTestId('chat-input') as HTMLTextAreaElement).disabled).toBe(false);
   });
 });

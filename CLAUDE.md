@@ -64,7 +64,7 @@ build-time bundle publisher; the browser app is the entire product surface.
 | `@almamesh/shared-types` | UI-facing TS contract (`ChartData`, etc.) |
 | `@almamesh/constants` | Single design-token source (colors/typography/astrology) + Tailwind preset |
 | `@almamesh/browser` | In-browser engine: edge-proc bundle sync (OPFS) + Pyodide chart Worker + `AlmaMeshRuntime` |
-| `@almamesh/store` | Zustand stores + pure adapters: `chart` (`SiderealChart → ChartData`, incl. the D9 Navamsa `varga_ctx`), `chartGeometry` (`buildChartGeometry` → N/S kundli, `buildVargaGeometry` → D9), `energy` (`buildEnergyFrame(chart, t)` → 3D force-field), `profiles` store (rename/delete with chart cascade) + **`members`** (typed relationships, persist-v1 migration) and **`mesh`** (per-pair `MeshEdgeContext` from `compute_mesh`, read-only) |
+| `@almamesh/store` | Zustand stores + pure adapters: `chart` (`SiderealChart → ChartData`, incl. the D9 Navamsa `varga_ctx`), `chartGeometry` (`buildChartGeometry` → N/S kundli, `buildVargaGeometry` → D9), `energy` (`buildEnergyFrame(chart, t)` → 3D force-field), `profiles` store (rename/delete with chart cascade) + **`members`** (typed relationships, persist-v1 migration), **`mesh`** (per-pair `MeshEdgeContext` from `compute_mesh`, read-only) and the persisted **`interpretation`** readings store (localStorage `almamesh-interpretations`, provenance-stamped readings) |
 | `@almamesh/llm` | Interpretation + multi-turn chat, **no AI by default**. Opt-in tiers (Spec 063): **on-device** (`@mlc-ai/web-llm` on WebGPU, blessed `BLESSED_ONDEVICE_MODELS` picker, dynamic-import-only `webllm-*` chunk excluded from the SW precache; serves chat + interview + life-event extractor, structured reading throws typed `OnDeviceUnsupportedError`) and **cloud** (OpenRouter / BYO OpenAI-compatible endpoint, one-click preset, `cloud_premium`, stronger models); PII-redacted, fail-closed `local_only` for local endpoints. **Mesh narration** (`mesh-reading`/`mesh-facts`/`mesh-sanitize`): role-anonymized pair sanitizer (no names leave the device) + 3-section `streamMeshReading` behind the **ANTI-SCAM RELATIONSHIP FENCE** (band = convention, never a verdict) |
 | `apps/web` | The React/Vite "Observatory" PWA: UI primitives (`components/ui/`), `AppLayout`, N/S charts, `forcefield/` 3D hero, self-hosted fonts (no CDN) |
 
@@ -203,7 +203,7 @@ full D1–D60 varga set; the adapter populates `varga_ctx` (D9 Navamsa rendered 
 both kundli styles + the print report, D1–D60 in the predictive "Divisional Charts"
 tab) and the predictive contexts above.
 
-Dual-voice reading (shipped in feat/dual-voice-life-atlas): `VedicInterpretation.summary`
+Dual-voice reading (shipped): `VedicInterpretation.summary`
 is now a `Persona { layman: string; technical: string }` instead of a plain string —
 `personaText(summary, audience)` selects the voice at the render boundary so toggling
 "For You"/"For Astrologer" switches the headline without a new LLM call. The Life Atlas

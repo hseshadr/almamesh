@@ -1,8 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 
-import { useChatThread } from '../useChatThread';
-import { OnDeviceContextOverflowError, OnDeviceModelRecordError } from '@almamesh/llm';
+import { isMappedChatStreamError, useChatThread } from '../useChatThread';
+import {
+  LlmRequestError,
+  OnDeviceContextOverflowError,
+  OnDeviceModelRecordError,
+  PrivacyViolationError,
+} from '@almamesh/llm';
 import { useChatStore } from '@almamesh/store';
 import {
   __setMemoryForTest,
@@ -209,6 +214,91 @@ describe('useChatThread', () => {
     expect(bubble.content).toMatch(/re-select or re-download/i);
   });
 
+  it('a privacy violation surfaces its own fail-closed message, never QA_001', async () => {
+    const { memory } = fakeMemory();
+    __setMemoryForTest(memory);
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    // SYNTHETIC endpoint: the fence's message is user-facing by design.
+    const failing = vi.fn().mockRejectedValue(
+      new PrivacyViolationError(
+        'local_only privacy mode refuses to send chart data to https://example.invalid',
+      ),
+    );
+
+    const { result } = renderHook(() => useChatThread(PROFILE, CHART));
+    await act(async () => {
+      await result.current.submit('hello', failing);
+    });
+
+    await waitFor(() => expect(result.current.messages.length).toBe(2));
+    const bubble = result.current.messages[1];
+    expect(bubble.error).toBe(true);
+    expect(bubble.content).toContain('local_only');
+    expect(bubble.content).not.toContain('QA_001');
+  });
+
+  it('a 404 model-not-found from the endpoint gets "pick a different model" guidance', async () => {
+    const { memory } = fakeMemory();
+    __setMemoryForTest(memory);
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const failing = vi.fn().mockRejectedValue(
+      new LlmRequestError('HTTP 404: No endpoints found for test-org/retired-model', {
+        status: 404,
+      }),
+    );
+
+    const { result } = renderHook(() => useChatThread(PROFILE, CHART));
+    await act(async () => {
+      await result.current.submit('hello', failing);
+    });
+
+    await waitFor(() => expect(result.current.messages.length).toBe(2));
+    const bubble = result.current.messages[1];
+    expect(bubble.error).toBe(true);
+    expect(bubble.content).toContain('Settings → AI');
+    expect(bubble.content).toMatch(/model/i);
+    expect(bubble.content).not.toContain('QA_001');
+  });
+
+  it('an unreachable endpoint (fetch TypeError) points at the endpoint setting', async () => {
+    const { memory } = fakeMemory();
+    __setMemoryForTest(memory);
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    // What `fetch` throws when the endpoint is down / DNS fails / CORS blocks.
+    const failing = vi.fn().mockRejectedValue(new TypeError('Failed to fetch'));
+
+    const { result } = renderHook(() => useChatThread(PROFILE, CHART));
+    await act(async () => {
+      await result.current.submit('hello', failing);
+    });
+
+    await waitFor(() => expect(result.current.messages.length).toBe(2));
+    const bubble = result.current.messages[1];
+    expect(bubble.error).toBe(true);
+    expect(bubble.content).toMatch(/endpoint/i);
+    expect(bubble.content).not.toContain('QA_001');
+  });
+
+  it('a non-404 request failure gets actionable retry/settings copy (not QA_001)', async () => {
+    const { memory } = fakeMemory();
+    __setMemoryForTest(memory);
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const failing = vi.fn().mockRejectedValue(
+      new LlmRequestError('HTTP 500 from endpoint', { status: 500 }),
+    );
+
+    const { result } = renderHook(() => useChatThread(PROFILE, CHART));
+    await act(async () => {
+      await result.current.submit('hello', failing);
+    });
+
+    await waitFor(() => expect(result.current.messages.length).toBe(2));
+    const bubble = result.current.messages[1];
+    expect(bubble.error).toBe(true);
+    expect(bubble.content).toContain('Settings → AI');
+    expect(bubble.content).not.toContain('QA_001');
+  });
+
   it('an unknown failure keeps the generic QA_001 fallback (still flagged)', async () => {
     const { memory } = fakeMemory();
     __setMemoryForTest(memory);
@@ -224,5 +314,21 @@ describe('useChatThread', () => {
     const bubble = result.current.messages[1];
     expect(bubble.error).toBe(true);
     expect(bubble.content).toContain('QA_001');
+  });
+});
+
+describe('isMappedChatStreamError — the page-catch rethrow contract', () => {
+  it('is true for every typed cause the bubble mapper handles', () => {
+    expect(isMappedChatStreamError(new OnDeviceContextOverflowError())).toBe(true);
+    expect(isMappedChatStreamError(new OnDeviceModelRecordError())).toBe(true);
+    expect(isMappedChatStreamError(new PrivacyViolationError('refused'))).toBe(true);
+    expect(isMappedChatStreamError(new LlmRequestError('HTTP 500'))).toBe(true);
+    expect(isMappedChatStreamError(new TypeError('Failed to fetch'))).toBe(true);
+  });
+
+  it('is false for unknown errors (those keep the generic QA_001 wrap)', () => {
+    expect(isMappedChatStreamError(new Error('mystery'))).toBe(false);
+    expect(isMappedChatStreamError('not an error')).toBe(false);
+    expect(isMappedChatStreamError(undefined)).toBe(false);
   });
 });

@@ -12,15 +12,26 @@ import type { ProviderConfig } from "./config";
 
 /**
  * The persisted, display-friendly identity of the config that produced a
- * reading. Plain strings (no llm-internal unions) so stores/UI can hold it
- * without depending on provider internals; safe to render verbatim.
+ * reading. A DISCRIMINATED UNION keyed on `engine`, mirroring `ProviderConfig`:
+ * the on-device (`webllm`) reading has no endpoint, while the HTTP reading may
+ * carry the `baseUrl` it was produced against. Safe to render verbatim and to
+ * persist — it never carries the apiKey or any other secret.
  */
-export interface ReadingProvenance {
-  /** Which engine served the reading: `openai-http` or on-device `webllm`. */
-  readonly engine: string;
-  /** The endpoint model slug (or MLC model id) that wrote the reading. */
+export type ReadingProvenance = OnDeviceReadingProvenance | HttpReadingProvenance;
+
+/** On-device provenance: engine + MLC model id, no endpoint (none exists). */
+export interface OnDeviceReadingProvenance {
+  readonly engine: "webllm";
+  /** The MLC model id that wrote the reading. */
   readonly model: string;
-  /** The OpenAI-compatible endpoint; absent for the on-device engine. */
+}
+
+/** HTTP provenance: engine + endpoint model slug + the base URL it ran against. */
+export interface HttpReadingProvenance {
+  readonly engine: "openai-http";
+  /** The endpoint model slug that wrote the reading. */
+  readonly model: string;
+  /** The OpenAI-compatible endpoint the reading was produced against. */
   readonly baseUrl?: string;
 }
 
@@ -41,9 +52,12 @@ function normalizeBaseUrl(baseUrl: string | undefined): string | undefined {
  * reading right now. Two configs differing only by apiKey are identical here.
  */
 export function configProvenance(config: ProviderConfig): ReadingProvenance {
+  if (config.engine === "webllm") {
+    return { engine: "webllm", model: config.model };
+  }
   const baseUrl = normalizeBaseUrl(config.baseUrl);
   return {
-    engine: config.engine,
+    engine: "openai-http",
     model: config.model,
     ...(baseUrl !== undefined ? { baseUrl } : {}),
   };
@@ -59,9 +73,13 @@ export function configProvenance(config: ProviderConfig): ReadingProvenance {
  * make two distinct configs collide.
  */
 export function configFingerprint(source: ProviderConfig | ReadingProvenance): string {
+  // Narrow on the discriminant: the on-device variants have no endpoint. The
+  // emitted string is unchanged from the flat shape (webllm still serializes
+  // `baseUrl: null`), so a persisted v3 provenance still matches identically.
+  const baseUrl = source.engine === "webllm" ? undefined : source.baseUrl;
   return JSON.stringify({
     engine: source.engine,
     model: source.model,
-    baseUrl: normalizeBaseUrl(source.baseUrl) ?? null,
+    baseUrl: normalizeBaseUrl(baseUrl) ?? null,
   });
 }

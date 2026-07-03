@@ -133,8 +133,10 @@ export async function chatCompletionJson(
 
 function buildHeaders(config: ProviderConfig): Record<string, string> {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (config.apiKey) {
-    headers.Authorization = `Bearer ${config.apiKey}`;
+  // Only the HTTP engine carries a key (the on-device variant has none).
+  const apiKey = config.engine === "openai-http" ? config.apiKey : undefined;
+  if (apiKey) {
+    headers.Authorization = `Bearer ${apiKey}`;
   }
   return headers;
 }
@@ -149,12 +151,13 @@ function joinUrl(baseUrl: string): string {
  * missing baseUrl here is a clean, diagnosable error rather than a URL crash.
  */
 function requireBaseUrl(config: ProviderConfig): string {
-  if (!config.baseUrl) {
+  const baseUrl = config.engine === "openai-http" ? config.baseUrl : undefined;
+  if (!baseUrl) {
     throw new LlmRequestError(
       "No OpenAI-compatible base URL configured (on-device configs are served by the WebLLM engine, not the HTTP client)",
     );
   }
-  return config.baseUrl;
+  return baseUrl;
 }
 
 /** Extract the token delta from one parsed SSE `data:` payload, if any. */
