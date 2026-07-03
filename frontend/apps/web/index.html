@@ -8,30 +8,14 @@
          light parchment text stays legible. Mirrored by `color-scheme: dark` on
          :root in index.css (and reset to `light` for the @media print report). -->
     <meta name="color-scheme" content="dark" />
+    <!-- Spec 064: per-route SEO tags (title text, meta description, canonical,
+         og:*, twitter:*) are injected AT BUILD TIME per prerendered route by
+         vite-prerender-plugin from src/seo/routeHead.ts — the plugin REPLACES
+         this fallback title's text and APPENDS the rest, so keep this template
+         free of route-specific description/canonical/og tags (they would
+         duplicate on every page). The JSON-LD below stays static: site-level
+         entity data, valid on every page. -->
     <title>AlmaMesh — Free Local-First Vedic Astrology in Your Browser</title>
-    <meta
-      name="description"
-      content="Free, local-first Vedic astrology that runs entirely in your browser. No accounts, no server, offline after first load. Honest, anti-scam, open engine (Skyfield/Pyodide), optional BYO-AI narration."
-    />
-    <link rel="canonical" href="https://almamesh.com/" />
-    <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="AlmaMesh" />
-    <meta property="og:title" content="AlmaMesh — Free Local-First Vedic Astrology in Your Browser" />
-    <meta
-      property="og:description"
-      content="Free, local-first Vedic astrology that runs entirely in your browser. No accounts, no server, offline after first load. Open engine (Skyfield/Pyodide)."
-    />
-    <meta property="og:url" content="https://almamesh.com/" />
-    <meta property="og:image" content="https://almamesh.com/og-card.png" />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="AlmaMesh — Free Local-First Vedic Astrology in Your Browser" />
-    <meta
-      name="twitter:description"
-      content="Free, local-first Vedic astrology that runs entirely in your browser. No accounts, no server, offline after first load. Open engine (Skyfield/Pyodide)."
-    />
-    <meta name="twitter:image" content="https://almamesh.com/og-card.png" />
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -82,6 +66,22 @@
       </p>
     </noscript>
     <div id="root"></div>
+    <!-- Spec 064: dist/index.html carries the PRERENDERED LANDING markup, but
+         it is also the SPA fallback for every private deep link (_redirects
+         `/* /index.html 200` + the SW navigateFallback). Empty #root before
+         first paint on non-public paths so /dashboard etc. show the usual
+         boot spinner instead of a flash of the landing page. Runs inline +
+         synchronously on purpose; no CSP restriction applies (_headers). -->
+    <script>
+      (function () {
+        var path = location.pathname.replace(/\/+$/, '') || '/';
+        var publicPaths = ['/', '/welcome', '/privacy', '/terms', '/data-deletion'];
+        if (publicPaths.indexOf(path) === -1) {
+          var root = document.getElementById('root');
+          if (root) root.innerHTML = '';
+        }
+      })();
+    </script>
     <!--
       The PWA Service Worker (vite-plugin-pwa / Workbox) is registered from
       main.tsx with a prompt-driven update flow. Do NOT unregister it here:

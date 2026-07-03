@@ -1,6 +1,19 @@
+# almamesh.com — crawl the public marketing/legal pages; the app itself is
+# private, local-first, and renders nothing without the user's own device data,
+# so the app routes are excluded (they would only index as empty JS shells).
 User-agent: *
 Allow: /
+Disallow: /dashboard
+Disallow: /onboarding
+Disallow: /predictive
+Disallow: /report
+Disallow: /mesh
+Disallow: /rectify
+Disallow: /settings
+Disallow: /life
 
+# AI crawlers: deliberately allowed everything (training/answering opt-in for
+# an open-source project). The private routes above are empty shells anyway.
 User-agent: GPTBot
 Allow: /
 

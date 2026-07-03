@@ -21,13 +21,18 @@ const ForceFieldExperience = lazy(() =>
  *   the headline/subhead text, so it is hidden from assistive tech.
  * - Honors `prefers-reduced-motion` — renders nothing animated for reduced-motion
  *   users (a calm static gradient shows through from the hero behind it).
+ * - SSR/prerender-safe (Spec 064): with no `window` (the build-time Node
+ *   prerender of the landing), render the static gradient and NEVER mount the
+ *   lazy scene — `React.lazy` would otherwise kick off the three.js/R3F chunk
+ *   import in Node, whose module-scope `scheduler` MessageChannel keeps the
+ *   `vite build` process alive forever after the build finishes.
  */
 export function HeroForceField(): ReactElement {
   const reducedMotion = useReducedMotion();
 
-  if (reducedMotion) {
-    // Reduced motion: skip the animated WebGL scene entirely. The hero's own
-    // radial glow provides a quiet, still backdrop.
+  if (reducedMotion || typeof window === 'undefined') {
+    // Reduced motion (or build-time prerender): skip the animated WebGL scene
+    // entirely. The hero's own radial glow provides a quiet, still backdrop.
     return (
       <div
         aria-hidden="true"
