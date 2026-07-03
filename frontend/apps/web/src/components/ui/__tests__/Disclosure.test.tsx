@@ -96,3 +96,33 @@ describe('Disclosure', () => {
     expect(screen.getByText('Full career reading.')).toBeTruthy();
   });
 });
+
+describe('Disclosure collapsed footprint (grid-rows 0fr trick)', () => {
+  // Padding/borders on the SAME element as `overflow-hidden` still contribute
+  // to the collapsed 0fr row height (the box's own padding+border are not part
+  // of the content that 0fr collapses). Ten closed reading sections each
+  // carried ~37px of dead space + a stray border hairline this way. The
+  // caller's `contentClassName` must therefore land on an INNER wrapper, never
+  // on the overflow-hidden panel itself.
+  it('applies contentClassName to an inner wrapper, not the overflow-hidden panel', () => {
+    render(
+      <Disclosure
+        summary={<span>Career outlook</span>}
+        contentClassName="pt-4 pb-5 border-t"
+      >
+        <p>Full career reading.</p>
+      </Disclosure>,
+    );
+    const button = screen.getByRole('button');
+    const panel = document.getElementById(button.getAttribute('aria-controls')!)!;
+    expect(panel.className).toContain('overflow-hidden');
+    // The collapsing panel itself must stay free of caller box styles…
+    expect(panel.className).not.toContain('pt-4');
+    expect(panel.className).not.toContain('border-t');
+    // …which instead live on a wrapper inside it, around the content.
+    const inner = panel.firstElementChild as HTMLElement;
+    expect(inner.className).toContain('pt-4');
+    expect(inner.className).toContain('border-t');
+    expect(within(panel).getByText('Full career reading.')).toBeTruthy();
+  });
+});

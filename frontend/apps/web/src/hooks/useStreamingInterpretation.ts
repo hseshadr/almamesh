@@ -43,6 +43,9 @@ import type { SiderealChart } from '@almamesh/browser/types';
 import type { VedicInterpretation } from '@almamesh/shared-types';
 import type { SepViewMode } from '@almamesh/shared-types';
 
+import i18n from '../i18n/config';
+import { isModelUnavailableMessage } from '../lib/errors';
+
 /** The five structured sections, in the order the generator announces them. */
 export const INTERPRETATION_SECTIONS: readonly InterpretationSectionKey[] = [
   'core',
@@ -94,11 +97,16 @@ export interface UseStreamingInterpretationResult {
  */
 export const ON_DEVICE_READING_UNSUPPORTED = 'on_device_reading_unsupported';
 
-// Friendly, non-technical guidance shown when on-device narration cannot run.
-const NOT_CONFIGURED_NOTICE =
-  'Configure a local or OpenRouter model to generate interpretations. ' +
-  'By default AlmaMesh expects a local model at http://localhost:11434/v1 (Ollama). ' +
-  'Set VITE_LLM_API_BASE / VITE_LLM_MODEL (and, for cloud, VITE_LLM_API_KEY + VITE_LLM_PRIVACY_MODE=cloud_premium).';
+/**
+ * Stable sentinel stored as the interpretation "error" when the configured
+ * model is dead/retired/typo'd on the endpoint. The dashboard maps it to the
+ * existing switch-model prompt (recommended-model button + AI settings door) —
+ * the raw endpoint response body never reaches the screen.
+ */
+export const READING_MODEL_UNAVAILABLE = 'reading_model_unavailable';
+
+/** Message fragments a failed `fetch` leaves behind (Chrome/Safari/Firefox). */
+const NETWORK_FAILURE_PATTERN = /failed to fetch|load failed|networkerror|network error|unreachable/i;
 
 /**
  * Resolve the LLM env for the INTERPRETATION path: build-time Vite env, with any
@@ -158,7 +166,14 @@ export function withRawPredictive(chart: SiderealChart, chartId: string | null):
   return { ...chart, ...rawContexts };
 }
 
-/** Map a thrown error to a friendly, user-facing message. */
+/**
+ * Map a thrown error to a friendly, user-facing message — the same
+ * classification the chat path applies (see `describeChatStreamError` /
+ * `lib/errors`). Raw failure text is NEVER passed through for untyped errors:
+ * the all-sections-failed aggregate can embed the configured endpoint URL
+ * (a build-time VITE_LLM_API_BASE value), so every non-privacy path resolves
+ * to translated guidance or a stable sentinel the dashboard maps to actions.
+ */
 function describeError(err: unknown): string {
   if (err instanceof OnDeviceUnsupportedError) {
     // The typed scope-fence error: not a failure of the user's setup. The UI
@@ -166,13 +181,22 @@ function describeError(err: unknown): string {
     return ON_DEVICE_READING_UNSUPPORTED;
   }
   if (err instanceof PrivacyViolationError) {
+    // The fail-closed privacy fence writes a specific, user-facing message
+    // (which endpoint was refused and why): show it verbatim.
     return err.message;
   }
-  if (err instanceof LlmRequestError || err instanceof TypeError) {
-    // TypeError is what `fetch` throws when the endpoint is unreachable.
-    return NOT_CONFIGURED_NOTICE;
+  const request = err instanceof LlmRequestError ? err : undefined;
+  const text = err instanceof Error ? `${err.message} ${request?.body ?? ''}` : String(err);
+  if (request?.status === 404 || isModelUnavailableMessage(text)) {
+    // Dead/retired/typo'd model → the dashboard's switch-model prompt.
+    return READING_MODEL_UNAVAILABLE;
   }
-  return err instanceof Error ? err.message : 'Failed to generate interpretation';
+  if (err instanceof TypeError || NETWORK_FAILURE_PATTERN.test(text)) {
+    // TypeError is what `fetch` throws when the endpoint is unreachable; the
+    // aggregate error carries the same fragments as concatenated text.
+    return i18n.t('chat:errors.endpoint_unreachable');
+  }
+  return i18n.t('chat:errors.request_failed');
 }
 
 export function useStreamingInterpretation(chartId?: string | null): UseStreamingInterpretationResult {

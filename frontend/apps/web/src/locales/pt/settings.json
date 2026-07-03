@@ -131,6 +131,7 @@
     "add_hint": "Em seguida você informará os dados de nascimento — o mapa é calculado inteiramente neste dispositivo.",
     "add_continue": "Adicionar e informar nascimento",
     "add_cancel": "Cancelar",
+    "add_failed": "Algo deu errado ao adicionar esta pessoa. Tente novamente.",
     "anchor_exists": "{{name}} já está marcado como você — desmarque primeiro."
   },
   "ai": {

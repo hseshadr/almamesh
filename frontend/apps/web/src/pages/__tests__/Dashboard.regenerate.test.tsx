@@ -61,6 +61,7 @@ vi.mock('../../components/features/dashboard', () => ({
 
 import {
   configProvenance,
+  LlmRequestError,
   openRouterPreset,
   streamStructuredInterpretation,
   writeLlmSettings,
@@ -352,6 +353,52 @@ describe('Dashboard — regenerate reading', () => {
     fireEvent.click(within(strip).getByTestId('reading-regen-dismiss'));
     expect(screen.queryByTestId('reading-regen-error')).toBeNull();
     expect(screen.getByTestId('reading-section').textContent ?? '').toContain(LAYMAN_SUMMARY);
+  });
+
+  it('REGRESSION: a failure embedding the endpoint URL renders friendly copy on the strip, never the URL', async () => {
+    configureCloudAi();
+    seedCompleteReading(currentProvenance());
+    // The all-sections-failed aggregate is a plain Error whose message can
+    // carry the configured endpoint (a build-time VITE_LLM_API_BASE value).
+    mockedStream.mockImplementation(
+      failingStream(
+        new Error(
+          'Interpretation failed: all 5 sections failed. ' +
+            'LLM request to https://openrouter.example/api/v1/chat/completions failed (HTTP 401)',
+        ),
+      ),
+    );
+    renderDashboard();
+
+    fireEvent.click(await screen.findByTestId('regenerate-reading'));
+    const strip = await screen.findByTestId('reading-regen-error');
+    const text = strip.textContent ?? '';
+    expect(text).not.toContain('https://');
+    expect(text).not.toContain('openrouter.example');
+    // Friendly + actionable: points at retry / AI settings.
+    expect(text).toMatch(/settings/i);
+  });
+
+  it('a dead/retired-model failure surfaces the switch-model prompt on the regen strip', async () => {
+    configureCloudAi();
+    seedCompleteReading(currentProvenance());
+    mockedStream.mockImplementation(
+      failingStream(
+        new LlmRequestError('HTTP 404: No endpoints found for test-org/retired-model', {
+          status: 404,
+        }),
+      ),
+    );
+    renderDashboard();
+
+    fireEvent.click(await screen.findByTestId('regenerate-reading'));
+    const strip = await screen.findByTestId('reading-regen-error');
+    // The existing switch-model recovery: copy + the one-click preset button.
+    expect(strip.textContent ?? '').toContain('Switch to the recommended model');
+    expect(within(strip).getByTestId('reading-regen-switch-recommended')).toBeTruthy();
+    // Neither the raw body nor the internal sentinel ever renders.
+    expect(strip.textContent ?? '').not.toContain('No endpoints found');
+    expect(strip.textContent ?? '').not.toContain('reading_model_unavailable');
   });
 
   it('Retry on the error strip starts a fresh generation (and clears the strip while running)', async () => {

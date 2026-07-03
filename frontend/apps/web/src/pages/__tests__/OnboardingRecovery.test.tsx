@@ -158,4 +158,29 @@ describe('Onboarding — in-app bootstrap recovery', () => {
     fireEvent.click(resetButton);
     await waitFor(() => expect(resetAppDataSpy).toHaveBeenCalledTimes(1));
   });
+
+  it('renders the failure message exactly ONCE on the recovery card (no duplicate strip)', async () => {
+    // Boot failure -> the recovery card carries the CHART_GEN_001 message in
+    // its body. The page's shared bottom error strip must NOT repeat it.
+    const reboot = vi.fn().mockRejectedValue(new Error('still broken'));
+    const whenReady = vi.fn().mockRejectedValue(new Error('still broken'));
+    engineValue = {
+      engine: null,
+      error: new Error('bundle chunk 404'),
+      stage: null,
+      meta: null,
+      reboot,
+      whenReady,
+      startBootstrap: vi.fn(),
+    };
+    seedReadyToGenerate();
+
+    renderPage();
+    await act(async () => {
+      fireEvent.click(screen.getByText(/skip/i));
+    });
+
+    await screen.findByTestId('retry-generation-button');
+    expect(screen.getAllByText(/CHART_GEN_001/)).toHaveLength(1);
+  });
 });

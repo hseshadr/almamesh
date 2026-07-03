@@ -131,6 +131,7 @@
     "add_hint": "A continuación introducirás sus datos de nacimiento: su carta se calcula íntegramente en este dispositivo.",
     "add_continue": "Añadir e introducir nacimiento",
     "add_cancel": "Cancelar",
+    "add_failed": "Algo salió mal al añadir a esta persona. Inténtalo de nuevo.",
     "anchor_exists": "{{name}} ya está marcado como tú — desmárcalo primero."
   },
   "ai": {

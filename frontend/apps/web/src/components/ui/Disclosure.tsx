@@ -105,10 +105,12 @@ export function Disclosure({
           className={cn(
             'overflow-hidden transition-opacity duration-300 motion-reduce:transition-none',
             open ? 'opacity-100' : 'opacity-0',
-            contentClassName,
           )}
         >
-          {children}
+          {/* Caller box styles (padding/borders) must live INSIDE the
+              overflow-hidden panel: on the panel itself they would keep
+              contributing height while the 0fr row is collapsed. */}
+          <div className={contentClassName}>{children}</div>
         </div>
       </div>
     </div>

@@ -128,6 +128,7 @@
     "add_hint": "Next you'll enter their birth details — their chart is computed entirely on this device.",
     "add_continue": "Add & enter birth details",
     "add_cancel": "Cancel",
+    "add_failed": "Something went wrong while adding this person. Please try again.",
     "anchor_exists": "{{name}} is already marked as you — unmark them first."
   },
   "ai": {

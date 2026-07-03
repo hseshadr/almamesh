@@ -66,6 +66,7 @@ build-time bundle publisher; the browser app is the entire product surface.
 | `@almamesh/browser` | In-browser engine: edge-proc bundle sync (OPFS) + Pyodide chart Worker + `AlmaMeshRuntime` |
 | `@almamesh/store` | Zustand stores + pure adapters: `chart` (`SiderealChart → ChartData`, incl. the D9 Navamsa `varga_ctx`), `chartGeometry` (`buildChartGeometry` → N/S kundli, `buildVargaGeometry` → D9), `energy` (`buildEnergyFrame(chart, t)` → 3D force-field), `profiles` store (rename/delete with chart cascade) + **`members`** (typed relationships, persist-v1 migration), **`mesh`** (per-pair `MeshEdgeContext` from `compute_mesh`, read-only) and the persisted **`interpretation`** readings store (localStorage `almamesh-interpretations`, provenance-stamped readings) |
 | `@almamesh/llm` | Interpretation + multi-turn chat, **no AI by default**. Opt-in tiers (Spec 063): **on-device** (`@mlc-ai/web-llm` on WebGPU, blessed `BLESSED_ONDEVICE_MODELS` picker, dynamic-import-only `webllm-*` chunk excluded from the SW precache; serves chat + interview + life-event extractor, structured reading throws typed `OnDeviceUnsupportedError`) and **cloud** (OpenRouter / BYO OpenAI-compatible endpoint, one-click preset, `cloud_premium`, stronger models); PII-redacted, fail-closed `local_only` for local endpoints. **Mesh narration** (`mesh-reading`/`mesh-facts`/`mesh-sanitize`): role-anonymized pair sanitizer (no names leave the device) + 3-section `streamMeshReading` behind the **ANTI-SCAM RELATIONSHIP FENCE** (band = convention, never a verdict) |
+| `@almamesh/memory` | In-browser, zero-egress **semantic chat memory (RAG)**: `chunkText` + on-device embeddings (`@huggingface/transformers`, self-hosted weights, confined to a Web Worker via `createWorkerEmbedder`) + IndexedDB vector store (`idb-keyval`) + cosine retrieval. The `ChatMemory` facade (`indexMessage`/`retrieve`, per-profile) backs chat recall + `ChatSearch` in `apps/web` (`lib/chatMemory.ts`). No network, offline-first; tests inject a stub `Embedder` so the model runtime never loads |
 | `apps/web` | The React/Vite "Observatory" PWA: UI primitives (`components/ui/`), `AppLayout`, N/S charts, `forcefield/` 3D hero, self-hosted fonts (no CDN) |
 
 (`@almamesh/api-client` and `@almamesh/hooks` were DELETED with the SaaS runtime.)
@@ -206,7 +207,15 @@ tab) and the predictive contexts above.
 Dual-voice reading (shipped): `VedicInterpretation.summary`
 is now a `Persona { layman: string; technical: string }` instead of a plain string —
 `personaText(summary, audience)` selects the voice at the render boundary so toggling
-"For You"/"For Astrologer" switches the headline without a new LLM call. The Life Atlas
+"For You"/"For Astrologer" switches the headline without a new LLM call. The dashboard
+mounts the FULL reading, not just the summary:
+`apps/web/src/components/features/dashboard/DashboardInterpretation.tsx` (rendered by
+`pages/Dashboard.tsx`) uses progressive disclosure — the core narrative (strengths →
+challenges → life themes) is always visible; yogas, the seven life-area guidances,
+remedies and the road ahead are closed-by-default in-place collapsibles. It computes
+NO astrology and makes NO LLM call: it reuses the report layer's pure selectors
+(`personaText`, `buildGuidanceSections`), and the `audience` prop drives every
+section. The Life Atlas
 (`LifeAtlas.tsx`) and Sky & Timing panel both use `usePredictiveLayer({ auto: true })`,
 auto-starting the ~30s predictive compute the moment engine + chart are ready (no manual
 button); the single Pyodide engine thread services chart + predictive calls sequentially,

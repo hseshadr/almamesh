@@ -56,10 +56,12 @@ export function AddPersonDialog({ open, onClose }: AddPersonDialogProps): ReactE
 
   const [name, setName] = useState('');
   const [relationshipValue, setRelationshipValue] = useState('');
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const resetForm = (): void => {
     setName('');
     setRelationshipValue('');
+    setSubmitError(null);
   };
 
   // Reset on ANY close (Cancel, Escape, overlay) so a cancelled entry never
@@ -74,15 +76,22 @@ export function AddPersonDialog({ open, onClose }: AddPersonDialogProps): ReactE
     if (!trimmed) {
       return;
     }
-    const id = createProfile(trimmed);
-    const memberRelationship = asMemberRelationship(relationshipValue);
-    if (memberRelationship) {
-      setRelationship(id, memberRelationship);
+    setSubmitError(null);
+    try {
+      const id = createProfile(trimmed);
+      const memberRelationship = asMemberRelationship(relationshipValue);
+      if (memberRelationship) {
+        setRelationship(id, memberRelationship);
+      }
+      setActiveProfile(id);
+    } catch (err) {
+      // A store failure must never silently close the dialog or escape the
+      // click handler: keep the typed entry, show a friendly retryable notice.
+      console.error('[AddPersonDialog] add person failed:', err);
+      setSubmitError(t('people.add_failed'));
+      return;
     }
-    setActiveProfile(id);
-    setName('');
-    setRelationshipValue('');
-    onClose();
+    handleClose();
     void queryClient.invalidateQueries({ queryKey: ['primary-chart'] });
     navigate('/onboarding');
   };
@@ -120,6 +129,11 @@ export function AddPersonDialog({ open, onClose }: AddPersonDialogProps): ReactE
           </Select>
         </div>
         <p className="text-xs text-text-muted">{t('people.add_hint')}</p>
+        {submitError !== null && (
+          <p role="alert" data-testid="add-person-error" className="text-sm text-status-error">
+            {submitError}
+          </p>
+        )}
         <div className="flex justify-end gap-2">
           <Button variant="ghost" onClick={handleClose}>
             {t('people.add_cancel')}

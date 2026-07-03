@@ -984,8 +984,10 @@ export default function OnboardingPage() {
             <div className="relative bg-background-secondary border border-accent-purple/20 rounded-xl p-6 sm:p-8">
               {renderStep()}
 
-              {/* Error Message */}
-              {error && (
+              {/* Error Message — skipped on the generating step, whose recovery
+                  card already presents the same message with its actions (the
+                  strip would render the identical text a second time). */}
+              {error && currentStepKey !== "generating" && (
                 <div className="mt-6 p-3 bg-red-500/20 border border-red-500/50 rounded-lg">
                   <p className="text-red-400 text-sm text-center">{error}</p>
                 </div>
