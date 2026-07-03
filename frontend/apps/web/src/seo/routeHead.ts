@@ -73,6 +73,31 @@ export const PUBLIC_ROUTE_HEADS: readonly RouteHead[] = [
 export const PUBLIC_ROUTE_PATHS: readonly string[] = PUBLIC_ROUTE_HEADS.map((h) => h.path);
 
 /**
+ * Cloudflare-Pages output layout for a prerendered public route — the build
+ * outputs a FLAT `<slug>.html` (never a nested `<slug>/index.html`) so the
+ * no-slash canonical URL is the one CF Pages serves with HTTP 200.
+ *
+ * Why flat matters (the canonical bug this fixes): CF Pages serves a nested
+ * `welcome/index.html` at the TRAILING-SLASH URL and 308-redirects the no-slash
+ * form to it (`/welcome` -> 308 -> `/welcome/`). But the canonical tag, `og:url`
+ * (see `route()` above) AND `sitemap.xml` all point at the NO-slash `/welcome`.
+ * The declared canonical therefore redirected away from itself, so Google could
+ * never settle it and the pages stayed unindexed. A flat `welcome.html` is
+ * served at `/welcome` with a 200 (CF 308-normalizes the `/` and `.html`
+ * variants back to it), so all four signals finally agree on the no-slash URL.
+ *
+ * Returned paths are relative to the build `outDir`, matching Rollup asset
+ * `fileName`s (no leading slash). Root stays `index.html`.
+ */
+export function prerenderOutputFile(path: string): string {
+  return path === '/' ? 'index.html' : `${path.replace(/^\//, '')}.html`;
+}
+
+/** Absolute-from-outDir flat file for every public route (root -> index.html). */
+export const PRERENDER_OUTPUT_FILES: readonly string[] =
+  PUBLIC_ROUTE_PATHS.map(prerenderOutputFile);
+
+/**
  * Every private app surface, by prefix — the robots.txt Disallow list.
  * (`/life` covers `/life/:domain`, `/mesh` covers `/mesh/:memberId`, etc.)
  */

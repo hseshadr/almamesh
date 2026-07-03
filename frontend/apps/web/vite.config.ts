@@ -5,6 +5,7 @@ import { vitePrerenderPlugin } from 'vite-prerender-plugin'
 import path from 'path'
 import { writeFileSync, readFileSync } from 'fs'
 import { createHash } from 'crypto'
+import { PUBLIC_ROUTE_PATHS, prerenderOutputFile } from './src/seo/routeHead'
 
 // App version injected into the bundle (see `define` below) so client code can
 // report which release it is — e.g. submitFeedback's `X-App-Version` header.
@@ -218,10 +219,14 @@ function pwaPlugin(): Plugin[] {
   }) as Plugin[]
 }
 
+// The non-root public routes, as `additionalPrerenderRoutes` seeds and, below,
+// the preview allowlist. `/` is always prerendered by the plugin.
+const NON_ROOT_PUBLIC_ROUTES: readonly string[] = PUBLIC_ROUTE_PATHS.filter((p) => p !== '/')
+
 // Spec 064 — build-time prerender of the PUBLIC routes only (landing + legal).
 // `src/prerender-entry.tsx` runs IN NODE during `vite build` and renders the
-// engine-free public shells to real per-route HTML (dist/index.html,
-// dist/welcome/index.html, dist/{privacy,terms,data-deletion}/index.html) with
+// engine-free public shells to real per-route HTML (dist/index.html + the FLAT
+// dist/{welcome,privacy,terms,data-deletion}.html — see flattening below) with
 // per-route head tags from src/seo/routeHead.ts — so crawlers get content, not
 // an empty JS shell. Private app routes stay 100% client-rendered. Runs BEFORE
 // VitePWA in the plugin list: the prerendered pages are emitted during
@@ -238,17 +243,62 @@ function prerenderPublicRoutesPlugin(): Plugin[] {
   const plugins = vitePrerenderPlugin({
     renderTarget: '#root',
     prerenderScript: path.resolve(__dirname, 'src/prerender-entry.tsx'),
-    additionalPrerenderRoutes: ['/welcome', '/privacy', '/terms', '/data-deletion'],
+    additionalPrerenderRoutes: [...NON_ROOT_PUBLIC_ROUTES],
   }) as Plugin[]
   return plugins.filter((p) => p.name !== 'serve-prerendered-html')
 }
 
-// Preview-only: serve the per-route prerendered HTML for EXACTLY the public
-// routes (mirroring how Cloudflare Pages resolves /welcome ->
-// welcome/index.html in production, per public/_redirects). A closed
+// SEO canonical fix — FLATTEN the prerendered public routes.
+//
+// vite-prerender-plugin emits each non-root route as a NESTED directory index
+// (`dist/welcome/index.html`). Cloudflare Pages serves a directory index at the
+// TRAILING-SLASH URL and 308-redirects the no-slash form to it
+// (`/welcome` -> 308 -> `/welcome/`). But our canonical tag, `og:url` AND
+// `sitemap.xml` all declare the NO-slash `/welcome` (see src/seo/routeHead.ts),
+// so the declared canonical redirected AWAY from itself and Google never
+// settled it — the pages stayed unindexed. Renaming each emitted asset to a
+// FLAT `dist/welcome.html` makes CF Pages serve `/welcome` with HTTP 200 (and
+// 308-normalize the `/welcome/` and `/welcome.html` variants back to it), so
+// all four signals finally agree on the no-slash canonical.
+//
+// `enforce: 'post'` + registered AFTER the prerender plugin and BEFORE VitePWA
+// so this generateBundle runs once the prerendered assets exist and before the
+// SW precache manifest is computed — the manifest then lists `welcome.html`,
+// never the stale nested path. Root `index.html` is left untouched.
+function flattenPrerenderedRoutesPlugin(): Plugin {
+  const renames = NON_ROOT_PUBLIC_ROUTES.map((route) => {
+    const slug = route.replace(/^\//, '')
+    return { nested: `${slug}/index.html`, flat: prerenderOutputFile(route) }
+  })
+  return {
+    name: 'almamesh-flatten-prerendered-routes',
+    apply: 'build',
+    enforce: 'post',
+    generateBundle(_options, bundle) {
+      for (const { nested, flat } of renames) {
+        const asset = bundle[nested]
+        if (asset && asset.type === 'asset') {
+          delete bundle[nested]
+          asset.fileName = flat
+          bundle[flat] = asset
+        } else {
+          this.warn(
+            `flatten-prerendered-routes: expected prerendered asset "${nested}" not found — ` +
+              `the no-slash canonical for /${nested.replace('/index.html', '')} will NOT be served flat`,
+          )
+        }
+      }
+    },
+  }
+}
+
+// Preview-only: serve the FLAT per-route prerendered HTML for EXACTLY the public
+// routes, mirroring how Cloudflare Pages serves /welcome -> welcome.html (200)
+// in production. Trailing slashes are stripped first so /welcome and /welcome/
+// both resolve to the flat file (CF 308-normalizes the slash form). A closed
 // allowlist so no engine/data path can ever be rewritten to HTML.
 function previewPublicRoutesMiddleware(): Plugin {
-  const publicRoutes = new Set(['/welcome', '/privacy', '/terms', '/data-deletion'])
+  const publicRoutes = new Set(NON_ROOT_PUBLIC_ROUTES)
   return {
     name: 'almamesh-preview-public-routes',
     configurePreviewServer(server) {
@@ -256,7 +306,7 @@ function previewPublicRoutesMiddleware(): Plugin {
         if (req.url) {
           const pathname = new URL(req.url, 'http://localhost').pathname.replace(/\/+$/, '')
           if (publicRoutes.has(pathname)) {
-            req.url = `${pathname}/index.html`
+            req.url = `/${prerenderOutputFile(pathname)}`
           }
         }
         next()
@@ -272,6 +322,7 @@ export default defineConfig({
     react(),
     versionPlugin(),
     ...prerenderPublicRoutesPlugin(),
+    flattenPrerenderedRoutesPlugin(),
     previewPublicRoutesMiddleware(),
     ...pwaPlugin(),
   ],
