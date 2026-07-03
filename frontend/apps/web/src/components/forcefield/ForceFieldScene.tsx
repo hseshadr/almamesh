@@ -1,11 +1,19 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 // @ts-nocheck
 /**
- * ForceFieldScene - composes the planetary force-field (renamed from esoteric
- * `AuraScene`). Central node is the lagna-tinted `NativeCore` (no avatar);
- * planets sit at REAL ecliptic longitude. Selection is controlled by the parent
- * (lifted to the chart UI store) so the 3D scene and 2D kundli cross-highlight.
- * Optional faint `HouseRing` spokes from the chart cusps.
+ * ForceFieldScene - composes "The Living Astrolabe": one radiant lagna-tinted
+ * core (`NativeCore`), a quiet engraved wheel (house spokes + ONE outer zodiac
+ * band), nine token-coloured graha discs at their REAL ecliptic longitudes,
+ * and at most three `DashaThread`s (maha lord, antar lord, strongest discord —
+ * see `astrolabe.ts`). The current dasha lords render dominant; the other
+ * seven recede. Labels + friendliness halos are hover/selection-only.
+ *
+ * Entrance (~2.5 s, once per mount, driven by the parent's wave clock):
+ * core ignites -> zodiac band sweeps in -> planets fade in by longitude ->
+ * threads draw in. Reduced motion skips straight to the final static frame.
+ *
+ * Selection is controlled by the parent (lifted to the chart UI store) so the
+ * 3D scene and 2D kundli cross-highlight.
  *
  * Atmosphere: a token-coloured gradient backdrop (`Backdrop`) and a faint
  * instanced `Starfield` give the scene depth without cost; a calm auto-orbit
@@ -18,17 +26,23 @@
  * Note: @ts-nocheck — R3F9 intrinsic-element JSX clashes with React 19 typing.
  */
 
-import { useMemo, useRef, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { OrbitControls } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { colors } from '@almamesh/constants';
-import type { EnergyFrame, PlanetWave } from '@almamesh/shared-types';
+import type { EnergyFrame } from '@almamesh/shared-types';
 import { PlanetMesh } from './PlanetMesh';
 import { NativeCore } from './NativeCore';
-import { WaveBeam } from './WaveBeam';
-import { WaveInterference } from './WaveInterference';
+import { DashaThread } from './DashaThread';
 import { CENTER_Y } from './placement';
+import {
+  entrancePhase,
+  planetReveal,
+  planetRole,
+  revealOrder,
+  selectThreads,
+} from './astrolabe';
 
 interface ForceFieldSceneProps {
   frame: EnergyFrame;
@@ -53,6 +67,9 @@ const C = {
   spoke: new THREE.Color(colors.accent.lapis).multiplyScalar(0.55), // faint lapis engraving
   star: new THREE.Color(colors.text.secondary), // muted brass-gray token
 };
+
+/** Radius of the single outer zodiac band (planets sit at <= 7.5). */
+const ZODIAC_RADIUS = 8;
 
 /**
  * A large back-facing sphere shaded with a vertical gradient (deep obsidian at
@@ -201,18 +218,89 @@ function GroundPlane() {
   );
 }
 
-/** Faint radial spokes at each house cusp longitude + a brighter lagna spoke. */
+/**
+ * The ONE outer zodiac band: an engraved brass ring at r≈8 with twelve sign
+ * ticks. Replaces the nine per-planet orbit shells. `sweep` (0..1) draws the
+ * band in during the entrance via the geometry's index draw-range.
+ */
+function ZodiacBand({ sweep }: { sweep: number }) {
+  const bandGeometry = useMemo(
+    () => new THREE.RingGeometry(ZODIAC_RADIUS - 0.045, ZODIAC_RADIUS + 0.045, 180, 1),
+    [],
+  );
+  const tickGeometry = useMemo(() => {
+    const verts: number[] = [];
+    for (let i = 0; i < 12; i++) {
+      const a = (i * 30 * Math.PI) / 180;
+      verts.push(
+        Math.cos(a) * (ZODIAC_RADIUS - 0.36), 0, Math.sin(a) * (ZODIAC_RADIUS - 0.36),
+        Math.cos(a) * (ZODIAC_RADIUS - 0.12), 0, Math.sin(a) * (ZODIAC_RADIUS - 0.12),
+      );
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+    return geo;
+  }, []);
+  const tickMaterial = useMemo(
+    () =>
+      new THREE.LineBasicMaterial({
+        color: C.brass,
+        transparent: true,
+        opacity: 0.24,
+      }),
+    [],
+  );
+  const ticks = useMemo(
+    () => new THREE.LineSegments(tickGeometry, tickMaterial),
+    [tickGeometry, tickMaterial],
+  );
+
+  useEffect(() => {
+    const indexCount = bandGeometry.index ? bandGeometry.index.count : 0;
+    const clamped = Math.max(0, Math.min(1, sweep));
+    bandGeometry.setDrawRange(0, Math.floor((indexCount * clamped) / 3) * 3);
+    tickMaterial.opacity = 0.24 * clamped;
+  }, [bandGeometry, tickMaterial, sweep]);
+
+  useEffect(() => {
+    return () => {
+      bandGeometry.dispose();
+      tickGeometry.dispose();
+      tickMaterial.dispose();
+    };
+  }, [bandGeometry, tickGeometry, tickMaterial]);
+
+  return (
+    <group position={[0, -0.02, 0]}>
+      <mesh geometry={bandGeometry} rotation={[-Math.PI / 2, 0, 0]}>
+        <meshBasicMaterial
+          color={C.brass}
+          transparent
+          opacity={0.22}
+          side={THREE.DoubleSide}
+          depthWrite={false}
+        />
+      </mesh>
+      <primitive object={ticks} />
+    </group>
+  );
+}
+
+/** Faint radial spokes at each house cusp longitude + a brighter lagna dot. */
 function HouseRing({
   spokes,
   lagnaLongitude,
+  sweep,
 }: {
   spokes: readonly number[];
   lagnaLongitude?: number;
+  sweep: number;
 }) {
-  const lines = useMemo(() => {
+  const { lines, materials } = useMemo(() => {
     const inner = 1.6;
-    const outer = 8.2;
-    return spokes.map((lon) => {
+    const outer = ZODIAC_RADIUS - 0.25;
+    const mats: THREE.LineBasicMaterial[] = [];
+    const objs = spokes.map((lon) => {
       const a = (-lon * Math.PI) / 180;
       const geo = new THREE.BufferGeometry();
       geo.setAttribute(
@@ -222,56 +310,49 @@ function HouseRing({
           3,
         ),
       );
-      return geo;
+      const mat = new THREE.LineBasicMaterial({
+        color: C.spoke,
+        transparent: true,
+        opacity: 0.3,
+      });
+      mats.push(mat);
+      return new THREE.Line(geo, mat);
     });
+    return { lines: objs, materials: mats };
   }, [spokes]);
+
+  useEffect(() => {
+    const clamped = Math.max(0, Math.min(1, sweep));
+    for (const mat of materials) mat.opacity = 0.3 * clamped;
+  }, [materials, sweep]);
+
+  useEffect(() => {
+    return () => {
+      for (const line of lines) {
+        line.geometry.dispose();
+        (line.material as THREE.Material).dispose();
+      }
+    };
+  }, [lines]);
 
   return (
     <group position={[0, -0.02, 0]}>
-      {lines.map((geo, i) => (
-        <primitive
-          key={`spoke-${i}`}
-          object={new THREE.Line(geo, new THREE.LineBasicMaterial({ color: C.spoke, transparent: true, opacity: 0.4 }))}
-        />
+      {lines.map((line, i) => (
+        <primitive key={`spoke-${i}`} object={line} />
       ))}
       {typeof lagnaLongitude === 'number' && (
         <mesh
           position={[
-            Math.cos((-lagnaLongitude * Math.PI) / 180) * 8.4,
+            Math.cos((-lagnaLongitude * Math.PI) / 180) * (ZODIAC_RADIUS + 0.35),
             0,
-            Math.sin((-lagnaLongitude * Math.PI) / 180) * 8.4,
+            Math.sin((-lagnaLongitude * Math.PI) / 180) * (ZODIAC_RADIUS + 0.35),
           ]}
           rotation={[-Math.PI / 2, 0, 0]}
         >
           <circleGeometry args={[0.18, 24]} />
-          <meshBasicMaterial color={C.brassBright} transparent opacity={0.85} />
+          <meshBasicMaterial color={C.brassBright} transparent opacity={0.85 * sweep} />
         </mesh>
       )}
-    </group>
-  );
-}
-
-function WaveBeams({
-  planets,
-  time,
-  reducedMotion,
-}: {
-  planets: PlanetWave[];
-  time: number;
-  reducedMotion: boolean;
-}) {
-  const targetPosition = useMemo(() => new THREE.Vector3(0, CENTER_Y, 0), []);
-  return (
-    <group>
-      {planets.map((planet) => (
-        <WaveBeam
-          key={`wave-${planet.id}`}
-          planet={planet}
-          time={time}
-          reducedMotion={reducedMotion}
-          targetPosition={targetPosition}
-        />
-      ))}
     </group>
   );
 }
@@ -297,6 +378,17 @@ export function ForceFieldScene({
     () => [...frame.planets].sort((a, b) => a.orbitRadius - b.orbitRadius),
     [frame.planets],
   );
+
+  // The Living Astrolabe decisions (pure, chart-derived, unit-tested).
+  const threads = useMemo(
+    () => selectThreads(frame.planets, frame.active),
+    [frame.planets, frame.active],
+  );
+  const revealIndex = useMemo(() => {
+    const order = revealOrder(frame.planets);
+    return new Map(order.map((id, i) => [id, i]));
+  }, [frame.planets]);
+  const entrance = entrancePhase(animationTime, reducedMotion);
 
   return (
     <>
@@ -356,13 +448,31 @@ export function ForceFieldScene({
 
       <GroundPlane />
 
+      <ZodiacBand sweep={entrance.ring} />
+
       {houseSpokes && houseSpokes.length > 0 && (
-        <HouseRing spokes={houseSpokes} lagnaLongitude={lagnaLongitude} />
+        <HouseRing
+          spokes={houseSpokes}
+          lagnaLongitude={lagnaLongitude}
+          sweep={entrance.ring}
+        />
       )}
 
-      <WaveBeams planets={sortedPlanets} time={animationTime} reducedMotion={reducedMotion} />
-
-      <WaveInterference planets={sortedPlanets} aura={frame.aura} time={animationTime} reducedMotion={reducedMotion} />
+      {/* At most three threads: the lords of the moment (+ one discord). */}
+      {threads.map((spec) => {
+        const planet = sortedPlanets.find((p) => p.id === spec.planetId);
+        if (!planet) return null;
+        return (
+          <DashaThread
+            key={`thread-${spec.planetId}`}
+            planet={planet}
+            kind={spec.kind}
+            time={animationTime}
+            reducedMotion={reducedMotion}
+            drawProgress={entrance.threads}
+          />
+        );
+      })}
 
       <group position={[0, CENTER_Y, 0]}>
         <NativeCore
@@ -370,7 +480,7 @@ export function ForceFieldScene({
           time={animationTime}
           reducedMotion={reducedMotion}
           lagnaColor={lagnaColor}
-          activePlanetCount={sortedPlanets.length}
+          ignition={entrance.core}
         />
       </group>
 
@@ -379,15 +489,22 @@ export function ForceFieldScene({
           key={planet.id}
           planet={planet}
           time={animationTime}
+          role={planetRole(planet.id, frame.active)}
+          reveal={planetReveal(
+            animationTime,
+            revealIndex.get(planet.id) ?? 0,
+            sortedPlanets.length,
+            reducedMotion,
+          )}
           onSelect={handlePlanetSelect}
           isSelected={selectedPlanet === planet.id}
           isDimmed={selectedPlanet !== null && selectedPlanet !== planet.id}
-          showLabel
+          showLabel={selectedPlanet === planet.id}
           reducedMotion={reducedMotion}
         />
       ))}
 
-      <fog attach="fog" args={[colors.background.darkest, 18, 42]} />
+      <fog attach="fog" args={[colors.background.darkest, 12, 34]} />
 
       {effects}
     </>

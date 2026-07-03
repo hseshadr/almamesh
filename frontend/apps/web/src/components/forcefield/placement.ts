@@ -16,6 +16,12 @@ import type { PlanetWave } from '@almamesh/shared-types';
 /** Y offset of the scene centre (the native core sits slightly above ground). */
 export const CENTER_Y = 0.4;
 
+/**
+ * Y offset of the planet discs in real-longitude mode: floated just above the
+ * engraved wheel so a large dasha-lord disc never clips into the ground plane.
+ */
+export const PLANET_Y = 0.35;
+
 export interface PlanetPlacement {
   readonly x: number;
   readonly y: number;
@@ -42,7 +48,7 @@ export function planetPosition(
 
   const x = Math.cos(angle) * planet.orbitRadius;
   const z = Math.sin(angle) * planet.orbitRadius;
-  // Subtle vertical bob only in aesthetic-orbit mode; flat for the real wheel.
-  const y = useRealLongitude ? 0 : Math.sin(time * 0.3) * 0.2;
+  // Subtle vertical bob only in aesthetic-orbit mode; floated for the wheel.
+  const y = useRealLongitude ? PLANET_Y : Math.sin(time * 0.3) * 0.2;
   return { x, y, z, angle };
 }
