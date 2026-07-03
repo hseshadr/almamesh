@@ -4,10 +4,12 @@ import {
   PUBLIC_ROUTE_HEADS,
   PUBLIC_ROUTE_PATHS,
   PRIVATE_ROUTE_PREFIXES,
+  PRERENDER_OUTPUT_FILES,
   SITE_ORIGIN,
   OG_IMAGE_URL,
   getRouteHead,
   headElementsFor,
+  prerenderOutputFile,
 } from './routeHead';
 
 /** Flatten the plugin-shaped elements into an easy lookup for assertions. */
@@ -103,5 +105,34 @@ describe('routeHead — the single per-route SEO source', () => {
         '/life',
       ].sort(),
     );
+  });
+});
+
+describe('prerenderOutputFile — FLAT dist layout for the no-slash canonical', () => {
+  it('maps the root to index.html', () => {
+    expect(prerenderOutputFile('/')).toBe('index.html');
+  });
+
+  it('maps each non-root public route to a FLAT <slug>.html (never a nested index.html)', () => {
+    expect(prerenderOutputFile('/welcome')).toBe('welcome.html');
+    expect(prerenderOutputFile('/privacy')).toBe('privacy.html');
+    expect(prerenderOutputFile('/terms')).toBe('terms.html');
+    expect(prerenderOutputFile('/data-deletion')).toBe('data-deletion.html');
+  });
+
+  it('emits one relative, slash-free flat file per public route (root aside)', () => {
+    expect(PRERENDER_OUTPUT_FILES).toHaveLength(PUBLIC_ROUTE_PATHS.length);
+    for (const file of PRERENDER_OUTPUT_FILES) {
+      expect(file.startsWith('/')).toBe(false);
+      expect(file.endsWith('.html')).toBe(true);
+      // No nested directory index — a slash would 308 the no-slash canonical away.
+      if (file !== 'index.html') expect(file.includes('/')).toBe(false);
+    }
+    // The flat file's basename (minus .html) is the route slug -> CF serves it
+    // at the exact no-slash canonical path (og:url + sitemap + canonical tag).
+    for (const head of PUBLIC_ROUTE_HEADS) {
+      if (head.path === '/') continue;
+      expect(prerenderOutputFile(head.path)).toBe(`${head.path.replace(/^\//, '')}.html`);
+    }
   });
 });
