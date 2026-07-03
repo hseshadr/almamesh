@@ -52,6 +52,53 @@ const HISTORY_TOKEN_BUDGET = 3072;
 // slice keeps even a small/local chat model inside its window.
 export const INTERP_TOKEN_BUDGET = 1200;
 
+/**
+ * Per-engine chat prompt budget profile. Cloud/local HTTP endpoints get the
+ * generous historical sizing; the on-device (WebLLM) models ship a hard
+ * 4096-token context window and THROW on overflow, so their profile composes
+ * a strictly smaller prompt with generation headroom.
+ */
+export interface ChatPromptBudget {
+  /** Token budget for prior conversational turns (drop-oldest trimming). */
+  readonly historyTokens: number;
+  /** Token budget for the folded-in already-generated reading. */
+  readonly interpTokens: number;
+  /** Keep the delimited raw-predictive engine block inside the chart facts. */
+  readonly includeRawPredictive: boolean;
+  /**
+   * Hard ceiling for the whole composed prompt (estimated tokens); history
+   * shrinks first to honor it. `null` = uncapped (the cloud default).
+   */
+  readonly promptTokens: number | null;
+}
+
+/** Today's cloud/local sizing — the DEFAULT, byte-locked by the golden snapshots. */
+export const CLOUD_CHAT_BUDGET: ChatPromptBudget = {
+  historyTokens: HISTORY_TOKEN_BUDGET,
+  interpTokens: INTERP_TOKEN_BUDGET,
+  includeRawPredictive: true,
+  promptTokens: null,
+};
+
+/**
+ * The on-device profile: the blessed WebLLM models run a 4096-token window
+ * shared by prompt AND generation. ≤ ~3000 prompt tokens leaves ≥ 1024 for
+ * the answer (the provider caps generation at 768). The bulky raw-predictive
+ * block is dropped — the compact natal facts still ground the answer, and the
+ * Sky & Timing surface renders the predictive story deterministically.
+ */
+export const ONDEVICE_CHAT_BUDGET: ChatPromptBudget = {
+  historyTokens: 1024,
+  interpTokens: 512,
+  includeRawPredictive: false,
+  promptTokens: 3000,
+};
+
+/** The engine → budget-profile seam: exactly `webllm` is on-device. */
+export function chatBudgetForEngine(engine: string): ChatPromptBudget {
+  return engine === "webllm" ? ONDEVICE_CHAT_BUDGET : CLOUD_CHAT_BUDGET;
+}
+
 // Output-discipline + derived-fact fences shared by EVERY narration prompt
 // (structured full + lite, this file's markdown interpretation, and chat).
 // Added after an external expert found a mid-text self-correction ("Actually
@@ -349,14 +396,19 @@ export function serializeInterpretationForChat(
   return truncateToInterpBudget(parts.join("\n"));
 }
 
-/** Truncate serialized reading text to INTERP_TOKEN_BUDGET, marking when cut. */
-function truncateToInterpBudget(text: string): string {
+/** Truncate serialized reading text to a token budget, marking when cut. */
+function truncateReadingToBudget(text: string, budgetTokens: number): string {
   const marker = "\n…(reading truncated)";
-  if (estimateTokens(text) <= INTERP_TOKEN_BUDGET) {
+  if (estimateTokens(text) <= budgetTokens) {
     return text;
   }
-  const budgetChars = INTERP_TOKEN_BUDGET * 4 - marker.length;
+  const budgetChars = budgetTokens * 4 - marker.length;
   return text.slice(0, Math.max(0, budgetChars)) + marker;
+}
+
+/** Truncate serialized reading text to INTERP_TOKEN_BUDGET, marking when cut. */
+function truncateToInterpBudget(text: string): string {
+  return truncateReadingToBudget(text, INTERP_TOKEN_BUDGET);
 }
 
 /**
@@ -422,6 +474,12 @@ function interpretationBlock(text?: string): string {
  * rectification record (band + signs + cusp status only, Spec 062 delta 3) so
  * narration never contradicts the engine's birth-time story; when absent, the
  * prompt is byte-identical to the record-less path.
+ *
+ * The optional `budget` selects a {@link ChatPromptBudget} profile: the
+ * default is {@link CLOUD_CHAT_BUDGET} (today's bytes, snapshot-locked); the
+ * on-device engine passes {@link ONDEVICE_CHAT_BUDGET} via
+ * {@link chatBudgetForEngine} so the prompt fits WebLLM's 4096-token window
+ * with generation headroom (WebLLM throws on overflow, it never truncates).
  */
 export function buildChatMessages(
   chart: SanitizedChart,
@@ -433,9 +491,23 @@ export function buildChatMessages(
   language: PromptLanguage = "en",
   meshEdge?: SanitizedMeshEdge,
   rectification?: ChatRectificationContext,
+  budget: ChatPromptBudget = CLOUD_CHAT_BUDGET,
 ): ChatMessage[] {
-  const factsBlock = buildChartFactsBlock(chart);
+  // The raw-predictive engine block is dropped under a profile that excludes
+  // it (the on-device window cannot afford the dump); `predictive` is optional
+  // on SanitizedChart, so the natal-only facts stay byte-identical.
+  const factsChart: SanitizedChart = budget.includeRawPredictive
+    ? chart
+    : { ...chart, predictive: undefined };
+  const factsBlock = buildChartFactsBlock(factsChart);
   const meshBlock = buildMeshFactsBlock(meshEdge);
+  // The reading arrives pre-truncated to the cloud budget by the caller's
+  // serializer; re-truncating here is a no-op on the cloud profile (idempotent
+  // — snapshot-locked) and enforces the smaller cap on the on-device profile.
+  const reading =
+    interpretationText === undefined
+      ? undefined
+      : truncateReadingToBudget(interpretationText, budget.interpTokens);
   // The compact facts block rides ONLY on the latest user turn (not repeated per
   // turn) to save budget; the system prompt already pins the engine as truth. The
   // mesh relationship block (when present) rides immediately after the chart
@@ -449,7 +521,7 @@ export function buildChatMessages(
     factsBlock,
     meshBlock,
     rectificationBlock(rectification),
-    interpretationBlock(interpretationText),
+    interpretationBlock(reading),
     retrievedContextBlock(retrievedContext),
     "",
     "Question:",
@@ -458,15 +530,26 @@ export function buildChatMessages(
     .filter((part) => part !== "")
     .join("\n");
 
+  const systemPrompt =
+    meshBlock === "" ? CHAT_SYSTEM_PROMPT : CHAT_SYSTEM_PROMPT + MESH_CONTEXT_EXCEPTION;
+  const systemContent = withLanguage(systemPrompt, language);
+
   // Prior turns are model-authored prose + the user's own questions — plain UI
   // strings carrying no raw chart identifiers — inserted between the system
   // prompt and the final (facts-bearing) user turn, trimmed to a token budget.
-  const trimmed = trimHistoryToBudget(history, HISTORY_TOKEN_BUDGET);
+  // Under a capped profile the history budget also shrinks to whatever the
+  // fixed parts (system + facts-bearing user turn) leave inside the cap.
+  const historyBudget =
+    budget.promptTokens === null
+      ? budget.historyTokens
+      : Math.min(
+          budget.historyTokens,
+          Math.max(0, budget.promptTokens - estimateTokens(systemContent) - estimateTokens(userContent)),
+        );
+  const trimmed = historyBudget > 0 ? trimHistoryToBudget(history, historyBudget) : [];
 
-  const systemPrompt =
-    meshBlock === "" ? CHAT_SYSTEM_PROMPT : CHAT_SYSTEM_PROMPT + MESH_CONTEXT_EXCEPTION;
   return [
-    { role: "system", content: withLanguage(systemPrompt, language) },
+    { role: "system", content: systemContent },
     ...trimmed.map((turn): ChatMessage => ({ role: turn.role, content: turn.content })),
     { role: "user", content: userContent },
   ];

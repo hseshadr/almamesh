@@ -4,6 +4,7 @@ import { createStore } from 'zustand/vanilla';
 import type { VedicInterpretation } from '@almamesh/shared-types';
 
 import {
+  INTERPRETATION_PERSIST_VERSION,
   interpretationStoreCreator,
   migrateInterpretationPersistedState,
   type InterpretationStore,
@@ -200,6 +201,136 @@ describe('interpretationStore', () => {
     expect(store.getState().getEntry('c2')).toBeUndefined();
     expect(store.getState().getEntry('c1')?.status).toBe('generating');
     expect(store.getState().getEntry('c3')?.status).toBe('error');
+  });
+});
+
+describe('interpretationStore — provenance + keep-old-until-success', () => {
+  // Display-friendly producer identity (engine/model/endpoint — NEVER a key).
+  const PROV_A = {
+    engine: 'openai-http',
+    model: 'model-a',
+    baseUrl: 'http://localhost:11434/v1',
+  } as const;
+  const PROV_B = {
+    engine: 'openai-http',
+    model: 'model-b',
+    baseUrl: 'http://localhost:11434/v1',
+  } as const;
+
+  it('setInterpretation records the structured provenance when given', () => {
+    const store = newStore();
+    store.getState().setInterpretation('c1', makeInterpretation(), '2026-07-01T00:00:00Z', PROV_A);
+    const entry = store.getState().getEntry('c1');
+    expect(entry?.status).toBe('complete');
+    expect(entry?.provenance).toEqual({
+      engine: 'openai-http',
+      model: 'model-a',
+      baseUrl: 'http://localhost:11434/v1',
+    });
+  });
+
+  it('setInterpretation without a provenance leaves it undefined (back-compat callers)', () => {
+    const store = newStore();
+    store.getState().setInterpretation('c1', makeInterpretation(), '2026-07-01T00:00:00Z');
+    expect(store.getState().getEntry('c1')?.provenance).toBeUndefined();
+  });
+
+  it('a regeneration does NOT destroy the previously completed reading', () => {
+    const store = newStore();
+    const original = makeInterpretation('The first reading.');
+    store.getState().setInterpretation('c1', original, '2026-07-01T00:00:00Z', PROV_A);
+
+    // Regeneration begins: status flips to generating, progress resets, but the
+    // prior reading (and its provenance) stays available for the UI to render.
+    store.getState().startInterpretation('c1');
+    const entry = store.getState().getEntry('c1');
+    expect(entry?.status).toBe('generating');
+    expect(entry?.sections).toEqual({});
+    expect(entry?.interpretation).toBe(original);
+    expect(entry?.provenance).toBe(PROV_A);
+    expect(entry?.updatedAt).toBe('2026-07-01T00:00:00Z');
+  });
+
+  it('a FAILED regeneration keeps showing the prior reading (error recorded, reading intact)', () => {
+    const store = newStore();
+    const original = makeInterpretation('The first reading.');
+    store.getState().setInterpretation('c1', original, '2026-07-01T00:00:00Z', PROV_A);
+
+    store.getState().startInterpretation('c1');
+    store.getState().setError('c1', 'endpoint unreachable');
+
+    const entry = store.getState().getEntry('c1');
+    expect(entry?.status).toBe('error');
+    expect(entry?.error).toBe('endpoint unreachable');
+    expect(entry?.interpretation).toBe(original);
+    expect(entry?.provenance).toBe(PROV_A);
+  });
+
+  it('a SUCCESSFUL regeneration replaces the reading and its provenance', () => {
+    const store = newStore();
+    store
+      .getState()
+      .setInterpretation('c1', makeInterpretation('The first reading.'), '2026-07-01T00:00:00Z', PROV_A);
+
+    store.getState().startInterpretation('c1');
+    const regenerated = makeInterpretation('The regenerated reading.');
+    store.getState().setInterpretation('c1', regenerated, '2026-07-02T00:00:00Z', PROV_B);
+
+    const entry = store.getState().getEntry('c1');
+    expect(entry?.status).toBe('complete');
+    expect(entry?.interpretation).toBe(regenerated);
+    expect(entry?.provenance).toBe(PROV_B);
+    expect(entry?.updatedAt).toBe('2026-07-02T00:00:00Z');
+    expect(entry?.error).toBeUndefined();
+  });
+
+  it('a regeneration clears a stale error and failed sections while keeping the reading', () => {
+    const store = newStore();
+    store.getState().setInterpretation('c1', makeInterpretation(), '2026-07-01T00:00:00Z', PROV_A);
+    store.getState().startInterpretation('c1');
+    store.getState().markSectionFailed('c1', 'yoga');
+    store.getState().setError('c1', 'boom');
+
+    store.getState().startInterpretation('c1');
+    const entry = store.getState().getEntry('c1');
+    expect(entry?.status).toBe('generating');
+    expect(entry?.error).toBeUndefined();
+    expect(entry?.failedSections).toBeUndefined();
+    expect(entry?.interpretation).toBeDefined();
+  });
+});
+
+describe('persist v3 migration (provenance)', () => {
+  it('the persist version is bumped to 3', () => {
+    expect(INTERPRETATION_PERSIST_VERSION).toBe(3);
+  });
+
+  it('a v2 entry (no provenance) hydrates unchanged and still renders', () => {
+    const v2 = {
+      byChart: {
+        c1: {
+          status: 'complete',
+          sections: {},
+          updatedAt: '2026-06-20T00:00:00Z',
+          interpretation: {
+            summary: { layman: 'plain', technical: 'Saturn in the 10th' },
+            strengths: [],
+            challenges: [],
+            life_themes: [],
+          },
+        },
+      },
+    };
+    const migrated = migrateInterpretationPersistedState(v2, 2);
+    const entry = migrated.byChart.c1;
+    expect(entry?.status).toBe('complete');
+    expect(entry?.interpretation?.summary).toEqual({
+      layman: 'plain',
+      technical: 'Saturn in the 10th',
+    });
+    // Legacy readings have no fingerprint — the dashboard treats that as a
+    // mismatch and regenerates once when the config can produce a reading.
+    expect(entry?.provenance).toBeUndefined();
   });
 });
 

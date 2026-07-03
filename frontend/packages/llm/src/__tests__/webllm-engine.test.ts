@@ -41,6 +41,9 @@ describe("BLESSED_ONDEVICE_MODELS — the pluggable picker list", () => {
         downloadMB: 968,
         vramMB: 2037,
         default: true,
+        // Qwen3 needs the enable_thinking:false neutralizer; Llama must NOT
+        // carry the flag (WebLLM would inject a literal empty <think> block).
+        suppressThinking: true,
       },
       {
         id: "Llama-3.2-1B-Instruct-q4f16_1-MLC",

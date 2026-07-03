@@ -154,3 +154,48 @@ describe("applyInterpretationSettings / applyChatSettings — explicit env resol
     );
   });
 });
+
+describe("webllm branch — only BLESSED MLC ids may reach the on-device engine", () => {
+  // Defect: writeLlmSettings MERGES, so a chatModel/model left over from a prior
+  // cloud (OpenRouter preset) or Ollama tier survives enabling on-device — and a
+  // non-MLC id targets a nonexistent model record, hard-failing every chat turn.
+  const OPENROUTER_ENV: LlmEnv = {
+    VITE_LLM_API_BASE: "https://openrouter.ai/api/v1",
+    VITE_LLM_API_KEY: "sk-or-x",
+    VITE_LLM_PRIVACY_MODE: "cloud_premium",
+  };
+
+  it("a leftover cloud chatModel (OpenRouter preset) falls back to the blessed default", () => {
+    const settings = { engine: "webllm", chatModel: "minimax/minimax-m2.7" };
+    expect(applyChatSettings(OPENROUTER_ENV, settings).VITE_LLM_MODEL).toBe(
+      DEFAULT_ONDEVICE_MODEL,
+    );
+    expect(applyChatSettings({}, settings).VITE_LLM_MODEL).toBe(DEFAULT_ONDEVICE_MODEL);
+  });
+
+  it("a leftover Ollama default model ('llama3.1') falls back to the blessed default", () => {
+    const settings = { engine: "webllm", model: "llama3.1" };
+    expect(applyChatSettings({}, settings).VITE_LLM_MODEL).toBe(DEFAULT_ONDEVICE_MODEL);
+    expect(applyInterpretationSettings({}, settings).VITE_LLM_MODEL).toBe(
+      DEFAULT_ONDEVICE_MODEL,
+    );
+  });
+
+  it("a stale cloud chatModel never clobbers the user's blessed (lighter) pick", () => {
+    const settings = {
+      engine: "webllm",
+      chatModel: "minimax/minimax-m2.7",
+      model: "Llama-3.2-1B-Instruct-q4f16_1-MLC",
+    };
+    expect(applyChatSettings(OPENROUTER_ENV, settings).VITE_LLM_MODEL).toBe(
+      "Llama-3.2-1B-Instruct-q4f16_1-MLC",
+    );
+  });
+
+  it("interpretation path: a leftover cloud interpretationModel falls back to the blessed default", () => {
+    const settings = { engine: "webllm", interpretationModel: "openai/gpt-4o" };
+    expect(applyInterpretationSettings(OPENROUTER_ENV, settings).VITE_LLM_MODEL).toBe(
+      DEFAULT_ONDEVICE_MODEL,
+    );
+  });
+});

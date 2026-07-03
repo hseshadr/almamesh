@@ -126,7 +126,16 @@ export interface ChatStore {
    * Returns the thread id. `chartId` links a freshly-created thread to a chart.
    */
   ensureThread: (profileId: string, chartId?: string) => string;
-  appendMessage: (threadId: string, role: ChatRole, content: string) => ChatMessage;
+  /**
+   * Append a message. `options.error` marks a failed-turn notice: rendered as
+   * an error bubble, excluded from the model-visible history by consumers.
+   */
+  appendMessage: (
+    threadId: string,
+    role: ChatRole,
+    content: string,
+    options?: { readonly error?: true },
+  ) => ChatMessage;
   getMessages: (threadId: string) => ChatMessage[];
   /** All threads for a profile, newest-updated first. */
   listThreads: (profileId: string) => ChatThread[];
@@ -183,7 +192,7 @@ export const chatStoreCreator: StateCreator<ChatStore> = (set, get) => ({
     return thread.id;
   },
 
-  appendMessage: (threadId, role, content) => {
+  appendMessage: (threadId, role, content, options) => {
     const now = new Date().toISOString();
     const message: ChatMessage = {
       id: nextId('msg'),
@@ -191,6 +200,7 @@ export const chatStoreCreator: StateCreator<ChatStore> = (set, get) => ({
       role,
       content,
       created_at: now,
+      ...(options?.error ? { error: true as const } : {}),
     };
     set((state) => {
       const thread = state.threads[threadId];

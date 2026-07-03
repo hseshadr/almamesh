@@ -166,7 +166,10 @@ export function OnDeviceTierCard({
         if (mountedRef.current) setProgress(p);
       });
       // Download + load succeeded → enabling the tier is exactly this write.
-      writeLlmSettings({ engine: 'webllm', model: selected.id });
+      // `chatModel` is pinned too (belt-and-braces): writeLlmSettings MERGES,
+      // so a chatModel left over from a prior cloud/Ollama tier would survive
+      // and steer chat at a nonexistent MLC model record.
+      writeLlmSettings({ engine: 'webllm', model: selected.id, chatModel: selected.id });
       if (mountedRef.current) {
         setBusy('idle');
         setProgress(null);

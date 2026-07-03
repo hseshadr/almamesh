@@ -19,8 +19,13 @@
 import { useCallback, useState } from 'react';
 import { useChatStore } from '@almamesh/store';
 import type { ChatMessage } from '@almamesh/shared-types';
-import type { ChatTurn } from '@almamesh/llm';
+import {
+  OnDeviceContextOverflowError,
+  OnDeviceModelRecordError,
+  type ChatTurn,
+} from '@almamesh/llm';
 
+import i18n from '../i18n/config';
 import { indexChatMessage, retrieveContext } from '../lib/chatMemory';
 import { getChatErrorMessage } from '../lib/errors';
 
@@ -48,15 +53,43 @@ export interface UseChatThreadResult {
   readonly submit: (question: string, stream: ChatStreamFn) => Promise<void>;
 }
 
-/** Prior persisted messages → ChatTurn[] for multi-turn memory. */
+/**
+ * Prior persisted messages → ChatTurn[] for multi-turn memory. Error-flagged
+ * turns are UI notices, not model prose — feeding one back as a prior
+ * assistant turn poisons every subsequent answer, so they are excluded here.
+ */
 function toHistory(messages: readonly ChatMessage[]): ChatTurn[] {
   const turns: ChatTurn[] = [];
   for (const m of messages) {
+    if (m.error) {
+      continue;
+    }
     if ((m.role === 'user' || m.role === 'assistant') && m.content.trim().length > 0) {
       turns.push({ role: m.role, content: m.content });
     }
   }
   return turns;
+}
+
+/** Match a typed cause even if class identity was lost across a boundary. */
+function isNamed(error: unknown, name: string): boolean {
+  return error instanceof Error && error.name === name;
+}
+
+/**
+ * Map a failed stream to actionable, recoverable copy. Typed on-device causes
+ * get specific guidance (a too-long conversation → new chat/shorter question;
+ * a missing model record → re-select/re-download); anything unknown keeps the
+ * generic QA_001 fallback. Exported for tests.
+ */
+export function describeChatStreamError(error: unknown): string {
+  if (error instanceof OnDeviceContextOverflowError || isNamed(error, 'OnDeviceContextOverflowError')) {
+    return i18n.t('chat:errors.context_overflow');
+  }
+  if (error instanceof OnDeviceModelRecordError || isNamed(error, 'OnDeviceModelRecordError')) {
+    return i18n.t('chat:errors.model_missing');
+  }
+  return getChatErrorMessage('QA_001', error);
 }
 
 export function useChatThread(
@@ -117,7 +150,9 @@ export function useChatThread(
         });
       } catch (error) {
         console.error('[useChatThread] stream failed:', error);
-        store.appendMessage(tid, 'assistant', getChatErrorMessage('QA_001', error));
+        // Flagged as an error turn: rendered as an error bubble, excluded from
+        // the model-visible history (see `toHistory`), never indexed for RAG.
+        store.appendMessage(tid, 'assistant', describeChatStreamError(error), { error: true });
       } finally {
         setIsStreaming(false);
         setStreamingDraft('');

@@ -97,13 +97,22 @@ export type { PrivacyMode, ProviderConfig, LlmEnv } from "./config";
 export { streamChatCompletion, LlmRequestError } from "./client";
 export type { ChatMessage, StreamChatOptions } from "./client";
 
+// Reading provenance: which resolved config (engine/model/endpoint — never a
+// secret) produced a stored reading, so the UI can caption it and a config
+// change can trigger a regeneration.
+export { configFingerprint, configProvenance } from "./provenance";
+export type { ReadingProvenance } from "./provenance";
+
 export {
   buildInterpretationMessages,
   buildChatMessages,
   serializeInterpretationForChat,
   INTERP_TOKEN_BUDGET,
+  chatBudgetForEngine,
+  CLOUD_CHAT_BUDGET,
+  ONDEVICE_CHAT_BUDGET,
 } from "./prompt";
-export type { ViewMode, ChatRectificationContext } from "./prompt";
+export type { ViewMode, ChatRectificationContext, ChatPromptBudget } from "./prompt";
 
 export { languageInstruction, withLanguage } from "./language";
 export type { PromptLanguage } from "./language";
@@ -141,7 +150,11 @@ export type {
   OnDeviceProgressCallback,
   OnDeviceProgressPhase,
 } from "./webllm/engine";
-export { OnDeviceUnsupportedError } from "./webllm/errors";
+export {
+  OnDeviceUnsupportedError,
+  OnDeviceContextOverflowError,
+  OnDeviceModelRecordError,
+} from "./webllm/errors";
 import { OnDeviceUnsupportedError } from "./webllm/errors";
 export { estimateTokens, trimHistoryToBudget } from "./budget";
 export type { ChatTurn } from "./budget";
@@ -167,6 +180,7 @@ import type { MeshEdgeContext } from "./mesh-types";
 import {
   buildChatMessages,
   buildInterpretationMessages,
+  chatBudgetForEngine,
   type ChatRectificationContext,
   type ViewMode,
 } from "./prompt";
@@ -286,6 +300,9 @@ export async function* streamChartChat(
     params.language ?? "en",
     meshEdge,
     params.rectification,
+    // Engine-aware prompt sizing: the on-device 4096-token window gets the
+    // strict profile (WebLLM throws on overflow); cloud keeps today's bytes.
+    chatBudgetForEngine(params.config.engine),
   );
 
   yield* routeChatCompletion({

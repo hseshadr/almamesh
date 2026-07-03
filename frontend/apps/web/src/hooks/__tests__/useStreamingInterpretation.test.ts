@@ -13,6 +13,7 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 
 import {
   ON_DEVICE_READING_UNSUPPORTED,
+  resolveInterpretationConfig,
   useStreamingInterpretation,
 } from '../useStreamingInterpretation';
 
@@ -37,6 +38,7 @@ vi.mock('@almamesh/store', async () => {
 });
 
 import {
+  configProvenance,
   streamStructuredInterpretation,
   OnDeviceUnsupportedError,
   PrivacyViolationError,
@@ -90,6 +92,8 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     getChart.mockReturnValue(CHART_WITH_RAW);
+    // Deterministic LLM settings: no browser-local overrides between tests.
+    localStorage.clear();
     // Reset any persisted interpretation between tests.
     useInterpretationStore.setState({ byChart: {} });
     // Reset the language preference to the English default for each test.
@@ -281,6 +285,49 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
     await waitFor(() => expect(result.current.status).toBe('error'));
     expect(result.current.error).toMatch(/regenerated/);
     expect(mockedStream).not.toHaveBeenCalled();
+  });
+
+  it('records the resolved config identity as the reading provenance on completion', async () => {
+    mockedStream.mockImplementation(
+      eventStream([{ type: 'complete', interpretation: SAMPLE_INTERPRETATION }]),
+    );
+
+    const { result } = renderHook(() => useStreamingInterpretation('chart-123'));
+    await act(async () => {
+      await result.current.streamInterpretation('chart-123');
+    });
+
+    await waitFor(() => expect(result.current.status).toBe('complete'));
+    const entry = useInterpretationStore.getState().getEntry('chart-123');
+    // The provenance is the display identity of the SAME resolved config the
+    // hook streamed with — so the UI can caption the reading with its model
+    // and a later config change is detectable as a mismatch.
+    expect(entry?.provenance).toEqual(configProvenance(resolveInterpretationConfig()));
+    expect(entry?.provenance?.model).toBeTruthy();
+    // Never a secret: the persisted object has exactly the identity fields.
+    expect(Object.keys(entry?.provenance ?? {}).sort()).toEqual(
+      Object.keys(configProvenance(resolveInterpretationConfig())).sort(),
+    );
+  });
+
+  it('keeps the previously completed reading when a regeneration fails', async () => {
+    mockedStream.mockImplementation(
+      eventStream([{ type: 'complete', interpretation: SAMPLE_INTERPRETATION }]),
+    );
+    const { result } = renderHook(() => useStreamingInterpretation('chart-123'));
+    await act(async () => {
+      await result.current.streamInterpretation('chart-123');
+    });
+    await waitFor(() => expect(result.current.status).toBe('complete'));
+
+    // The regeneration fails outright — the old reading must survive.
+    mockedStream.mockImplementation(failingStream(new LlmRequestError('HTTP 500')));
+    await act(async () => {
+      await result.current.streamInterpretation('chart-123');
+    });
+
+    await waitFor(() => expect(result.current.status).toBe('error'));
+    expect(result.current.interpretation).toEqual(SAMPLE_INTERPRETATION);
   });
 
   it('reset clears the entry back to idle', async () => {

@@ -78,6 +78,31 @@ describe('ChatPanel — typing indicator vs streamed text', () => {
     });
   });
 
+  it('renders an error-flagged message as a distinct error bubble (not a normal turn)', async () => {
+    const store = useChatStore.getState();
+    const threadId = store.ensureThread('profile-1', 'chart-1');
+    store.appendMessage(threadId, 'user', 'a very long question');
+    store.appendMessage(
+      threadId,
+      'assistant',
+      'That conversation is too long — ask a shorter question.',
+      { error: true },
+    );
+
+    render(
+      <ChatPanel
+        personName="Test"
+        profileId="profile-1"
+        chartId="chart-1"
+        viewMode="layman"
+        onAskQuestionStream={vi.fn() as never}
+      />,
+    );
+
+    const bubble = await screen.findByTestId('chat-error-bubble');
+    expect(bubble.textContent).toContain('shorter question');
+  });
+
   it('renders the normal empty state with a usable input (no setup branch)', () => {
     const onAskQuestionStream = vi.fn();
     render(

@@ -8,6 +8,7 @@
     "settings_title": "Configuración",
     "try_again": "Intentar de nuevo",
     "retry": "Reintentar",
+    "regenerate": "Regenerar lectura",
     "connect_ai": "Conectar un modelo de IA",
     "switch_recommended": "Cambiar al recomendado (DeepSeek V4)",
     "ai_settings": "Configuración de IA"
@@ -31,6 +32,10 @@
     "model_unavailable": "El modelo de IA de tu configuración no está disponible en tu endpoint, por lo que no se pudo generar la lectura. Cambia al modelo recomendado e inténtalo de nuevo.",
     "partial_failure": "Algunas secciones no se pudieron generar esta vez: {{sections}}. El resto de la lectura está completa — regenérala para completar lo que falta.",
     "on_device_scope": "La IA en el dispositivo se encarga del chat y de la entrevista de la hora de nacimiento. La lectura escrita completa necesita un endpoint en la nube o local — añade uno en los ajustes de IA."
+  },
+  "reading": {
+    "generated_by": "Generada por {{model}} · {{date}}",
+    "generated_at": "Generada el {{date}}"
   },
   "sections": {
     "core": "Identidad y personalidad",

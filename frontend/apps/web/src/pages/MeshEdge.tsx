@@ -33,6 +33,8 @@ import {
   applyChatSettings,
   resolveProviderConfig,
   streamChartChat,
+  OnDeviceContextOverflowError,
+  OnDeviceModelRecordError,
   type ChatTurn,
   type LlmEnv,
   type MeshEdgeContext as LlmMeshEdgeContext,
@@ -318,6 +320,9 @@ function MeshEdgeContent({
         onToken(delta);
       }
     } catch (err) {
+      // Typed on-device causes must reach useChatThread intact so the user
+      // gets an actionable message (new chat / re-download) instead of QA_001.
+      if (err instanceof OnDeviceContextOverflowError || err instanceof OnDeviceModelRecordError) throw err;
       throw new Error(
         getUserFriendlyError(
           'QA_001',

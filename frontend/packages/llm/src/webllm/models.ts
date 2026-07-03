@@ -19,6 +19,16 @@ export interface OnDeviceModelSpec {
   readonly default?: boolean;
   /** The lighter alternative for low-VRAM devices. */
   readonly lighter?: boolean;
+  /**
+   * Send `extra_body: { enable_thinking: false }` on every request for this
+   * model. Qwen3 needs it (it emits real `<think>` reasoning blocks
+   * otherwise); models WITHOUT the flag must NEVER receive it — WebLLM 0.2.84
+   * answers `enable_thinking === false` by splicing a literal empty
+   * `"<think>\n\n</think>\n\n"` into the prompt AND the decoded stream when
+   * the model's tokenizer lacks the think token (Llama), so the flag itself
+   * creates the garbage it is meant to prevent.
+   */
+  readonly suppressThinking?: boolean;
 }
 
 /**
@@ -33,6 +43,7 @@ export const BLESSED_ONDEVICE_MODELS: readonly OnDeviceModelSpec[] = [
     downloadMB: 968,
     vramMB: 2037,
     default: true,
+    suppressThinking: true,
   },
   {
     id: "Llama-3.2-1B-Instruct-q4f16_1-MLC",

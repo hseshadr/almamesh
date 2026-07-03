@@ -10,6 +10,7 @@ import type {
 import { readLocalPrimaryChart } from "../lib/localChartRead";
 import {
   applyChatSettings,
+  configFingerprint,
   describeLlmStatus,
   resolveProviderConfig,
   streamChartChat,
@@ -18,6 +19,8 @@ import {
   writeLlmSettings,
   openRouterPreset,
   RECOMMENDED_CLOUD_MODEL,
+  OnDeviceContextOverflowError,
+  OnDeviceModelRecordError,
   type ChatTurn,
   type LlmEnv,
 } from "@almamesh/llm";
@@ -29,7 +32,7 @@ import {
   useRectificationRecordsStore,
 } from "@almamesh/store";
 
-import { Card, Spinner } from "../components/ui";
+import { Button, Card, Spinner } from "../components/ui";
 import { ContentModeToggle } from "../components/ui/ContentModeToggle";
 import { MarkdownContent } from "../components/ui/MarkdownContent";
 import { FloatingChatPanel } from "../components/features/chat/FloatingChatPanel";
@@ -46,6 +49,7 @@ import { useContentModeStore } from "../stores/contentMode";
 import type { ViewMode } from "../lib/types";
 import {
   ON_DEVICE_READING_UNSUPPORTED,
+  resolveInterpretationConfig,
   useStreamingInterpretation,
   withRawPredictive,
 } from "../hooks/useStreamingInterpretation";
@@ -87,7 +91,7 @@ function readChatLlmEnv(): LlmEnv {
 }
 
 export default function DashboardPage() {
-  const { t } = useTranslation(["dashboard", "life", "predictive"]);
+  const { t, i18n } = useTranslation(["dashboard", "life", "predictive"]);
 
   // Auth state is handled by RequiresChartRoute guard
   const [chartData, setChartData] = useState<BirthChartGenerationResponse | null>(null);
@@ -172,8 +176,16 @@ export default function DashboardPage() {
     isStreaming: isStreamingInterpretation,
     status: interpretationStatus,
     error: streamingError,
-    reset: resetStreaming,
+    cancel: cancelStreaming,
   } = useStreamingInterpretation(chartId);
+
+  // The full persisted entry for the active chart: carries the reading's
+  // provenance (which model wrote it) and updatedAt for the quiet caption
+  // under the reading. Subscribed (not getState) so a fresh generation
+  // re-renders the caption the moment the new reading lands.
+  const interpretationEntry = useInterpretationStore((s) =>
+    chartId ? s.byChart[chartId] : undefined,
+  );
 
   // Whether an AI model is configured (on-device, local or cloud) — gates
   // auto-generation and decides between the progress panel and the CTA.
@@ -274,6 +286,9 @@ export default function DashboardPage() {
         onToken(delta);
       }
     } catch (err) {
+      // Typed on-device causes must reach useChatThread intact so the user
+      // gets an actionable message (new chat / re-download) instead of QA_001.
+      if (err instanceof OnDeviceContextOverflowError || err instanceof OnDeviceModelRecordError) throw err;
       throw new Error(getUserFriendlyError('QA_001', err instanceof Error ? err.message : undefined, t('dashboard:chat.not_configured_notice')));
     }
     return {
@@ -285,7 +300,11 @@ export default function DashboardPage() {
 
   const handleGenerateSeparatedInterpretation = async () => {
     if (!chartId) return;
-    resetStreaming();
+    // Abort any in-flight run WITHOUT deleting the stored entry: the store
+    // keeps a previously completed reading through a regeneration
+    // (keep-old-until-success), so a failed run never leaves the user with
+    // nothing. Only a successful new reading replaces the old one.
+    cancelStreaming();
 
     const sepViewMode = viewMode === "astrologer" ? "expert" : "layman";
 
@@ -305,6 +324,16 @@ export default function DashboardPage() {
   const handleSwitchToRecommendedModel = () => {
     const current = readLlmSettings();
     writeLlmSettings(openRouterPreset(current.apiKey ?? '', RECOMMENDED_CLOUD_MODEL));
+    autoGenerationTriggeredRef.current = false;
+    versionCheckRef.current = 'idle';
+    handleGenerateSeparatedInterpretation();
+  };
+
+  // Manual "Regenerate" on a completed reading: reset the single-shot refs
+  // (exactly like handleSwitchToRecommendedModel) so the auto-generate effect
+  // cannot double-fire, then regenerate. The current reading stays on screen
+  // until — and unless — the new one lands (keep-old-until-success).
+  const handleRegenerateReading = () => {
     autoGenerationTriggeredRef.current = false;
     versionCheckRef.current = 'idle';
     handleGenerateSeparatedInterpretation();
@@ -353,15 +382,31 @@ export default function DashboardPage() {
       return;
     }
 
-    // If we already have a valid (complete) interpretation, no need to do anything.
+    // If we already have a valid (complete) interpretation, keep it — UNLESS
+    // the LLM config that produced it has changed (provenance mismatch; a
+    // legacy pre-provenance reading counts as mismatched) AND the current
+    // config can actually produce a reading. The on-device tier cannot (the
+    // structured reading is out of its Spec 063 scope), and with AI off the
+    // effect never reaches here — in both cases the stale reading stays on
+    // screen untouched rather than being destroyed.
     if (interpretationStatus === 'complete' && hasValidInterpretation) {
-      versionCheckRef.current = 'done';
-      return;
+      const config = resolveInterpretationConfig();
+      const storedProvenance = useInterpretationStore.getState().getEntry(chartId)?.provenance;
+      const configChanged =
+        !storedProvenance || configFingerprint(storedProvenance) !== configFingerprint(config);
+      const canProduceReading = config.engine !== 'webllm';
+      if (!configChanged || !canProduceReading) {
+        versionCheckRef.current = 'done';
+        return;
+      }
+      // Config changed and readings are producible: fall through to the
+      // single-shot trigger below. The refs cap this at ONE auto-regeneration
+      // attempt per mount — a failed attempt cannot retrigger.
     }
 
     // Local-first: there is no backend version store to consult — narration is
     // generated on demand via the configured OpenAI-compatible endpoint.
-    // Auto-trigger a single generation.
+    // Auto-trigger a single generation (first reading, or config-change regen).
     versionCheckRef.current = 'done';
     autoGenerationTriggeredRef.current = true;
     handleGenerateSeparatedInterpretation();
@@ -415,6 +460,24 @@ export default function DashboardPage() {
   // placement-naming for "astrologer"). Re-derived on every contentMode change.
   const summaryText = personaText(interpretation?.summary, audience);
   const summaryReady = Boolean(summaryText && !isPlaceholderContent(summaryText));
+
+  // Quiet provenance caption under the reading: which model wrote it, when —
+  // it makes the Regenerate button (and the auto-regeneration on a model
+  // change) self-explanatory. Legacy pre-provenance readings degrade to the
+  // date alone; with neither stored, the caption is omitted entirely.
+  const readingDate = interpretationEntry?.updatedAt
+    ? new Date(interpretationEntry.updatedAt).toLocaleDateString(i18n.language, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      })
+    : null;
+  const readingModel = interpretationEntry?.provenance?.model ?? null;
+  const readingCaption = readingDate
+    ? readingModel
+      ? t('dashboard:reading.generated_by', { model: readingModel, date: readingDate })
+      : t('dashboard:reading.generated_at', { date: readingDate })
+    : null;
 
   // Show loading state while fetching chart data
   if (isLoading) {
@@ -600,6 +663,36 @@ export default function DashboardPage() {
               <h2 className="font-display text-xl text-text-primary">
                 {t('life:reading.heading')}
               </h2>
+              {/* Regenerate the reading with the currently configured AI. The
+                  old reading stays on screen until the new one lands; while a
+                  run is in flight (or with no AI configured) this is inert. */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleRegenerateReading}
+                disabled={isStreamingInterpretation || !aiConfigured}
+                data-testid="regenerate-reading"
+              >
+                {isStreamingInterpretation ? (
+                  <Spinner size="sm" />
+                ) : (
+                  <svg
+                    className="h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                    />
+                  </svg>
+                )}
+                {t('dashboard:actions.regenerate')}
+              </Button>
             </header>
             {/* Honest partial-failure notice: per-section LLM failures degrade
                 those sections to empty — say which ones and offer a regenerate
@@ -648,6 +741,15 @@ export default function DashboardPage() {
                   </p>
                 )}
               </div>
+            )}
+            {/* Quiet provenance line: which model wrote this reading, when. */}
+            {readingCaption && (
+              <p
+                className="text-[11px] uppercase tracking-[0.18em] text-text-tertiary"
+                data-testid="reading-provenance"
+              >
+                {readingCaption}
+              </p>
             )}
           </section>
         )}

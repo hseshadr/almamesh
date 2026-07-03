@@ -59,5 +59,9 @@
     "analysis": "Análisis",
     "timing_analysis": "Análisis de tiempos",
     "recommended_remedies": "Remedios recomendados"
+  },
+  "errors": {
+    "context_overflow": "Esta conversación es demasiado larga para el modelo en el dispositivo. Empieza un chat nuevo o haz una pregunta más corta.",
+    "model_missing": "El modelo en el dispositivo seleccionado no está disponible. Vuelve a seleccionarlo o descargarlo en Ajustes → IA."
   }
 }

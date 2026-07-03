@@ -21,6 +21,7 @@
 import { useCallback, useRef } from 'react';
 import {
   applyInterpretationSettings,
+  configProvenance,
   LlmRequestError,
   OnDeviceUnsupportedError,
   PrivacyViolationError,
@@ -28,6 +29,7 @@ import {
   streamStructuredInterpretation,
   type InterpretationSectionKey,
   type LlmEnv,
+  type ProviderConfig,
 } from '@almamesh/llm';
 import {
   useChartLibraryStore,
@@ -115,6 +117,16 @@ function readLlmEnv(): LlmEnv {
     VITE_LLM_PRIVACY_MODE: env.VITE_LLM_PRIVACY_MODE,
     VITE_LLM_ENGINE: env.VITE_LLM_ENGINE,
   });
+}
+
+/**
+ * The resolved provider config the INTERPRETATION path would stream with right
+ * now. Exported so the dashboard can fingerprint it (`configFingerprint`) and
+ * compare against a stored reading's provenance — the exact same resolution
+ * the hook uses, so a match here guarantees the reading is config-current.
+ */
+export function resolveInterpretationConfig(): ProviderConfig {
+  return resolveProviderConfig(readLlmEnv());
 }
 
 /**
@@ -208,7 +220,7 @@ export function useStreamingInterpretation(chartId?: string | null): UseStreamin
         return;
       }
 
-      const config = resolveProviderConfig(readLlmEnv());
+      const config = resolveInterpretationConfig();
 
       const controller = new AbortController();
       abortControllerRef.current = controller;
@@ -236,7 +248,16 @@ export function useStreamingInterpretation(chartId?: string | null): UseStreamin
             // have no slot to mark and surface via the fatal path instead.)
             markSectionFailed(id, event.section);
           } else if (event.type === 'complete') {
-            setInterpretation(id, event.interpretation, new Date().toISOString());
+            // Stamp the reading with the identity of the config that produced
+            // it (engine/model/endpoint — never a key), so the UI can caption
+            // it and a later config change is detectable as a provenance
+            // mismatch (auto-regeneration).
+            setInterpretation(
+              id,
+              event.interpretation,
+              new Date().toISOString(),
+              configProvenance(config),
+            );
           }
           // `section_start` is informational.
         }
