@@ -35,6 +35,8 @@ export interface MeshConstellationProps {
   readonly members: readonly MeshNodeVM[];
   /** A member without a chart asked to generate one (switch → onboarding). */
   readonly onGenerateChart: (profileId: string) => void;
+  /** The ghost "+" star was clicked — the page opens the add-person dialog. */
+  readonly onAddPerson: () => void;
 }
 
 /**
@@ -171,6 +173,51 @@ function MemberNode({
   );
 }
 
+/**
+ * The ghost "+" star: one waiting slot on the orbit that adds a person in
+ * place. Dashed like every not-yet-charted node — a star you haven't lit yet.
+ */
+function AddPersonNode({
+  xPct,
+  yPct,
+  onAddPerson,
+}: {
+  xPct: number;
+  yPct: number;
+  onAddPerson: () => void;
+}): ReactElement {
+  const { t } = useTranslation('mesh');
+  return (
+    <button
+      type="button"
+      style={{ left: `${xPct}%`, top: `${yPct}%` }}
+      className={
+        'group absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center rounded-lg p-2 ' +
+        'opacity-75 transition-opacity hover:opacity-100 focus-visible:outline-none ' +
+        'focus-visible:ring-2 focus-visible:ring-accent-gold/60'
+      }
+      onClick={onAddPerson}
+      aria-label={t('graph.add_aria')}
+      data-testid="mesh-node-add"
+    >
+      <span
+        aria-hidden="true"
+        className={
+          'flex h-12 w-12 items-center justify-center rounded-full border-2 border-dashed ' +
+          'border-accent-gold/50 bg-background-secondary text-accent-gold ' +
+          'transition-transform duration-200 group-hover:scale-105 group-hover:border-accent-gold ' +
+          'group-focus-visible:border-accent-gold motion-reduce:transition-none'
+        }
+      >
+        <span className="text-xl leading-none">+</span>
+      </span>
+      <span className="mt-1.5 max-w-[5.5rem] truncate text-sm font-medium text-text-secondary sm:max-w-[7.5rem]">
+        {t('graph.add')}
+      </span>
+    </button>
+  );
+}
+
 /** The hairline threads + slow orbit ring behind the nodes (decorative). */
 function ThreadCanvas({
   members,
@@ -231,10 +278,13 @@ export function MeshConstellation({
   anchor,
   members,
   onGenerateChart,
+  onAddPerson,
 }: MeshConstellationProps): ReactElement {
   const { t } = useTranslation('mesh');
   const [hoveredId, setHoveredId] = useState<string | null>(null);
-  const positions = radialNodeLayout(members.length);
+  // One extra orbit slot: the last position belongs to the ghost "+" star.
+  const positions = radialNodeLayout(members.length + 1);
+  const addPosition = positions[members.length];
 
   return (
     <div
@@ -287,6 +337,10 @@ export function MeshConstellation({
           />
         );
       })}
+
+      {addPosition && (
+        <AddPersonNode xPct={addPosition.xPct} yPct={addPosition.yPct} onAddPerson={onAddPerson} />
+      )}
     </div>
   );
 }

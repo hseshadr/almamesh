@@ -12,12 +12,14 @@
     "kicker": "A malha",
     "title": "Teça o seu primeiro fio",
     "body": "O AlmaMesh lê relações entre mapas completos — o seu e os das pessoas próximas de você. Marque o seu próprio perfil como \"este sou eu\" e adicione pelo menos uma pessoa para começar.",
-    "cta": "Adicionar pessoas",
-    "hint": "As pessoas vivem em Configurações. Cada uma recebe o seu próprio mapa completo."
+    "cta": "Adicionar uma pessoa",
+    "hint": "Em seguida você insere os dados de nascimento. Cada pessoa recebe o seu próprio mapa completo."
   },
   "graph": {
     "you": "Você",
     "no_chart": "Ainda sem mapa",
+    "add": "Adicionar pessoa",
+    "add_aria": "Adicionar uma pessoa à sua malha",
     "generate": "Gerar mapa",
     "open_edge": "Abrir o seu vínculo com {{name}}",
     "generate_for": "Gerar o mapa de {{name}}",

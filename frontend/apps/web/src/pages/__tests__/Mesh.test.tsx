@@ -92,12 +92,62 @@ describe('MeshPage', () => {
     useChartLibraryStore.setState({ charts: {}, hydrated: true });
   });
 
-  it('shows the elegant invitation when the mesh is not ready, routing to People', () => {
+  it('opens the add-person dialog in place from the empty-state invitation', () => {
     useProfilesStore.setState({ profiles: { [ANCHOR.id]: ANCHOR } }); // anchor alone — no members
     renderMesh();
     expect(screen.getByTestId('mesh-invitation')).toBeTruthy();
+    // The hint says what happens next — it no longer points at Settings.
+    expect(screen.getByText(/enter their birth details next/i)).toBeTruthy();
+
     fireEvent.click(screen.getByTestId('mesh-invitation-cta'));
-    expect(screen.getByTestId('people-stub')).toBeTruthy();
+
+    // The dialog opens right here — no detour to Settings → People.
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Amma' } });
+    fireEvent.change(screen.getByLabelText('Relationship to you'), {
+      target: { value: 'mother' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Add & enter birth details' }));
+
+    // Routed through the EXISTING flow: new person active, sent to onboarding.
+    expect(screen.getByTestId('onboarding-stub')).toBeTruthy();
+    const created = useProfilesStore
+      .getState()
+      .listProfiles()
+      .find((p) => p.name === 'Amma');
+    expect(created).toBeDefined();
+    expect(created?.relationship).toBe('mother');
+    expect(created?.relatedTo).toBe(ANCHOR.id);
+    expect(useProfilesStore.getState().activeProfileId).toBe(created?.id);
+  });
+
+  it('lights a new star in place: the constellation add node opens the same dialog', () => {
+    useProfilesStore.setState({
+      profiles: { [ANCHOR.id]: ANCHOR, [SPOUSE.id]: SPOUSE },
+      activeProfileId: ANCHOR.id,
+    });
+    useChartLibraryStore.setState({
+      charts: {
+        'chart-p-anchor': chartFor(ANCHOR.id, 'Aquarius'),
+        'chart-p-spouse': chartFor(SPOUSE.id, 'Leo'),
+      },
+      hydrated: true,
+    });
+    renderMesh();
+
+    // The secondary management path survives in the footer.
+    expect(screen.getByTestId('mesh-manage-link')).toBeTruthy();
+
+    fireEvent.click(screen.getByTestId('mesh-node-add'));
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Mira Sen' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add & enter birth details' }));
+
+    expect(screen.getByTestId('onboarding-stub')).toBeTruthy();
+    const created = useProfilesStore
+      .getState()
+      .listProfiles()
+      .find((p) => p.name === 'Mira Sen');
+    expect(created).toBeDefined();
+    expect(useProfilesStore.getState().activeProfileId).toBe(created?.id);
   });
 
   it('renders the constellation: anchor centred, members named with relationship and rising sign', () => {

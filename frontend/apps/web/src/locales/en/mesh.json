@@ -11,12 +11,14 @@
     "kicker": "The mesh",
     "title": "Weave your first thread",
     "body": "AlmaMesh reads relationships between whole charts — yours and the people close to you. Mark your own profile as \"this is me\" and add at least one person to begin.",
-    "cta": "Add people",
-    "hint": "People live in Settings. Each gets a full chart of their own."
+    "cta": "Add a person",
+    "hint": "You'll enter their birth details next. Each person gets a full chart of their own."
   },
   "graph": {
     "you": "You",
     "no_chart": "No chart yet",
+    "add": "Add a person",
+    "add_aria": "Add a person to your mesh",
     "generate": "Generate chart",
     "open_edge": "Open your edge with {{name}}",
     "generate_for": "Generate {{name}}'s chart",
