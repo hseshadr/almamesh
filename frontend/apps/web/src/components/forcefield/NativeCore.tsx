@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
-// @ts-nocheck
 /**
  * NativeCore - the single hero of the Living Astrolabe.
  *
@@ -12,15 +10,13 @@
  * count) so the core breathes instead of strobing.
  *
  * `ignition` (0..1) drives the entrance: the core scales/brightens in first.
- *
- * Note: @ts-nocheck — R3F9 intrinsic-element JSX clashes with React 19 typing.
  */
 
 import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { colors } from '@almamesh/constants';
-import type { AuraState } from '@almamesh/shared-types';
+import type { AuraState, RGBColor } from '@almamesh/shared-types';
 import { ringRateFromNetFlux } from './astrolabe';
 
 const FLUX_CONSTRUCTIVE = new THREE.Color(colors.forcefield.fluxConstructive);
@@ -32,7 +28,7 @@ interface NativeCoreProps {
   time: number;
   reducedMotion?: boolean;
   /** Lagna (ascendant) tint, RGB 0-1, identifies "the native". */
-  lagnaColor?: [number, number, number];
+  lagnaColor?: RGBColor;
   /** Entrance ignition 0..1 (1 = fully lit). */
   ignition?: number;
 }

@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
-// @ts-nocheck
 /**
  * PlanetMesh - one graha glyph in the Living Astrolabe.
  *
@@ -16,12 +14,15 @@
  * hover/selection, and the label BILLBOARDS (copies the camera quaternion) so
  * it never renders edge-on under the auto-orbit. Combust -> desaturated disc.
  * Selection lifts the lowercase `id` for 2D<->3D cross-highlight.
- *
- * Note: @ts-nocheck — R3F9 intrinsic-element JSX clashes with React 19 typing.
  */
 
 import { useRef, useState, useMemo, useEffect } from 'react';
-import { useFrame, type ThreeEvent, extend } from '@react-three/fiber';
+import {
+  useFrame,
+  extend,
+  type ThreeEvent,
+  type ThreeElement,
+} from '@react-three/fiber';
 import { Text } from '@react-three/drei';
 import * as THREE from 'three';
 import { colors } from '@almamesh/constants';
@@ -39,12 +40,30 @@ const RAHU_TINT = new THREE.Color(colors.forcefield.rahuTint);
 const KETU_TINT = new THREE.Color(colors.forcefield.ketuTint);
 
 /**
+ * Typed uniform map for the disc shader — three's `ShaderMaterial.uniforms`
+ * is `{ [name: string]: IUniform<any> }` upstream, so the narrowing lives here.
+ */
+type AstrolabeDiscUniforms = {
+  baseColor: THREE.IUniform<THREE.Color>;
+  glowColor: THREE.IUniform<THREE.Color>;
+  glowIntensity: THREE.IUniform<number>;
+  opacity: THREE.IUniform<number>;
+  isHovered: THREE.IUniform<number>;
+  isSelected: THREE.IUniform<number>;
+  desaturate: THREE.IUniform<number>;
+  swirl: THREE.IUniform<number>;
+  time: THREE.IUniform<number>;
+};
+
+/**
  * One shader for all nine glyphs: a flat disc shaded as a lit sphere
  * (reconstructed normal + lambert + fresnel rim), tinted by the planet's
  * observatory token colour. `swirl` adds the slow smoky banding that marks
  * the shadow nodes.
  */
 class AstrolabeDiscMaterial extends THREE.ShaderMaterial {
+  declare uniforms: AstrolabeDiscUniforms;
+
   constructor() {
     super({
       uniforms: {
@@ -116,6 +135,12 @@ class AstrolabeDiscMaterial extends THREE.ShaderMaterial {
 }
 extend({ AstrolabeDiscMaterial });
 
+declare module '@react-three/fiber' {
+  interface ThreeElements {
+    astrolabeDiscMaterial: ThreeElement<typeof AstrolabeDiscMaterial>;
+  }
+}
+
 interface PlanetMeshProps {
   planet: PlanetWave;
   time: number;
@@ -153,7 +178,7 @@ export function PlanetMesh({
   const planetMeshRef = useRef<THREE.Mesh>(null);
   const labelGroupRef = useRef<THREE.Group>(null);
   const haloRef = useRef<THREE.Mesh>(null);
-  const materialRef = useRef<THREE.ShaderMaterial>(null);
+  const materialRef = useRef<AstrolabeDiscMaterial>(null);
   const [hovered, setHovered] = useState(false);
 
   const isShadowNode = planet.id === 'rahu' || planet.id === 'ketu';

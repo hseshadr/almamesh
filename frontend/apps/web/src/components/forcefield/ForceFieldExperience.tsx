@@ -1,10 +1,11 @@
 /**
  * ForceFieldExperience - the typed boundary for the 3D planetary force-field.
  *
- * This is the only force-field file the rest of the app imports, so it is fully
- * typed (NO `@ts-nocheck`). The JSX-heavy scene below it (`ForceFieldScene` and
- * its `PlanetMesh` / `DashaThread` / `NativeCore` children) keeps `@ts-nocheck`
- * because R3F9 intrinsic-element JSX clashes with React 19. The pure
+ * This is the only force-field file the rest of the app imports. The whole
+ * force-field tree is fully typed (no `@ts-nocheck` anywhere): R3F v9 ships a
+ * React-19-compatible `ThreeElements` JSX augmentation, and the one custom
+ * shader element (`astrolabeDiscMaterial`) is registered through a typed
+ * `ThreeElements` module augmentation in `PlanetMesh.tsx`. The pure
  * presentation decisions (lord hierarchy, thread selection, entrance timeline)
  * live typed + unit-tested in `astrolabe.ts`.
  *

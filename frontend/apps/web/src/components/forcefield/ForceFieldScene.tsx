@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
-// @ts-nocheck
 /**
  * ForceFieldScene - composes "The Living Astrolabe": one radiant lagna-tinted
  * core (`NativeCore`), a quiet engraved wheel (house spokes + ONE outer zodiac
@@ -22,16 +20,21 @@
  *
  * Palette: every colour derives from `@almamesh/constants` `colors` (brass-gold
  * / lapis observatory), never ad-hoc primary RGB literals.
- *
- * Note: @ts-nocheck — R3F9 intrinsic-element JSX clashes with React 19 typing.
  */
 
-import { useEffect, useMemo, useRef, type ReactNode } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  type ComponentRef,
+  type ReactNode,
+  type RefObject,
+} from 'react';
 import { OrbitControls } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { colors } from '@almamesh/constants';
-import type { EnergyFrame } from '@almamesh/shared-types';
+import type { EnergyFrame, RGBColor } from '@almamesh/shared-types';
 import { PlanetMesh } from './PlanetMesh';
 import { NativeCore } from './NativeCore';
 import { DashaThread } from './DashaThread';
@@ -44,13 +47,16 @@ import {
   selectThreads,
 } from './astrolabe';
 
+/** Instance type behind drei's `<OrbitControls>` (three-stdlib's controls). */
+type OrbitControlsImpl = ComponentRef<typeof OrbitControls>;
+
 interface ForceFieldSceneProps {
   frame: EnergyFrame;
   animationTime: number;
   reducedMotion?: boolean;
   selectedPlanet?: string | null;
   onPlanetSelect?: (id: string | null) => void;
-  lagnaColor?: [number, number, number];
+  lagnaColor?: RGBColor;
   houseSpokes?: readonly number[];
   lagnaLongitude?: number;
   effects?: ReactNode;
@@ -176,16 +182,12 @@ function AutoOrbit({
   controlsRef,
   reducedMotion,
 }: {
-  controlsRef: React.MutableRefObject<unknown>;
+  controlsRef: RefObject<OrbitControlsImpl | null>;
   reducedMotion: boolean;
 }) {
   useFrame((_, delta) => {
     if (reducedMotion) return;
-    const controls = controlsRef.current as {
-      getAzimuthalAngle?: () => number;
-      setAzimuthalAngle?: (a: number) => void;
-      update?: () => void;
-    } | null;
+    const controls = controlsRef.current;
     if (
       !controls ||
       userDragging.value ||
@@ -368,7 +370,7 @@ export function ForceFieldScene({
   lagnaLongitude,
   effects,
 }: ForceFieldSceneProps) {
-  const controlsRef = useRef(null);
+  const controlsRef = useRef<OrbitControlsImpl>(null);
 
   const handlePlanetSelect = (id: string) => {
     onPlanetSelect?.(selectedPlanet === id ? null : id);
