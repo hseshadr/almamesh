@@ -56,6 +56,7 @@ vi.mock('../../components/features/dashboard', () => ({
   ChartVisualization: () => null,
   IdentityStrip: () => null,
   LifeAtlas: () => null,
+  DashboardInterpretation: () => null,
 }));
 
 import {

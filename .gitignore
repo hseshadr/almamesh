@@ -105,3 +105,6 @@ docs/*.local.md
 
 # Ephemeral agent git worktrees
 .claude/worktrees/
+
+# Live-validation screenshots (generated, never committed)
+shots/
