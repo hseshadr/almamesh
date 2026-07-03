@@ -6,6 +6,7 @@ import type { VedicInterpretation } from '@almamesh/shared-types';
 import {
   INTERPRETATION_PERSIST_VERSION,
   interpretationStoreCreator,
+  mergeInterpretationPersistedState,
   migrateInterpretationPersistedState,
   type InterpretationStore,
 } from './interpretation';
@@ -81,10 +82,14 @@ describe('migrateInterpretationPersistedState (defensive hydration)', () => {
     });
   });
 
-  it('preserves an entry that has no interpretation yet (e.g. status generating)', () => {
-    const v1 = { byChart: { c1: { status: 'generating', sections: {} } } };
+  it('preserves an entry that has no interpretation yet (e.g. status error)', () => {
+    // NOTE: 'generating' is deliberately NOT preserved anymore — a persisted
+    // in-flight status is always an interrupted run (streams don't survive
+    // reloads) and used to hydrate as an eternal "Generating…" dead-end.
+    // See the hydrate-healing describe block below.
+    const v1 = { byChart: { c1: { status: 'error', error: 'boom', sections: {} } } };
     const migrated = migrateInterpretationPersistedState(v1, 1);
-    expect(migrated.byChart.c1).toEqual({ status: 'generating', sections: {} });
+    expect(migrated.byChart.c1).toEqual({ status: 'error', error: 'boom', sections: {} });
   });
 });
 
@@ -368,5 +373,86 @@ describe('interpretationStore — upcoming_periods section compatibility', () =>
     expect(entry?.interpretation?.upcoming_periods?.[0]?.title).toBe(
       'Sun antardasha — 2027-01 to 2028-01',
     );
+  });
+});
+
+describe('hydrate healing — an interrupted generation must never persist as a dead-end', () => {
+  // A persisted status of 'generating' can never be truly in flight after a
+  // reload (streams do not survive page unloads). Leaving it stuck renders an
+  // eternal "Generating…" card the auto-generate effect refuses to replace.
+
+  it('migrate: a stuck generating entry WITH a kept reading heals to complete and clears error', () => {
+    const blob = {
+      byChart: {
+        c1: {
+          status: 'generating',
+          sections: { core: true },
+          interpretation: makeInterpretation('Kept reading from before the reload.'),
+          updatedAt: '2026-07-01T10:00:00.000Z',
+          error: 'stale mid-run failure',
+        },
+      },
+    };
+    const migrated = migrateInterpretationPersistedState(blob, 2);
+    expect(migrated.byChart.c1?.status).toBe('complete');
+    expect(migrated.byChart.c1?.interpretation?.summary.layman).toBe(
+      'Kept reading from before the reload.',
+    );
+    expect(migrated.byChart.c1?.error).toBeUndefined();
+  });
+
+  it('migrate: a stuck generating entry WITHOUT a reading is dropped so auto-generate can fire', () => {
+    const blob = {
+      byChart: {
+        c1: { status: 'generating', sections: { core: true } },
+        c2: { status: 'complete', sections: {} },
+      },
+    };
+    const migrated = migrateInterpretationPersistedState(blob, 2);
+    expect(migrated.byChart.c1).toBeUndefined();
+    expect(migrated.byChart.c2?.status).toBe('complete');
+  });
+
+  it('merge (same-version rehydrate): heals stuck generating entries over the current state', () => {
+    const blob = {
+      byChart: {
+        withReading: {
+          status: 'generating',
+          sections: {},
+          interpretation: makeInterpretation(),
+        },
+        withoutReading: { status: 'generating', sections: {} },
+      },
+    };
+    const current = newStore().getState();
+    const merged = mergeInterpretationPersistedState(blob, current);
+    expect(merged.byChart.withReading?.status).toBe('complete');
+    expect(merged.byChart.withoutReading).toBeUndefined();
+    // Store actions from the current state must survive the merge.
+    expect(typeof merged.startInterpretation).toBe('function');
+  });
+
+  it('merge tolerates a corrupt persisted blob and keeps a working store', () => {
+    const current = newStore().getState();
+    for (const corrupt of [null, undefined, 'oops', 42, [], { byChart: 'x' }]) {
+      const merged = mergeInterpretationPersistedState(corrupt, current);
+      expect(merged.byChart).toEqual({});
+      expect(typeof merged.setInterpretation).toBe('function');
+    }
+  });
+
+  it('migrate: non-generating statuses pass through untouched', () => {
+    const blob = {
+      byChart: {
+        done: { status: 'complete', sections: {} },
+        failed: { status: 'error', error: 'boom', sections: {} },
+        idle: { status: 'idle', sections: {} },
+      },
+    };
+    const migrated = migrateInterpretationPersistedState(blob, 2);
+    expect(migrated.byChart.done?.status).toBe('complete');
+    expect(migrated.byChart.failed?.status).toBe('error');
+    expect(migrated.byChart.failed?.error).toBe('boom');
+    expect(migrated.byChart.idle?.status).toBe('idle');
   });
 });

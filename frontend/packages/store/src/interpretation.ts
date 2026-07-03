@@ -133,9 +133,48 @@ export function migrateInterpretationPersistedState(
   }
   const normalized: Record<string, ChartInterpretationEntry> = {};
   for (const [chartId, entry] of Object.entries(byChart)) {
-    normalized[chartId] = normalizeEntrySummary(entry);
+    const healed = healInterruptedEntry(normalizeEntrySummary(entry));
+    if (healed) {
+      normalized[chartId] = healed;
+    }
   }
   return { byChart: normalized };
+}
+
+/**
+ * A persisted `status: 'generating'` can never be truly in flight after a
+ * reload — streams do not survive page unloads. Left alone it renders an
+ * eternal "Generating…" card that the auto-generate effect refuses to replace
+ * (a dead-end with no in-app recovery). Heal on every hydrate: a kept reading
+ * means the run was a regeneration — surface it as 'complete'; no reading
+ * means nothing was ever produced — drop the entry so auto-generate fires.
+ */
+function healInterruptedEntry(
+  entry: ChartInterpretationEntry,
+): ChartInterpretationEntry | undefined {
+  if (!isPlainRecord(entry) || entry.status !== 'generating') {
+    return entry;
+  }
+  if (entry.interpretation) {
+    const { error: _staleError, ...kept } = entry;
+    return { ...kept, status: 'complete' };
+  }
+  return undefined;
+}
+
+/**
+ * zustand-persist `merge`: runs on EVERY rehydrate (unlike `migrate`, which
+ * only runs on a version bump), so same-version reloads also heal interrupted
+ * generations. Reuses the defensive migrate pipeline — idempotent for healthy
+ * current-shape blobs — and layers the persisted map over the live store so
+ * actions survive.
+ */
+export function mergeInterpretationPersistedState(
+  persisted: unknown,
+  current: InterpretationStore,
+): InterpretationStore {
+  const healed = migrateInterpretationPersistedState(persisted, INTERPRETATION_PERSIST_VERSION);
+  return { ...current, byChart: healed.byChart };
 }
 
 /**
@@ -300,6 +339,7 @@ export const useInterpretationStore = create<InterpretationStore>()(
     name: PERSIST_NAME,
     version: INTERPRETATION_PERSIST_VERSION,
     migrate: migrateInterpretationPersistedState,
+    merge: mergeInterpretationPersistedState,
     storage: createJSONStorage(() => localStorageBackend),
     partialize: (state) => ({ byChart: state.byChart }),
   }),
