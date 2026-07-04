@@ -9,6 +9,7 @@ __pycache__/
 # Build outputs
 dist/
 dist-verify/
+dist-real/
 build/
 *.egg-info/
 .next/
