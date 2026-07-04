@@ -883,6 +883,7 @@ export default function OnboardingPage() {
                 onClick={handleSkipLifeEvents}
                 disabled={isExtracting}
                 className="w-full py-3 text-text-muted hover:text-text-secondary transition-colors disabled:opacity-50"
+                data-testid="skip-life-events-button"
               >
                 {t("life_events.skip")}
               </button>
