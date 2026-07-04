@@ -88,6 +88,23 @@ export function isModelUnavailableMessage(message: string): boolean {
 }
 
 /**
+ * An exhausted-balance failure from a paid provider — HTTP 402 or an
+ * "insufficient credits" body (live-verified against OpenRouter 2026-07-03:
+ * a valid key on an account with usage ≥ credits gets 402 on every call).
+ * Retrying or switching endpoints can never fix a billing problem, so this
+ * must map to billing copy, not the generic "check your model" advice.
+ */
+export function isInsufficientCreditsMessage(message: string): boolean {
+  const m = message.toLowerCase();
+  return (
+    m.includes('insufficient credits') ||
+    m.includes('requires more credits') ||
+    m.includes('payment required') ||
+    /\breturned 402\b/.test(m)
+  );
+}
+
+/**
  * Get a user-friendly error message for chat/Q&A errors.
  * These are shown inline in the chat interface.
  */

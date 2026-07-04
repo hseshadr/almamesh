@@ -5,6 +5,7 @@ import {
   getChatErrorMessage,
   getEngineWarmingMessage,
   getUserFriendlyError,
+  isInsufficientCreditsMessage,
   isModelUnavailableMessage,
 } from './errors';
 
@@ -91,6 +92,29 @@ describe('isModelUnavailableMessage', () => {
     expect(isModelUnavailableMessage('Failed to fetch')).toBe(false);
     expect(isModelUnavailableMessage('HTTP 429: rate limit exceeded')).toBe(false);
     expect(isModelUnavailableMessage('HTTP 400: messages array is required')).toBe(false);
+  });
+});
+
+describe('isInsufficientCreditsMessage', () => {
+  it('matches the live OpenRouter 402 shape (repro 2026-07-03: valid key, usage ≥ credits)', () => {
+    expect(
+      isInsufficientCreditsMessage(
+        'LLM endpoint returned 402 Payment Required: {"error":{"message":"Insufficient credits. Add more using https://openrouter.ai/settings/credits","code":402}}',
+      ),
+    ).toBe(true);
+  });
+
+  it('matches plain credit-balance phrasings', () => {
+    expect(isInsufficientCreditsMessage('Insufficient credits')).toBe(true);
+    expect(isInsufficientCreditsMessage('This request requires more credits')).toBe(true);
+    expect(isInsufficientCreditsMessage('LLM endpoint returned 402')).toBe(true);
+  });
+
+  it('does NOT match unrelated failures', () => {
+    expect(isInsufficientCreditsMessage('HTTP 429: rate limit exceeded')).toBe(false);
+    expect(isInsufficientCreditsMessage('LLM endpoint returned 400: messages array is required')).toBe(false);
+    expect(isInsufficientCreditsMessage('Failed to fetch')).toBe(false);
+    expect(isInsufficientCreditsMessage('No endpoints found for foo/bar')).toBe(false);
   });
 });
 

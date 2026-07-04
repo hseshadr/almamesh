@@ -44,7 +44,7 @@ import type { VedicInterpretation } from '@almamesh/shared-types';
 import type { SepViewMode } from '@almamesh/shared-types';
 
 import i18n from '../i18n/config';
-import { isModelUnavailableMessage } from '../lib/errors';
+import { isInsufficientCreditsMessage, isModelUnavailableMessage } from '../lib/errors';
 
 /** The five structured sections, in the order the generator announces them. */
 export const INTERPRETATION_SECTIONS: readonly InterpretationSectionKey[] = [
@@ -187,6 +187,11 @@ function describeError(err: unknown): string {
   }
   const request = err instanceof LlmRequestError ? err : undefined;
   const text = err instanceof Error ? `${err.message} ${request?.body ?? ''}` : String(err);
+  if (request?.status === 402 || isInsufficientCreditsMessage(text)) {
+    // Valid key, exhausted provider balance (e.g. OpenRouter 402): retrying
+    // can't fix billing — say what actually happened.
+    return i18n.t('chat:errors.insufficient_credits');
+  }
   if (request?.status === 404 || isModelUnavailableMessage(text)) {
     // Dead/retired/typo'd model → the dashboard's switch-model prompt.
     return READING_MODEL_UNAVAILABLE;
