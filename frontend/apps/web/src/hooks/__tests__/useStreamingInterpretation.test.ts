@@ -319,6 +319,49 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
     expect(result.current.error).toBe(READING_MODEL_UNAVAILABLE);
   });
 
+  it('maps an exhausted-credits 402 to billing copy, never "check your model" advice', async () => {
+    // REGRESSION (live repro 2026-07-03): a real OpenRouter key on an account
+    // with usage ≥ credits gets HTTP 402 on every section. The old generic
+    // copy ("check your model and endpoint… try again") sent the user in
+    // circles — retrying can never fix a billing problem.
+    mockedStream.mockImplementation(
+      failingStream(
+        new LlmRequestError(
+          'LLM endpoint returned 402 Payment Required: {"error":{"message":"Insufficient credits. Add more using https://openrouter.ai/settings/credits","code":402}}',
+          { status: 402 },
+        ),
+      ),
+    );
+
+    const { result } = renderHook(() => useStreamingInterpretation('chart-123'));
+    await act(async () => {
+      await result.current.streamInterpretation('chart-123');
+    });
+
+    await waitFor(() => expect(result.current.status).toBe('error'));
+    expect(result.current.error).toMatch(/credit/i);
+    expect(result.current.error).not.toMatch(/check your model/i);
+    expect(result.current.error).not.toContain('https://');
+  });
+
+  it('maps an insufficient-credits aggregate (no typed status) to the same billing copy', async () => {
+    mockedStream.mockImplementation(
+      failingStream(
+        new Error(
+          'Interpretation failed: all 6 sections failed. LLM endpoint returned 402 Payment Required: Insufficient credits',
+        ),
+      ),
+    );
+
+    const { result } = renderHook(() => useStreamingInterpretation('chart-123'));
+    await act(async () => {
+      await result.current.streamInterpretation('chart-123');
+    });
+
+    await waitFor(() => expect(result.current.status).toBe('error'));
+    expect(result.current.error).toMatch(/credit/i);
+  });
+
   it('maps the on-device scope fence to the stable sentinel, never raw text (Spec 063)', async () => {
     mockedStream.mockImplementation(
       failingStream(new OnDeviceUnsupportedError('structured interpretation')),
