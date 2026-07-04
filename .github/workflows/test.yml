@@ -348,3 +348,44 @@ jobs:
         env:
           VITE_API_URL: ""
         run: bun run test:e2e:wizard
+
+      # REAL first-run onboarding gate — the ONE gate the hooked builds above
+      # can NOT be. Everything before this builds with VITE_EXIT_GATE_HOOKS=1 and
+      # SEEDS the chart via window.__almameshGenerate, bypassing the actual
+      # onboarding → engine-bootstrap → Generate → dashboard path (the 2026-06-19
+      # scar: a green hooked gate while real first-run was permanently stuck).
+      # This builds WITHOUT hooks and drives the actual UI a new visitor touches
+      # — name, the MUI X v8 date/time section spinbuttons, the offline city
+      # search, the real ~38 MB engine bootstrap + on-device compute — then
+      # asserts a chart renders on /dashboard with a clean console. Reuses the
+      # Pyodide dist + signed bundle generated above; its own no-hooks build +
+      # preview on a distinct strict port (4200), torn down by the trap on exit.
+      - name: Run REAL onboarding journey e2e (no hooks)
+        working-directory: frontend/apps/web
+        env:
+          VITE_API_URL: ""
+        run: |
+          set -euo pipefail
+          ./node_modules/.bin/vite build --outDir dist-real
+          ./node_modules/.bin/vite preview --outDir dist-real --port 4200 --strictPort &
+          preview_pid=$!
+          trap 'kill "$preview_pid" 2>/dev/null || true' EXIT
+
+          # Wait (up to ~60s) for the preview server to serve the onboarding route.
+          for i in $(seq 1 60); do
+            if curl -fsS -o /dev/null "http://localhost:4200/onboarding"; then
+              echo "preview server is up (attempt $i)"
+              break
+            fi
+            if ! kill -0 "$preview_pid" 2>/dev/null; then
+              echo "preview server exited prematurely" >&2
+              exit 1
+            fi
+            sleep 1
+          done
+          curl -fsS -o /dev/null "http://localhost:4200/onboarding" || {
+            echo "preview server never became ready" >&2
+            exit 1
+          }
+
+          node scripts/verify-real-onboarding.mjs http://localhost:4200

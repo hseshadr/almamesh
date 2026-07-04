@@ -185,6 +185,13 @@ function describeError(err: unknown): string {
     // (which endpoint was refused and why): show it verbatim.
     return err.message;
   }
+  // Every genuine failure past the two by-design sentinels above is logged raw
+  // (matching lib/errors.ts's contract) so a masked bug is never silently
+  // swallowed behind friendly copy. This is the developer breadcrumb; the
+  // classification below only decides what the USER sees. Logging to the dev
+  // console — never the returned string — keeps the endpoint-URL privacy fence
+  // intact.
+  console.error('[interpretation] reading stream failed:', err);
   const request = err instanceof LlmRequestError ? err : undefined;
   const text = err instanceof Error ? `${err.message} ${request?.body ?? ''}` : String(err);
   if (request?.status === 402 || isInsufficientCreditsMessage(text)) {
@@ -196,9 +203,13 @@ function describeError(err: unknown): string {
     // Dead/retired/typo'd model → the dashboard's switch-model prompt.
     return READING_MODEL_UNAVAILABLE;
   }
-  if (err instanceof TypeError || NETWORK_FAILURE_PATTERN.test(text)) {
-    // TypeError is what `fetch` throws when the endpoint is unreachable; the
-    // aggregate error carries the same fragments as concatenated text.
+  if (NETWORK_FAILURE_PATTERN.test(text)) {
+    // A real fetch network failure — "Failed to fetch" (Chrome) / "Load failed"
+    // (Safari) / "NetworkError" (Firefox), the message `fetch`'s own TypeError
+    // carries, plus the aggregate that concatenates those fragments. A bare
+    // non-network TypeError (a code bug) no longer masquerades as "endpoint
+    // unreachable": it falls through to the generic message and is visible in
+    // the raw error logged above.
     return i18n.t('chat:errors.endpoint_unreachable');
   }
   return i18n.t('chat:errors.request_failed');

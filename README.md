@@ -289,7 +289,7 @@ full set of dev/build/test commands.
 | The mesh (relational astrology) | Per-pair relationship read of two whole charts: Ashtakoota Guna Milan + Mangal screening (cited classical tables, partner edges only), chart overlay, daśā synchrony, significators; role-anonymized AI narration, read-only by construction; `/mesh` constellation + `/mesh/:memberId` edge view | ✅ shipped |
 | Members | People you add to your mesh, with typed relationships (spouse/partner/family/friend/…), each owning a full chart; persisted with a versioned migration; managed in Settings → People | ✅ shipped |
 | AI interpretation + chat | Three tiers — default none (pure calculation); on-device AI (WebLLM, private, beta; chat + interview) opt-in; cloud (OpenRouter / BYO OpenAI-compatible, one-click preset, stronger); PII-redacted, fail-closed | ✅ shipped |
-| PDF export | Branded print report (cover + D1/D9 + interpretation + predictive sections VIII–XI); gated on a completed interpretation | ✅ shipped |
+| PDF export | Branded print report (cover + D1/D9 + interpretation + predictive sections VIII–XI + Birth Time Authority §XII); the written interpretation is gated on a completed reading, the chart/kundli/daśā render without it | ✅ shipped |
 | Birth-time rectification | Per-profile rectified time + confidence in Settings; recomputes the chart | ✅ shipped |
 | Named profiles | Multiple password-less people per device, each owning its charts; rename + delete (chart cascade) | ✅ shipped |
 | Offline geocoder | Client-side birth-location lookup, zero network | ✅ shipped |

@@ -260,6 +260,29 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
     expect(result.current.error).toMatch(/couldn.t reach your ai endpoint/i);
   });
 
+  it('REGRESSION: a bare non-network TypeError (a code bug) is NOT mislabeled "endpoint unreachable"', async () => {
+    // A TypeError that is NOT a fetch failure — e.g. a genuine bug in the
+    // reading pipeline — used to short-circuit to the unreachable-endpoint copy
+    // (`err instanceof TypeError` alone), sending the user to check an endpoint
+    // that was never the problem. It must now fall through to the generic
+    // "try again / check settings" message (and be console.error-logged raw).
+    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const bug = new TypeError("Cannot read properties of undefined (reading 'sections')");
+    mockedStream.mockImplementation(failingStream(bug));
+
+    const { result } = renderHook(() => useStreamingInterpretation('chart-123'));
+    await act(async () => {
+      await result.current.streamInterpretation('chart-123');
+    });
+
+    await waitFor(() => expect(result.current.status).toBe('error'));
+    expect(result.current.error).not.toMatch(/couldn.t reach your ai endpoint/i);
+    expect(result.current.error).toMatch(/try again in a moment/i);
+    // The raw error is logged for developers even though the user sees friendly copy.
+    expect(errSpy).toHaveBeenCalledWith('[interpretation] reading stream failed:', bug);
+    errSpy.mockRestore();
+  });
+
   it('REGRESSION: a failure whose message embeds the endpoint URL surfaces friendly copy, never the URL', async () => {
     // The all-sections-failed aggregate is a plain Error whose message can
     // carry the configured VITE_LLM_API_BASE endpoint — it must never render.
