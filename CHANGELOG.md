@@ -54,6 +54,10 @@ All notable changes to AlmaMesh are documented here. Format follows
 - **Clearer AI failure surfaces.** A mistyped or retired cloud model id is
   detected (including OpenRouter's newer 400 response) and answered with a
   "switch model / check AI settings" prompt instead of a raw error.
+- **Out-of-credits AI errors are honest now.** When a cloud AI account has run
+  out of credits (e.g. an OpenRouter `402`), the reading says exactly that and
+  points to billing — instead of the generic "check your model / try again"
+  advice, which can never fix a billing problem.
 
 ## [0.3.0] - 2026-06-11
 
