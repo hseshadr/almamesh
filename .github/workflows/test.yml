@@ -360,7 +360,7 @@ jobs:
       # asserts a chart renders on /dashboard with a clean console. Reuses the
       # Pyodide dist + signed bundle generated above; its own no-hooks build +
       # preview on a distinct strict port (4200), torn down by the trap on exit.
-      - name: Run REAL onboarding journey e2e (no hooks)
+      - name: Run REAL onboarding journey + recovery e2e (no hooks)
         working-directory: frontend/apps/web
         env:
           VITE_API_URL: ""
@@ -388,4 +388,10 @@ jobs:
             exit 1
           }
 
+          # Happy path: the real first-run journey renders a chart.
           node scripts/verify-real-onboarding.mjs http://localhost:4200
+          # Unhappy path: a blocked engine bundle surfaces the in-app recovery
+          # card (Retry / Reset & reload) instead of a silent permanent hang, and
+          # Retry recovers to a rendered chart once the bundle is reachable again
+          # (the 2026-06-19 "returning visitor stuck on Connection Issue" scar).
+          node scripts/verify-onboarding-recovery.mjs http://localhost:4200
