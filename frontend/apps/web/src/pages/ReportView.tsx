@@ -321,13 +321,19 @@ export default function ReportView(): ReactElement {
             events: supportingEvents.map((event) => ({
               date: event.date,
               category: event.category,
-              summary: event.summary ?? event.note ?? event.description,
+              // A concise headline only — never the raw onboarding narrative
+              // (`description`), which is a whole life story, not one event.
+              // buildRectificationPdf clips whatever survives to a clean cell.
+              summary: event.summary ?? event.note,
             })),
             t,
           })
         : undefined,
       fileBaseName: t('pdf_title', { name: personName, date: isoDate(new Date()) }),
-    }).catch(() => {
+    }).catch((err) => {
+      // Surface the real cause for the developer console — the friendly copy
+      // below is all the user sees, so the raw error must never be swallowed.
+      console.error('[report-pdf] generation failed:', err);
       setPdfError(t('pdf_error'));
     });
   };
