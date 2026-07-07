@@ -44,6 +44,29 @@ export interface BuildRectificationPdfInput {
   readonly t: TFunction;
 }
 
+/** Max characters for the "Event" summary cell — a table headline, not prose. */
+const EVENT_SUMMARY_MAX = 160;
+
+/**
+ * Normalize a supporting-event summary into a clean, single-line table cell.
+ *
+ * The summary can arrive as a wall of text: the onboarding "tell me about your
+ * life" narrative (captured as one event's `description`) or a whole rectify
+ * chat turn covering several events. A table cell wants a concise headline, so
+ * collapse whitespace and clip to a word boundary with an ellipsis — a short,
+ * already-concise summary passes through untouched.
+ */
+function conciseSummary(raw: string): string {
+  const text = raw.replace(/\s+/g, ' ').trim();
+  if (text.length <= EVENT_SUMMARY_MAX) {
+    return text;
+  }
+  const head = text.slice(0, EVENT_SUMMARY_MAX);
+  const lastSpace = head.lastIndexOf(' ');
+  const clipped = lastSpace > EVENT_SUMMARY_MAX * 0.6 ? head.slice(0, lastSpace) : head;
+  return `${clipped.trimEnd()}…`;
+}
+
 /** "07:45 — Pisces rising", the honest "Not recorded", or the bare clock. */
 function timeWithSign(t: TFunction, time: string, sign: string | null): string {
   if (!time) {
@@ -195,7 +218,7 @@ export function buildRectificationPdf({
         cells: [
           glyphSafe(event.date ? formatPredictiveDate(event.date) : '—'),
           glyphSafe(event.category ? t(`rectify:categories.${event.category}`) : '—'),
-          glyphSafe(event.summary || '—'),
+          glyphSafe(event.summary ? conciseSummary(event.summary) : '—'),
         ],
       })),
       widths: [1, 1.4, 2.6],

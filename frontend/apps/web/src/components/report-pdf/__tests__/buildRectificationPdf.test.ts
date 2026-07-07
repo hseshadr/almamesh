@@ -109,6 +109,44 @@ describe('buildRectificationPdf — v1 fallback', () => {
   });
 });
 
+describe('buildRectificationPdf — clean supporting-event rows', () => {
+  beforeEach(() => {
+    useLanguageStore.setState({ language: 'en' });
+  });
+
+  // A short, concise summary must pass through UNCHANGED — the clip only bounds
+  // the pathological blob, it never mangles a normal one-line headline.
+  it('renders a short summary verbatim', () => {
+    const slice = buildRectificationPdf({
+      record: V1_RECORD,
+      events: [{ date: '2015-06-20', category: 'marriage', summary: 'Married in Bengaluru' }],
+      t,
+    });
+    expect(slice.events.rows[0].cells[2]).toBe('Married in Bengaluru');
+  });
+
+  // The user's bug: the "Event" cell is a giant multi-paragraph narrative blob
+  // (the onboarding "tell me about your life" answer, or a whole rectify chat
+  // turn). It must collapse to a bounded, single-line cell — never a wall of
+  // text that balloons the table row.
+  it('collapses a giant multi-paragraph narrative blob into one bounded line', () => {
+    const blob =
+      'I got married in June 2015 in Bengaluru.\n\nThen we relocated to Pune in 2019 for my job ' +
+      'at a startup, my first child was born in 2021, and I changed careers to become a teacher ' +
+      'in 2023 after finishing a certification, and there were several other smaller moves and ' +
+      'family events during that whole decade that felt significant at the time.';
+    const cell = buildRectificationPdf({
+      record: V1_RECORD,
+      events: [{ date: '2015-06-20', category: 'marriage', summary: blob }],
+      t,
+    }).events.rows[0].cells[2];
+    expect(cell).not.toContain('\n'); // never a multi-line wall in a table cell
+    expect(cell.length).toBeLessThanOrEqual(161); // bounded (≤160 + ellipsis)
+    expect(cell.endsWith('…')).toBe(true); // signalled as truncated
+    expect(cell.length).toBeGreaterThan(20); // still a meaningful gist, not '—'
+  });
+});
+
 describe('buildRectificationPdf — method label honesty', () => {
   beforeEach(() => {
     useLanguageStore.setState({ language: 'en' });
