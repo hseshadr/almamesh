@@ -167,8 +167,19 @@ describe('classifyConnectionError', () => {
     expect(classifyConnectionError(err)).toBe('privacy');
   });
 
-  it('classifies a fetch TypeError (no status) as network', () => {
+  it('classifies a fetch TypeError (no status) as network by its message', () => {
     expect(classifyConnectionError(new TypeError('Failed to fetch'))).toBe('network');
+    expect(classifyConnectionError(new TypeError('Load failed'))).toBe('network');
+    expect(classifyConnectionError(new TypeError('NetworkError when attempting to fetch resource'))).toBe('network');
+  });
+
+  it('does NOT treat a bare non-network TypeError (a code bug) as network', () => {
+    // A programming-error TypeError has no network-y message; it must fall
+    // through to unknown (and stay visible in the logs) rather than masquerade
+    // as "endpoint unreachable" — matching the interpretation path.
+    expect(classifyConnectionError(new TypeError("Cannot read properties of undefined (reading 'x')"))).toBe(
+      'unknown',
+    );
   });
 
   it('falls back to unknown for an unrecognized failure', () => {

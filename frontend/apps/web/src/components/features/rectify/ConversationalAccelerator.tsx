@@ -5,9 +5,9 @@
  * flushes them into the life-events store as reviewable draft rows. The
  * transcript is local to this component — only the extracted events persist.
  *
- * GATING — actionable with a CLOUD AI endpoint OR the on-device tier (Spec 063;
- * BYO local endpoints stay gated — no typed-extraction enforcement there). The
- * gated state renders a calm static note so users always have the manual-entry
+ * GATING — actionable only with a CLOUD AI endpoint (OpenRouter / custom); BYO
+ * local endpoints stay gated (no typed-extraction enforcement there). The gated
+ * state renders a calm static note so users always have the manual-entry
  * fallback.
  *
  * EGRESS — an explicit one-line warning is shown before every submission so the
@@ -113,7 +113,7 @@ export function ConversationalAccelerator({
   // Abort any in-flight stream on unmount to avoid setState on an unmounted component.
   useEffect(() => () => { abortRef.current?.abort(); }, []);
 
-  // ── AI gate (cloud OR on-device; BYO local stays gated) ──────────────────
+  // ── AI gate (cloud only; BYO local stays gated) ──────────────────────────
   if (!isAiUsable()) {
     return (
       <div

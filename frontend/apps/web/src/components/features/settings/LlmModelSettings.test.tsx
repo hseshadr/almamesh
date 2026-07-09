@@ -65,7 +65,9 @@ describe('LlmModelSettings — OpenRouter-first, test-on-save', () => {
     await waitFor(() =>
       expect(screen.getByTestId('llm-connection-result').textContent).toContain('Connected'),
     );
-    expect(testConnection).toHaveBeenCalledWith({ config: STUB_CONFIG });
+    expect(testConnection).toHaveBeenCalledWith(
+      expect.objectContaining({ config: STUB_CONFIG, signal: expect.any(AbortSignal) }),
+    );
     const saved = readSaved();
     expect(saved.apiBase).toBe('https://openrouter.ai/api/v1');
     expect(saved.apiKey).toBe('sk-or-abc');
@@ -119,5 +121,53 @@ describe('LlmModelSettings — OpenRouter-first, test-on-save', () => {
     expect(saved.apiBase).toBe('http://localhost:11434/v1');
     expect(saved.interpretationModel).toBe('llama3.1');
     expect(saved.chatModel).toBe('llama3.1');
+  });
+
+  it('surfaces a storage failure as a verdict instead of a silent no-op — and never probes', async () => {
+    const testConnection = vi.fn().mockResolvedValue(undefined);
+    const setItem = vi.spyOn(window.localStorage, 'setItem').mockImplementation(() => {
+      throw new DOMException('quota exceeded', 'QuotaExceededError');
+    });
+    try {
+      render(<LlmModelSettings resolveConfig={resolveConfig} testConnection={testConnection} />);
+      fireEvent.change(screen.getByTestId('llm-openrouter-key'), { target: { value: 'sk-or-abc' } });
+      fireEvent.click(screen.getByTestId('llm-save'));
+
+      await waitFor(() =>
+        expect(screen.getByTestId('llm-connection-result').textContent).toContain("Couldn't save"),
+      );
+      // A config we couldn't persist must not be probed.
+      expect(testConnection).not.toHaveBeenCalled();
+    } finally {
+      setItem.mockRestore();
+    }
+  });
+
+  it('ignores a stale probe result after the config is edited mid-test (no false Connected)', async () => {
+    // A probe we can resolve on demand, so we can interleave an edit before it settles.
+    let resolveProbe: (() => void) | undefined;
+    const testConnection = vi.fn().mockImplementation(
+      () =>
+        new Promise<void>((res) => {
+          resolveProbe = res;
+        }),
+    );
+    render(<LlmModelSettings resolveConfig={resolveConfig} testConnection={testConnection} />);
+
+    fireEvent.change(screen.getByTestId('llm-openrouter-key'), { target: { value: 'sk-or-abc' } });
+    fireEvent.click(screen.getByTestId('llm-save'));
+    await waitFor(() =>
+      expect(screen.getByTestId('llm-connection-result').textContent).toContain('Testing'),
+    );
+
+    // User edits the key while the first probe is still in flight → the pending
+    // verdict is for the OLD config and must be discarded.
+    fireEvent.change(screen.getByTestId('llm-openrouter-key'), { target: { value: 'sk-or-different' } });
+    expect(screen.queryByTestId('llm-connection-result')).toBeNull();
+
+    // The stale probe finally resolves — it must NOT paint a Connected verdict.
+    resolveProbe?.();
+    await Promise.resolve();
+    expect(screen.queryByTestId('llm-connection-result')).toBeNull();
   });
 });

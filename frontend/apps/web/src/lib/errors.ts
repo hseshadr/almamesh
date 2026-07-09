@@ -150,8 +150,13 @@ export function classifyConnectionError(err: unknown): ConnectionErrorKind {
     return 'model';
   }
   // No HTTP status = the request never reached the endpoint (DNS, connection
-  // refused, CORS, offline) — `fetch` throws a TypeError in that case.
-  if (status === undefined && (name === 'TypeError' || /failed to fetch|load failed|network|unreachable/i.test(message))) {
+  // refused, CORS, offline). Match on the message `fetch`'s TypeError carries —
+  // "Failed to fetch" (Chrome) / "Load failed" (Safari) / "NetworkError"
+  // (Firefox) — NOT the bare `TypeError` name, so a non-network code-bug
+  // TypeError falls through to `unknown` (and stays visible in the logs) instead
+  // of masquerading as unreachable. Mirrors the interpretation path's
+  // NETWORK_FAILURE_PATTERN.
+  if (status === undefined && /failed to fetch|load failed|networkerror|network error|unreachable/i.test(message)) {
     return 'network';
   }
   return 'unknown';

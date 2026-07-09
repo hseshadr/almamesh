@@ -153,6 +153,7 @@
     "error_privacy": "Este endpoint no es local. Marca «Permitir un endpoint en la nube» en Avanzado para enviar la carta sin datos personales fuera del dispositivo.",
     "error_network": "No se pudo contactar con el endpoint. Comprueba la URL y tu conexión a internet.",
     "error_unknown": "No se pudo conectar. Revisa tus ajustes e inténtalo de nuevo.",
+    "error_storage": "No se pudo guardar tu configuración en este navegador — el almacenamiento puede estar lleno o bloqueado (p. ej. modo privado). Libera espacio o usa una ventana normal.",
     "advanced_summary": "Avanzado: usa un endpoint personalizado compatible con OpenAI",
     "advanced_body": "Apunta AlmaMesh a cualquier endpoint compatible con OpenAI — un modelo local (p. ej. Ollama) u otro proveedor. Solo se envía una carta sin datos personales.",
     "endpoint_label": "Endpoint (compatible con OpenAI)",

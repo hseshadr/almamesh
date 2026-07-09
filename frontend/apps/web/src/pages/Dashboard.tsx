@@ -174,7 +174,7 @@ export default function DashboardPage() {
     chartId ? s.byChart[chartId] : undefined,
   );
 
-  // Whether an AI model is configured (on-device, local or cloud) — gates
+  // Whether an AI endpoint is configured (local or cloud) — gates
   // auto-generation and decides between the progress panel and the CTA.
   const aiConfigured = describeLlmStatus().configured;
 

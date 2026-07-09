@@ -63,7 +63,7 @@ export function ChatPanel({
   const { t } = useTranslation('chat');
   const navigate = useNavigate();
   const { messages, isStreaming, streamingDraft, submit } = useChatThread(profileId, chartId);
-  // Whether ANY AI tier is configured (on-device, local or cloud). With none,
+  // Whether an AI endpoint is configured (local or cloud). With none,
   // a sent question is doomed — so the send affordance is replaced by the
   // Connect-AI CTA (the dashboard's existing pattern) instead of inviting a
   // failure bubble.

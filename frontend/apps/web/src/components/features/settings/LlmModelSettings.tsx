@@ -15,7 +15,7 @@
  * stored ONLY in the browser's localStorage via @almamesh/llm; no backend.
  */
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   CHAT_CLOUD_MODEL,
@@ -40,12 +40,22 @@ const PLACEHOLDER_BASE = 'http://localhost:11434/v1';
 const PLACEHOLDER_INTERP_MODEL = 'deepseek/deepseek-v4-pro';
 const PLACEHOLDER_CHAT_MODEL = 'minimax/minimax-m2.7';
 
+/** Which Save button a verdict belongs to, so it renders under the right one. */
+type ConnSource = 'guided' | 'advanced';
+
+/**
+ * The verdict kinds: every connection-error class, plus `'storage'` for the case
+ * where persisting to localStorage itself failed (quota / private mode) — a save
+ * no-op the user must be told about, never swallowed.
+ */
+type ResultKind = ReturnType<typeof classifyConnectionError> | 'storage';
+
 /** The live state of the save-time connectivity probe. */
 type ConnState =
   | { phase: 'idle' }
-  | { phase: 'testing' }
-  | { phase: 'connected' }
-  | { phase: 'error'; kind: ReturnType<typeof classifyConnectionError> };
+  | { phase: 'testing'; source: ConnSource }
+  | { phase: 'connected'; source: ConnSource }
+  | { phase: 'error'; source: ConnSource; kind: ResultKind };
 
 /**
  * Injectable seams so the component is unit-testable without a network round-trip
@@ -53,7 +63,7 @@ type ConnState =
  */
 export interface LlmModelSettingsProps {
   resolveConfig?: () => ProviderConfig;
-  testConnection?: (opts: { config: ProviderConfig }) => Promise<void>;
+  testConnection?: (opts: { config: ProviderConfig; signal?: AbortSignal }) => Promise<void>;
 }
 
 export default function LlmModelSettings({
@@ -64,13 +74,21 @@ export default function LlmModelSettings({
   const [status, setStatus] = useState<LlmStatus>(() => describeLlmStatus());
   const [settings, setSettings] = useState<LlmSettings>(() => readLlmSettings());
   const [conn, setConn] = useState<ConnState>({ phase: 'idle' });
+  // Probe-race guard: every save bumps `probeGen` and aborts the prior in-flight
+  // fetch, so a stale verdict from a superseded config can never land on screen.
+  const probeGen = useRef(0);
+  const probeAbort = useRef<AbortController | null>(null);
 
   const noneActive = status.kind === 'none';
   const aiOn =
     (status.kind === 'openrouter' || status.kind === 'cloud' || status.kind === 'local') &&
     status.configured;
 
+  // Editing any field invalidates any in-flight probe (its verdict was for the
+  // OLD config) and abandons the last verdict — the config on screen is unsaved.
   const patch = (next: Partial<LlmSettings>) => {
+    probeGen.current += 1;
+    probeAbort.current?.abort();
     setSettings((prev) => ({ ...prev, ...next }));
     setConn({ phase: 'idle' });
   };
@@ -78,6 +96,8 @@ export default function LlmModelSettings({
   // Back to the default: clear the engine selector AND the endpoint triplet so
   // describeLlmStatus reads "none" again. Per-tier model choices survive.
   const turnAiOff = () => {
+    probeGen.current += 1;
+    probeAbort.current?.abort();
     writeLlmSettings({ engine: '', apiBase: '', apiKey: '', model: '' });
     setSettings(readLlmSettings());
     setConn({ phase: 'idle' });
@@ -86,21 +106,44 @@ export default function LlmModelSettings({
   };
 
   // The shared save→test path: persist, refresh every status surface, then probe
-  // the resolved interpretation config and report an honest verdict.
-  const saveAndTest = async (next: LlmSettings) => {
-    writeLlmSettings({ ...next, engine: '' });
+  // the resolved interpretation config and report an honest verdict under the
+  // Save button that triggered it (`source`).
+  const saveAndTest = async (next: LlmSettings, source: ConnSource) => {
+    const gen = (probeGen.current += 1);
+    probeAbort.current?.abort();
+    const controller = new AbortController();
+    probeAbort.current = controller;
+
+    try {
+      writeLlmSettings({ ...next, engine: '' });
+    } catch (err) {
+      // A localStorage write can throw (quota exceeded, Safari private mode) —
+      // that's a silent Save no-op unless we surface it. Don't probe a config we
+      // couldn't persist.
+      console.error('[ai-settings] could not save settings:', err);
+      setConn({ phase: 'error', source, kind: 'storage' });
+      return;
+    }
+
     const persisted = readLlmSettings();
     setSettings(persisted);
     setStatus(describeLlmStatus(persisted));
     notifyLlmSettingsChanged();
-    setConn({ phase: 'testing' });
+    setConn({ phase: 'testing', source });
     try {
-      await testConnection({ config: resolveConfig() });
-      setConn({ phase: 'connected' });
+      await testConnection({ config: resolveConfig(), signal: controller.signal });
+      if (gen === probeGen.current) {
+        setConn({ phase: 'connected', source });
+      }
     } catch (err) {
+      // A superseded probe (the user edited or re-saved) must not overwrite the
+      // current verdict; ignore its result.
+      if (gen !== probeGen.current) {
+        return;
+      }
       // Never swallow — the specific verdict below is all the user sees.
       console.error('[ai-settings] connection test failed:', err);
-      setConn({ phase: 'error', kind: classifyConnectionError(err) });
+      setConn({ phase: 'error', source, kind: classifyConnectionError(err) });
     }
   };
 
@@ -109,7 +152,7 @@ export default function LlmModelSettings({
   const saveOpenRouter = () => {
     const interp = settings.interpretationModel || settings.model || RECOMMENDED_CLOUD_MODEL;
     const chat = settings.chatModel || CHAT_CLOUD_MODEL;
-    return saveAndTest(openRouterPreset(settings.apiKey?.trim() ?? '', interp, chat));
+    return saveAndTest(openRouterPreset(settings.apiKey?.trim() ?? '', interp, chat), 'guided');
   };
 
   const hasKey = Boolean(settings.apiKey?.trim());
@@ -206,10 +249,10 @@ export default function LlmModelSettings({
             </Button>
             {!hasKey && <span className="text-text-muted text-xs">{t('ai.step2_hint')}</span>}
           </div>
-        </div>
 
-        {/* One shared, honest verdict for whichever Save was pressed. */}
-        <ConnectionResult conn={conn} t={t} />
+          {/* The guided verdict lands right under its own Save button. */}
+          <ConnectionResult conn={conn} t={t} source="guided" />
+        </div>
 
         {/* Advanced — any OpenAI-compatible endpoint (local Ollama, other cloud). */}
         <details className="mt-4 rounded-lg border border-ui-border bg-background-secondary p-4">
@@ -294,12 +337,15 @@ export default function LlmModelSettings({
             )}
 
             <Button
-              onClick={() => saveAndTest(settings)}
+              onClick={() => saveAndTest(settings, 'advanced')}
               disabled={conn.phase === 'testing'}
               data-testid="llm-save-advanced"
             >
               {conn.phase === 'testing' ? t('ai.testing') : t('ai.save_and_test')}
             </Button>
+
+            {/* The advanced verdict lands right under the advanced Save button. */}
+            <ConnectionResult conn={conn} t={t} source="advanced" />
           </div>
         </details>
       </div>
@@ -307,15 +353,21 @@ export default function LlmModelSettings({
   );
 }
 
-/** The honest save-time verdict line: testing / connected / a specific error. */
+/**
+ * The honest save-time verdict line: testing / connected / a specific error.
+ * Renders only for the Save button (`source`) that triggered the probe, so the
+ * verdict always sits directly under the control the user pressed.
+ */
 function ConnectionResult({
   conn,
   t,
+  source,
 }: {
   conn: ConnState;
   t: ReturnType<typeof useTranslation<'settings'>>['t'];
+  source: ConnSource;
 }) {
-  if (conn.phase === 'idle') {
+  if (conn.phase === 'idle' || conn.source !== source) {
     return null;
   }
   const text =

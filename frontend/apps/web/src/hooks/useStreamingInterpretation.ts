@@ -241,7 +241,7 @@ export function useStreamingInterpretation(chartId?: string | null): UseStreamin
       if (!chart) {
         // No raw engine output to interpret (e.g. a pre-structured persisted chart).
         startInterpretation(id);
-        setError(id, 'This chart needs to be regenerated before it can be interpreted on-device.');
+        setError(id, 'This chart needs to be regenerated before it can be interpreted.');
         return;
       }
 
