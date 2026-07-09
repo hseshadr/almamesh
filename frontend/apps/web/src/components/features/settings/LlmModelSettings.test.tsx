@@ -105,6 +105,13 @@ describe('LlmModelSettings — OpenRouter-first, test-on-save', () => {
     );
   });
 
+  it('disables the advanced Save until an endpoint is entered (no empty-form probe)', () => {
+    render(<LlmModelSettings resolveConfig={resolveConfig} testConnection={vi.fn()} />);
+    expect((screen.getByTestId('llm-save-advanced') as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.change(screen.getByTestId('llm-api-base'), { target: { value: 'http://localhost:11434/v1' } });
+    expect((screen.getByTestId('llm-save-advanced') as HTMLButtonElement).disabled).toBe(false);
+  });
+
   it('advanced save persists a hand-typed endpoint + tiered models and tests them', async () => {
     const testConnection = vi.fn().mockResolvedValue(undefined);
     render(<LlmModelSettings resolveConfig={resolveConfig} testConnection={testConnection} />);

@@ -32,7 +32,7 @@ frontend/
 │   ├── browser/                THE in-browser engine (see below)
 │   ├── store/                  Zustand stores + the pure SiderealChart adapters
 │   │                            (chart, chartGeometry, energy) + profiles store
-│   └── llm/                    optional AI, off by default: on-device (WebLLM, opt-in) + cloud/BYO endpoint
+│   └── llm/                    optional AI, off by default: cloud/BYO OpenAI-compatible endpoint (OpenRouter preset or local Ollama)
 └── apps/web/                   the React + Vite + Tailwind PWA ("Observatory" UI)
     ├── scripts/setup-dev-assets.sh   regenerates the gitignored dev assets
     ├── scripts/verify-exit-gate.mjs  live headless-Chromium exit gate
@@ -52,7 +52,7 @@ frontend/
 | `@almamesh/browser` | The in-browser engine. Bundle sync + Pyodide chart Worker + `AlmaMeshRuntime`. |
 | `@edgeproc/browser` | **Vendored** copy of the edge-proc browser sync tier (signed-bundle sync into OPFS, ed25519 + sha256 fail-closed), from the `edge-reco` repo. Apache-2.0; see `packages/edgeproc-browser/VENDORED.md` for provenance + re-vendor policy. |
 | `@almamesh/store` | Zustand stores + **pure** adapters, all reshape-only with **no astrology math**: `chart.ts` (`SiderealChart → ChartData`), `chartGeometry.ts` (`buildChartGeometry` → N/S kundli geometry), `energy.ts` (`buildEnergyFrame(chart, t)` → 3D force-field frame), plus the `profiles` store (named, password-less people; each owns its charts). |
-| `@almamesh/llm` | Optional narration + multi-turn chat — **no AI by default** (the chart is pure calculation). Opt-in tiers: **on-device** (`@mlc-ai/web-llm` via WebGPU, blessed Qwen3-1.7B/Llama-3.2-1B picker, private by construction; scoped to chat + the rectification interview) and **cloud/BYO** (OpenRouter preset or any OpenAI-compatible endpoint — stronger models, PII-redacted, fail-closed `local_only`). Never required to draw a chart. |
+| `@almamesh/llm` | Optional narration + multi-turn chat — **no AI by default** (the chart is pure calculation). Opt-in **cloud/BYO** only: any OpenAI-compatible endpoint (`engine:'openai-http'`) — a one-click OpenRouter preset (stronger) or a local Ollama. Saving runs a real connectivity probe (`testProviderConnection`); PII-redacted, fail-closed `local_only`. Never required to draw a chart. |
 | `apps/web` | The React/Vite "Observatory" PWA: UI primitives (`src/components/ui/`), `AppLayout` shell, N/S charts, and the `forcefield/` 3D hero. Self-hosted fonts (`@fontsource-variable/*`) — no font CDN. |
 
 (`@almamesh/api-client` and `@almamesh/hooks` were deleted with the SaaS runtime.)
@@ -85,29 +85,22 @@ first bootstrap everything needed lives in OPFS, so reloads are offline.
 ## How `@almamesh/llm` works
 
 The chart is computed without any AI — **the default is no AI at all**, stated
-in the app as a feature. When the user opts into a tier, the LLM router
-(`route.ts`) branches on the configured engine:
+in the app as a feature. When the user opts in, `@almamesh/llm` speaks to a
+single engine, any OpenAI-compatible endpoint they bring:
 
-- **On-device AI (private, beta).** `writeLlmSettings({engine:'webllm'})`
-  selects a blessed model (`BLESSED_ONDEVICE_MODELS`: Qwen3-1.7B default,
-  Llama-3.2-1B lighter) run by `@mlc-ai/web-llm` on WebGPU.
-  `webllm/capability.ts` feature-detects (never UA-sniffs); the settings UI
-  discloses the download (~1 GB from huggingface.co, cached by WebLLM's Cache
-  API, offline afterwards) before it starts. The heavy library is
-  **dynamic-import-only** (its own `webllm-*` chunk, excluded from the SW
-  precache) so non-users never download a byte of it. Scope (v1): chat + the
-  rectification interview + the life-event extractor; the full structured
-  reading throws a typed `OnDeviceUnsupportedError` the UI turns into honest
-  guidance.
-- **Cloud AI (stronger) / BYO endpoint.** The one-click OpenRouter preset, or
-  set `VITE_LLM_ENGINE=openai-http` (or supply a base URL/key) to point at any
-  OpenAI-compatible server, e.g. a local Ollama at `http://localhost:11434/v1`.
+- **Cloud / BYO endpoint.** The one-click **OpenRouter** preset (stronger
+  models), or point `VITE_LLM_API_BASE`/`VITE_LLM_API_KEY` (or Settings → AI) at
+  any OpenAI-compatible server — e.g. a local **Ollama** at
+  `http://localhost:11434/v1`. Saving runs a real 1-token connectivity probe
+  (`testProviderConnection`), so a bad key / bad model / out-of-credits /
+  unreachable endpoint is reported immediately in the UI (and logged to the
+  console) instead of a silent no-op.
 
 Cloud-bound prompts run the chart through `sanitizeChartForLlm` (PII-redacted)
-first, and `ensurePrivacy` is **fail-closed**: a `local_only` request that
-would leave the device throws rather than sending (`engine:'webllm'` is
-trivially private — inference makes zero network calls). Chat is multi-turn,
-with history trimmed to a token budget (`trimHistoryToBudget`).
+first, and `ensurePrivacy` is **fail-closed**: a `local_only` request that would
+leave the device throws rather than sending. Chat is multi-turn, with history
+trimmed to a token budget (`trimHistoryToBudget`). (The former on-device WebLLM
+tier and its `@mlc-ai/web-llm` dependency were removed.)
 
 ## Dev assets (`apps/web/scripts/setup-dev-assets.sh`)
 

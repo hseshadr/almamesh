@@ -386,6 +386,23 @@ export default defineConfig({
         entryFileNames: 'assets/[name]-[hash].js',
         chunkFileNames: 'assets/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash].[ext]',
+        // LOAD-BEARING no-op — DO NOT delete. vite-prerender-plugin installs its
+        // OWN `manualChunks` (remapping src/prerender-entry.tsx) ONLY when the user
+        // config sets none (see its configResolved guard:
+        //   `if (config.build.rollupOptions.output?.manualChunks) return`).
+        // That plugin-injected remapping merges the Node-only SSR renderer
+        // (react-dom/server.edge, imported ONLY by the prerender entry) into a
+        // chunk Vite then injects into the CLIENT index.html — which shipped ~800 KB
+        // of SSR to every browser AND broke the offline app shell (the prerender
+        // chunk is globIgnored from the SW precache, so an offline reload 404'd it
+        // and the engine never rebooted → exit-gate CHECK 7). Defining any
+        // `manualChunks` makes the plugin bail, restoring Rollup's default split
+        // (SSR stays in a separate, un-injected prerender chunk). This previously
+        // rode on the webllm `manualChunks`; that dep was removed, so the no-op is
+        // now the explicit carrier. Returning undefined = Rollup default splitting
+        // (hand-grouping the React ecosystem is still avoided — see the
+        // chunkSizeWarningLimit note above).
+        manualChunks: () => undefined,
       },
     },
   },

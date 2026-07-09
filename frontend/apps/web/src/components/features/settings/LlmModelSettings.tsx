@@ -98,7 +98,15 @@ export default function LlmModelSettings({
   const turnAiOff = () => {
     probeGen.current += 1;
     probeAbort.current?.abort();
-    writeLlmSettings({ engine: '', apiBase: '', apiKey: '', model: '' });
+    try {
+      writeLlmSettings({ engine: '', apiBase: '', apiKey: '', model: '' });
+    } catch (err) {
+      // The localStorage write can throw (quota / private mode). Surface it in
+      // the console and bail rather than crash the click handler; the badge
+      // stays "on" so the user can retry, never a swallowed no-op.
+      console.error('[ai-settings] could not turn AI off (storage write failed):', err);
+      return;
+    }
     setSettings(readLlmSettings());
     setConn({ phase: 'idle' });
     setStatus(describeLlmStatus());
@@ -156,6 +164,7 @@ export default function LlmModelSettings({
   };
 
   const hasKey = Boolean(settings.apiKey?.trim());
+  const hasEndpoint = Boolean(settings.apiBase?.trim());
   const isCloud = settings.privacyMode === 'cloud_premium';
   const endpointIsLocal = isLocalEndpoint(settings.apiBase || PLACEHOLDER_BASE);
   const willRefuse = !isCloud && !endpointIsLocal;
@@ -336,13 +345,19 @@ export default function LlmModelSettings({
               </p>
             )}
 
-            <Button
-              onClick={() => saveAndTest(settings, 'advanced')}
-              disabled={conn.phase === 'testing'}
-              data-testid="llm-save-advanced"
-            >
-              {conn.phase === 'testing' ? t('ai.testing') : t('ai.save_and_test')}
-            </Button>
+            <div className="flex flex-wrap items-center gap-3">
+              <Button
+                onClick={() => saveAndTest(settings, 'advanced')}
+                disabled={!hasEndpoint || conn.phase === 'testing'}
+                data-testid="llm-save-advanced"
+              >
+                {conn.phase === 'testing' ? t('ai.testing') : t('ai.save_and_test')}
+              </Button>
+              {/* Gate on a present endpoint (mirrors the guided !hasKey) so an
+                  empty form can't probe the fallback default and show a
+                  confusing verdict. */}
+              {!hasEndpoint && <span className="text-text-muted text-xs">{t('ai.advanced_hint')}</span>}
+            </div>
 
             {/* The advanced verdict lands right under the advanced Save button. */}
             <ConnectionResult conn={conn} t={t} source="advanced" />
