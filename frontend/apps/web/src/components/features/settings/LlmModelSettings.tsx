@@ -15,11 +15,12 @@
  * stored ONLY in the browser's localStorage via @almamesh/llm; no backend.
  */
 
-import { useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   CHAT_CLOUD_MODEL,
   describeLlmStatus,
+  fetchOpenRouterCredits,
   isLocalEndpoint,
   openRouterPreset,
   readLlmSettings,
@@ -28,6 +29,7 @@ import {
   RECOMMENDED_CLOUD_MODEL,
   type LlmSettings,
   type LlmStatus,
+  type OpenRouterCredits,
   type ProviderConfig,
 } from '@almamesh/llm';
 import { Badge, Button } from '../../ui';
@@ -57,18 +59,31 @@ type ConnState =
   | { phase: 'connected'; source: ConnSource }
   | { phase: 'error'; source: ConnSource; kind: ResultKind };
 
+/** The live state of the OpenRouter balance read (OpenRouter-only). */
+type CreditsState =
+  | { phase: 'idle' }
+  | { phase: 'loading' }
+  | { phase: 'loaded'; credits: OpenRouterCredits }
+  | { phase: 'error' };
+
 /**
  * Injectable seams so the component is unit-testable without a network round-trip
- * — default to the real interpretation-config resolver + connectivity probe.
+ * — default to the real interpretation-config resolver + connectivity probe +
+ * OpenRouter balance reader.
  */
 export interface LlmModelSettingsProps {
   resolveConfig?: () => ProviderConfig;
   testConnection?: (opts: { config: ProviderConfig; signal?: AbortSignal }) => Promise<void>;
+  fetchCredits?: (opts: {
+    config: ProviderConfig;
+    signal?: AbortSignal;
+  }) => Promise<OpenRouterCredits>;
 }
 
 export default function LlmModelSettings({
   resolveConfig = resolveInterpretationConfig,
   testConnection = testProviderConnection,
+  fetchCredits = fetchOpenRouterCredits,
 }: LlmModelSettingsProps = {}) {
   const { t } = useTranslation('settings');
   const [status, setStatus] = useState<LlmStatus>(() => describeLlmStatus());
@@ -84,6 +99,43 @@ export default function LlmModelSettings({
     (status.kind === 'openrouter' || status.kind === 'cloud' || status.kind === 'local') &&
     status.configured;
 
+  // The OpenRouter balance line is OpenRouter-ONLY: never fetch (never send a key)
+  // for a local/loopback or a bring-your-own cloud endpoint. This gate is the
+  // privacy boundary for the credits read.
+  const showCredits = status.kind === 'openrouter' && status.configured;
+  const [credits, setCredits] = useState<CreditsState>({ phase: 'idle' });
+  const creditsAbort = useRef<AbortController | null>(null);
+
+  const loadCredits = useCallback(() => {
+    creditsAbort.current?.abort();
+    const controller = new AbortController();
+    creditsAbort.current = controller;
+    setCredits({ phase: 'loading' });
+    fetchCredits({ config: resolveConfig(), signal: controller.signal })
+      .then((c) => {
+        if (!controller.signal.aborted) setCredits({ phase: 'loaded', credits: c });
+      })
+      .catch((err) => {
+        if (controller.signal.aborted) return;
+        // Never swallow: the balance is a nice-to-have, so we degrade to a muted
+        // "unavailable" line, but the reason lands in the console for diagnosis.
+        console.error('[ai-settings] could not read OpenRouter credits:', err);
+        setCredits({ phase: 'error' });
+      });
+  }, [fetchCredits, resolveConfig]);
+
+  // Auto-read the balance whenever OpenRouter becomes the live provider (mount if
+  // already connected, or the instant a guided connect saves); clear it otherwise.
+  // Abort any in-flight read on unmount so a fetch can't outlive the screen.
+  useEffect(() => {
+    if (showCredits) {
+      loadCredits();
+    } else {
+      setCredits({ phase: 'idle' });
+    }
+    return () => creditsAbort.current?.abort();
+  }, [showCredits, loadCredits]);
+
   // Editing any field invalidates any in-flight probe (its verdict was for the
   // OLD config) and abandons the last verdict — the config on screen is unsaved.
   const patch = (next: Partial<LlmSettings>) => {
@@ -93,13 +145,24 @@ export default function LlmModelSettings({
     setConn({ phase: 'idle' });
   };
 
-  // Back to the default: clear the engine selector AND the endpoint triplet so
-  // describeLlmStatus reads "none" again. Per-tier model choices survive.
+  // Back to the default: fully disconnect. Clear the endpoint + key + model AND
+  // re-arm the fail-closed privacy fence — a persisted `cloud_premium` (written
+  // by a prior OpenRouter connect) would otherwise stay and keep `ensurePrivacy`
+  // inert for this browser. Reset to `local_only` and drop the per-tier models so
+  // nothing sensitive lingers; describeLlmStatus reads "none" again.
   const turnAiOff = () => {
     probeGen.current += 1;
     probeAbort.current?.abort();
     try {
-      writeLlmSettings({ engine: '', apiBase: '', apiKey: '', model: '' });
+      writeLlmSettings({
+        engine: '',
+        apiBase: '',
+        apiKey: '',
+        model: '',
+        interpretationModel: '',
+        chatModel: '',
+        privacyMode: 'local_only',
+      });
     } catch (err) {
       // The localStorage write can throw (quota / private mode). Surface it in
       // the console and bail rather than crash the click handler; the badge
@@ -261,6 +324,9 @@ export default function LlmModelSettings({
 
           {/* The guided verdict lands right under its own Save button. */}
           <ConnectionResult conn={conn} t={t} source="guided" />
+
+          {/* OpenRouter-only balance line (never rendered/fetched for local/BYO). */}
+          {showCredits && <CreditsRemaining credits={credits} onRefresh={loadCredits} t={t} />}
         </div>
 
         {/* Advanced — any OpenAI-compatible endpoint (local Ollama, other cloud). */}
@@ -402,5 +468,60 @@ function ConnectionResult({
       {conn.phase === 'connected' ? '✓ ' : conn.phase === 'error' ? '✗ ' : ''}
       {text}
     </p>
+  );
+}
+
+/** Format a USD credit amount for display (OpenRouter reports dollars, not tokens). */
+function usd(amount: number): string {
+  return `$${amount.toFixed(2)}`;
+}
+
+/**
+ * The OpenRouter balance line. Rendered ONLY when OpenRouter is the live provider
+ * (the parent's `showCredits` gate), so a key is never sent to a local/BYO host.
+ * Shows the spendable balance in USD credits — OpenRouter does not expose a token
+ * count — with a one-line note so "tokens left" reads as the dollar balance it is,
+ * plus a manual Refresh.
+ */
+function CreditsRemaining({
+  credits,
+  onRefresh,
+  t,
+}: {
+  credits: CreditsState;
+  onRefresh: () => void;
+  t: ReturnType<typeof useTranslation<'settings'>>['t'];
+}) {
+  return (
+    <div className="mt-3 space-y-1" data-testid="llm-credits">
+      <div className="flex flex-wrap items-center gap-2 text-sm">
+        {credits.phase === 'loading' && (
+          <span className="text-text-secondary">{t('ai.credits_loading')}</span>
+        )}
+        {credits.phase === 'loaded' && (
+          <span className="text-text-primary font-medium" data-testid="llm-credits-value">
+            {t('ai.credits_remaining', {
+              remaining: usd(credits.credits.remaining),
+              total: usd(credits.credits.totalCredits),
+            })}
+          </span>
+        )}
+        {credits.phase === 'error' && (
+          <span className="text-text-muted" data-testid="llm-credits-error">
+            {t('ai.credits_unavailable')}
+          </span>
+        )}
+        <button
+          type="button"
+          onClick={onRefresh}
+          disabled={credits.phase === 'loading'}
+          className="text-accent-gold text-xs hover:underline disabled:opacity-50"
+          data-testid="llm-credits-refresh"
+        >
+          {t('ai.credits_refresh')}
+        </button>
+      </div>
+      <p className="text-text-muted text-xs">{t('ai.credits_note')}</p>
+    </div>
   );
 }

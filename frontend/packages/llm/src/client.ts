@@ -174,6 +174,63 @@ export async function testProviderConnection(options: TestConnectionOptions): Pr
   }
 }
 
+/** The account balance OpenRouter reports (USD credits, not a token count). */
+export interface OpenRouterCredits {
+  /** Total credits ever granted/purchased on the account, in USD. */
+  readonly totalCredits: number;
+  /** Total credits spent to date, in USD. */
+  readonly totalUsage: number;
+  /** `totalCredits − totalUsage` — the spendable balance, in USD. */
+  readonly remaining: number;
+}
+
+interface OpenRouterCreditsResponse {
+  readonly data?: {
+    readonly total_credits?: number;
+    readonly total_usage?: number;
+  };
+}
+
+/** Options for reading the OpenRouter account balance. */
+export interface FetchCreditsOptions {
+  readonly config: ProviderConfig;
+  readonly signal?: AbortSignal;
+  /** Optional fetch override for testing; defaults to the global `fetch`. */
+  readonly fetchImpl?: typeof fetch;
+}
+
+/**
+ * Read the OpenRouter account balance via `GET {baseUrl}/credits` (authenticated
+ * with the same Bearer key the reading uses). Returns USD credits — OpenRouter
+ * does NOT expose a token count — as `{ totalCredits, totalUsage, remaining }`.
+ *
+ * OpenRouter-ONLY by contract: the caller must gate on the provider being
+ * OpenRouter before invoking this (never a local/loopback endpoint), so a key is
+ * never sent anywhere but OpenRouter. On a non-2xx (401 bad key, 402 no credits)
+ * it throws the same typed `LlmRequestError` the reading path uses, so the UI can
+ * classify the failure with `classifyConnectionError`.
+ */
+export async function fetchOpenRouterCredits(
+  options: FetchCreditsOptions,
+): Promise<OpenRouterCredits> {
+  const doFetch = options.fetchImpl ?? fetch;
+  const response = await doFetch(creditsUrl(requireBaseUrl(options.config)), {
+    method: "GET",
+    headers: buildHeaders(options.config),
+    signal: options.signal,
+  });
+  if (!response.ok) {
+    throw await requestErrorFor(response);
+  }
+  const payload = (await response.json()) as OpenRouterCreditsResponse;
+  const totalCredits = payload.data?.total_credits;
+  const totalUsage = payload.data?.total_usage;
+  if (typeof totalCredits !== "number" || typeof totalUsage !== "number") {
+    throw new LlmRequestError("OpenRouter credits response was malformed");
+  }
+  return { totalCredits, totalUsage, remaining: totalCredits - totalUsage };
+}
+
 function buildHeaders(config: ProviderConfig): Record<string, string> {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (config.apiKey) {
@@ -184,6 +241,11 @@ function buildHeaders(config: ProviderConfig): Record<string, string> {
 
 function joinUrl(baseUrl: string): string {
   return `${baseUrl.replace(/\/$/, "")}/chat/completions`;
+}
+
+/** OpenRouter's account-balance endpoint, off the same `{baseUrl}` (…/api/v1). */
+function creditsUrl(baseUrl: string): string {
+  return `${baseUrl.replace(/\/$/, "")}/credits`;
 }
 
 /**

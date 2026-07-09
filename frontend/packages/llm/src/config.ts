@@ -115,12 +115,17 @@ export interface LlmEnv {
  */
 export function resolveProviderConfig(env: LlmEnv = {}): ProviderConfig {
   const engine = DEFAULT_ENGINE;
-  const apiKey = env.VITE_LLM_API_KEY?.trim();
+  const explicitBase = env.VITE_LLM_API_BASE?.trim();
+  // Only attach a key when an endpoint was EXPLICITLY configured. Without one the
+  // config falls back to the local Ollama default — a leftover key (e.g. lingering
+  // after "Turn AI off" cleared the endpoint) must never ride along as a Bearer
+  // header to loopback. No explicit endpoint ⇒ no key.
+  const apiKey = explicitBase ? env.VITE_LLM_API_KEY?.trim() : undefined;
   return {
     engine,
     model: env.VITE_LLM_MODEL?.trim() || DEFAULT_MODEL,
     privacyMode: asPrivacyMode(env.VITE_LLM_PRIVACY_MODE?.trim()),
-    baseUrl: env.VITE_LLM_API_BASE?.trim() || DEFAULT_BASE_URL,
+    baseUrl: explicitBase || DEFAULT_BASE_URL,
     ...(apiKey ? { apiKey } : {}),
   };
 }

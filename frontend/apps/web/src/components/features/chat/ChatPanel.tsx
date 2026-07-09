@@ -18,7 +18,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
-import { describeLlmStatus, type ChatTurn } from '@almamesh/llm';
+import { type ChatTurn } from '@almamesh/llm';
 import { MessageBubble } from './MessageBubble';
 import { ReferenceEntry } from './ReferenceEntry';
 import { SuggestedQuestions } from './SuggestedQuestions';
@@ -26,6 +26,7 @@ import { ChatSearch } from './ChatSearch';
 import type { SSEMetaData } from '../../../lib/streaming';
 import type { ViewMode } from '../../../lib/types';
 import { useChatThread, type ChatStreamInput } from '../../../hooks/useChatThread';
+import { useLlmStatus } from '../../../hooks/useLlmStatus';
 
 interface ChatPanelProps {
   personName: string;
@@ -66,8 +67,9 @@ export function ChatPanel({
   // Whether an AI endpoint is configured (local or cloud). With none,
   // a sent question is doomed — so the send affordance is replaced by the
   // Connect-AI CTA (the dashboard's existing pattern) instead of inviting a
-  // failure bubble.
-  const aiConfigured = describeLlmStatus().configured;
+  // failure bubble. LIVE (useLlmStatus): turning AI off in Settings disables the
+  // input immediately, so a "disconnected" chat can never keep sending.
+  const aiConfigured = useLlmStatus().configured;
   const [inputValue, setInputValue] = useState('');
   const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);

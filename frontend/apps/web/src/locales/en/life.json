@@ -51,9 +51,6 @@
     "themes": "Key themes"
   },
   "continue": {
-    "report_title": "Print-ready report",
-    "report_body": "An archival paper document of the chart, timing layer and reading.",
-    "report_locked": "Available once your reading is generated.",
     "timing_body": "Transits, the sixteen divisional charts, Ashtakavarga and Shadbala — the full instrument panel.",
     "open": "Open"
   }

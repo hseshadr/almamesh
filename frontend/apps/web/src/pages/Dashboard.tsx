@@ -54,6 +54,7 @@ import {
   withRawPredictive,
 } from "../hooks/useStreamingInterpretation";
 import { useElapsedSeconds, formatElapsed } from "../hooks/useElapsedSeconds";
+import { useLlmStatus } from "../hooks/useLlmStatus";
 import { canExportPdf, isPlaceholderContent } from "./exportGate";
 import { personaText, resolveReportAudience } from "../lib/reportSelectors";
 import { rectificationDelta } from "../lib/rectification";
@@ -175,8 +176,10 @@ export default function DashboardPage() {
   );
 
   // Whether an AI endpoint is configured (local or cloud) — gates
-  // auto-generation and decides between the progress panel and the CTA.
-  const aiConfigured = describeLlmStatus().configured;
+  // auto-generation and decides between the progress panel and the CTA. LIVE
+  // (useLlmStatus): turning AI off updates every gate on this page immediately,
+  // no reload.
+  const aiConfigured = useLlmStatus().configured;
 
   // Whether the reading can be (re)generated: any configured AI can produce the
   // structured reading. Gates the Regenerate button (with an explanatory
@@ -214,6 +217,14 @@ export default function DashboardPage() {
     const chart = chartId ? useChartLibraryStore.getState().getChart(chartId)?.sidereal_chart : undefined;
     if (!chart) {
       throw new Error(t('errors:needs_regeneration'));
+    }
+    // SECURITY backstop: never send when AI is off. `resolveProviderConfig` is
+    // fail-open (it falls back to the localhost Ollama default), and the chat UI
+    // gate is the primary guard — but read the LIVE status here too so a send can
+    // never reach an endpoint the user has disconnected. (Read at send time, not
+    // a render snapshot.)
+    if (!describeLlmStatus().configured) {
+      throw new Error(t('dashboard:chat.not_configured_notice'));
     }
     const effectiveViewMode = questionViewMode || viewMode;
     const chatMode = effectiveViewMode === 'astrologer' ? 'expert' : 'layman';
@@ -532,6 +543,20 @@ export default function DashboardPage() {
           actions={
             <>
               <ContentModeToggle />
+              <button
+                type="button"
+                onClick={() => navigate(`/report?mode=${viewMode === 'astrologer' ? 'astrologer' : 'you'}`)}
+                disabled={!canExport}
+                data-testid="print-chart-button"
+                title={canExport ? t('dashboard:actions.export_pdf_title') : t('dashboard:actions.export_pdf_disabled_title')}
+                className="inline-flex items-center gap-1.5 rounded-md border border-ui-border px-3 py-1.5 text-sm text-text-secondary transition-colors hover:border-accent-gold/40 hover:text-text-primary disabled:cursor-not-allowed disabled:border-ui-border/60 disabled:text-text-tertiary disabled:hover:border-ui-border/60"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3M4 6h16M4 6a2 2 0 00-2 2v8a2 2 0 002 2h16a2 2 0 002-2V8a2 2 0 00-2-2" />
+                </svg>
+                {t('dashboard:actions.export_pdf')}
+              </button>
+              <FeedbackWidget page="dashboard" />
               <Link
                 to="/settings"
                 className="text-text-muted transition-colors hover:text-text-primary"
@@ -828,54 +853,25 @@ export default function DashboardPage() {
                rendered for both modes (depth lives inside, not in the layout). */}
         <ChartVisualization siderealChart={siderealChart} size={300} />
 
-        {/* 6 — Continue: the two deliberate exits (full timing panel, paper report). */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Card title={t('predictive:page.title')}>
-            <div className="flex h-full flex-col gap-4">
-              <p className="text-sm leading-relaxed text-text-secondary">
-                {t('life:continue.timing_body')}
-              </p>
-              <Link
-                to="/predictive"
-                className="mt-auto inline-flex items-center gap-1.5 text-sm font-medium text-accent-gold transition-colors hover:text-accent-gold-bright"
-                data-testid="predictive-link"
-              >
-                {t('life:continue.open')}
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </Link>
-            </div>
-          </Card>
-          <Card title={t('life:continue.report_title')}>
-            <div className="flex h-full flex-col gap-4">
-              <p className="text-sm leading-relaxed text-text-secondary">
-                {t('life:continue.report_body')}
-              </p>
-              <div className="mt-auto space-y-2">
-                <button
-                  onClick={() => navigate(`/report?mode=${viewMode === 'astrologer' ? 'astrologer' : 'you'}`)}
-                  disabled={!canExport}
-                  className="inline-flex items-center gap-1.5 text-sm font-medium text-accent-gold transition-colors hover:text-accent-gold-bright disabled:cursor-not-allowed disabled:text-text-tertiary"
-                  data-testid="print-chart-button"
-                  title={canExport ? t('dashboard:actions.export_pdf_title') : t('dashboard:actions.export_pdf_disabled_title')}
-                >
-                  {t('dashboard:actions.export_pdf')}
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-                {!canExport && (
-                  <p className="text-xs text-text-tertiary">{t('life:continue.report_locked')}</p>
-                )}
-              </div>
-            </div>
-          </Card>
-        </div>
-
-        {/* Quiet, anonymous signal: is this valuable? (no identity, no tracking;
-               device-local dismiss guard so a returning visitor isn't nagged twice.) */}
-        <FeedbackWidget page="dashboard" />
+        {/* 6 — Continue: the deliberate exit to the full timing panel. (Export PDF
+               + Feedback now live in the top identity-strip actions row.) */}
+        <Card title={t('predictive:page.title')}>
+          <div className="flex flex-col gap-4">
+            <p className="text-sm leading-relaxed text-text-secondary">
+              {t('life:continue.timing_body')}
+            </p>
+            <Link
+              to="/predictive"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-accent-gold transition-colors hover:text-accent-gold-bright"
+              data-testid="predictive-link"
+            >
+              {t('life:continue.open')}
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </Link>
+          </div>
+        </Card>
 
         {/* Trust-through-transparency: how this chart was produced (on-device). */}
         <ProvenanceFooter />
