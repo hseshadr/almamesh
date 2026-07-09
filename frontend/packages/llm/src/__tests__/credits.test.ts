@@ -63,6 +63,40 @@ describe("fetchOpenRouterCredits", () => {
     ).rejects.toBeInstanceOf(LlmRequestError);
   });
 
+  it("refuses BEFORE any fetch when the endpoint is NOT OpenRouter (no key to loopback)", async () => {
+    const fetchImpl = vi.fn();
+    const localCfg: ProviderConfig = {
+      engine: "openai-http",
+      model: "llama3.1",
+      privacyMode: "local_only",
+      baseUrl: "http://localhost:11434/v1",
+      apiKey: "sk-leftover",
+    };
+    await expect(
+      fetchOpenRouterCredits({
+        config: localCfg,
+        fetchImpl: fetchImpl as unknown as typeof fetch,
+      }),
+    ).rejects.toBeInstanceOf(LlmRequestError);
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("throws a typed LlmRequestError (not a raw SyntaxError) on a 2xx non-JSON body", async () => {
+    const fetchImpl = vi.fn(
+      async () =>
+        new Response("<html>maintenance</html>", {
+          status: 200,
+          headers: { "Content-Type": "text/html" },
+        }),
+    );
+    await expect(
+      fetchOpenRouterCredits({
+        config: OPENROUTER_CFG,
+        fetchImpl: fetchImpl as unknown as typeof fetch,
+      }),
+    ).rejects.toBeInstanceOf(LlmRequestError);
+  });
+
   it("passes the abort signal through to fetch", async () => {
     const controller = new AbortController();
     let seenSignal: AbortSignal | undefined;

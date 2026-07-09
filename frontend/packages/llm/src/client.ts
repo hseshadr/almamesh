@@ -7,7 +7,7 @@
 // loopback/private endpoint throws `PrivacyViolationError` and nothing leaves
 // the device.
 
-import { ensurePrivacy, type ProviderConfig } from "./config";
+import { ensurePrivacy, OPENROUTER_API_BASE, type ProviderConfig } from "./config";
 
 export interface ChatMessage {
   readonly role: "system" | "user" | "assistant";
@@ -204,17 +204,27 @@ export interface FetchCreditsOptions {
  * with the same Bearer key the reading uses). Returns USD credits — OpenRouter
  * does NOT expose a token count — as `{ totalCredits, totalUsage, remaining }`.
  *
- * OpenRouter-ONLY by contract: the caller must gate on the provider being
- * OpenRouter before invoking this (never a local/loopback endpoint), so a key is
- * never sent anywhere but OpenRouter. On a non-2xx (401 bad key, 402 no credits)
- * it throws the same typed `LlmRequestError` the reading path uses, so the UI can
- * classify the failure with `classifyConnectionError`.
+ * OpenRouter-ONLY by contract, enforced fail-closed HERE (not just by the caller):
+ * the endpoint MUST be OpenRouter's — a key is never sent to a local/loopback or
+ * a bring-your-own host, mirroring the `ensurePrivacy` gate in
+ * `testProviderConnection`. On a non-2xx (401 bad key, 402 no credits) it throws
+ * the same typed `LlmRequestError` the reading path uses, so the UI can classify
+ * the failure with `classifyConnectionError`.
  */
 export async function fetchOpenRouterCredits(
   options: FetchCreditsOptions,
 ): Promise<OpenRouterCredits> {
+  const baseUrl = requireBaseUrl(options.config);
+  // Fail-closed: this is an OpenRouter-account read; refuse to send the key
+  // anywhere else even if a caller forgot to gate. Defense-in-depth for the
+  // "no key to loopback/BYO" invariant.
+  if (!baseUrl.startsWith(OPENROUTER_API_BASE)) {
+    throw new LlmRequestError(
+      `Credits are only available for OpenRouter (endpoint was ${baseUrl})`,
+    );
+  }
   const doFetch = options.fetchImpl ?? fetch;
-  const response = await doFetch(creditsUrl(requireBaseUrl(options.config)), {
+  const response = await doFetch(creditsUrl(baseUrl), {
     method: "GET",
     headers: buildHeaders(options.config),
     signal: options.signal,
@@ -222,7 +232,14 @@ export async function fetchOpenRouterCredits(
   if (!response.ok) {
     throw await requestErrorFor(response);
   }
-  const payload = (await response.json()) as OpenRouterCreditsResponse;
+  let payload: OpenRouterCreditsResponse;
+  try {
+    payload = (await response.json()) as OpenRouterCreditsResponse;
+  } catch {
+    // A 2xx with a non-JSON body still breaks the contract — surface it as the
+    // typed error the docstring promises, not a raw SyntaxError.
+    throw new LlmRequestError("OpenRouter credits response was not valid JSON");
+  }
   const totalCredits = payload.data?.total_credits;
   const totalUsage = payload.data?.total_usage;
   if (typeof totalCredits !== "number" || typeof totalUsage !== "number") {

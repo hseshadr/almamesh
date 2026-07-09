@@ -134,19 +134,32 @@ describe('FeedbackWidget — re-openable, ongoing', () => {
     });
   });
 
-  it('shows an inline error with retry on failure', async () => {
+  it('shows a reason-SPECIFIC error (429 → slow down, not a generic retry-into-the-wall)', async () => {
     submitMock.mockResolvedValueOnce({ ok: false, status: 429, reason: 'rate_limited' });
     render(<FeedbackWidget page={PAGE} />);
     await openForm();
 
     fireEvent.click(screen.getByTestId('feedback-up'));
     fireEvent.click(screen.getByTestId('feedback-send'));
-    await screen.findByTestId('feedback-error');
+    const err = await screen.findByTestId('feedback-error');
+    expect(err.textContent?.toLowerCase()).toContain('fast');
 
+    // Retrying succeeds and reaches the thank-you state.
     submitMock.mockResolvedValueOnce({ ok: true });
     fireEvent.click(screen.getByTestId('feedback-send'));
     await screen.findByTestId('feedback-thanks');
     expect(submitMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('maps a 403 to a verification message (distinct from the generic error)', async () => {
+    submitMock.mockResolvedValueOnce({ ok: false, status: 403, reason: 'forbidden' });
+    render(<FeedbackWidget page={PAGE} />);
+    await openForm();
+
+    fireEvent.click(screen.getByTestId('feedback-down'));
+    fireEvent.click(screen.getByTestId('feedback-send'));
+    const err = await screen.findByTestId('feedback-error');
+    expect(err.textContent?.toLowerCase()).toContain('verify');
   });
 
   it('closing the dialog does NOT permanently dismiss it — it re-opens fresh', async () => {

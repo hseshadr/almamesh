@@ -16,5 +16,8 @@
   "thanks_title": "Thank you",
   "thanks_body": "Your signal was received — anonymously. It helps shape what we build next.",
   "error": "Couldn't send your feedback. Please try again.",
+  "error_rate_limited": "You're sending feedback a little fast — please wait a moment and try again.",
+  "error_forbidden": "We couldn't verify that request. Please try again.",
+  "error_bad_request": "That didn't look right — please adjust your note and try again.",
   "retry": "Try again"
 }

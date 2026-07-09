@@ -17,5 +17,8 @@
   "thanks_title": "Gracias",
   "thanks_body": "Recibimos tu señal — de forma anónima. Ayuda a decidir lo que construimos a continuación.",
   "error": "No pudimos enviar tus comentarios. Inténtalo de nuevo.",
+  "error_rate_limited": "Estás enviando comentarios demasiado rápido — espera un momento e inténtalo de nuevo.",
+  "error_forbidden": "No pudimos verificar esa solicitud. Inténtalo de nuevo.",
+  "error_bad_request": "Algo no cuadró — ajusta tu nota e inténtalo de nuevo.",
   "retry": "Reintentar"
 }

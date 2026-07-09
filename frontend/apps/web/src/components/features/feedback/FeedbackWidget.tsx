@@ -1,9 +1,20 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type ReactNode,
+} from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 
 import { Button, cn } from '../../ui';
-import { submitFeedback, type FeedbackSentiment } from '../../../lib/submitFeedback';
+import {
+  submitFeedback,
+  type FeedbackFailureReason,
+  type FeedbackSentiment,
+} from '../../../lib/submitFeedback';
 
 /**
  * FeedbackWidget — a quiet, ANONYMOUS, RE-OPENABLE product-feedback prompt.
@@ -95,17 +106,21 @@ export function FeedbackWidget({ page, className, cooldownMs = DEFAULT_COOLDOWN_
   const [sentiment, setSentiment] = useState<FeedbackSentiment>(null);
   const [message, setMessage] = useState('');
   const [status, setStatus] = useState<Status>('idle');
+  const [errorReason, setErrorReason] = useState<FeedbackFailureReason | null>(null);
   const [coolingDown, setCoolingDown] = useState(false);
   const cooldownTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const siteKey = readTurnstileSiteKey();
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const turnstileRef = useRef<HTMLDivElement | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const dialogRef = useRef<HTMLDivElement | null>(null);
 
   const resetForm = useCallback(() => {
     setSentiment(null);
     setMessage('');
     setStatus('idle');
+    setErrorReason(null);
     setTurnstileToken(null);
   }, []);
 
@@ -128,6 +143,43 @@ export function FeedbackWidget({ page, className, cooldownMs = DEFAULT_COOLDOWN_
     return () => window.removeEventListener('keydown', onKey);
   }, [open, closePanel]);
 
+  // Dialog focus management (WAI-ARIA): move focus INTO the dialog on open and
+  // restore it to the trigger on close, so keyboard/AT users aren't stranded.
+  useEffect(() => {
+    if (!open) return;
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    // Capture the trigger now (it's stable while mounted) so the cleanup restores
+    // focus to it without reading a possibly-changed ref.
+    const trigger = triggerRef.current;
+    // Defer to after the portal paints so the ref is populated.
+    const id = requestAnimationFrame(() => dialogRef.current?.focus());
+    return () => {
+      cancelAnimationFrame(id);
+      (trigger ?? previouslyFocused)?.focus?.();
+    };
+  }, [open]);
+
+  // Keep Tab inside the open dialog (a lightweight focus trap).
+  const trapFocus = (e: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== 'Tab') return;
+    const focusables = Array.from(
+      dialogRef.current?.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ) ?? [],
+    );
+    if (focusables.length === 0) return;
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    const active = document.activeElement;
+    if (e.shiftKey && (active === first || active === dialogRef.current)) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && active === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  };
+
   // Render Turnstile only while the panel is open AND a site key is configured.
   // Lazy-loaded, fail-soft, cleaned up when the panel closes/unmounts.
   useEffect(() => {
@@ -135,16 +187,23 @@ export function FeedbackWidget({ page, className, cooldownMs = DEFAULT_COOLDOWN_
     const container = turnstileRef.current;
     let widgetId: string | undefined;
     let cancelled = false;
-    void loadTurnstile().then((api) => {
-      if (!api || cancelled) return;
-      widgetId = api.render(container, {
-        sitekey: siteKey,
-        action: TURNSTILE_ACTION,
-        callback: (token) => setTurnstileToken(token),
-        'error-callback': () => setTurnstileToken(null),
-        'expired-callback': () => setTurnstileToken(null),
+    void loadTurnstile()
+      .then((api) => {
+        if (!api || cancelled) return;
+        widgetId = api.render(container, {
+          sitekey: siteKey,
+          action: TURNSTILE_ACTION,
+          callback: (token) => setTurnstileToken(token),
+          'error-callback': () => setTurnstileToken(null),
+          'expired-callback': () => setTurnstileToken(null),
+        });
+      })
+      .catch((err) => {
+        // A synchronous render() throw (or a load hiccup) must not become an
+        // unhandled rejection; degrade to no-token (Turnstile fails soft).
+        console.error('[feedback] Turnstile init failed:', err);
+        setTurnstileToken(null);
       });
-    });
     return () => {
       cancelled = true;
       if (widgetId && window.turnstile) window.turnstile.remove(widgetId);
@@ -179,13 +238,26 @@ export function FeedbackWidget({ page, className, cooldownMs = DEFAULT_COOLDOWN_
       if (cooldownTimer.current) clearTimeout(cooldownTimer.current);
       cooldownTimer.current = setTimeout(() => setCoolingDown(false), cooldownMs);
     } else {
+      // Carry the typed reason so the message is honest — a 429 says "slow down",
+      // a 403 says "verification failed", not a generic "try again" into the wall.
+      setErrorReason(result.reason);
       setStatus('error');
     }
   };
 
+  const errorKey: string =
+    errorReason === 'rate_limited'
+      ? 'error_rate_limited'
+      : errorReason === 'forbidden'
+        ? 'error_forbidden'
+        : errorReason === 'bad_request'
+          ? 'error_bad_request'
+          : 'error';
+
   return (
     <>
       <button
+        ref={triggerRef}
         type="button"
         onClick={openPanel}
         data-testid="feedback-open"
@@ -222,7 +294,10 @@ export function FeedbackWidget({ page, className, cooldownMs = DEFAULT_COOLDOWN_
             }}
           >
             <div
-              className="w-full max-w-md rounded-xl border border-ui-border bg-background-secondary p-5 shadow-2xl"
+              ref={dialogRef}
+              tabIndex={-1}
+              onKeyDown={trapFocus}
+              className="w-full max-w-md rounded-xl border border-ui-border bg-background-secondary p-5 shadow-2xl focus:outline-none"
               data-testid="feedback-widget"
             >
               {status === 'thanks' ? (
@@ -309,7 +384,7 @@ export function FeedbackWidget({ page, className, cooldownMs = DEFAULT_COOLDOWN_
 
                   {status === 'error' && (
                     <p className="text-sm text-status-error" data-testid="feedback-error">
-                      {t('error')}
+                      {t(errorKey)}
                     </p>
                   )}
 

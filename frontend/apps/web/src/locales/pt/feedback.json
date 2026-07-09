@@ -17,5 +17,8 @@
   "thanks_title": "Obrigado",
   "thanks_body": "Recebemos o seu sinal — de forma anônima. Ele ajuda a definir o que construímos a seguir.",
   "error": "Não foi possível enviar o seu feedback. Tente novamente.",
+  "error_rate_limited": "Você está enviando feedback rápido demais — aguarde um instante e tente novamente.",
+  "error_forbidden": "Não foi possível verificar essa solicitação. Tente novamente.",
+  "error_bad_request": "Algo não pareceu certo — ajuste a sua nota e tente novamente.",
   "retry": "Tentar novamente"
 }
