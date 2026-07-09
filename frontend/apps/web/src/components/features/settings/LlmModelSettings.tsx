@@ -1,86 +1,178 @@
 /**
- * LlmModelSettings — the three-tier AI configuration (Spec 063 D3).
+ * LlmModelSettings — the AI configuration screen.
  *
- *   1. None (the DEFAULT) — no AI at all: the chart is pure calculation and
- *      nothing leaves the device. Stated as a feature, not an empty state.
- *   2. On-device AI (private, beta) — a blessed WebLLM model on this device's
- *      GPU; capability-probed, disclosed download, chat + interview scope
- *      (see OnDeviceTierCard).
- *   3. Cloud AI (stronger) — the OpenRouter one-click preset or any BYO
- *      OpenAI-compatible endpoint (incl. local Ollama). Honest label: stronger
- *      models; redacted chart data leaves the device.
+ * Two choices, stated plainly:
+ *   1. AI off (the DEFAULT) — the chart is pure calculation and nothing leaves
+ *      the device. A feature, not an empty state.
+ *   2. Connect AI — an OpenRouter key (the guided, recommended path) or, under
+ *      "Advanced", any OpenAI-compatible endpoint (incl. a local Ollama).
  *
- * Everything is stored ONLY in the browser's localStorage via @almamesh/llm;
- * no backend, no account. The active tier is derived from `describeLlmStatus`
- * (the same single source of truth the header badge uses).
+ * Saving is NOT fire-and-forget: it persists the config, then runs a real 1-token
+ * connectivity probe (`testProviderConnection`) against the exact model/endpoint
+ * the reading will use, and reports an honest **Connected** or a specific error
+ * (bad key / bad model / out of credits / unreachable) right here — so the user
+ * never has to leave the screen to discover their config is broken. Everything is
+ * stored ONLY in the browser's localStorage via @almamesh/llm; no backend.
  */
 
-import { useCallback, useState } from 'react';
-import { Trans, useTranslation } from 'react-i18next';
+import { useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
-  BLESSED_ONDEVICE_MODELS,
   CHAT_CLOUD_MODEL,
   describeLlmStatus,
   isLocalEndpoint,
   openRouterPreset,
   readLlmSettings,
+  testProviderConnection,
   writeLlmSettings,
   RECOMMENDED_CLOUD_MODEL,
   type LlmSettings,
   type LlmStatus,
+  type ProviderConfig,
 } from '@almamesh/llm';
 import { Badge, Button } from '../../ui';
-import { OnDeviceTierCard, type OnDeviceTierCardProps } from './OnDeviceTierCard';
+import { classifyConnectionError } from '../../../lib/errors';
+import { notifyLlmSettingsChanged } from '../../../lib/llmSettingsEvents';
+import { resolveInterpretationConfig } from '../../../hooks/useStreamingInterpretation';
 
+const OPENROUTER_KEYS_URL = 'https://openrouter.ai/keys';
 const PLACEHOLDER_BASE = 'http://localhost:11434/v1';
 const PLACEHOLDER_INTERP_MODEL = 'deepseek/deepseek-v4-pro';
 const PLACEHOLDER_CHAT_MODEL = 'minimax/minimax-m2.7';
 
-/** True when the id is one of the blessed ON-DEVICE (MLC) model ids. */
-function isOnDeviceModelId(id: string | undefined): boolean {
-  return Boolean(id && BLESSED_ONDEVICE_MODELS.some((m) => m.id === id));
-}
+/** Which Save button a verdict belongs to, so it renders under the right one. */
+type ConnSource = 'guided' | 'advanced';
 
 /**
- * The cloud form must never surface an on-device MLC model id (left behind by
- * a prior on-device enable + the legacy-model migration) as a cloud slug.
+ * The verdict kinds: every connection-error class, plus `'storage'` for the case
+ * where persisting to localStorage itself failed (quota / private mode) — a save
+ * no-op the user must be told about, never swallowed.
  */
-function withoutOnDeviceModels(settings: LlmSettings): LlmSettings {
-  const strip = (v?: string) => (isOnDeviceModelId(v) ? undefined : v);
-  return {
-    ...settings,
-    model: strip(settings.model),
-    interpretationModel: strip(settings.interpretationModel),
-    chatModel: strip(settings.chatModel),
-  };
+type ResultKind = ReturnType<typeof classifyConnectionError> | 'storage';
+
+/** The live state of the save-time connectivity probe. */
+type ConnState =
+  | { phase: 'idle' }
+  | { phase: 'testing'; source: ConnSource }
+  | { phase: 'connected'; source: ConnSource }
+  | { phase: 'error'; source: ConnSource; kind: ResultKind };
+
+/**
+ * Injectable seams so the component is unit-testable without a network round-trip
+ * — default to the real interpretation-config resolver + connectivity probe.
+ */
+export interface LlmModelSettingsProps {
+  resolveConfig?: () => ProviderConfig;
+  testConnection?: (opts: { config: ProviderConfig; signal?: AbortSignal }) => Promise<void>;
 }
 
-/** Test-only injectables threaded through to the on-device tier card. */
-export type LlmModelSettingsProps = Pick<
-  OnDeviceTierCardProps,
-  'probeFn' | 'preloadFn' | 'deleteFn' | 'hasCachedFn'
->;
-
-export default function LlmModelSettings(props: LlmModelSettingsProps = {}) {
+export default function LlmModelSettings({
+  resolveConfig = resolveInterpretationConfig,
+  testConnection = testProviderConnection,
+}: LlmModelSettingsProps = {}) {
   const { t } = useTranslation('settings');
   const [status, setStatus] = useState<LlmStatus>(() => describeLlmStatus());
-  const refreshStatus = useCallback(() => setStatus(describeLlmStatus()), []);
+  const [settings, setSettings] = useState<LlmSettings>(() => readLlmSettings());
+  const [conn, setConn] = useState<ConnState>({ phase: 'idle' });
+  // Probe-race guard: every save bumps `probeGen` and aborts the prior in-flight
+  // fetch, so a stale verdict from a superseded config can never land on screen.
+  const probeGen = useRef(0);
+  const probeAbort = useRef<AbortController | null>(null);
 
   const noneActive = status.kind === 'none';
-  const cloudActive =
+  const aiOn =
     (status.kind === 'openrouter' || status.kind === 'cloud' || status.kind === 'local') &&
     status.configured;
+
+  // Editing any field invalidates any in-flight probe (its verdict was for the
+  // OLD config) and abandons the last verdict — the config on screen is unsaved.
+  const patch = (next: Partial<LlmSettings>) => {
+    probeGen.current += 1;
+    probeAbort.current?.abort();
+    setSettings((prev) => ({ ...prev, ...next }));
+    setConn({ phase: 'idle' });
+  };
 
   // Back to the default: clear the engine selector AND the endpoint triplet so
   // describeLlmStatus reads "none" again. Per-tier model choices survive.
   const turnAiOff = () => {
-    writeLlmSettings({ engine: '', apiBase: '', apiKey: '', model: '' });
-    refreshStatus();
+    probeGen.current += 1;
+    probeAbort.current?.abort();
+    try {
+      writeLlmSettings({ engine: '', apiBase: '', apiKey: '', model: '' });
+    } catch (err) {
+      // The localStorage write can throw (quota / private mode). Surface it in
+      // the console and bail rather than crash the click handler; the badge
+      // stays "on" so the user can retry, never a swallowed no-op.
+      console.error('[ai-settings] could not turn AI off (storage write failed):', err);
+      return;
+    }
+    setSettings(readLlmSettings());
+    setConn({ phase: 'idle' });
+    setStatus(describeLlmStatus());
+    notifyLlmSettingsChanged();
   };
+
+  // The shared save→test path: persist, refresh every status surface, then probe
+  // the resolved interpretation config and report an honest verdict under the
+  // Save button that triggered it (`source`).
+  const saveAndTest = async (next: LlmSettings, source: ConnSource) => {
+    const gen = (probeGen.current += 1);
+    probeAbort.current?.abort();
+    const controller = new AbortController();
+    probeAbort.current = controller;
+
+    try {
+      writeLlmSettings({ ...next, engine: '' });
+    } catch (err) {
+      // A localStorage write can throw (quota exceeded, Safari private mode) —
+      // that's a silent Save no-op unless we surface it. Don't probe a config we
+      // couldn't persist.
+      console.error('[ai-settings] could not save settings:', err);
+      setConn({ phase: 'error', source, kind: 'storage' });
+      return;
+    }
+
+    const persisted = readLlmSettings();
+    setSettings(persisted);
+    setStatus(describeLlmStatus(persisted));
+    notifyLlmSettingsChanged();
+    setConn({ phase: 'testing', source });
+    try {
+      await testConnection({ config: resolveConfig(), signal: controller.signal });
+      if (gen === probeGen.current) {
+        setConn({ phase: 'connected', source });
+      }
+    } catch (err) {
+      // A superseded probe (the user edited or re-saved) must not overwrite the
+      // current verdict; ignore its result.
+      if (gen !== probeGen.current) {
+        return;
+      }
+      // Never swallow — the specific verdict below is all the user sees.
+      console.error('[ai-settings] connection test failed:', err);
+      setConn({ phase: 'error', source, kind: classifyConnectionError(err) });
+    }
+  };
+
+  // Guided OpenRouter: apply the cloud preset (recommended frontier/fast pair +
+  // cloud_premium so the fail-closed gate passes) with the user's key, then test.
+  const saveOpenRouter = () => {
+    const interp = settings.interpretationModel || settings.model || RECOMMENDED_CLOUD_MODEL;
+    const chat = settings.chatModel || CHAT_CLOUD_MODEL;
+    return saveAndTest(openRouterPreset(settings.apiKey?.trim() ?? '', interp, chat), 'guided');
+  };
+
+  const hasKey = Boolean(settings.apiKey?.trim());
+  const hasEndpoint = Boolean(settings.apiBase?.trim());
+  const isCloud = settings.privacyMode === 'cloud_premium';
+  const endpointIsLocal = isLocalEndpoint(settings.apiBase || PLACEHOLDER_BASE);
+  const willRefuse = !isCloud && !endpointIsLocal;
+  const interpretationValue = settings.interpretationModel ?? settings.model ?? '';
 
   return (
     <section className="space-y-4">
-      {/* ── Tier 1: None (the default, said plainly) ── */}
+      {/* ── AI off (the default) ── */}
       <div
         data-testid="tier-none"
         className={`rounded-lg border p-4 ${
@@ -112,231 +204,203 @@ export default function LlmModelSettings(props: LlmModelSettingsProps = {}) {
         <p className="text-text-secondary text-xs mt-1">{t('tiers.none_body')}</p>
       </div>
 
-      {/* ── Tier 2: On-device AI (private, beta) ── */}
-      <OnDeviceTierCard status={status} onChanged={refreshStatus} {...props} />
-
-      {/* ── Tier 3: Cloud AI (stronger) ── */}
+      {/* ── Connect AI ── */}
       <div
         data-testid="tier-cloud"
         className={`rounded-lg border p-4 ${
-          cloudActive ? 'border-accent-gold/40 bg-accent-gold/5' : 'border-ui-border bg-background-secondary'
+          aiOn ? 'border-accent-gold/40 bg-accent-gold/5' : 'border-ui-border bg-background-secondary'
         }`}
       >
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-text-primary text-sm font-medium">
-            {t('tiers.cloud_title')}
-            <span className="ml-2 rounded-full border border-ui-border px-2 py-0.5 text-[0.65rem] font-medium uppercase tracking-wide text-text-secondary">
-              {t('tiers.cloud_badge')}
-            </span>
-          </p>
-          {cloudActive && (
+          <p className="text-text-primary text-sm font-medium">{t('tiers.cloud_title')}</p>
+          {aiOn && (
             <Badge variant="brass" data-testid="tier-cloud-active">
               {t('tiers.active_badge')}
             </Badge>
           )}
         </div>
-        {/* The honest one-liner: stronger models, redacted chart data leaves. */}
         <p className="text-text-secondary text-xs mt-1" data-testid="tier-cloud-honesty">
           {t('tiers.cloud_body')}
         </p>
-        <div className="mt-4">
-          <CloudEndpointForm onSaved={refreshStatus} />
+
+        {/* Guided OpenRouter — the recommended path: get a key, paste, test. */}
+        <div className="mt-4 space-y-3 rounded-lg border border-accent-gold/30 bg-accent-gold/5 p-4">
+          <div>
+            <p className="text-text-primary text-sm font-medium">{t('ai.step1_title')}</p>
+            <p className="text-text-secondary text-xs mt-0.5">{t('ai.step1_body')}</p>
+            <a
+              href={OPENROUTER_KEYS_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-1 inline-flex items-center gap-1 text-sm font-medium text-accent-gold hover:underline"
+              data-testid="llm-openrouter-link"
+            >
+              {t('ai.step1_link')} ↗
+            </a>
+          </div>
+
+          <label className="block">
+            <span className="text-text-primary text-sm font-medium">{t('ai.step2_title')}</span>
+            <input
+              type="password"
+              value={settings.apiKey ?? ''}
+              placeholder="sk-or-v1-..."
+              autoComplete="off"
+              onChange={(e) => patch({ apiKey: e.target.value })}
+              className="mt-1 w-full px-3 py-2 bg-background-secondary border border-ui-border rounded-lg text-text-primary text-sm"
+              data-testid="llm-openrouter-key"
+            />
+          </label>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <Button onClick={saveOpenRouter} disabled={!hasKey || conn.phase === 'testing'} data-testid="llm-save">
+              {conn.phase === 'testing' ? t('ai.testing') : t('ai.save_and_test')}
+            </Button>
+            {!hasKey && <span className="text-text-muted text-xs">{t('ai.step2_hint')}</span>}
+          </div>
+
+          {/* The guided verdict lands right under its own Save button. */}
+          <ConnectionResult conn={conn} t={t} source="guided" />
         </div>
+
+        {/* Advanced — any OpenAI-compatible endpoint (local Ollama, other cloud). */}
+        <details className="mt-4 rounded-lg border border-ui-border bg-background-secondary p-4">
+          <summary className="cursor-pointer text-text-primary text-sm font-medium" data-testid="llm-advanced-summary">
+            {t('ai.advanced_summary')}
+          </summary>
+          <div className="mt-3 space-y-4">
+            <p className="text-text-muted text-xs">{t('ai.advanced_body')}</p>
+
+            <label className="block">
+              <span className="text-text-primary text-sm font-medium">{t('ai.endpoint_label')}</span>
+              <input
+                type="text"
+                value={settings.apiBase ?? ''}
+                placeholder={PLACEHOLDER_BASE}
+                onChange={(e) => patch({ apiBase: e.target.value })}
+                className="mt-1 w-full px-3 py-2 bg-background-secondary border border-ui-border rounded-lg text-text-primary text-sm"
+                data-testid="llm-api-base"
+              />
+            </label>
+
+            <label className="block">
+              <span className="text-text-primary text-sm font-medium">{t('aiModels.interpretation_label')}</span>
+              <input
+                type="text"
+                value={interpretationValue}
+                placeholder={PLACEHOLDER_INTERP_MODEL}
+                onChange={(e) => patch({ interpretationModel: e.target.value })}
+                className="mt-1 w-full px-3 py-2 bg-background-secondary border border-ui-border rounded-lg text-text-primary text-sm"
+                data-testid="llm-model"
+              />
+              <p className="text-text-muted text-xs mt-1" data-testid="llm-model-advice">
+                {t('aiModels.interpretation_advice')}
+              </p>
+            </label>
+
+            <label className="block">
+              <span className="text-text-primary text-sm font-medium">{t('aiModels.chat_label')}</span>
+              <input
+                type="text"
+                value={settings.chatModel ?? ''}
+                placeholder={PLACEHOLDER_CHAT_MODEL}
+                onChange={(e) => patch({ chatModel: e.target.value })}
+                className="mt-1 w-full px-3 py-2 bg-background-secondary border border-ui-border rounded-lg text-text-primary text-sm"
+                data-testid="llm-chat-model"
+              />
+              <p className="text-text-muted text-xs mt-1" data-testid="llm-chat-model-advice">
+                {t('aiModels.chat_advice')}
+              </p>
+            </label>
+
+            <label className="flex items-center justify-between">
+              <span className="text-text-primary text-sm font-medium">{t('ai.allow_cloud_label')}</span>
+              <input
+                type="checkbox"
+                checked={isCloud}
+                onChange={(e) => patch({ privacyMode: e.target.checked ? 'cloud_premium' : 'local_only' })}
+                className="rounded border-ui-border text-accent-gold focus:ring-accent-gold/50"
+                data-testid="llm-allow-cloud"
+              />
+            </label>
+
+            {isCloud && (
+              <label className="block">
+                <span className="text-text-primary text-sm font-medium">{t('ai.api_key_label')}</span>
+                <input
+                  type="password"
+                  value={settings.apiKey ?? ''}
+                  placeholder="sk-..."
+                  autoComplete="off"
+                  onChange={(e) => patch({ apiKey: e.target.value })}
+                  className="mt-1 w-full px-3 py-2 bg-background-secondary border border-ui-border rounded-lg text-text-primary text-sm"
+                  data-testid="llm-api-key"
+                />
+              </label>
+            )}
+
+            {willRefuse && (
+              <p className="text-sm text-amber-400" data-testid="llm-privacy-warning">
+                {t('ai.privacy_warning')}
+              </p>
+            )}
+
+            <div className="flex flex-wrap items-center gap-3">
+              <Button
+                onClick={() => saveAndTest(settings, 'advanced')}
+                disabled={!hasEndpoint || conn.phase === 'testing'}
+                data-testid="llm-save-advanced"
+              >
+                {conn.phase === 'testing' ? t('ai.testing') : t('ai.save_and_test')}
+              </Button>
+              {/* Gate on a present endpoint (mirrors the guided !hasKey) so an
+                  empty form can't probe the fallback default and show a
+                  confusing verdict. */}
+              {!hasEndpoint && <span className="text-text-muted text-xs">{t('ai.advanced_hint')}</span>}
+            </div>
+
+            {/* The advanced verdict lands right under the advanced Save button. */}
+            <ConnectionResult conn={conn} t={t} source="advanced" />
+          </div>
+        </details>
       </div>
     </section>
   );
 }
 
 /**
- * The cloud/BYO endpoint form — the pre-063 LlmModelSettings body, unchanged
- * in behavior except that SAVING it clears the engine selector (so saving a
- * cloud config always switches off a previously-enabled on-device tier).
- *
- * Two TIERED models are configured here:
- *   - Interpretation / chart-reading model — strong/frontier advised.
- *   - Chat model — smaller/faster advised (chat reuses facts + the reading).
+ * The honest save-time verdict line: testing / connected / a specific error.
+ * Renders only for the Save button (`source`) that triggered the probe, so the
+ * verdict always sits directly under the control the user pressed.
  */
-function CloudEndpointForm({ onSaved }: { onSaved: () => void }) {
-  const { t } = useTranslation('settings');
-  const [settings, setSettings] = useState<LlmSettings>(() =>
-    withoutOnDeviceModels(readLlmSettings()),
-  );
-  const [saved, setSaved] = useState(false);
-
-  const update = (patch: Partial<LlmSettings>) => {
-    setSettings((prev) => ({ ...prev, ...patch }));
-    setSaved(false);
-  };
-
-  const save = () => {
-    // engine:'' → any previously-selected on-device tier is switched off; the
-    // saved endpoint/key/model now define the provider (openai-http).
-    writeLlmSettings({ ...settings, engine: '' });
-    setSaved(true);
-    onSaved();
-  };
-
-  // One-click OpenRouter: prefill the cloud preset (base url + cloud_premium so
-  // the fail-closed gate allows it) with the recommended interpretation + chat
-  // pair, and reveal the key field. The user still pastes their key and Saves.
-  const useOpenRouter = () => {
-    const interp = settings.interpretationModel || settings.model || RECOMMENDED_CLOUD_MODEL;
-    const chat = settings.chatModel || CHAT_CLOUD_MODEL;
-    setSettings((prev) => ({ ...prev, ...openRouterPreset(settings.apiKey ?? '', interp, chat) }));
-    setSaved(false);
-  };
-
-  // One-click "Recommended": the same OpenRouter cloud preset but always reset to
-  // AlmaMesh's recommended frontier/fast pair (overriding any custom slugs), so a
-  // user who lost the thread can get the advised tiers back in one click.
-  const useRecommended = () => {
-    setSettings((prev) => ({
-      ...prev,
-      ...openRouterPreset(settings.apiKey ?? '', RECOMMENDED_CLOUD_MODEL, CHAT_CLOUD_MODEL),
-    }));
-    setSaved(false);
-  };
-
-  const isCloud = settings.privacyMode === 'cloud_premium';
-  const endpointIsLocal = isLocalEndpoint(settings.apiBase || PLACEHOLDER_BASE);
-  const willRefuse = !isCloud && !endpointIsLocal;
-
-  // The interpretation field is backed by `interpretationModel`, falling back to
-  // a pre-tier legacy `model` so an existing user sees their saved value.
-  const interpretationValue = settings.interpretationModel ?? settings.model ?? '';
-
+function ConnectionResult({
+  conn,
+  t,
+  source,
+}: {
+  conn: ConnState;
+  t: ReturnType<typeof useTranslation<'settings'>>['t'];
+  source: ConnSource;
+}) {
+  if (conn.phase === 'idle' || conn.source !== source) {
+    return null;
+  }
+  const text =
+    conn.phase === 'testing'
+      ? t('ai.testing')
+      : conn.phase === 'connected'
+        ? t('ai.connected')
+        : t(`ai.error_${conn.kind}`);
+  const tone =
+    conn.phase === 'connected'
+      ? 'text-green-400'
+      : conn.phase === 'error'
+        ? 'text-red-400'
+        : 'text-text-secondary';
   return (
-    <div className="space-y-4">
-      <p className="text-text-secondary text-sm">
-        <Trans
-          i18nKey="ai.intro"
-          ns="settings"
-          values={{ endpoint: PLACEHOLDER_BASE }}
-          components={[<code className="mx-1 text-text-primary" />]}
-        />
-      </p>
-
-      {/* Primary path: one-click OpenRouter. Prefills the cloud preset + reveals
-          the key field; the user pastes a key and Saves. */}
-      <div className="rounded-lg border border-accent-gold/30 bg-accent-gold/5 p-4">
-        <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="min-w-0">
-            <p className="text-text-primary text-sm font-medium">{t('ai.use_openrouter_title')}</p>
-            <p className="text-text-secondary text-xs mt-0.5">{t('ai.use_openrouter_description')}</p>
-          </div>
-          <Button
-            onClick={useOpenRouter}
-            className="w-full flex-shrink-0 sm:w-auto"
-            data-testid="llm-use-openrouter"
-          >
-            {t('ai.use_openrouter_button')}
-          </Button>
-        </div>
-      </div>
-
-      {/* Tiered-model recommendation: set both models to the advised pair. */}
-      <div className="rounded-lg border border-ui-border bg-background-secondary p-4">
-        <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="min-w-0">
-            <p className="text-text-primary text-sm font-medium">{t('aiModels.recommended_title')}</p>
-            <p className="text-text-secondary text-xs mt-0.5">{t('aiModels.recommended_description')}</p>
-          </div>
-          <button
-            type="button"
-            onClick={useRecommended}
-            className="w-full flex-shrink-0 rounded-md border border-accent-gold/40 px-4 py-2 text-sm font-medium text-accent-gold transition-colors hover:bg-accent-gold/10 sm:w-auto"
-            data-testid="llm-use-recommended"
-          >
-            {t('aiModels.recommended_button')}
-          </button>
-        </div>
-      </div>
-
-      <p className="text-text-muted text-xs">{t('ai.or_configure')}</p>
-
-      <label className="block">
-        <span className="text-text-primary text-sm font-medium">{t('ai.endpoint_label')}</span>
-        <input
-          type="text"
-          value={settings.apiBase ?? ''}
-          placeholder={PLACEHOLDER_BASE}
-          onChange={(e) => update({ apiBase: e.target.value })}
-          className="mt-1 w-full px-3 py-2 bg-background-secondary border border-ui-border rounded-lg text-text-primary text-sm"
-          data-testid="llm-api-base"
-        />
-      </label>
-
-      {/* Interpretation tier — strong/frontier model advised. Keeps the
-          historical `llm-model` testid (the e2e contract for the prefilled
-          recommended model). */}
-      <label className="block">
-        <span className="text-text-primary text-sm font-medium">{t('aiModels.interpretation_label')}</span>
-        <input
-          type="text"
-          value={interpretationValue}
-          placeholder={PLACEHOLDER_INTERP_MODEL}
-          onChange={(e) => update({ interpretationModel: e.target.value })}
-          className="mt-1 w-full px-3 py-2 bg-background-secondary border border-ui-border rounded-lg text-text-primary text-sm"
-          data-testid="llm-model"
-        />
-        <p className="text-text-muted text-xs mt-1" data-testid="llm-model-advice">
-          {t('aiModels.interpretation_advice')}
-        </p>
-      </label>
-
-      {/* Chat tier — smaller/faster model advised (reuses facts + reading). */}
-      <label className="block">
-        <span className="text-text-primary text-sm font-medium">{t('aiModels.chat_label')}</span>
-        <input
-          type="text"
-          value={settings.chatModel ?? ''}
-          placeholder={PLACEHOLDER_CHAT_MODEL}
-          onChange={(e) => update({ chatModel: e.target.value })}
-          className="mt-1 w-full px-3 py-2 bg-background-secondary border border-ui-border rounded-lg text-text-primary text-sm"
-          data-testid="llm-chat-model"
-        />
-        <p className="text-text-muted text-xs mt-1" data-testid="llm-chat-model-advice">
-          {t('aiModels.chat_advice')}
-        </p>
-      </label>
-
-      <label className="flex items-center justify-between">
-        <span className="text-text-primary text-sm font-medium">{t('ai.allow_cloud_label')}</span>
-        <input
-          type="checkbox"
-          checked={isCloud}
-          onChange={(e) => update({ privacyMode: e.target.checked ? 'cloud_premium' : 'local_only' })}
-          className="rounded border-ui-border text-accent-gold focus:ring-accent-gold/50"
-          data-testid="llm-allow-cloud"
-        />
-      </label>
-
-      {isCloud && (
-        <label className="block">
-          <span className="text-text-primary text-sm font-medium">{t('ai.api_key_label')}</span>
-          <input
-            type="password"
-            value={settings.apiKey ?? ''}
-            placeholder="sk-..."
-            onChange={(e) => update({ apiKey: e.target.value })}
-            className="mt-1 w-full px-3 py-2 bg-background-secondary border border-ui-border rounded-lg text-text-primary text-sm"
-            data-testid="llm-api-key"
-          />
-        </label>
-      )}
-
-      {willRefuse && (
-        <p className="text-sm text-amber-400" data-testid="llm-privacy-warning">
-          {t('ai.privacy_warning')}
-        </p>
-      )}
-
-      <div className="flex items-center gap-3">
-        <Button onClick={save} data-testid="llm-save">
-          {t('ai.save_model_settings')}
-        </Button>
-        {saved && <span className="text-sm text-green-400">{t('ai.saved')}</span>}
-      </div>
-    </div>
+    <p className={`mt-3 text-sm ${tone}`} role="status" data-testid="llm-connection-result">
+      {conn.phase === 'connected' ? '✓ ' : conn.phase === 'error' ? '✗ ' : ''}
+      {text}
+    </p>
   );
 }

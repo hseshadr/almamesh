@@ -160,30 +160,27 @@ describe("describeLlmStatus — human-readable provider state", () => {
     expect(status.configured).toBe(true);
   });
 
-  it("recognizes the on-device engine — no key, no URL required (Spec 063)", () => {
-    expect(describeLlmStatus({ engine: "webllm", model: "Qwen3-1.7B-q4f16_1-MLC" })).toEqual({
-      kind: "on_device",
-      label: "On-device",
-      configured: true,
+  // Regression: the manual endpoint form writes `interpretationModel` (the tiered
+  // field), NOT the legacy `model`. A valid hand-typed OpenRouter config must
+  // count as configured, or every downstream gate (Active badge, header, chat,
+  // dashboard reading) stays silently off — the "nothing happens on save" bug.
+  it("counts a tiered-model-only config (interpretationModel, no legacy model) as configured", () => {
+    const status = describeLlmStatus({
+      apiBase: "https://openrouter.ai/api/v1",
+      apiKey: "sk-or-123",
+      interpretationModel: "deepseek/deepseek-v4-pro",
+      privacyMode: "cloud_premium",
     });
-  });
-
-  it("on-device with no explicit model is still configured (blessed default applies)", () => {
-    const status = describeLlmStatus({ engine: "webllm" });
-    expect(status.kind).toBe("on_device");
+    expect(status.kind).toBe("openrouter");
     expect(status.configured).toBe(true);
   });
 
-  it("the on-device engine wins over leftover cloud fields from an earlier tier", () => {
-    // Switching tiers merges over old settings; the engine selector decides.
+  it("counts a chatModel-only local config as configured", () => {
     const status = describeLlmStatus({
-      engine: "webllm",
-      model: "Qwen3-1.7B-q4f16_1-MLC",
-      apiBase: "https://openrouter.ai/api/v1",
-      apiKey: "sk-or-123",
-      privacyMode: "cloud_premium",
+      apiBase: "http://localhost:11434/v1",
+      chatModel: "llama3.1",
     });
-    expect(status.kind).toBe("on_device");
+    expect(status.kind).toBe("local");
     expect(status.configured).toBe(true);
   });
 });

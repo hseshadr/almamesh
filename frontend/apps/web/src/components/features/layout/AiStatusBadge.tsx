@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { describeLlmStatus, type LlmStatus } from '@almamesh/llm';
+import { LLM_SETTINGS_CHANGED_EVENT } from '../../../lib/llmSettingsEvents';
 
 /**
  * AiStatusBadge — the header's live AI-provider indicator and entry point.
@@ -16,22 +17,25 @@ export function AiStatusBadge() {
   const { t } = useTranslation('common');
   const [status, setStatus] = useState<LlmStatus>(() => describeLlmStatus());
 
-  // Refresh on cross-tab storage writes and when the tab regains focus, so the
-  // badge stays honest after the user saves settings elsewhere.
+  // Refresh on cross-tab storage writes, when the tab regains focus, and — the
+  // key case — on the SAME-tab settings-changed signal (the `storage` event does
+  // NOT fire in the tab that made the write), so the badge flips the instant the
+  // user saves AI settings on the Settings screen.
   useEffect(() => {
     const refresh = () => setStatus(describeLlmStatus());
     window.addEventListener('storage', refresh);
     window.addEventListener('focus', refresh);
+    window.addEventListener(LLM_SETTINGS_CHANGED_EVENT, refresh);
     return () => {
       window.removeEventListener('storage', refresh);
       window.removeEventListener('focus', refresh);
+      window.removeEventListener(LLM_SETTINGS_CHANGED_EVENT, refresh);
     };
   }, []);
 
   const ready = status.configured;
-  // Provider names (OpenRouter/Local/Cloud) read fine as-is; the on-device
-  // tier's label is a real phrase, so it is translated (Spec 063).
-  const provider = status.kind === 'on_device' ? t('ai_badge.on_device') : status.label;
+  // Provider names (OpenRouter/Local/Cloud) read fine as-is.
+  const provider = status.label;
   const label =
     status.kind === 'none'
       ? t('ai_badge.setup')

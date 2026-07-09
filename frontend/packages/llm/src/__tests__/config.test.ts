@@ -65,17 +65,6 @@ describe("ensurePrivacy — fail-closed local_only contract", () => {
     };
     expect(() => ensurePrivacy(cfg)).not.toThrow();
   });
-
-  it("treats the on-device webllm engine as trivially private (no baseUrl at all)", () => {
-    // Spec 063: on-device inference has no endpoint — nothing can leave the
-    // device, so local_only passes without any URL check.
-    const cfg: ProviderConfig = {
-      engine: "webllm",
-      model: "Qwen3-1.7B-q4f16_1-MLC",
-      privacyMode: "local_only",
-    };
-    expect(() => ensurePrivacy(cfg)).not.toThrow();
-  });
 });
 
 describe("resolveProviderConfig — safe OSS defaults, never a bundled key", () => {
@@ -97,11 +86,9 @@ describe("resolveProviderConfig — safe OSS defaults, never a bundled key", () 
     expect(isLocalEndpoint(cfg.baseUrl)).toBe(true);
   });
 
-  it("selects the on-device engine for 'webllm' and falls back to openai-http for anything else", () => {
-    // Spec 063 three-kind world: "webllm" is a first-class opt-in engine again.
-    // Any OTHER unknown/legacy value a stale blob might pin still resolves to
+  it("resolves to the openai-http engine for any VITE_LLM_ENGINE value", () => {
+    // Single-engine world: any value a stale blob might pin still resolves to
     // the OpenAI-compatible HTTP engine.
-    expect(resolveProviderConfig({ VITE_LLM_ENGINE: "webllm" }).engine).toBe("webllm");
     expect(resolveProviderConfig({ VITE_LLM_ENGINE: "mlc-llm" }).engine).toBe("openai-http");
     expect(resolveProviderConfig({ VITE_LLM_ENGINE: "" }).engine).toBe("openai-http");
   });

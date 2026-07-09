@@ -63,8 +63,6 @@
     "recommended_remedies": "Remédios recomendados"
   },
   "errors": {
-    "context_overflow": "Esta conversa ficou longa demais para o modelo no dispositivo. Comece um novo chat ou faça uma pergunta mais curta.",
-    "model_missing": "O modelo no dispositivo selecionado não está disponível. Selecione-o ou baixe-o novamente em Configurações → IA.",
     "model_unavailable": "O modelo de IA configurado não está disponível no seu endpoint. Escolha outro modelo em Configurações → IA.",
     "endpoint_unreachable": "Não foi possível alcançar seu endpoint de IA. Verifique se ele está em execução e se o endereço em Configurações → IA está correto.",
     "insufficient_credits": "Sua conta de IA está sem créditos. Adicione créditos com seu provedor (para OpenRouter: openrouter.ai → Credits) ou escolha um modelo mais barato em Configurações → IA.",

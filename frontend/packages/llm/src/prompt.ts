@@ -53,10 +53,7 @@ const HISTORY_TOKEN_BUDGET = 3072;
 export const INTERP_TOKEN_BUDGET = 1200;
 
 /**
- * Per-engine chat prompt budget profile. Cloud/local HTTP endpoints get the
- * generous historical sizing; the on-device (WebLLM) models ship a hard
- * 4096-token context window and THROW on overflow, so their profile composes
- * a strictly smaller prompt with generation headroom.
+ * Chat prompt budget profile — token sizing for the composed chat prompt.
  */
 export interface ChatPromptBudget {
   /** Token budget for prior conversational turns (drop-oldest trimming). */
@@ -79,25 +76,6 @@ export const CLOUD_CHAT_BUDGET: ChatPromptBudget = {
   includeRawPredictive: true,
   promptTokens: null,
 };
-
-/**
- * The on-device profile: the blessed WebLLM models run a 4096-token window
- * shared by prompt AND generation. ≤ ~3000 prompt tokens leaves ≥ 1024 for
- * the answer (the provider caps generation at 768). The bulky raw-predictive
- * block is dropped — the compact natal facts still ground the answer, and the
- * Sky & Timing surface renders the predictive story deterministically.
- */
-export const ONDEVICE_CHAT_BUDGET: ChatPromptBudget = {
-  historyTokens: 1024,
-  interpTokens: 512,
-  includeRawPredictive: false,
-  promptTokens: 3000,
-};
-
-/** The engine → budget-profile seam: exactly `webllm` is on-device. */
-export function chatBudgetForEngine(engine: string): ChatPromptBudget {
-  return engine === "webllm" ? ONDEVICE_CHAT_BUDGET : CLOUD_CHAT_BUDGET;
-}
 
 // Output-discipline + derived-fact fences shared by EVERY narration prompt
 // (structured full + lite, this file's markdown interpretation, and chat).
@@ -475,11 +453,8 @@ function interpretationBlock(text?: string): string {
  * narration never contradicts the engine's birth-time story; when absent, the
  * prompt is byte-identical to the record-less path.
  *
- * The optional `budget` selects a {@link ChatPromptBudget} profile: the
- * default is {@link CLOUD_CHAT_BUDGET} (today's bytes, snapshot-locked); the
- * on-device engine passes {@link ONDEVICE_CHAT_BUDGET} via
- * {@link chatBudgetForEngine} so the prompt fits WebLLM's 4096-token window
- * with generation headroom (WebLLM throws on overflow, it never truncates).
+ * The optional `budget` selects a {@link ChatPromptBudget} profile; the default
+ * is {@link CLOUD_CHAT_BUDGET} (today's bytes, snapshot-locked).
  */
 export function buildChatMessages(
   chart: SanitizedChart,
@@ -494,8 +469,8 @@ export function buildChatMessages(
   budget: ChatPromptBudget = CLOUD_CHAT_BUDGET,
 ): ChatMessage[] {
   // The raw-predictive engine block is dropped under a profile that excludes
-  // it (the on-device window cannot afford the dump); `predictive` is optional
-  // on SanitizedChart, so the natal-only facts stay byte-identical.
+  // it; `predictive` is optional on SanitizedChart, so the natal-only facts
+  // stay byte-identical.
   const factsChart: SanitizedChart = budget.includeRawPredictive
     ? chart
     : { ...chart, predictive: undefined };
@@ -503,7 +478,7 @@ export function buildChatMessages(
   const meshBlock = buildMeshFactsBlock(meshEdge);
   // The reading arrives pre-truncated to the cloud budget by the caller's
   // serializer; re-truncating here is a no-op on the cloud profile (idempotent
-  // — snapshot-locked) and enforces the smaller cap on the on-device profile.
+  // — snapshot-locked) and enforces a smaller cap under any tighter profile.
   const reading =
     interpretationText === undefined
       ? undefined

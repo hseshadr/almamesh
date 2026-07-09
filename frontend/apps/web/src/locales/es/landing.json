@@ -41,7 +41,7 @@
       },
       {
         "title": "Usa tu propia IA",
-        "body": "Por defecto: sin IA — tu carta es puro cálculo y nada sale de tu dispositivo. Opcional: añade narración en el dispositivo (privada, beta) o con cualquier modelo en la nube compatible con OpenAI (más potente)."
+        "body": "Por defecto: sin IA — tu carta es puro cálculo y nada sale de tu dispositivo. Opcional: añade narración con cualquier modelo compatible con OpenAI (OpenRouter o tu propio endpoint)."
       },
       {
         "title": "Conversa con tu carta",

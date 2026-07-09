@@ -1,13 +1,25 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import i18n from '../i18n/config';
 import {
+  classifyConnectionError,
   ERROR_CODES,
   getChatErrorMessage,
   getEngineWarmingMessage,
   getUserFriendlyError,
+  isAuthError,
   isInsufficientCreditsMessage,
   isModelUnavailableMessage,
 } from './errors';
+
+/** Stand-in for the @almamesh/llm LlmRequestError (duck-typed .status/.name). */
+class FakeLlmRequestError extends Error {
+  status?: number;
+  constructor(message: string, status?: number) {
+    super(message);
+    this.name = 'LlmRequestError';
+    this.status = status;
+  }
+}
 
 // The error helpers are a plain (non-React) TS module that localizes via the
 // shared app i18n instance. Every test that changes the language must restore
@@ -115,6 +127,63 @@ describe('isInsufficientCreditsMessage', () => {
     expect(isInsufficientCreditsMessage('LLM endpoint returned 400: messages array is required')).toBe(false);
     expect(isInsufficientCreditsMessage('Failed to fetch')).toBe(false);
     expect(isInsufficientCreditsMessage('No endpoints found for foo/bar')).toBe(false);
+  });
+});
+
+describe('isAuthError', () => {
+  it('matches 401 and 403 only', () => {
+    expect(isAuthError(401)).toBe(true);
+    expect(isAuthError(403)).toBe(true);
+    expect(isAuthError(402)).toBe(false);
+    expect(isAuthError(404)).toBe(false);
+    expect(isAuthError(undefined)).toBe(false);
+  });
+});
+
+describe('classifyConnectionError', () => {
+  it('classifies a 402 / insufficient-credits failure as credits (before auth)', () => {
+    expect(
+      classifyConnectionError(
+        new FakeLlmRequestError('LLM endpoint returned 402 Payment Required: Insufficient credits', 402),
+      ),
+    ).toBe('credits');
+  });
+
+  it('classifies a 401/403 as auth', () => {
+    expect(classifyConnectionError(new FakeLlmRequestError('returned 401 Unauthorized', 401))).toBe('auth');
+    expect(classifyConnectionError(new FakeLlmRequestError('returned 403 Forbidden', 403))).toBe('auth');
+  });
+
+  it('classifies a 404 or a bad-model-id body as model', () => {
+    expect(classifyConnectionError(new FakeLlmRequestError('returned 404: No endpoints found', 404))).toBe('model');
+    expect(
+      classifyConnectionError(new FakeLlmRequestError('returned 400: bad/slug is not a valid model ID', 400)),
+    ).toBe('model');
+  });
+
+  it('classifies a PrivacyViolationError as privacy', () => {
+    const err = new Error('refusing to send chart data to non-local endpoint');
+    err.name = 'PrivacyViolationError';
+    expect(classifyConnectionError(err)).toBe('privacy');
+  });
+
+  it('classifies a fetch TypeError (no status) as network by its message', () => {
+    expect(classifyConnectionError(new TypeError('Failed to fetch'))).toBe('network');
+    expect(classifyConnectionError(new TypeError('Load failed'))).toBe('network');
+    expect(classifyConnectionError(new TypeError('NetworkError when attempting to fetch resource'))).toBe('network');
+  });
+
+  it('does NOT treat a bare non-network TypeError (a code bug) as network', () => {
+    // A programming-error TypeError has no network-y message; it must fall
+    // through to unknown (and stay visible in the logs) rather than masquerade
+    // as "endpoint unreachable" — matching the interpretation path.
+    expect(classifyConnectionError(new TypeError("Cannot read properties of undefined (reading 'x')"))).toBe(
+      'unknown',
+    );
+  });
+
+  it('falls back to unknown for an unrecognized failure', () => {
+    expect(classifyConnectionError(new FakeLlmRequestError('returned 500 Internal Server Error', 500))).toBe('unknown');
   });
 });
 

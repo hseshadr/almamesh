@@ -107,10 +107,10 @@ describe('ConversationalAccelerator', () => {
       expect(screen.getByTestId('chat-gated')).toBeTruthy();
     });
 
-    it('the on-device tier is NOT gated — the interview runs locally (Spec 063)', () => {
+    it('a configured cloud tier is NOT gated — the interview runs', () => {
       vi.mocked(describeLlmStatus).mockReturnValue({
-        kind: 'on_device',
-        label: 'On-device',
+        kind: 'cloud',
+        label: 'Cloud',
         configured: true,
       });
       render(

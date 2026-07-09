@@ -105,6 +105,64 @@ export function isInsufficientCreditsMessage(message: string): boolean {
 }
 
 /**
+ * An authentication failure from a cloud provider — HTTP 401/403. The key is
+ * missing, malformed, or rejected; retrying is pointless until the key is fixed,
+ * so this maps to "check your API key", never the generic model advice.
+ */
+export function isAuthError(status: number | undefined): boolean {
+  return status === 401 || status === 403;
+}
+
+/** The distinct ways a save-time connectivity probe can fail. */
+export type ConnectionErrorKind =
+  | 'credits'
+  | 'auth'
+  | 'model'
+  | 'privacy'
+  | 'network'
+  | 'unknown';
+
+/**
+ * Classify a caught connectivity-test error (from `testProviderConnection`) into
+ * one actionable kind, so the settings UI can show a specific fix instead of a
+ * raw error body. Duck-typed (reads `.status` / `.name` / `.message`) so it works
+ * across the @almamesh/llm module boundary without `instanceof` coupling. Order
+ * matters: billing (402) is checked before auth, and auth before model, because a
+ * 402 body can also mention the model and a rejected key must not read as "bad
+ * model". A `fetch` failure has no HTTP status → `network`.
+ */
+export function classifyConnectionError(err: unknown): ConnectionErrorKind {
+  const message = err instanceof Error ? err.message : String(err);
+  const name = err instanceof Error ? err.name : '';
+  const rawStatus = (err as { status?: unknown } | null)?.status;
+  const status = typeof rawStatus === 'number' ? rawStatus : undefined;
+
+  if (name === 'PrivacyViolationError') {
+    return 'privacy';
+  }
+  if (status === 402 || isInsufficientCreditsMessage(message)) {
+    return 'credits';
+  }
+  if (isAuthError(status)) {
+    return 'auth';
+  }
+  if (status === 404 || isModelUnavailableMessage(message)) {
+    return 'model';
+  }
+  // No HTTP status = the request never reached the endpoint (DNS, connection
+  // refused, CORS, offline). Match on the message `fetch`'s TypeError carries —
+  // "Failed to fetch" (Chrome) / "Load failed" (Safari) / "NetworkError"
+  // (Firefox) — NOT the bare `TypeError` name, so a non-network code-bug
+  // TypeError falls through to `unknown` (and stays visible in the logs) instead
+  // of masquerading as unreachable. Mirrors the interpretation path's
+  // NETWORK_FAILURE_PATTERN.
+  if (status === undefined && /failed to fetch|load failed|networkerror|network error|unreachable/i.test(message)) {
+    return 'network';
+  }
+  return 'unknown';
+}
+
+/**
  * Get a user-friendly error message for chat/Q&A errors.
  * These are shown inline in the chat interface.
  */

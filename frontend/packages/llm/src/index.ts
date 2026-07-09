@@ -94,7 +94,8 @@ export {
 } from "./config";
 export type { PrivacyMode, ProviderConfig, LlmEnv } from "./config";
 
-export { streamChatCompletion, LlmRequestError } from "./client";
+export { streamChatCompletion, LlmRequestError, testProviderConnection } from "./client";
+export type { TestConnectionOptions } from "./client";
 export type { ChatMessage, StreamChatOptions } from "./client";
 
 // Reading provenance: which resolved config (engine/model/endpoint — never a
@@ -108,9 +109,7 @@ export {
   buildChatMessages,
   serializeInterpretationForChat,
   INTERP_TOKEN_BUDGET,
-  chatBudgetForEngine,
   CLOUD_CHAT_BUDGET,
-  ONDEVICE_CHAT_BUDGET,
 } from "./prompt";
 export type { ViewMode, ChatRectificationContext, ChatPromptBudget } from "./prompt";
 
@@ -132,30 +131,6 @@ export { routeChatCompletion, routeCompletionJson } from "./route";
 export type { RouteChatOptions, RouteCompletionJsonOptions } from "./route";
 export type { ChatStreamProvider, LlmEngine } from "./provider";
 
-// --- On-device (WebLLM) tier — Spec 063 ---
-// Capability probe, blessed model picker data, download/delete lifecycle, and
-// the typed scope-fence error. The heavy `@mlc-ai/web-llm` library is loaded
-// ONLY via dynamic import inside the engine module (lazy-import invariant).
-export { probeOnDeviceCapability } from "./webllm/capability";
-export type {
-  OnDeviceCapability,
-  OnDeviceUnsupportedReason,
-  NavigatorGpuLike,
-} from "./webllm/capability";
-export { BLESSED_ONDEVICE_MODELS, DEFAULT_ONDEVICE_MODEL } from "./webllm/models";
-export type { OnDeviceModelSpec } from "./webllm/models";
-export { preloadOnDeviceModel, deleteCachedModel, hasCachedModel } from "./webllm/engine";
-export type {
-  OnDeviceProgress,
-  OnDeviceProgressCallback,
-  OnDeviceProgressPhase,
-} from "./webllm/engine";
-export {
-  OnDeviceUnsupportedError,
-  OnDeviceContextOverflowError,
-  OnDeviceModelRecordError,
-} from "./webllm/errors";
-import { OnDeviceUnsupportedError } from "./webllm/errors";
 export { estimateTokens, trimHistoryToBudget } from "./budget";
 export type { ChatTurn } from "./budget";
 
@@ -180,7 +155,6 @@ import type { MeshEdgeContext } from "./mesh-types";
 import {
   buildChatMessages,
   buildInterpretationMessages,
-  chatBudgetForEngine,
   type ChatRectificationContext,
   type ViewMode,
 } from "./prompt";
@@ -211,11 +185,6 @@ export interface StreamInterpretationParams {
 export async function* streamChartInterpretation(
   params: StreamInterpretationParams,
 ): AsyncGenerator<string> {
-  if (params.config.engine === "webllm") {
-    // Same scope fence as the structured path: the full written reading is
-    // not served on-device (see Spec 063) — even for future library callers.
-    throw new OnDeviceUnsupportedError("markdown interpretation");
-  }
   const sanitized = sanitizeChartForLlm(params.chart, params.now ?? new Date());
   const messages = buildInterpretationMessages(
     sanitized,
@@ -300,9 +269,6 @@ export async function* streamChartChat(
     params.language ?? "en",
     meshEdge,
     params.rectification,
-    // Engine-aware prompt sizing: the on-device 4096-token window gets the
-    // strict profile (WebLLM throws on overflow); cloud keeps today's bytes.
-    chatBudgetForEngine(params.config.engine),
   );
 
   yield* routeChatCompletion({

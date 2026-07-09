@@ -96,12 +96,6 @@ function pwaPlugin(): Plugin[] {
         // it is runtime-cached (CacheFirst) below and fetched on first chat use,
         // so offline-after-first-use still holds.
         'models/**',
-        // The on-device WebLLM library chunk (Spec 063): reached ONLY via a
-        // dynamic import when the opt-in on-device AI tier is enabled, so it
-        // must NEVER be precached onto the ~everyone who never opts in. Named
-        // via manualChunks below so this pattern is stable. (The model weights
-        // themselves are WebLLM-cache-managed — no SW rule for them.)
-        'assets/webllm-*.js',
         // Spec 064: the build-time prerender entry chunk (vite-prerender-plugin
         // executes it in Node during `vite build`). Nothing in the browser ever
         // imports it — index.html carries no reference — so precaching it would
@@ -381,10 +375,6 @@ export default defineConfig({
     // (~2 MB, loaded only in onboarding's location search) and the React/vendor
     // entry chunk (~1 MB, gzip ~300 kB). Neither blocks first paint. Set the
     // limit just above them so a genuinely oversized NEW chunk still trips it.
-    // KNOWN over-limit chunk: `webllm` (~6 MB) — the opt-in on-device AI
-    // library, dynamic-import-only and excluded from the SW precache, so its
-    // size costs nothing to users who never enable the tier. Its warning in
-    // the build log is expected and accepted.
     // (We deliberately do NOT hand-group chunks: an explicit regex grouping of
     // the React ecosystem crashed the app with `React.createContext` of
     // undefined under bun's hoisted node_modules layout, so we let Rollup's
@@ -396,17 +386,23 @@ export default defineConfig({
         entryFileNames: 'assets/[name]-[hash].js',
         chunkFileNames: 'assets/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash].[ext]',
-        // Spec 063: give the lazily-imported @mlc-ai/web-llm library a STABLE
-        // chunk name so the SW precache can exclude it (globIgnores above).
-        // Narrow by design — every other module returns undefined and keeps
-        // Rollup's default code-splitting (hand-grouping the React ecosystem
-        // once crashed the app; see the chunkSizeWarningLimit note above).
-        manualChunks(id: string) {
-          if (id.includes('@mlc-ai/web-llm')) {
-            return 'webllm'
-          }
-          return undefined
-        },
+        // LOAD-BEARING no-op — DO NOT delete. vite-prerender-plugin installs its
+        // OWN `manualChunks` (remapping src/prerender-entry.tsx) ONLY when the user
+        // config sets none (see its configResolved guard:
+        //   `if (config.build.rollupOptions.output?.manualChunks) return`).
+        // That plugin-injected remapping merges the Node-only SSR renderer
+        // (react-dom/server.edge, imported ONLY by the prerender entry) into a
+        // chunk Vite then injects into the CLIENT index.html — which shipped ~800 KB
+        // of SSR to every browser AND broke the offline app shell (the prerender
+        // chunk is globIgnored from the SW precache, so an offline reload 404'd it
+        // and the engine never rebooted → exit-gate CHECK 7). Defining any
+        // `manualChunks` makes the plugin bail, restoring Rollup's default split
+        // (SSR stays in a separate, un-injected prerender chunk). This previously
+        // rode on the webllm `manualChunks`; that dep was removed, so the no-op is
+        // now the explicit carrier. Returning undefined = Rollup default splitting
+        // (hand-grouping the React ecosystem is still avoided — see the
+        // chunkSizeWarningLimit note above).
+        manualChunks: () => undefined,
       },
     },
   },

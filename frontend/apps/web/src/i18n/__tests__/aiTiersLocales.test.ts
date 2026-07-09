@@ -1,11 +1,10 @@
 /**
- * AI-tiers i18n (Spec 063) — the new/changed keys ship in en/es/pt with full
- * key-tree parity (en authoritative), and the gate/messaging copy actually
- * says what the spec requires:
- *   - settings `tiers.*` + `model.*` blocks: identical key trees ×3
- *   - rectify `chat.gated_note`: cloud-or-on-device wording ×3
- *   - dashboard `generation.on_device_scope`: present ×3
- *   - common `ai_badge.on_device`: present ×3
+ * AI settings i18n — the OpenRouter-clarity settings redesign ships in en/es/pt
+ * with full key-tree parity (en authoritative), and the on-device AI tier copy
+ * has been removed everywhere it once appeared:
+ *   - settings `ai.*` + `tiers.*` blocks: identical key trees ×3, new keys present
+ *   - rectify `chat.gated_note`: reworded to "needs an AI model" (no on-device tier)
+ *   - dashboard "Connect an AI model" card: present ×3, no on-device AI option line
  *   - landing "Bring your own AI" body: states the no-AI default ×3
  */
 import { describe, expect, it } from 'vitest';
@@ -19,9 +18,6 @@ import ptRectify from '../../locales/pt/rectify.json';
 import enDashboard from '../../locales/en/dashboard.json';
 import esDashboard from '../../locales/es/dashboard.json';
 import ptDashboard from '../../locales/pt/dashboard.json';
-import enCommon from '../../locales/en/common.json';
-import esCommon from '../../locales/es/common.json';
-import ptCommon from '../../locales/pt/common.json';
 import enLanding from '../../locales/en/landing.json';
 import esLanding from '../../locales/es/landing.json';
 import ptLanding from '../../locales/pt/landing.json';
@@ -40,61 +36,53 @@ function leafKeys(node: unknown, prefix = ''): string[] {
 
 const settingsAll = [enSettings, esSettings, ptSettings] as Catalog[];
 
-describe('AI tiers locale parity (Spec 063)', () => {
+describe('AI settings locale parity', () => {
+  it('settings ai block: identical key tree in en/es/pt', () => {
+    const [en, es, pt] = settingsAll.map((c) => leafKeys(c.ai));
+    expect(es).toEqual(en);
+    expect(pt).toEqual(en);
+    // A couple of the redesign's new keys are present…
+    expect(en).toContain('save_and_test');
+    expect(en).toContain('connected');
+    expect(en).toContain('error_auth');
+    // …and none of the deleted keys survive.
+    expect(en).not.toContain('intro');
+    expect(en).not.toContain('use_openrouter_button');
+    expect(en).not.toContain('save_model_settings');
+  });
+
   it('settings tiers block: identical key tree in en/es/pt', () => {
     const [en, es, pt] = settingsAll.map((c) => leafKeys(c.tiers));
     expect(es).toEqual(en);
     expect(pt).toEqual(en);
     expect(en).toContain('none_title');
-    expect(en).toContain('ondevice_title');
     expect(en).toContain('cloud_title');
+    expect(en).not.toContain('cloud_badge');
   });
 
-  it('settings model block: identical key tree in en/es/pt, incl. probe reasons', () => {
-    const [en, es, pt] = settingsAll.map((c) => leafKeys(c.model));
-    expect(es).toEqual(en);
-    expect(pt).toEqual(en);
-    for (const key of ['reason_no_webgpu', 'reason_no_adapter', 'reason_adapter_error', 'disclosure', 'scope_note', 'remove']) {
-      expect(en).toContain(key);
-    }
-  });
-
-  it('rectify gate copy swapped to cloud-or-on-device wording ×3', () => {
+  it('rectify gate copy reworded to "needs an AI model", no on-device tier ×3', () => {
     const notes = [enRectify, esRectify, ptRectify].map(
       (c) => ((c as Catalog).chat as Catalog).gated_note as string,
     );
-    // en mentions both options; es/pt carry their translated equivalents.
-    expect(notes[0]).toMatch(/on-device AI or a cloud endpoint/);
-    expect(notes[1]).toMatch(/IA en el dispositivo o un endpoint en la nube/);
-    expect(notes[2]).toMatch(/IA no dispositivo ou de um endpoint na nuvem/);
-    // None of them still claims a cloud endpoint is REQUIRED alone.
-    for (const note of notes) {
-      expect(note.length).toBeGreaterThan(0);
-    }
+    expect(notes[0]).toMatch(/needs an AI model/);
+    expect(notes[1]).toMatch(/necesita un modelo de IA/);
+    expect(notes[2]).toMatch(/precisa de um modelo de IA/);
+    // The deleted on-device AI tier is no longer named as an option.
+    expect(notes[0]).not.toMatch(/on-device AI/i);
+    expect(notes[1]).not.toMatch(/IA en el dispositivo/i);
+    expect(notes[2]).not.toMatch(/IA no dispositivo/i);
   });
 
-  it('dashboard on_device_scope guidance exists ×3', () => {
-    for (const catalog of [enDashboard, esDashboard, ptDashboard]) {
-      const generation = (catalog as Catalog).generation as Catalog;
-      expect(typeof generation.on_device_scope).toBe('string');
-      expect((generation.on_device_scope as string).length).toBeGreaterThan(20);
-    }
-  });
-
-  it('dashboard "Connect an AI model" card also mentions the on-device option ×3', () => {
+  it('dashboard "Connect an AI model" card drops the on-device AI option ×3', () => {
     const bodies = [enDashboard, esDashboard, ptDashboard].map(
       (c) => ((c as Catalog).cta as Catalog).body as string,
     );
-    expect(bodies[0]).toMatch(/on-device AI option/i);
-    expect(bodies[1]).toMatch(/IA en el dispositivo/i);
-    expect(bodies[2]).toMatch(/IA no dispositivo/i);
-  });
-
-  it('common ai_badge.on_device label exists ×3', () => {
-    for (const catalog of [enCommon, esCommon, ptCommon]) {
-      const badge = (catalog as Catalog).ai_badge as Catalog;
-      expect(typeof badge.on_device).toBe('string');
-    }
+    expect(bodies[0]).toMatch(/connect an AI model/i);
+    expect(bodies[1]).toMatch(/conecta un modelo de IA/i);
+    expect(bodies[2]).toMatch(/conecte um modelo de IA/i);
+    // The "on-device AI option (beta)" sentence is gone; the on-device ENGINE line stays.
+    expect(bodies[0]).not.toMatch(/on-device AI option/i);
+    expect(bodies[0]).toMatch(/calculated on-device/i);
   });
 
   it('landing "Bring your own AI" body states the no-AI default ×3', () => {
@@ -106,5 +94,7 @@ describe('AI tiers locale parity (Spec 063)', () => {
     expect(bodies[0]).toMatch(/Default: no AI/);
     expect(bodies[1]).toMatch(/Por defecto: sin IA/);
     expect(bodies[2]).toMatch(/Por padrão: sem IA/);
+    // No on-device narration option remains.
+    expect(bodies[0]).not.toMatch(/on-device/i);
   });
 });

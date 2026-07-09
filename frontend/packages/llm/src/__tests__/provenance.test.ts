@@ -27,12 +27,6 @@ const CLOUD = {
   apiKey: "sk-or-v1-0000-synthetic-test-key",
 } satisfies ProviderConfig;
 
-const ON_DEVICE: ProviderConfig = {
-  engine: "webllm",
-  model: "Qwen3-1.7B-q4f16_1-MLC",
-  privacyMode: "local_only",
-};
-
 describe("configProvenance", () => {
   it("is exported from the package barrel", () => {
     expect(barrelProvenance).toBe(configProvenance);
@@ -50,17 +44,6 @@ describe("configProvenance", () => {
     const serialized = JSON.stringify(configProvenance(CLOUD));
     expect(serialized).not.toContain(CLOUD.apiKey as string);
     expect(serialized).not.toContain("synthetic-test-key");
-  });
-
-  it("omits baseUrl for the on-device engine (no endpoint exists)", () => {
-    expect(configProvenance(ON_DEVICE)).toEqual({
-      engine: "webllm",
-      model: "Qwen3-1.7B-q4f16_1-MLC",
-    });
-  });
-
-  it("carries no baseUrl key at all for the on-device engine", () => {
-    expect("baseUrl" in configProvenance(ON_DEVICE)).toBe(false);
   });
 
   it("normalizes a trailing-slash base URL", () => {
@@ -92,19 +75,12 @@ describe("configFingerprint", () => {
     expect(configFingerprint(CLOUD)).toBe(configFingerprint({ ...CLOUD }));
   });
 
-  // Persisted-format locks: a stored v3 provenance carries this exact string.
-  // These pin the byte shape per engine variant so the discriminated-union
-  // refactor cannot silently drift the fingerprint (which would invalidate every
-  // stored reading). One per variant.
+  // Persisted-format lock: a stored provenance carries this exact string. It
+  // pins the byte shape so a refactor cannot silently drift the fingerprint
+  // (which would invalidate every stored reading).
   it("emits a stable openai-http fingerprint string (engine, model, baseUrl)", () => {
     expect(configFingerprint(CLOUD)).toBe(
       '{"engine":"openai-http","model":"deepseek/deepseek-v4-pro","baseUrl":"https://openrouter.ai/api/v1"}',
-    );
-  });
-
-  it("emits a stable webllm fingerprint string with a null baseUrl", () => {
-    expect(configFingerprint(ON_DEVICE)).toBe(
-      '{"engine":"webllm","model":"Qwen3-1.7B-q4f16_1-MLC","baseUrl":null}',
     );
   });
 
@@ -136,54 +112,16 @@ describe("configFingerprint", () => {
     expect(configFingerprint(local)).not.toBe(configFingerprint(CLOUD));
   });
 
-  it("changes when the engine changes (openai-http vs on-device webllm)", () => {
-    const asWebllm: ProviderConfig = {
-      engine: "webllm",
-      model: CLOUD.model,
-      privacyMode: CLOUD.privacyMode,
-    };
-    expect(configFingerprint(asWebllm)).not.toBe(configFingerprint(CLOUD));
-  });
-
-  it("distinguishes on-device configs by MLC model id", () => {
-    const lighter = { ...ON_DEVICE, model: "Llama-3.2-1B-Instruct-q4f16_1-MLC" };
-    expect(configFingerprint(lighter)).not.toBe(configFingerprint(ON_DEVICE));
-  });
-
   it("treats a trailing-slash base URL as the same endpoint", () => {
     const slashed = { ...CLOUD, baseUrl: "https://openrouter.ai/api/v1/" };
     expect(configFingerprint(slashed)).toBe(configFingerprint(CLOUD));
   });
 });
 
-describe("ProviderConfig / ReadingProvenance discriminated unions (type-level)", () => {
-  // These guards ARE the discriminated union: illegal engine/field combinations
-  // must not typecheck. Every `@ts-expect-error` below must suppress a REAL
-  // error — under a flat shape (baseUrl/apiKey optional on every config) there is
-  // nothing to suppress, so `tsc` reports each directive as unused (TS2578) and
-  // the type-check fails. That failure is the red state this refactor turns green.
-
-  it("forbids an on-device config that carries an endpoint", () => {
-    const withEndpoint: ProviderConfig = {
-      engine: "webllm",
-      model: "Qwen3-1.7B-q4f16_1-MLC",
-      privacyMode: "local_only",
-      // @ts-expect-error — the on-device engine has no endpoint to point at
-      baseUrl: "https://openrouter.ai/api/v1",
-    };
-    expect(withEndpoint.engine).toBe("webllm");
-  });
-
-  it("forbids an on-device config that carries an apiKey", () => {
-    const withKey: ProviderConfig = {
-      engine: "webllm",
-      model: "Qwen3-1.7B-q4f16_1-MLC",
-      privacyMode: "local_only",
-      // @ts-expect-error — the on-device engine never carries an apiKey
-      apiKey: "sk-must-not-typecheck",
-    };
-    expect(withKey.engine).toBe("webllm");
-  });
+describe("ProviderConfig type-level guard", () => {
+  // The single HTTP config REQUIRES a baseUrl endpoint; omitting it must be a
+  // real type error, so the `@ts-expect-error` below suppresses a REAL error
+  // (else `tsc` reports it as unused (TS2578) and the type-check fails).
 
   it("requires a baseUrl endpoint on the openai-http engine", () => {
     // @ts-expect-error — the HTTP engine must carry a baseUrl endpoint
@@ -193,15 +131,5 @@ describe("ProviderConfig / ReadingProvenance discriminated unions (type-level)",
       privacyMode: "cloud_premium",
     };
     expect(missingEndpoint.engine).toBe("openai-http");
-  });
-
-  it("forbids a webllm provenance that carries a baseUrl", () => {
-    const prov: ReadingProvenance = {
-      engine: "webllm",
-      model: "Qwen3-1.7B-q4f16_1-MLC",
-      // @ts-expect-error — a webllm provenance has no endpoint field
-      baseUrl: "https://openrouter.ai/api/v1",
-    };
-    expect(prov.engine).toBe("webllm");
   });
 });

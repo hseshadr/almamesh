@@ -60,8 +60,6 @@
     "recommended_remedies": "Recommended Remedies"
   },
   "errors": {
-    "context_overflow": "This conversation has grown too long for the on-device model. Start a new chat or ask a shorter question.",
-    "model_missing": "The selected on-device model isn't available on this device. Re-select or re-download it in Settings → AI.",
     "model_unavailable": "The configured AI model isn't available on your endpoint. Pick a different model in Settings → AI.",
     "endpoint_unreachable": "Couldn't reach your AI endpoint. Check that it's running and that the address in Settings → AI is correct.",
     "insufficient_credits": "Your AI account is out of credits. Add credits with your provider (for OpenRouter: openrouter.ai → Credits), or pick a cheaper model in Settings → AI.",

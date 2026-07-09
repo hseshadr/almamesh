@@ -1,11 +1,10 @@
 /**
- * AiSettings — the dedicated "AI Model" settings tab (Spec 063).
+ * AiSettings — the dedicated "AI Model" settings tab.
  *
- * Home of the three AI tiers: None (the default — the chart is pure
- * calculation), On-device AI (private, beta), and Cloud AI (stronger,
- * OpenRouter / bring-your-own endpoint). It used to be buried inside the
- * "Preferences" tab (undiscoverable); it now has its own clearly-labeled tab
- * and is linked from the header AI-status badge.
+ * Two choices: AI off (the default — the chart is pure calculation) and Connect
+ * AI (an OpenRouter key, or any OpenAI-compatible endpoint under "Advanced").
+ * Saving runs a real connectivity probe and reports Connected or a specific
+ * error. Linked from the header AI-status badge.
  */
 
 import { useTranslation } from 'react-i18next';

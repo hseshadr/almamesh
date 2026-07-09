@@ -21,8 +21,7 @@
   },
   "dependencies": {
     "@almamesh/browser": "workspace:*",
-    "@almamesh/shared-types": "workspace:*",
-    "@mlc-ai/web-llm": "^0.2.84"
+    "@almamesh/shared-types": "workspace:*"
   },
   "devDependencies": {
     "typescript": "~5.7.0",

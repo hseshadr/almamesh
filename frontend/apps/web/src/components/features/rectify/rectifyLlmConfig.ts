@@ -16,17 +16,13 @@ import {
 } from '@almamesh/llm';
 
 /**
- * Returns true when the interview's AI loop can actually run (Spec 063 D2):
- * a cloud endpoint (OpenRouter / custom) OR the on-device tier. A BYO `local`
- * endpoint stays gated exactly as before 063 — the typed event-extraction
- * contract is only enforced on cloud (server-side) and on-device (xgrammar).
+ * Returns true when the interview's AI loop can actually run: a cloud endpoint
+ * (OpenRouter / custom). A BYO `local` endpoint stays gated — the typed
+ * event-extraction contract is only enforced on cloud (server-side).
  */
 export function isAiUsable(): boolean {
   const status = describeLlmStatus(readLlmSettings());
-  return (
-    (status.kind === 'openrouter' || status.kind === 'cloud' || status.kind === 'on_device') &&
-    status.configured
-  );
+  return (status.kind === 'openrouter' || status.kind === 'cloud') && status.configured;
 }
 
 /** Build a ProviderConfig from the persisted user settings + Vite env. */

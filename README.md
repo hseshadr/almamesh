@@ -6,10 +6,10 @@ planets, signs, houses, nakshatras, and Vimshottari dasha periods — on your ow
 device, in a tab. You get **degree-accurate North- and South-Indian kundli
 charts** and a **live 3D planetary force-field** of the sky at your birth
 moment. **Your chart is pure calculation — no AI touches it by default.** AI
-interpretation and chat are strictly opt-in, two ways: **on-device** (a small
-model on your own GPU — prompts never leave your hardware) or **bring your own
-cloud** (a one-click OpenRouter preset, or any OpenAI-compatible endpoint, for
-stronger models). No account, no server, no data harvesting. Install it as a
+interpretation and chat are strictly opt-in and **bring-your-own**: a one-click
+**OpenRouter** preset, or any **OpenAI-compatible endpoint** (including a local
+**Ollama**). Your key lives only in this browser, and the chart is PII-redacted
+before any prompt. No account, no server, no data harvesting. Install it as a
 PWA and it works offline after the first load.
 
 **▶ Try it live: [almamesh.com](https://almamesh.com)** — no install, no sign-up.
@@ -55,17 +55,15 @@ PWA and it works offline after the first load.
 - **3D planetary force-field** — a `three.js` hero (`apps/web/src/components/forcefield/`)
   that places each graha at its real ecliptic longitude from a pure
   `buildEnergyFrame(SiderealChart, t)` adapter, with 2D⇄3D cross-highlighting.
-- **AI in three tiers — default: none at all** — your chart is pure
-  calculation; nothing leaves your device until you opt in. **On-device AI
-  (private, beta)**: a blessed WebLLM model (Qwen3-1.7B default) runs on your
-  own GPU via WebGPU — prompts never leave your hardware; scoped to chat + the
-  birth-time interview (the full written reading needs a cloud or local
-  endpoint). **Cloud AI (stronger)**: `@almamesh/llm` talks to any
-  **OpenAI-compatible endpoint** (a one-click **OpenRouter** preset, or a local
-  **Ollama**-style endpoint you bring yourself); your API key lives only in the
-  browser and is never bundled. The chart is **PII-redacted** before any cloud
-  prompt, and `local_only` is **fail-closed** (a cloud host is refused under
-  the privacy gate). AI is **never required to draw a chart**.
+- **AI is off by default — the chart is pure calculation** — nothing leaves your
+  device until you opt in. When you do, `@almamesh/llm` talks to any
+  **OpenAI-compatible endpoint** you bring: a one-click **OpenRouter** preset for
+  stronger models, or a local **Ollama**-style endpoint. Your API key lives only
+  in the browser and is never bundled; saving runs a real **connectivity test**
+  so a bad key or model is reported immediately, not silently. The chart is
+  **PII-redacted** before any prompt, and `local_only` is **fail-closed** (a
+  cloud host is refused under the privacy gate). AI is **never required to draw a
+  chart**.
 - **D9 Navamsa divisional chart** — the engine computes the Navamsa (D9) and it
   renders alongside the rasi (D1) in both kundli styles (and in the print report).
   Reshaped by the same pure store adapter; the astrology stays in Python.
@@ -229,11 +227,11 @@ Browser (the product) ─ installable PWA, offline after first load
 │    ├─ profiles + members                  (named, password-less people; typed relationships)
 │    └─ mesh                                (MeshEdgeContext per pair → the /mesh edge view)
 ├─ @almamesh/llm                 optional interpretation + chat, NO AI by default;
-│                                opt-in tiers: on-device (WebLLM/WebGPU, beta —
-│                                chat + interview scope) or cloud (OpenRouter /
-│                                BYO OpenAI-compatible, stronger); PII-redacted,
-│                                fail-closed local_only; mesh narration is
-│                                role-anonymized (no names leave the device)
+│                                opt-in, BYO OpenAI-compatible endpoint (one-click
+│                                OpenRouter preset or a local Ollama); save runs a
+│                                connectivity test; PII-redacted, fail-closed
+│                                local_only; mesh narration is role-anonymized
+│                                (no names leave the device)
 └─ @almamesh/{shared-types,constants}   constants = single design-token source
 
 Build-time (Python, no server)
@@ -288,7 +286,7 @@ full set of dev/build/test commands.
 | Predictive layer ("Sky & Timing") | Transits/Gochara + Sade Sati, dasha depth (antar/pratyantar), Ashtakavarga + Shadbala, per-life-domain forecasts; `/predictive` route (incl. a Periods explorer + Road Ahead) + report sections VIII–XI | ✅ shipped |
 | The mesh (relational astrology) | Per-pair relationship read of two whole charts: Ashtakoota Guna Milan + Mangal screening (cited classical tables, partner edges only), chart overlay, daśā synchrony, significators; role-anonymized AI narration, read-only by construction; `/mesh` constellation + `/mesh/:memberId` edge view | ✅ shipped |
 | Members | People you add to your mesh, with typed relationships (spouse/partner/family/friend/…), each owning a full chart; persisted with a versioned migration; managed in Settings → People | ✅ shipped |
-| AI interpretation + chat | Three tiers — default none (pure calculation); on-device AI (WebLLM, private, beta; chat + interview) opt-in; cloud (OpenRouter / BYO OpenAI-compatible, one-click preset, stronger); PII-redacted, fail-closed | ✅ shipped |
+| AI interpretation + chat | Off by default (pure calculation); opt-in BYO OpenAI-compatible endpoint (one-click OpenRouter preset or a local Ollama); saving runs a connectivity test so a bad key/model is reported immediately; PII-redacted, fail-closed | ✅ shipped |
 | PDF export | Branded print report (cover + D1/D9 + interpretation + predictive sections VIII–XI + Birth Time Authority §XII); the written interpretation is gated on a completed reading, the chart/kundli/daśā render without it | ✅ shipped |
 | Birth-time rectification | Per-profile rectified time + confidence in Settings; recomputes the chart | ✅ shipped |
 | Named profiles | Multiple password-less people per device, each owning its charts; rename + delete (chart cascade) | ✅ shipped |

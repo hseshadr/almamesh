@@ -9,8 +9,6 @@ import {
 } from '../useChatThread';
 import {
   LlmRequestError,
-  OnDeviceContextOverflowError,
-  OnDeviceModelRecordError,
   PrivacyViolationError,
 } from '@almamesh/llm';
 import { useChatStore } from '@almamesh/store';
@@ -185,40 +183,6 @@ describe('useChatThread', () => {
     expect(callInput.history).toEqual([{ role: 'user', content: 'Q1' }]);
   });
 
-  it('a context-window overflow gets actionable "shorter question / new chat" copy', async () => {
-    const { memory } = fakeMemory();
-    __setMemoryForTest(memory);
-    vi.spyOn(console, 'error').mockImplementation(() => undefined);
-    const failing = vi.fn().mockRejectedValue(new OnDeviceContextOverflowError());
-
-    const { result } = renderHook(() => useChatThread(PROFILE, CHART));
-    await act(async () => {
-      await result.current.submit('a very long question', failing);
-    });
-
-    await waitFor(() => expect(result.current.messages.length).toBe(2));
-    const bubble = result.current.messages[1];
-    expect(bubble.error).toBe(true);
-    expect(bubble.content).toContain('shorter question');
-  });
-
-  it('a missing on-device model gets actionable re-download guidance', async () => {
-    const { memory } = fakeMemory();
-    __setMemoryForTest(memory);
-    vi.spyOn(console, 'error').mockImplementation(() => undefined);
-    const failing = vi.fn().mockRejectedValue(new OnDeviceModelRecordError());
-
-    const { result } = renderHook(() => useChatThread(PROFILE, CHART));
-    await act(async () => {
-      await result.current.submit('hello', failing);
-    });
-
-    await waitFor(() => expect(result.current.messages.length).toBe(2));
-    const bubble = result.current.messages[1];
-    expect(bubble.error).toBe(true);
-    expect(bubble.content).toMatch(/re-select or re-download/i);
-  });
-
   it('a privacy violation surfaces its own fail-closed message, never QA_001', async () => {
     const { memory } = fakeMemory();
     __setMemoryForTest(memory);
@@ -324,8 +288,6 @@ describe('useChatThread', () => {
 
 describe('isMappedChatStreamError — the page-catch rethrow contract', () => {
   it('is true for every typed cause the bubble mapper handles', () => {
-    expect(isMappedChatStreamError(new OnDeviceContextOverflowError())).toBe(true);
-    expect(isMappedChatStreamError(new OnDeviceModelRecordError())).toBe(true);
     expect(isMappedChatStreamError(new PrivacyViolationError('refused'))).toBe(true);
     expect(isMappedChatStreamError(new LlmRequestError('HTTP 500'))).toBe(true);
     expect(isMappedChatStreamError(new TypeError('Failed to fetch'))).toBe(true);
@@ -342,8 +304,6 @@ describe('the chat error mapping derives from ONE map (rethrow contract and copy
   it('covers exactly the typed causes the mapper is contracted to handle', () => {
     expect(Object.keys(CHAT_STREAM_ERROR_COPY).sort()).toEqual([
       'LlmRequestError',
-      'OnDeviceContextOverflowError',
-      'OnDeviceModelRecordError',
       'PrivacyViolationError',
       'TypeError',
     ]);

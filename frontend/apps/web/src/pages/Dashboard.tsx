@@ -48,7 +48,6 @@ import { type SSEMetaData } from "../lib/streaming";
 import { useContentModeStore } from "../stores/contentMode";
 import type { ViewMode } from "../lib/types";
 import {
-  ON_DEVICE_READING_UNSUPPORTED,
   READING_MODEL_UNAVAILABLE,
   resolveInterpretationConfig,
   useStreamingInterpretation,
@@ -175,34 +174,25 @@ export default function DashboardPage() {
     chartId ? s.byChart[chartId] : undefined,
   );
 
-  // Whether an AI model is configured (on-device, local or cloud) — gates
+  // Whether an AI endpoint is configured (local or cloud) — gates
   // auto-generation and decides between the progress panel and the CTA.
   const aiConfigured = describeLlmStatus().configured;
 
-  // Whether the ACTIVE interpretation tier can produce the structured reading:
-  // configured AI that is NOT the on-device (webllm) tier — the reading is out
-  // of its Spec 063 scope. Gates the Regenerate button (with an explanatory
-  // caption) so a click is never a silent no-op; mirrors the auto-generate
-  // effect's `canProduceReading` fence.
-  const canRegenerateReading = aiConfigured && resolveInterpretationConfig().engine !== 'webllm';
+  // Whether the reading can be (re)generated: any configured AI can produce the
+  // structured reading. Gates the Regenerate button (with an explanatory
+  // caption) so a click is never a silent no-op when no AI is configured.
+  const canRegenerateReading = aiConfigured;
 
   // A failed regeneration with a kept reading surfaces an inline error strip
   // in the reading section (keep-old-until-success keeps the reading itself).
   // Dismissed locally; a new generation attempt re-arms it.
   const [regenErrorDismissed, setRegenErrorDismissed] = useState(false);
 
-  // The on-device tier deliberately does not serve the full written reading in
-  // v1 (Spec 063 scope fence). The hook stores a stable sentinel for that case;
-  // here it becomes honest guidance copy (chat + interview still work) instead
-  // of a raw error, and the pointless Retry/Switch-model actions are hidden.
-  const isOnDeviceScopeNotice = streamingError === ON_DEVICE_READING_UNSUPPORTED;
-
   // Dead/retired/typo'd model → the switch-model prompt. The hook stores the
   // stable sentinel for this case; the raw-message sniff keeps recognizing
   // entries persisted before the sentinel existed.
   const isModelUnavailableNotice =
     streamingError !== null &&
-    !isOnDeviceScopeNotice &&
     (streamingError === READING_MODEL_UNAVAILABLE || isModelUnavailableMessage(streamingError));
 
   // Honest, live "time so far" for the generation panel (replaces a fixed,
@@ -396,24 +386,21 @@ export default function DashboardPage() {
 
     // If we already have a valid (complete) interpretation, keep it — UNLESS
     // the LLM config that produced it has changed (provenance mismatch; a
-    // legacy pre-provenance reading counts as mismatched) AND the current
-    // config can actually produce a reading. The on-device tier cannot (the
-    // structured reading is out of its Spec 063 scope), and with AI off the
-    // effect never reaches here — in both cases the stale reading stays on
-    // screen untouched rather than being destroyed.
+    // legacy pre-provenance reading counts as mismatched). With AI off the
+    // effect never reaches here, so the stale reading stays on screen
+    // untouched rather than being destroyed.
     if (interpretationStatus === 'complete' && hasValidInterpretation) {
       const config = resolveInterpretationConfig();
       const storedProvenance = useInterpretationStore.getState().getEntry(chartId)?.provenance;
       const configChanged =
         !storedProvenance || configFingerprint(storedProvenance) !== configFingerprint(config);
-      const canProduceReading = config.engine !== 'webllm';
-      if (!configChanged || !canProduceReading) {
+      if (!configChanged) {
         versionCheckRef.current = 'done';
         return;
       }
-      // Config changed and readings are producible: fall through to the
-      // single-shot trigger below. The refs cap this at ONE auto-regeneration
-      // attempt per mount — a failed attempt cannot retrigger.
+      // Config changed: fall through to the single-shot trigger below. The refs
+      // cap this at ONE auto-regeneration attempt per mount — a failed attempt
+      // cannot retrigger.
     }
 
     // Local-first: there is no backend version store to consult — narration is
@@ -600,16 +587,10 @@ export default function DashboardPage() {
 
             {streamingError && (
               <div
-                className={`mt-2 text-sm ${isOnDeviceScopeNotice ? 'text-text-secondary' : 'text-status-error'}`}
+                className="mt-2 text-sm text-status-error"
                 data-testid="interpretation-error"
               >
-                {isOnDeviceScopeNotice ? (
-                  // Honest scope guidance, not a failure: on-device AI covers
-                  // chat + the interview; the reading needs cloud/local.
-                  <p data-testid="on-device-scope-note">
-                    {t('dashboard:generation.on_device_scope')}
-                  </p>
-                ) : isModelUnavailableNotice ? (
+                {isModelUnavailableNotice ? (
                   <p>{t('dashboard:generation.model_unavailable')}</p>
                 ) : (
                   <p>{streamingError}</p>
@@ -625,16 +606,12 @@ export default function DashboardPage() {
                       {t('dashboard:actions.switch_recommended')}
                     </button>
                   )}
-                  {/* Retrying the identical on-device config would just re-throw
-                      the scope fence — only the settings door helps there. */}
-                  {!isOnDeviceScopeNotice && (
-                    <button
-                      onClick={handleGenerateSeparatedInterpretation}
-                      className="underline hover:no-underline"
-                    >
-                      {t('dashboard:actions.retry')}
-                    </button>
-                  )}
+                  <button
+                    onClick={handleGenerateSeparatedInterpretation}
+                    className="underline hover:no-underline"
+                  >
+                    {t('dashboard:actions.retry')}
+                  </button>
                   <Link to="/settings/ai" className="underline hover:no-underline">
                     {t('dashboard:actions.ai_settings')}
                   </Link>
@@ -676,9 +653,9 @@ export default function DashboardPage() {
               </h2>
               {/* Regenerate the reading with the currently configured AI. The
                   old reading stays on screen until the new one lands; while a
-                  run is in flight — or when the active tier cannot produce
-                  readings (none / on-device) — this is disabled, WITH the
-                  caption below explaining why (never a silent no-op). */}
+                  run is in flight — or when no AI is configured — this is
+                  disabled, WITH the caption below explaining why (never a
+                  silent no-op). */}
               <Button
                 variant="ghost"
                 size="sm"
@@ -686,9 +663,7 @@ export default function DashboardPage() {
                 disabled={isStreamingInterpretation || !canRegenerateReading}
                 title={
                   !canRegenerateReading
-                    ? aiConfigured
-                      ? t('dashboard:generation.on_device_scope')
-                      : t('dashboard:reading.regen_no_ai')
+                    ? t('dashboard:reading.regen_no_ai')
                     : undefined
                 }
                 data-testid="regenerate-reading"
@@ -714,16 +689,14 @@ export default function DashboardPage() {
                 {t('dashboard:actions.regenerate')}
               </Button>
             </header>
-            {/* WHY Regenerate is unavailable: no capable tier (none, or the
-                on-device scope fence) — with the door to AI settings. */}
+            {/* WHY Regenerate is unavailable: no AI configured — with the door
+                to AI settings. */}
             {!canRegenerateReading && (
               <p
                 className="text-xs leading-relaxed text-text-tertiary"
                 data-testid="regenerate-unavailable"
               >
-                {aiConfigured
-                  ? t('dashboard:generation.on_device_scope')
-                  : t('dashboard:reading.regen_no_ai')}{' '}
+                {t('dashboard:reading.regen_no_ai')}{' '}
                 <Link to="/settings/ai" className="underline hover:no-underline">
                   {t('dashboard:actions.ai_settings')}
                 </Link>
@@ -740,11 +713,9 @@ export default function DashboardPage() {
               >
                 <div className="space-y-2">
                   <p className="text-status-error">
-                    {isOnDeviceScopeNotice
-                      ? t('dashboard:generation.on_device_scope')
-                      : isModelUnavailableNotice
-                        ? t('dashboard:generation.model_unavailable')
-                        : t('dashboard:generation.regen_failed', { error: streamingError })}
+                    {isModelUnavailableNotice
+                      ? t('dashboard:generation.model_unavailable')
+                      : t('dashboard:generation.regen_failed', { error: streamingError })}
                   </p>
                   <div className="flex flex-wrap items-center gap-3">
                     {isModelUnavailableNotice &&
@@ -757,17 +728,13 @@ export default function DashboardPage() {
                         {t('dashboard:actions.switch_recommended')}
                       </button>
                     )}
-                    {/* Retrying the identical on-device config would just
-                        re-throw the scope fence — only the settings door helps. */}
-                    {!isOnDeviceScopeNotice && (
-                      <button
-                        onClick={handleRegenerateReading}
-                        className="underline hover:no-underline"
-                        data-testid="reading-regen-retry"
-                      >
-                        {t('dashboard:actions.retry')}
-                      </button>
-                    )}
+                    <button
+                      onClick={handleRegenerateReading}
+                      className="underline hover:no-underline"
+                      data-testid="reading-regen-retry"
+                    >
+                      {t('dashboard:actions.retry')}
+                    </button>
                     <Link
                       to="/settings/ai"
                       className="underline hover:no-underline"

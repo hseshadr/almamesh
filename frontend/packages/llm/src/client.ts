@@ -131,12 +131,53 @@ export async function chatCompletionJson(
   return stripJsonFence(content);
 }
 
+/** Options for a save-time connectivity probe. */
+export interface TestConnectionOptions {
+  readonly config: ProviderConfig;
+  readonly signal?: AbortSignal;
+  /** Optional fetch override for testing; defaults to the global `fetch`. */
+  readonly fetchImpl?: typeof fetch;
+}
+
+/**
+ * Probe a provider with a single 1-token, non-streaming chat completion — the
+ * cheapest request that validates endpoint reachability + auth + model id in one
+ * shot, on the EXACT path the real reading uses. Resolves on 2xx; otherwise
+ * throws the SAME typed errors the reading would hit, so the settings UI can give
+ * an honest, specific verdict the moment the user saves:
+ *   - `PrivacyViolationError` — the fail-closed gate (local_only vs a cloud host).
+ *   - `LlmRequestError` (carrying `.status`) — a non-2xx response (401/403 bad
+ *     key, 402 out of credits, 404/400 bad model, …).
+ *   - a `fetch` `TypeError` — the endpoint was unreachable (DNS, refused, offline).
+ *
+ * Chosen over `GET /models`: OpenRouter serves that unauthenticated and never
+ * validates the model, so a bad key or typo'd slug would falsely pass.
+ */
+export async function testProviderConnection(options: TestConnectionOptions): Promise<void> {
+  // Fail-closed BEFORE any network call — same contract as the streaming path.
+  ensurePrivacy(options.config);
+
+  const doFetch = options.fetchImpl ?? fetch;
+  const response = await doFetch(joinUrl(requireBaseUrl(options.config)), {
+    method: "POST",
+    headers: buildHeaders(options.config),
+    body: JSON.stringify({
+      model: options.config.model,
+      messages: [{ role: "user", content: "ping" }],
+      stream: false,
+      max_tokens: 1,
+    }),
+    signal: options.signal,
+  });
+  if (!response.ok) {
+    throw await requestErrorFor(response);
+  }
+}
+
 function buildHeaders(config: ProviderConfig): Record<string, string> {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
-  // Only the HTTP engine carries a key (the on-device variant has none).
-  const apiKey = config.engine === "openai-http" ? config.apiKey : undefined;
-  if (apiKey) {
-    headers.Authorization = `Bearer ${apiKey}`;
+  if (config.apiKey) {
+    headers.Authorization = `Bearer ${config.apiKey}`;
   }
   return headers;
 }
@@ -146,18 +187,15 @@ function joinUrl(baseUrl: string): string {
 }
 
 /**
- * The HTTP transport needs an endpoint. An on-device (`webllm`) config carries
- * none — it must be routed through `route.ts`, never reach this client — so a
- * missing baseUrl here is a clean, diagnosable error rather than a URL crash.
+ * The HTTP transport needs an endpoint. A config always carries a `baseUrl`, but
+ * an empty string is guarded here so a misconfiguration is a clean, diagnosable
+ * error rather than a URL crash.
  */
 function requireBaseUrl(config: ProviderConfig): string {
-  const baseUrl = config.engine === "openai-http" ? config.baseUrl : undefined;
-  if (!baseUrl) {
-    throw new LlmRequestError(
-      "No OpenAI-compatible base URL configured (on-device configs are served by the WebLLM engine, not the HTTP client)",
-    );
+  if (!config.baseUrl) {
+    throw new LlmRequestError("No OpenAI-compatible base URL configured");
   }
-  return baseUrl;
+  return config.baseUrl;
 }
 
 /** Extract the token delta from one parsed SSE `data:` payload, if any. */
