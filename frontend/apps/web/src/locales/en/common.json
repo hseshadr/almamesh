@@ -85,7 +85,6 @@
   "ai_badge": {
     "setup": "Set up AI",
     "label": "AI: {{provider}}",
-    "on_device": "On-device",
     "title_ready": "AI model: {{provider}} — change",
     "title_setup": "Connect an AI model (e.g. OpenRouter) to enable interpretations",
     "title_finish": "AI model: {{provider}} — finish setup"

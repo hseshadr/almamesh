@@ -44,28 +44,6 @@ const STRUCTURER_SYSTEM_PROMPT = [
 // Validation helpers
 // =============================================================================
 
-// JSON schema for the structurer output — enforced by xgrammar on the
-// on-device engine (grammar-constrained decoding), advisory elsewhere. The
-// typed validation below stays as the second wall regardless of engine.
-const LIFE_EVENTS_SCHEMA: Record<string, unknown> = {
-  type: "object",
-  properties: {
-    events: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: {
-          date: { type: "string" },
-          category: { type: "string", enum: [...LIFE_EVENT_CATEGORIES] },
-          precision: { type: "string", enum: ["exact", "month", "year", "approx"] },
-        },
-        required: ["date", "category", "precision"],
-      },
-    },
-  },
-  required: ["events"],
-};
-
 const YYYY_MM_DD = /^(\d{4})-(\d{2})-(\d{2})$/;
 
 function isValidYMD(date: string): boolean {
@@ -130,9 +108,7 @@ export async function structureLifeEvents(
   ] as const;
 
   try {
-    // Routed seam (Spec 063): openai-http behavior is byte-preserved; the
-    // on-device engine additionally gets the schema for xgrammar enforcement.
-    const raw = await routeCompletionJson({ config, messages, schema: LIFE_EVENTS_SCHEMA });
+    const raw = await routeCompletionJson({ config, messages });
     const parsed: unknown = JSON.parse(raw);
 
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {

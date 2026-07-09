@@ -1,9 +1,8 @@
 /**
  * AiStatusBadge — the header's AI-provider indicator.
  *
- * Spec 063: the badge must render the `on_device` kind with a TRANSLATED
- * label (the provider names OpenRouter/Local/Cloud pass through as-is), and
- * stay a link to /settings/ai in every state.
+ * The badge renders the provider name (OpenRouter/Local/Cloud) as-is, and
+ * stays a link to /settings/ai in every state.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
@@ -32,21 +31,6 @@ function renderBadge(status: LlmStatus) {
 describe('AiStatusBadge', () => {
   beforeEach(() => vi.clearAllMocks());
   afterEach(() => vi.clearAllMocks());
-
-  it('renders the on_device kind with the translated label', () => {
-    renderBadge({ kind: 'on_device', label: 'On-device', configured: true });
-    const badge = screen.getByTestId('ai-status-badge');
-    // en catalog: ai_badge.label = "AI: {{provider}}", on_device = "On-device"
-    expect(badge.textContent).toContain('AI: On-device');
-    expect(badge.getAttribute('href')).toBe('/settings/ai');
-  });
-
-  it('on_device counts as configured (ready styling, ready title)', () => {
-    renderBadge({ kind: 'on_device', label: 'On-device', configured: true });
-    const badge = screen.getByTestId('ai-status-badge');
-    expect(badge.getAttribute('title')).toContain('On-device');
-    expect(badge.className).toContain('border-accent-gold/30');
-  });
 
   it('still renders provider labels verbatim for cloud kinds', () => {
     renderBadge({ kind: 'openrouter', label: 'OpenRouter', configured: true });

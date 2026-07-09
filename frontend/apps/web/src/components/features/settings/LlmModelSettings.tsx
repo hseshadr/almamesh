@@ -1,12 +1,9 @@
 /**
- * LlmModelSettings — the three-tier AI configuration (Spec 063 D3).
+ * LlmModelSettings — the AI configuration (Spec 063 D3).
  *
  *   1. None (the DEFAULT) — no AI at all: the chart is pure calculation and
  *      nothing leaves the device. Stated as a feature, not an empty state.
- *   2. On-device AI (private, beta) — a blessed WebLLM model on this device's
- *      GPU; capability-probed, disclosed download, chat + interview scope
- *      (see OnDeviceTierCard).
- *   3. Cloud AI (stronger) — the OpenRouter one-click preset or any BYO
+ *   2. Cloud AI (stronger) — the OpenRouter one-click preset or any BYO
  *      OpenAI-compatible endpoint (incl. local Ollama). Honest label: stronger
  *      models; redacted chart data leaves the device.
  *
@@ -18,7 +15,6 @@
 import { useCallback, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 import {
-  BLESSED_ONDEVICE_MODELS,
   CHAT_CLOUD_MODEL,
   describeLlmStatus,
   isLocalEndpoint,
@@ -30,38 +26,12 @@ import {
   type LlmStatus,
 } from '@almamesh/llm';
 import { Badge, Button } from '../../ui';
-import { OnDeviceTierCard, type OnDeviceTierCardProps } from './OnDeviceTierCard';
 
 const PLACEHOLDER_BASE = 'http://localhost:11434/v1';
 const PLACEHOLDER_INTERP_MODEL = 'deepseek/deepseek-v4-pro';
 const PLACEHOLDER_CHAT_MODEL = 'minimax/minimax-m2.7';
 
-/** True when the id is one of the blessed ON-DEVICE (MLC) model ids. */
-function isOnDeviceModelId(id: string | undefined): boolean {
-  return Boolean(id && BLESSED_ONDEVICE_MODELS.some((m) => m.id === id));
-}
-
-/**
- * The cloud form must never surface an on-device MLC model id (left behind by
- * a prior on-device enable + the legacy-model migration) as a cloud slug.
- */
-function withoutOnDeviceModels(settings: LlmSettings): LlmSettings {
-  const strip = (v?: string) => (isOnDeviceModelId(v) ? undefined : v);
-  return {
-    ...settings,
-    model: strip(settings.model),
-    interpretationModel: strip(settings.interpretationModel),
-    chatModel: strip(settings.chatModel),
-  };
-}
-
-/** Test-only injectables threaded through to the on-device tier card. */
-export type LlmModelSettingsProps = Pick<
-  OnDeviceTierCardProps,
-  'probeFn' | 'preloadFn' | 'deleteFn' | 'hasCachedFn'
->;
-
-export default function LlmModelSettings(props: LlmModelSettingsProps = {}) {
+export default function LlmModelSettings() {
   const { t } = useTranslation('settings');
   const [status, setStatus] = useState<LlmStatus>(() => describeLlmStatus());
   const refreshStatus = useCallback(() => setStatus(describeLlmStatus()), []);
@@ -112,10 +82,7 @@ export default function LlmModelSettings(props: LlmModelSettingsProps = {}) {
         <p className="text-text-secondary text-xs mt-1">{t('tiers.none_body')}</p>
       </div>
 
-      {/* ── Tier 2: On-device AI (private, beta) ── */}
-      <OnDeviceTierCard status={status} onChanged={refreshStatus} {...props} />
-
-      {/* ── Tier 3: Cloud AI (stronger) ── */}
+      {/* ── Tier 2: Cloud AI (stronger) ── */}
       <div
         data-testid="tier-cloud"
         className={`rounded-lg border p-4 ${
@@ -149,8 +116,7 @@ export default function LlmModelSettings(props: LlmModelSettingsProps = {}) {
 
 /**
  * The cloud/BYO endpoint form — the pre-063 LlmModelSettings body, unchanged
- * in behavior except that SAVING it clears the engine selector (so saving a
- * cloud config always switches off a previously-enabled on-device tier).
+ * in behavior except that SAVING it clears the engine selector.
  *
  * Two TIERED models are configured here:
  *   - Interpretation / chart-reading model — strong/frontier advised.
@@ -158,9 +124,7 @@ export default function LlmModelSettings(props: LlmModelSettingsProps = {}) {
  */
 function CloudEndpointForm({ onSaved }: { onSaved: () => void }) {
   const { t } = useTranslation('settings');
-  const [settings, setSettings] = useState<LlmSettings>(() =>
-    withoutOnDeviceModels(readLlmSettings()),
-  );
+  const [settings, setSettings] = useState<LlmSettings>(() => readLlmSettings());
   const [saved, setSaved] = useState(false);
 
   const update = (patch: Partial<LlmSettings>) => {
@@ -169,8 +133,7 @@ function CloudEndpointForm({ onSaved }: { onSaved: () => void }) {
   };
 
   const save = () => {
-    // engine:'' → any previously-selected on-device tier is switched off; the
-    // saved endpoint/key/model now define the provider (openai-http).
+    // engine:'' → the saved endpoint/key/model define the provider (openai-http).
     writeLlmSettings({ ...settings, engine: '' });
     setSaved(true);
     onSaved();

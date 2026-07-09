@@ -1,36 +1,20 @@
 import { describe, expect, it } from "vitest";
 
 import { openRouterPreset, resolveProviderConfig } from "./config";
-import { DEFAULT_ONDEVICE_MODEL } from "./webllm/models";
 
-// Spec 063: the engine union is a THREE-KIND world — no AI (no config at all),
-// on-device ("webllm"), and the OpenAI-compatible HTTP path ("openai-http").
-// "webllm" is a first-class opt-in again; anything ELSE unknown/legacy still
-// falls back to openai-http.
+// The single-engine world: either no AI (no config at all) or the
+// OpenAI-compatible HTTP path ("openai-http"). Every resolution lands on
+// openai-http, so a stale saved blob can never select a nonexistent backend.
 
-describe("resolveProviderConfig — three-kind engine resolution", () => {
+describe("resolveProviderConfig — engine resolution", () => {
   it("defaults to the openai-http engine", () => {
     expect(resolveProviderConfig({}).engine).toBe("openai-http");
   });
 
-  it("selects the on-device engine when env/settings ask for webllm", () => {
-    expect(resolveProviderConfig({ VITE_LLM_ENGINE: "webllm" }).engine).toBe("webllm");
-  });
-
-  it("falls back to openai-http for unknown/legacy engine values", () => {
-    for (const legacy of ["mlc", "web-llm", "WEBLLM", "local", "  "]) {
-      expect(resolveProviderConfig({ VITE_LLM_ENGINE: legacy }).engine).toBe("openai-http");
+  it("resolves to openai-http for any engine value", () => {
+    for (const value of ["mlc", "custom", "unknown", "local", "  "]) {
+      expect(resolveProviderConfig({ VITE_LLM_ENGINE: value }).engine).toBe("openai-http");
     }
-  });
-
-  it("defaults the on-device model to the blessed default, never an HTTP model", () => {
-    const cfg = resolveProviderConfig({ VITE_LLM_ENGINE: "webllm" });
-    expect(cfg.model).toBe(DEFAULT_ONDEVICE_MODEL);
-  });
-
-  it("an on-device config carries no baseUrl (nothing to point at)", () => {
-    const cfg = resolveProviderConfig({ VITE_LLM_ENGINE: "webllm" });
-    expect(cfg.baseUrl).toBeUndefined();
   });
 });
 

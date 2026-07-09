@@ -5,9 +5,8 @@
  * produced it. The reading-section header offers a Regenerate button (disabled
  * while generating / when no AI is configured), and the auto-generate effect
  * regenerates ONCE when the stored provenance no longer matches the currently
- * resolved config — but only when that config can actually produce a reading
- * (AI configured, not the on-device tier). A stale reading is NEVER destroyed:
- * it stays on screen through (and after, if) a failed regeneration.
+ * resolved config — but only when AI is configured. A stale reading is NEVER
+ * destroyed: it stays on screen through (and after, if) a failed regeneration.
  *
  * All chart/interpretation data below is SYNTHETIC.
  */
@@ -422,28 +421,6 @@ describe('Dashboard — regenerate reading', () => {
     await waitFor(() => expect(screen.queryByTestId('reading-regen-error')).toBeNull());
   });
 
-  it('the on-device tier disables Regenerate WITH an explanatory caption (never a silent no-op)', async () => {
-    // On-device (webllm) is configured AI, but the structured reading is out
-    // of its Spec 063 scope — the button must not invite a doomed click.
-    writeLlmSettings({
-      ...openRouterPreset('sk-or-v1-0000-synthetic-test-key', 'test-org/test-model'),
-      engine: 'webllm',
-    });
-    seedCompleteReading(STALE_PROVENANCE);
-    renderDashboard();
-
-    const button = await screen.findByTestId<HTMLButtonElement>('regenerate-reading');
-    expect(button.disabled).toBe(true);
-
-    // The caption says WHY and points at AI settings.
-    const note = screen.getByTestId('regenerate-unavailable');
-    expect(note.textContent ?? '').toMatch(/cloud or local/i);
-    expect(note.querySelector('a')?.getAttribute('href')).toBe('/settings/ai');
-
-    await settle();
-    expect(mockedStream).not.toHaveBeenCalled();
-  });
-
   it('with NO AI configured the disabled Regenerate also carries the connect-AI caption', async () => {
     // No settings written: tier is none — same rule, different guidance copy.
     seedCompleteReading(STALE_PROVENANCE);
@@ -454,21 +431,5 @@ describe('Dashboard — regenerate reading', () => {
     const note = screen.getByTestId('regenerate-unavailable');
     expect(note.textContent ?? '').toContain('Connect an AI model');
     expect(note.querySelector('a')?.getAttribute('href')).toBe('/settings/ai');
-  });
-
-  it('does NOT auto-regenerate on the on-device tier (reading cannot be produced there)', async () => {
-    // On-device (webllm) is configured AI, but the structured reading is out
-    // of its scope — the stale reading must stay, untouched.
-    writeLlmSettings({
-      ...openRouterPreset('sk-or-v1-0000-synthetic-test-key', 'test-org/test-model'),
-      engine: 'webllm',
-    });
-    seedCompleteReading(STALE_PROVENANCE);
-    renderDashboard();
-
-    const reading = await screen.findByTestId('reading-section');
-    expect(reading.textContent ?? '').toContain(LAYMAN_SUMMARY);
-    await settle();
-    expect(mockedStream).not.toHaveBeenCalled();
   });
 });

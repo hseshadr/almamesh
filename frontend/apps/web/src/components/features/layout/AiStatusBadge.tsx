@@ -29,9 +29,8 @@ export function AiStatusBadge() {
   }, []);
 
   const ready = status.configured;
-  // Provider names (OpenRouter/Local/Cloud) read fine as-is; the on-device
-  // tier's label is a real phrase, so it is translated (Spec 063).
-  const provider = status.kind === 'on_device' ? t('ai_badge.on_device') : status.label;
+  // Provider names (OpenRouter/Local/Cloud) read fine as-is.
+  const provider = status.label;
   const label =
     status.kind === 'none'
       ? t('ai_badge.setup')

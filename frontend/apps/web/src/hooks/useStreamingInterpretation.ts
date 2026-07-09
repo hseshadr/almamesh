@@ -23,7 +23,6 @@ import {
   applyInterpretationSettings,
   configProvenance,
   LlmRequestError,
-  OnDeviceUnsupportedError,
   PrivacyViolationError,
   resolveProviderConfig,
   streamStructuredInterpretation,
@@ -87,15 +86,6 @@ export interface UseStreamingInterpretationResult {
   /** Abort the in-flight generation. */
   cancel: () => void;
 }
-
-/**
- * Stable sentinel stored as the interpretation "error" when the reading was
- * requested on the on-device (webllm) tier, which deliberately does not serve
- * the full structured reading in v1 (Spec 063 scope fence). The dashboard maps
- * this sentinel to honest, translated guidance copy (chat + interview work
- * on-device; the reading needs a cloud or local endpoint) — never a raw error.
- */
-export const ON_DEVICE_READING_UNSUPPORTED = 'on_device_reading_unsupported';
 
 /**
  * Stable sentinel stored as the interpretation "error" when the configured
@@ -175,17 +165,12 @@ export function withRawPredictive(chart: SiderealChart, chartId: string | null):
  * to translated guidance or a stable sentinel the dashboard maps to actions.
  */
 function describeError(err: unknown): string {
-  if (err instanceof OnDeviceUnsupportedError) {
-    // The typed scope-fence error: not a failure of the user's setup. The UI
-    // renders translated guidance for this sentinel instead of raw text.
-    return ON_DEVICE_READING_UNSUPPORTED;
-  }
   if (err instanceof PrivacyViolationError) {
     // The fail-closed privacy fence writes a specific, user-facing message
     // (which endpoint was refused and why): show it verbatim.
     return err.message;
   }
-  // Every genuine failure past the two by-design sentinels above is logged raw
+  // Every genuine failure past the by-design privacy sentinel above is logged raw
   // (matching lib/errors.ts's contract) so a masked bug is never silently
   // swallowed behind friendly copy. This is the developer breadcrumb; the
   // classification below only decides what the USER sees. Logging to the dev

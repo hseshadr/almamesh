@@ -7,7 +7,7 @@
  *   self-hosted MiniLM model) is created only on the FIRST index/retrieve call,
  *   NOT at page load, so opening the dashboard stays cheap.
  * - Every entry point is BEST-EFFORT: if the embedder fails (model missing, OOM,
- *   no WebGPU/WASM), we log and degrade gracefully. Memory is an enhancement —
+ *   no GPU/WASM), we log and degrade gracefully. Memory is an enhancement —
  *   it must NEVER block the chat from answering.
  *
  * The heavy `@huggingface/transformers` runtime lives only inside the embedder

@@ -78,8 +78,6 @@ function toHistory(messages: readonly ChatMessage[]): ChatTurn[] {
 export const CHAT_STREAM_ERROR_COPY: Readonly<
   Record<string, (error: Error & Partial<LlmRequestError>) => string>
 > = {
-  OnDeviceContextOverflowError: () => i18n.t('chat:errors.context_overflow'),
-  OnDeviceModelRecordError: () => i18n.t('chat:errors.model_missing'),
   // The fail-closed privacy fence writes a specific, user-facing message
   // (which endpoint was refused and why): show it verbatim, never a code.
   PrivacyViolationError: (error) => error.message,
@@ -121,10 +119,9 @@ export function isMappedChatStreamError(error: unknown): boolean {
 
 /**
  * Map a failed stream to actionable, recoverable copy. Typed causes get
- * specific guidance (a too-long conversation → new chat/shorter question; a
- * missing model record → re-select/re-download; a privacy-fence refusal → its
- * own message; a dead model / unreachable endpoint → point at AI settings);
- * anything unknown keeps the generic QA_001 fallback. Exported for tests.
+ * specific guidance (a privacy-fence refusal → its own message; a dead model /
+ * unreachable endpoint → point at AI settings); anything unknown keeps the
+ * generic QA_001 fallback. Exported for tests.
  */
 export function describeChatStreamError(error: unknown): string {
   const describe = chatStreamErrorCopy(error);

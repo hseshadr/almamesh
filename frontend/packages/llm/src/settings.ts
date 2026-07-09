@@ -15,7 +15,6 @@ import {
   RETIRED_CLOUD_MODELS,
   type LlmEnv,
 } from "./config";
-import { BLESSED_ONDEVICE_MODELS, DEFAULT_ONDEVICE_MODEL } from "./webllm/models";
 
 /** localStorage key holding the JSON-encoded LLM override settings. */
 export const LLM_SETTINGS_KEY = "almamesh-llm-settings";
@@ -44,15 +43,12 @@ export interface LlmSettings {
    */
   readonly chatModel?: string;
   readonly privacyMode?: string;
-  /**
-   * Engine selector: `"webllm"` = the on-device tier (Spec 063) — needs only a
-   * model id, no apiBase/apiKey. Anything else resolves to `"openai-http"`.
-   */
+  /** Engine selector; resolves to `"openai-http"` (the only engine). */
   readonly engine?: string;
 }
 
 /** Which kind of AI backend the saved settings point at. */
-export type LlmProviderKind = "none" | "openrouter" | "local" | "cloud" | "on_device";
+export type LlmProviderKind = "none" | "openrouter" | "local" | "cloud";
 
 /** Human-readable summary of the saved AI provider state (for the UI status). */
 export interface LlmStatus {
@@ -71,12 +67,6 @@ export interface LlmStatus {
  */
 export function describeLlmStatus(settings: LlmSettings = readLlmSettings()): LlmStatus {
   const { apiBase, apiKey, model } = settings;
-  if (settings.engine === "webllm") {
-    // The on-device tier needs no endpoint and no key; the blessed default
-    // model applies when none was picked, so selecting the tier IS configured.
-    // The engine selector wins over any leftover cloud fields from a prior tier.
-    return { kind: "on_device", label: "On-device", configured: true };
-  }
   if (!apiBase && !apiKey && !model) {
     return { kind: "none", label: "Not set", configured: false };
   }
@@ -181,35 +171,11 @@ export function applyLlmSettings(env: LlmEnv, settings: LlmSettings = readLlmSet
  * A per-tier/legacy settings model (or env model) wins; the cloud frontier
  * default applies only when no model is configured anywhere.
  */
-/**
- * The first candidate that is a BLESSED MLC id, else the blessed default. The
- * on-device engine can only serve ids from WebLLM's prebuilt registry, and
- * `writeLlmSettings` MERGES — so a `chatModel`/`model` left over from a prior
- * cloud (OpenRouter) or Ollama tier would otherwise ride into the webllm
- * branch and target a nonexistent model record, hard-failing every call.
- * First-blessed-wins also means a stale cloud id never clobbers the user's
- * deliberate blessed pick further down the chain.
- */
-function resolveOnDeviceModel(...candidates: ReadonlyArray<string | undefined>): string {
-  for (const candidate of candidates) {
-    if (candidate && BLESSED_ONDEVICE_MODELS.some((m) => m.id === candidate)) {
-      return candidate;
-    }
-  }
-  return DEFAULT_ONDEVICE_MODEL;
-}
-
 export function applyInterpretationSettings(
   env: LlmEnv,
   settings: LlmSettings = readLlmSettings(),
 ): LlmEnv {
   const base = applyLlmSettings(env, settings);
-  if (base.VITE_LLM_ENGINE === "webllm") {
-    // On-device: a cloud slug is NEVER forced onto the on-device engine — only
-    // a blessed MLC id may win, else the blessed default applies.
-    const onDeviceModel = resolveOnDeviceModel(settings.interpretationModel, base.VITE_LLM_MODEL);
-    return { ...base, VITE_LLM_MODEL: onDeviceModel };
-  }
   const model = settings.interpretationModel || settings.model || base.VITE_LLM_MODEL || RECOMMENDED_CLOUD_MODEL;
   return { ...base, VITE_LLM_MODEL: model };
 }
@@ -224,13 +190,6 @@ export function applyInterpretationSettings(
  */
 export function applyChatSettings(env: LlmEnv, settings: LlmSettings = readLlmSettings()): LlmEnv {
   const base = applyLlmSettings(env, settings);
-  if (base.VITE_LLM_ENGINE === "webllm") {
-    // On-device: never push a cloud slug at the on-device engine (even when
-    // the build env carries the OpenRouter preset base URL) — only a blessed
-    // MLC id may win, else the blessed default applies.
-    const onDeviceModel = resolveOnDeviceModel(settings.chatModel, base.VITE_LLM_MODEL);
-    return { ...base, VITE_LLM_MODEL: onDeviceModel };
-  }
   const onOpenRouter = (base.VITE_LLM_API_BASE ?? "").startsWith(OPENROUTER_API_BASE);
   // Explicit chat model always wins. Otherwise: on the OpenRouter cloud preset
   // pick the fast chat default (the old applyChatModelPreference behavior); on a
