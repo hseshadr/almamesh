@@ -66,8 +66,16 @@ export interface LlmStatus {
  * local endpoint does not.
  */
 export function describeLlmStatus(settings: LlmSettings = readLlmSettings()): LlmStatus {
-  const { apiBase, apiKey, model } = settings;
-  if (!apiBase && !apiKey && !model) {
+  const { apiBase, apiKey } = settings;
+  // A model can live in ANY of the three fields: the legacy `model`, or either
+  // tiered field. The manual endpoint form writes `interpretationModel`, so a
+  // `model`-only check silently marked a valid hand-typed config unconfigured
+  // (the "nothing happens on save" bug) — every model field counts here.
+  const model = settings.model || settings.interpretationModel || settings.chatModel;
+  // "Off" = no endpoint. A model id or key with no endpoint can't be called, so
+  // it reads as off — and this lets "Turn AI off" (which clears the endpoint)
+  // leave the user's per-tier model choices intact without appearing configured.
+  if (!apiBase) {
     return { kind: "none", label: "Not set", configured: false };
   }
   if (isLocalEndpoint(apiBase)) {

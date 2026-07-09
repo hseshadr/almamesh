@@ -40,10 +40,10 @@ describe('LlmModelSettings — tiers', () => {
     expect(screen.getByTestId('tier-none').textContent).toContain('pure calculation');
   });
 
-  it('the cloud tier is labeled honestly: stronger models, redacted data leaves', () => {
+  it('the cloud tier is labeled honestly: OpenRouter/BYO, redacted data leaves', () => {
     renderTiers();
     const honesty = screen.getByTestId('tier-cloud-honesty');
-    expect(honesty.textContent).toMatch(/[Ss]tronger models/);
+    expect(honesty.textContent).toMatch(/OpenRouter/);
     expect(honesty.textContent).toMatch(/leaves your device/);
   });
 

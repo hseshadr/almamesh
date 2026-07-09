@@ -1,10 +1,11 @@
 /**
- * AiModelSettings — the AI model configuration card (Spec 063).
+ * AiModelSettings — the AI model configuration card.
  *
- * Renders `LlmModelSettings`: None (the default — no AI at all) and Cloud AI
- * (stronger; the one-click OpenRouter preset or any OpenAI-compatible
- * endpoint, e.g. a local Ollama). The same resolved `ProviderConfig` drives
- * both interpretation and chat. The enclosing page supplies the heading.
+ * Renders `LlmModelSettings`: AI off (the default — no AI at all) and Connect
+ * AI (a guided OpenRouter key, or any OpenAI-compatible endpoint under
+ * "Advanced", e.g. a local Ollama). Saving runs a real connectivity probe. The
+ * same resolved `ProviderConfig` drives both interpretation and chat. The
+ * enclosing page supplies the heading.
  */
 
 import { Card } from '../../ui';

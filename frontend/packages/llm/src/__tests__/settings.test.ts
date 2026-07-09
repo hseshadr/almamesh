@@ -159,4 +159,28 @@ describe("describeLlmStatus — human-readable provider state", () => {
     expect(status.label).toBe("Cloud");
     expect(status.configured).toBe(true);
   });
+
+  // Regression: the manual endpoint form writes `interpretationModel` (the tiered
+  // field), NOT the legacy `model`. A valid hand-typed OpenRouter config must
+  // count as configured, or every downstream gate (Active badge, header, chat,
+  // dashboard reading) stays silently off — the "nothing happens on save" bug.
+  it("counts a tiered-model-only config (interpretationModel, no legacy model) as configured", () => {
+    const status = describeLlmStatus({
+      apiBase: "https://openrouter.ai/api/v1",
+      apiKey: "sk-or-123",
+      interpretationModel: "deepseek/deepseek-v4-pro",
+      privacyMode: "cloud_premium",
+    });
+    expect(status.kind).toBe("openrouter");
+    expect(status.configured).toBe(true);
+  });
+
+  it("counts a chatModel-only local config as configured", () => {
+    const status = describeLlmStatus({
+      apiBase: "http://localhost:11434/v1",
+      chatModel: "llama3.1",
+    });
+    expect(status.kind).toBe("local");
+    expect(status.configured).toBe(true);
+  });
 });

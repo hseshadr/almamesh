@@ -5,8 +5,9 @@
  * stays a link to /settings/ai in every state.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { LLM_SETTINGS_CHANGED_EVENT } from '../../../lib/llmSettingsEvents';
 
 vi.mock('@almamesh/llm', async () => {
   const actual = await vi.importActual<typeof import('@almamesh/llm')>('@almamesh/llm');
@@ -40,6 +41,18 @@ describe('AiStatusBadge', () => {
   it('keeps the setup call-to-action when nothing is configured', () => {
     renderBadge({ kind: 'none', label: 'Not set', configured: false });
     expect(screen.getByTestId('ai-status-badge').textContent).toContain('Set up AI');
+  });
+
+  it('refreshes in the SAME tab when AI settings change (no focus/storage needed)', () => {
+    renderBadge({ kind: 'none', label: 'Not set', configured: false });
+    expect(screen.getByTestId('ai-status-badge').textContent).toContain('Set up AI');
+
+    // Simulate a save elsewhere in the same tab: status now configured + event.
+    mockedStatus.mockReturnValue({ kind: 'openrouter', label: 'OpenRouter', configured: true });
+    act(() => {
+      window.dispatchEvent(new Event(LLM_SETTINGS_CHANGED_EVENT));
+    });
+    expect(screen.getByTestId('ai-status-badge').textContent).toContain('AI: OpenRouter');
   });
 
   it('exposes an accessible name for the icon-only mobile rendering', () => {

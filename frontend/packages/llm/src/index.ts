@@ -94,7 +94,8 @@ export {
 } from "./config";
 export type { PrivacyMode, ProviderConfig, LlmEnv } from "./config";
 
-export { streamChatCompletion, LlmRequestError } from "./client";
+export { streamChatCompletion, LlmRequestError, testProviderConnection } from "./client";
+export type { TestConnectionOptions } from "./client";
 export type { ChatMessage, StreamChatOptions } from "./client";
 
 // Reading provenance: which resolved config (engine/model/endpoint — never a

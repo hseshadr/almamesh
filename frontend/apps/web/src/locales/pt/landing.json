@@ -41,7 +41,7 @@
       },
       {
         "title": "Use sua própria IA",
-        "body": "Por padrão: sem IA — seu mapa é puro cálculo e nada sai do seu dispositivo. Opcional: adicione narração no dispositivo (privada, beta) ou com qualquer modelo na nuvem compatível com OpenAI (mais forte)."
+        "body": "Por padrão: sem IA — seu mapa é puro cálculo e nada sai do seu dispositivo. Opcional: adicione narração com qualquer modelo compatível com OpenAI (OpenRouter ou seu próprio endpoint)."
       },
       {
         "title": "Converse com seu mapa",

@@ -24,7 +24,7 @@
   },
   "cta": {
     "title": "Conecta un modelo de IA para generar tu interpretación",
-    "body": "Tu carta se calcula en tu dispositivo. Para convertirla en una lectura personalizada, conecta un modelo de IA: usa la configuración rápida de OpenRouter con un clic o apunta AlmaMesh a un modelo local (por ejemplo, Ollama). ¿Prefieres privacidad total? También hay una opción de IA en el dispositivo (beta) en los ajustes de IA."
+    "body": "Tu carta se calcula en tu dispositivo. Para convertirla en una lectura personalizada, conecta un modelo de IA: usa la configuración rápida de OpenRouter con un clic o apunta AlmaMesh a un modelo local (por ejemplo, Ollama)."
   },
   "generation": {
     "title_generating": "Generando tu interpretación personalizada",
