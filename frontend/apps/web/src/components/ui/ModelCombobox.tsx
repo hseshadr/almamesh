@@ -1,4 +1,12 @@
-import { useId, useMemo, useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react';
+import {
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type KeyboardEvent,
+} from 'react';
 import { cn } from './cn';
 
 /**
@@ -44,8 +52,11 @@ export interface ModelComboboxProps {
 // English fallbacks — the caller (e.g. the settings screen) passes translated
 // strings via `loadingLabel` / `moreLabel` to keep i18n parity.
 const LOADING_TEXT = 'Loading models…';
-const TRUNCATION_HINT_TEXT = 'Type to narrow…';
-const MAX_VISIBLE_OPTIONS = 50;
+const TRUNCATION_HINT_TEXT = 'Type to search…';
+// A freshly-opened picker BROWSES a short slice (so you search instead of
+// scrolling a 300-model catalog); typing SEARCHES with a wider cap for matches.
+const BROWSE_LIMIT = 8;
+const SEARCH_LIMIT = 50;
 
 export function ModelCombobox({
   value,
@@ -65,20 +76,35 @@ export function ModelCombobox({
   const listboxId = `${inputId}-listbox`;
 
   const [isOpen, setIsOpen] = useState(false);
+  // Whether the user has typed since focusing. A freshly-opened picker BROWSES
+  // (a short slice of the whole catalog); the first keystroke switches to SEARCH
+  // (filter by the typed text). So a selected slug never collapses the list to
+  // itself — reopen and you can search the whole catalog afresh.
+  const [isSearching, setIsSearching] = useState(false);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const blurTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Clear the deferred blur-close on unmount so it can't setState on a gone tree.
+  useEffect(
+    () => () => {
+      if (blurTimeout.current) clearTimeout(blurTimeout.current);
+    },
+    [],
+  );
+
   const filtered = useMemo(() => {
-    const query = value.trim().toLowerCase();
+    const query = isSearching ? value.trim().toLowerCase() : '';
     if (query === '') return options;
     return options.filter(
       (option) =>
         option.id.toLowerCase().includes(query) || option.name.toLowerCase().includes(query),
     );
-  }, [options, value]);
+  }, [options, value, isSearching]);
 
-  const visibleOptions = filtered.slice(0, MAX_VISIBLE_OPTIONS);
-  const showTruncationHint = filtered.length > MAX_VISIBLE_OPTIONS;
+  const optionLimit = isSearching ? SEARCH_LIMIT : BROWSE_LIMIT;
+  const visibleOptions = filtered.slice(0, optionLimit);
+  const showTruncationHint = filtered.length > optionLimit;
   const showLoadingRow = loading && visibleOptions.length === 0;
   const dropdownVisible = isOpen && !disabled && (visibleOptions.length > 0 || showLoadingRow);
 
@@ -89,16 +115,22 @@ export function ModelCombobox({
   const selectOption = (option: ModelOption) => {
     onChange(option.id);
     setIsOpen(false);
+    setIsSearching(false);
     setActiveIndex(null);
   };
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     onChange(e.target.value);
+    setIsSearching(true);
     setActiveIndex(null);
     openIfPossible();
   };
 
   const handleFocus = () => {
+    // Browse from a clean slate; select the current text so the first keystroke
+    // replaces the slug and searches (only when there's a catalog to search).
+    setIsSearching(false);
+    if (options.length > 0) inputRef.current?.select();
     openIfPossible();
   };
 
@@ -149,6 +181,7 @@ export function ModelCombobox({
       }
     } else if (e.key === 'Escape') {
       setIsOpen(false);
+      setIsSearching(false);
     }
   };
 
@@ -160,6 +193,7 @@ export function ModelCombobox({
   return (
     <div className="relative">
       <input
+        ref={inputRef}
         id={inputId}
         type="text"
         role="combobox"

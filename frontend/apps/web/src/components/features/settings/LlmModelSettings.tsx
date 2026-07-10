@@ -43,8 +43,10 @@ import { resolveInterpretationConfig } from '../../../hooks/useStreamingInterpre
 
 const OPENROUTER_KEYS_URL = 'https://openrouter.ai/keys';
 const PLACEHOLDER_BASE = 'http://localhost:11434/v1';
-const PLACEHOLDER_INTERP_MODEL = 'deepseek/deepseek-v4-pro';
-const PLACEHOLDER_CHAT_MODEL = 'minimax/minimax-m2.7';
+// Reuse the single source of truth from @almamesh/llm so the placeholders never
+// drift from the actual recommended interpretation/chat models.
+const PLACEHOLDER_INTERP_MODEL = RECOMMENDED_CLOUD_MODEL;
+const PLACEHOLDER_CHAT_MODEL = CHAT_CLOUD_MODEL;
 
 /** Which Save button a verdict belongs to, so it renders under the right one. */
 type ConnSource = 'guided' | 'advanced';

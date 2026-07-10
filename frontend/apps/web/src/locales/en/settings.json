@@ -170,7 +170,7 @@
     "chat_label": "Chat model",
     "chat_advice": "A smaller, faster model is advised. Chat already reuses the chart facts and the generated reading, so it doesn't need a heavy model — a quick one keeps answers snappy.",
     "loading_models": "Loading models…",
-    "more_models": "Keep typing to narrow…",
+    "more_models": "Type to search…",
     "catalog_hint": "Pick from {{count}} OpenRouter models — or type any model id.",
     "catalog_unavailable": "Couldn't load the model list — type your model id."
   },

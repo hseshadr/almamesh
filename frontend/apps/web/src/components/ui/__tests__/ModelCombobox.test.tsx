@@ -168,4 +168,35 @@ describe('ModelCombobox', () => {
     expect(input.value).toBe('my-local-model');
     expect(onChange).toHaveBeenLastCalledWith('my-local-model');
   });
+
+  it('browsing (just focused) shows a short slice + a search hint, not the whole catalog', async () => {
+    const user = userEvent.setup();
+    const options: ModelOption[] = Array.from({ length: 12 }, (_, i) => ({
+      id: `vendor/model-${String(i).padStart(2, '0')}`,
+      name: `Model ${i}`,
+    }));
+    render(<Harness options={options} />);
+    const input = screen.getByTestId('model-combobox');
+
+    await user.click(input);
+
+    const listbox = screen.getByRole('listbox');
+    // Browse cap keeps the list short (8 of 12) so you search instead of scroll.
+    expect(within(listbox).getAllByRole('option')).toHaveLength(8);
+    expect(within(listbox).getByText(/Type to search/)).toBeTruthy();
+  });
+
+  it('a selected value does not collapse the list — reopening browses the full catalog', async () => {
+    const user = userEvent.setup();
+    render(<Harness initialValue="anthropic/claude-3" />);
+    const input = screen.getByTestId('model-combobox') as HTMLInputElement;
+    expect(input.value).toBe('anthropic/claude-3');
+
+    await user.click(input);
+
+    // Both options are offered even though the value equals one slug — you can
+    // search afresh instead of being stuck filtering down to the current pick.
+    const listbox = screen.getByRole('listbox');
+    expect(within(listbox).getAllByRole('option')).toHaveLength(2);
+  });
 });
