@@ -55,6 +55,42 @@ const DEFAULT_PRIVACY_MODE: PrivacyMode = "local_only";
 // preset (OpenRouter).
 const DEFAULT_ENGINE: LlmEngine = "openai-http";
 
+/** OpenRouter's OpenAI-compatible base URL — the one-click cloud preset target. */
+export const OPENROUTER_API_BASE = "https://openrouter.ai/api/v1";
+
+/** Best-effort hostname of a base URL, tolerating a missing scheme. */
+function hostnameOf(base: string): string | null {
+  for (const candidate of [base, `https://${base}`]) {
+    try {
+      return new URL(candidate).hostname.toLowerCase();
+    } catch {
+      // Try the next candidate (a scheme-less "openrouter.ai" only parses with one).
+    }
+  }
+  return null;
+}
+
+/**
+ * Canonicalize a hand-typed base URL for endpoints whose API path is a KNOWN
+ * fixed value, so a common copy/paste mistake doesn't dead-end the probe, the
+ * reading, and chat. Today that is OpenRouter: its OpenAI-compatible API always
+ * lives at `/api/v1`, so any `openrouter.ai` host (the dashboard root, a bare
+ * host, `/api`, a trailing slash) resolves to {@link OPENROUTER_API_BASE}.
+ * Every other endpoint (local Ollama, OpenAI, a custom proxy) passes through
+ * verbatim — only the host is inspected, never the path, so a proxy that merely
+ * has "openrouter" in its path is untouched.
+ */
+function normalizeKnownBase(base: string | undefined): string | undefined {
+  if (!base) {
+    return base;
+  }
+  const host = hostnameOf(base);
+  if (host === "openrouter.ai" || host === "www.openrouter.ai") {
+    return OPENROUTER_API_BASE;
+  }
+  return base;
+}
+
 // IPv4 private ranges (RFC 1918) + loopback, mirroring Python's
 // `ipaddress.is_private` / `is_loopback` for the host literals we care about.
 const PRIVATE_IPV4 =
@@ -125,13 +161,10 @@ export function resolveProviderConfig(env: LlmEnv = {}): ProviderConfig {
     engine,
     model: env.VITE_LLM_MODEL?.trim() || DEFAULT_MODEL,
     privacyMode: asPrivacyMode(env.VITE_LLM_PRIVACY_MODE?.trim()),
-    baseUrl: explicitBase || DEFAULT_BASE_URL,
+    baseUrl: normalizeKnownBase(explicitBase) || DEFAULT_BASE_URL,
     ...(apiKey ? { apiKey } : {}),
   };
 }
-
-/** OpenRouter's OpenAI-compatible base URL — the one-click cloud preset target. */
-export const OPENROUTER_API_BASE = "https://openrouter.ai/api/v1";
 
 /**
  * The recommended OpenRouter cloud model — the SINGLE source of truth for the
