@@ -56,3 +56,61 @@ describe('cityLookup (offline geocoder)', () => {
         expect(timezoneForCoordinates(35.68, 139.69)).toBe('Asia/Tokyo');
     });
 });
+
+describe('cityLookup — natural-language & diacritic matching', () => {
+    // Every natural way a user types San Francisco must surface the real city
+    // (United States, ~37.77, ~-122.42) as the FIRST result — including a
+    // state qualifier ("CA" / "California") the dataset has no field for, and
+    // country qualifiers ("USA" / "United States").
+    const SF_QUERIES = [
+        'San Francisco',
+        'san francisco',
+        'San Francisco, CA',
+        'San Francisco California',
+        'San Francisco, USA',
+        'San Francisco, United States',
+    ];
+
+    it.each(SF_QUERIES)('surfaces San Francisco #1 for %j', async (query) => {
+        const results = await searchCities(query);
+        expect(results.length).toBeGreaterThan(0);
+        const top = results[0];
+        expect(top.city).toBe('San Francisco');
+        expect(top.country).toBe('United States');
+        expect(top.countryCode).toBe('US');
+        expect(top.latitude).toBeCloseTo(37.77, 1);
+        expect(top.longitude).toBeCloseTo(-122.42, 1);
+    });
+
+    it('folds diacritics: "Sao Paulo" -> São Paulo, Brazil #1', async () => {
+        const results = await searchCities('Sao Paulo');
+        expect(results[0].city).toBe('São Paulo');
+        expect(results[0].country).toBe('Brazil');
+    });
+
+    it('folds diacritics: "Zurich" -> Zürich, Switzerland #1', async () => {
+        const results = await searchCities('Zurich');
+        expect(results[0].city).toBe('Zürich');
+        expect(results[0].country).toBe('Switzerland');
+    });
+
+    it('folds diacritics: "Bogota" -> Bogotá, Colombia #1', async () => {
+        const results = await searchCities('Bogota');
+        expect(results[0].city).toBe('Bogotá');
+        expect(results[0].country).toBe('Colombia');
+    });
+
+    it('does not over-match: a nonsense query returns nothing', async () => {
+        expect(await searchCities('Zzzznotacity')).toEqual([]);
+    });
+
+    it('honours the min-2-char gate (a single char returns nothing)', async () => {
+        expect(await searchCities('x')).toEqual([]);
+    });
+
+    it('a plain unqualified city still resolves: "Paris" -> Paris, France #1', async () => {
+        const results = await searchCities('Paris');
+        expect(results[0].city).toBe('Paris');
+        expect(results[0].country).toBe('France');
+    });
+});
