@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import i18n from '../i18n/config';
 import {
   classifyConnectionError,
+  connectionErrorDetail,
   ERROR_CODES,
   getChatErrorMessage,
   getEngineWarmingMessage,
@@ -11,13 +12,15 @@ import {
   isModelUnavailableMessage,
 } from './errors';
 
-/** Stand-in for the @almamesh/llm LlmRequestError (duck-typed .status/.name). */
+/** Stand-in for the @almamesh/llm LlmRequestError (duck-typed .status/.name/.body). */
 class FakeLlmRequestError extends Error {
   status?: number;
-  constructor(message: string, status?: number) {
+  body?: string;
+  constructor(message: string, status?: number, body?: string) {
     super(message);
     this.name = 'LlmRequestError';
     this.status = status;
+    this.body = body;
   }
 }
 
@@ -184,6 +187,39 @@ describe('classifyConnectionError', () => {
 
   it('falls back to unknown for an unrecognized failure', () => {
     expect(classifyConnectionError(new FakeLlmRequestError('returned 500 Internal Server Error', 500))).toBe('unknown');
+  });
+});
+
+describe('connectionErrorDetail', () => {
+  it("extracts the provider's structured error.message from a JSON body", () => {
+    const body =
+      '{"error":{"message":"Invalid \'max_output_tokens\': Expected a value >= 16, but got 1 instead.","code":"integer_below_min_value"}}';
+    const err = new FakeLlmRequestError('LLM endpoint returned 400 Bad Request', 400, body);
+    expect(connectionErrorDetail(err)).toBe(
+      "Invalid 'max_output_tokens': Expected a value >= 16, but got 1 instead.",
+    );
+  });
+
+  it('falls back to the raw body when it is not JSON', () => {
+    const err = new FakeLlmRequestError('returned 429', 429, 'Too Many Requests — slow down');
+    expect(connectionErrorDetail(err)).toBe('Too Many Requests — slow down');
+  });
+
+  it('falls back to the error message when there is no body (e.g. a fetch failure)', () => {
+    expect(connectionErrorDetail(new TypeError('Load failed'))).toBe('Load failed');
+  });
+
+  it('collapses whitespace and caps the length', () => {
+    const long = 'x'.repeat(400);
+    const err = new FakeLlmRequestError('m', 500, `  ${long}  `);
+    const detail = connectionErrorDetail(err)!;
+    expect(detail.length).toBeLessThanOrEqual(200);
+    expect(detail.startsWith('x')).toBe(true);
+  });
+
+  it('returns undefined when there is nothing useful to show', () => {
+    expect(connectionErrorDetail(new FakeLlmRequestError('', undefined, ''))).toBeUndefined();
+    expect(connectionErrorDetail(null)).toBeUndefined();
   });
 });
 

@@ -16,7 +16,7 @@ function jsonResponse(body: unknown, init: ResponseInit): Response {
 }
 
 describe("testProviderConnection", () => {
-  it("resolves on a 2xx and hits /chat/completions with a 1-token body + auth", async () => {
+  it("resolves on a 2xx and hits /chat/completions with a NO-max_tokens body + auth", async () => {
     const fetchImpl = vi.fn(async () =>
       jsonResponse({ choices: [{ message: { content: "ok" } }] }, { status: 200 }),
     );
@@ -29,7 +29,10 @@ describe("testProviderConnection", () => {
     expect(url).toBe("https://openrouter.ai/api/v1/chat/completions");
     expect((init.headers as Record<string, string>).Authorization).toBe("Bearer sk-or-123");
     const sent = JSON.parse(init.body as string);
-    expect(sent).toMatchObject({ model: "deepseek/deepseek-v4-pro", stream: false, max_tokens: 1 });
+    expect(sent).toMatchObject({ model: "deepseek/deepseek-v4-pro", stream: false });
+    // A token cap is BELOW the min-output floor of reasoning models (GPT-5 family,
+    // >= 16) → a `max_tokens: 1` probe 400s a model whose real reading would work.
+    expect(sent).not.toHaveProperty("max_tokens");
   });
 
   it("throws PrivacyViolationError BEFORE any fetch when local_only targets a cloud host", async () => {

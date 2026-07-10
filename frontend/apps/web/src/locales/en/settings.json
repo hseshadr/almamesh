@@ -150,6 +150,7 @@
     "error_privacy": "This endpoint isn't local. Tick \"Allow a cloud endpoint\" under Advanced to send the redacted chart off-device.",
     "error_network": "Couldn't reach the endpoint. Check the URL and your internet connection.",
     "error_unknown": "Couldn't connect. Please check your settings and try again.",
+    "error_detail": "The provider said: {{detail}}",
     "error_storage": "Couldn't save your settings in this browser — storage may be full or blocked (e.g. private mode). Free up space or try a normal window.",
     "credits_remaining": "{{remaining}} of {{total}} OpenRouter credits left",
     "credits_loading": "Checking your OpenRouter balance…",

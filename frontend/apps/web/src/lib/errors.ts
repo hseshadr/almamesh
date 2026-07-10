@@ -162,6 +162,45 @@ export function classifyConnectionError(err: unknown): ConnectionErrorKind {
   return 'unknown';
 }
 
+/** Cap the surfaced connection-error detail so a huge body can't flood the UI. */
+const MAX_DETAIL_CHARS = 200;
+
+/**
+ * Extract a short, human-readable detail from a caught connectivity-test error —
+ * the PROVIDER'S OWN reason (e.g. "Expected a value >= 16, but got 1 instead.")
+ * — so an otherwise-unclassifiable failure (`unknown`: a 400/429/5xx or an
+ * exotic fetch error) is never a blind dead-end. Prefers the structured
+ * `error.message` from an OpenAI/OpenRouter JSON error body; falls back to the
+ * raw body, then the error message. Returns `undefined` when there's nothing
+ * useful. This is the endpoint's response to a connection TEST the user
+ * triggered — surfacing it is honest and actionable, not an internal leak (a key
+ * never appears in a provider error body).
+ */
+export function connectionErrorDetail(err: unknown): string | undefined {
+  const body = (err as { body?: unknown } | null)?.body;
+  const raw =
+    typeof body === 'string' && body.trim()
+      ? body
+      : err instanceof Error
+        ? err.message
+        : '';
+  if (!raw.trim()) {
+    return undefined;
+  }
+  let text = raw;
+  try {
+    const parsed = JSON.parse(raw) as { error?: { message?: unknown }; message?: unknown };
+    const msg = parsed?.error?.message ?? parsed?.message;
+    if (typeof msg === 'string' && msg.trim()) {
+      text = msg;
+    }
+  } catch {
+    // Not JSON — surface the raw text as-is.
+  }
+  const cleaned = text.replace(/\s+/g, ' ').trim().slice(0, MAX_DETAIL_CHARS);
+  return cleaned || undefined;
+}
+
 /**
  * Get a user-friendly error message for chat/Q&A errors.
  * These are shown inline in the chat interface.

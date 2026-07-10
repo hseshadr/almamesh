@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { fetchOpenRouterModels, LlmRequestError } from "./client";
+import { fetchOpenRouterModels, LlmRequestError, testProviderConnection } from "./client";
 import { OPENROUTER_API_BASE, type ProviderConfig } from "./config";
 
 // Minimal fetch stub: a Response-shaped object is enough for the models reader,
@@ -27,6 +27,65 @@ const openRouterConfig: ProviderConfig = {
   baseUrl: OPENROUTER_API_BASE,
   apiKey: "sk-or-test",
 };
+
+describe("testProviderConnection", () => {
+  function okFetch(): { mock: ReturnType<typeof vi.fn>; impl: typeof fetch } {
+    const mock = vi.fn(() =>
+      Promise.resolve({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ choices: [{ message: { content: "ok" } }] }),
+        text: () => Promise.resolve("ok"),
+      } as unknown as Response),
+    );
+    return { mock, impl: mock as unknown as typeof fetch };
+  }
+
+  it("probes with NO max_tokens — a token cap wrongly rejects reasoning models (GPT-5 floor is 16)", async () => {
+    const { mock, impl } = okFetch();
+    await testProviderConnection({ config: openRouterConfig, fetchImpl: impl });
+    const init = mock.mock.calls[0][1] as RequestInit;
+    const body = JSON.parse(String(init.body)) as Record<string, unknown>;
+    // The real reading sends no token cap; the probe must not add one, or a model
+    // with a minimum-output floor (OpenAI reasoning / GPT-5 family) 400s the probe
+    // while the actual reading would succeed.
+    expect(body).not.toHaveProperty("max_tokens");
+  });
+
+  it("probes the exact configured model, non-streaming, with a message", async () => {
+    const { mock, impl } = okFetch();
+    await testProviderConnection({ config: openRouterConfig, fetchImpl: impl });
+    const body = JSON.parse(String((mock.mock.calls[0][1] as RequestInit).body)) as Record<
+      string,
+      unknown
+    >;
+    expect(body.model).toBe(openRouterConfig.model);
+    expect(body.stream).toBe(false);
+    expect(Array.isArray(body.messages)).toBe(true);
+  });
+
+  it("throws a typed LlmRequestError carrying the status + body on a non-2xx (so it's classifiable)", async () => {
+    const mock = vi.fn(() =>
+      Promise.resolve({
+        ok: false,
+        status: 400,
+        statusText: "Bad Request",
+        json: () => Promise.reject(new Error("no json")),
+        text: () =>
+          Promise.resolve(
+            '{"error":{"message":"Invalid \'max_output_tokens\': Expected a value >= 16, but got 1 instead."}}',
+          ),
+      } as unknown as Response),
+    );
+    const err = await testProviderConnection({
+      config: openRouterConfig,
+      fetchImpl: mock as unknown as typeof fetch,
+    }).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(LlmRequestError);
+    expect((err as LlmRequestError).status).toBe(400);
+    expect((err as LlmRequestError).body).toContain("Expected a value >= 16");
+  });
+});
 
 describe("fetchOpenRouterModels", () => {
   it("maps the catalog to sorted {id,name} and hits {base}/models", async () => {

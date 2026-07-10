@@ -161,11 +161,15 @@ export async function testProviderConnection(options: TestConnectionOptions): Pr
   const response = await doFetch(joinUrl(requireBaseUrl(options.config)), {
     method: "POST",
     headers: buildHeaders(options.config),
+    // NO `max_tokens`: the real reading never caps output, and a cap of 1 is
+    // BELOW the minimum-output floor that OpenAI reasoning / GPT-5-family models
+    // enforce (>= 16) — so a `max_tokens: 1` probe 400s on a perfectly valid
+    // model (e.g. openai/gpt-5.6-sol) while the actual reading would succeed. The
+    // probe must never be stricter than the request it stands in for.
     body: JSON.stringify({
       model: options.config.model,
       messages: [{ role: "user", content: "ping" }],
       stream: false,
-      max_tokens: 1,
     }),
     signal: options.signal,
   });

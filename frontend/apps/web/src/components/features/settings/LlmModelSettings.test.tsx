@@ -115,6 +115,36 @@ describe('LlmModelSettings — OpenRouter-first, test-on-save', () => {
     );
   });
 
+  it("surfaces the provider's actual reason when a failure is otherwise unclassifiable (400)", async () => {
+    // The exact reported bug: a reasoning model 400s a request param → the blind
+    // "unknown" verdict must now carry the provider's own message so it's not a
+    // dead-end. (The probe no longer sends max_tokens, but a future 400 still
+    // needs to be diagnosable.)
+    const err = Object.assign(new Error('LLM endpoint returned 400 Bad Request'), {
+      name: 'LlmRequestError',
+      status: 400,
+      body: '{"error":{"message":"Invalid \'max_output_tokens\': Expected a value >= 16, but got 1 instead."}}',
+    });
+    const testConnection = vi.fn().mockRejectedValue(err);
+    render(
+      <LlmModelSettings
+        resolveConfig={resolveConfig}
+        fetchCredits={fetchCredits}
+        fetchModels={fetchModels}
+        testConnection={testConnection}
+      />,
+    );
+    fireEvent.change(screen.getByTestId('llm-openrouter-key'), { target: { value: 'sk-or-abc' } });
+    fireEvent.click(screen.getByTestId('llm-save'));
+
+    await waitFor(() => expect(screen.getByTestId('llm-connection-detail')).toBeTruthy());
+    expect(screen.getByTestId('llm-connection-detail').textContent).toContain(
+      'Expected a value >= 16',
+    );
+    // The generic verdict still shows alongside the specific provider reason.
+    expect(screen.getByTestId('llm-connection-result').textContent).toContain("Couldn't connect");
+  });
+
   it('disables the advanced Save until an endpoint is entered (no empty-form probe)', () => {
     render(<LlmModelSettings resolveConfig={resolveConfig} fetchCredits={fetchCredits} fetchModels={fetchModels} testConnection={vi.fn()} />);
     expect((screen.getByTestId('llm-save-advanced') as HTMLButtonElement).disabled).toBe(true);
