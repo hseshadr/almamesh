@@ -37,7 +37,7 @@ import {
   type ProviderConfig,
 } from '@almamesh/llm';
 import { Badge, Button, ModelCombobox } from '../../ui';
-import { classifyConnectionError } from '../../../lib/errors';
+import { classifyConnectionError, connectionErrorDetail } from '../../../lib/errors';
 import { notifyLlmSettingsChanged } from '../../../lib/llmSettingsEvents';
 import { resolveInterpretationConfig } from '../../../hooks/useStreamingInterpretation';
 
@@ -63,7 +63,7 @@ type ConnState =
   | { phase: 'idle' }
   | { phase: 'testing'; source: ConnSource }
   | { phase: 'connected'; source: ConnSource }
-  | { phase: 'error'; source: ConnSource; kind: ResultKind };
+  | { phase: 'error'; source: ConnSource; kind: ResultKind; detail?: string };
 
 /** The live state of the OpenRouter balance read (OpenRouter-only). */
 type CreditsState =
@@ -276,7 +276,12 @@ export default function LlmModelSettings({
       }
       // Never swallow — the specific verdict below is all the user sees.
       console.error('[ai-settings] connection test failed:', err);
-      setConn({ phase: 'error', source, kind: classifyConnectionError(err) });
+      const kind = classifyConnectionError(err);
+      // When the failure is otherwise unclassifiable (a 400/429/5xx, e.g. a model
+      // rejecting a request param), surface the PROVIDER'S OWN reason so the user
+      // isn't stuck on a blind "couldn't connect" with no next step.
+      const detail = kind === 'unknown' ? connectionErrorDetail(err) : undefined;
+      setConn({ phase: 'error', source, kind, ...(detail ? { detail } : {}) });
     }
   };
 
@@ -542,11 +547,19 @@ function ConnectionResult({
       : conn.phase === 'error'
         ? 'text-red-400'
         : 'text-text-secondary';
+  const detail = conn.phase === 'error' ? conn.detail : undefined;
   return (
-    <p className={`mt-3 text-sm ${tone}`} role="status" data-testid="llm-connection-result">
-      {conn.phase === 'connected' ? '✓ ' : conn.phase === 'error' ? '✗ ' : ''}
-      {text}
-    </p>
+    <div className="mt-3" role="status" data-testid="llm-connection-result">
+      <p className={`text-sm ${tone}`}>
+        {conn.phase === 'connected' ? '✓ ' : conn.phase === 'error' ? '✗ ' : ''}
+        {text}
+      </p>
+      {detail && (
+        <p className="mt-1 text-text-muted text-xs" data-testid="llm-connection-detail">
+          {t('ai.error_detail', { detail })}
+        </p>
+      )}
+    </div>
   );
 }
 

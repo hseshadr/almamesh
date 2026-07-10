@@ -140,11 +140,15 @@ export interface TestConnectionOptions {
 }
 
 /**
- * Probe a provider with a single 1-token, non-streaming chat completion — the
- * cheapest request that validates endpoint reachability + auth + model id in one
- * shot, on the EXACT path the real reading uses. Resolves on 2xx; otherwise
- * throws the SAME typed errors the reading would hit, so the settings UI can give
- * an honest, specific verdict the moment the user saves:
+ * Probe a provider with a single non-streaming chat completion that MIRRORS the
+ * exact request the real interpretation reading makes (`chatCompletionJson`):
+ * same endpoint, same auth, same model, same `response_format: { type:
+ * "json_object" }` JSON-mode flag. Validates endpoint reachability + auth +
+ * model id + JSON-mode support in one shot, on the EXACT path the reading uses —
+ * so a model/endpoint that can't do JSON mode fails HERE, at save time, instead
+ * of failing every real reading afterwards. Resolves on 2xx; otherwise throws
+ * the SAME typed errors the reading would hit, so the settings UI can give an
+ * honest, specific verdict the moment the user saves:
  *   - `PrivacyViolationError` — the fail-closed gate (local_only vs a cloud host).
  *   - `LlmRequestError` (carrying `.status`) — a non-2xx response (401/403 bad
  *     key, 402 out of credits, 404/400 bad model, …).
@@ -152,6 +156,10 @@ export interface TestConnectionOptions {
  *
  * Chosen over `GET /models`: OpenRouter serves that unauthenticated and never
  * validates the model, so a bad key or typo'd slug would falsely pass.
+ *
+ * NOTE: OpenAI's `json_object` mode returns 400 unless the request's messages
+ * contain the word "json" somewhere — the probe message is worded to satisfy
+ * that requirement (mirroring how the real reading's prompts are worded).
  */
 export async function testProviderConnection(options: TestConnectionOptions): Promise<void> {
   // Fail-closed BEFORE any network call — same contract as the streaming path.
@@ -161,11 +169,16 @@ export async function testProviderConnection(options: TestConnectionOptions): Pr
   const response = await doFetch(joinUrl(requireBaseUrl(options.config)), {
     method: "POST",
     headers: buildHeaders(options.config),
+    // NO `max_tokens`: the real reading never caps output, and a cap of 1 is
+    // BELOW the minimum-output floor that OpenAI reasoning / GPT-5-family models
+    // enforce (>= 16) — so a `max_tokens: 1` probe 400s on a perfectly valid
+    // model (e.g. openai/gpt-5.6-sol) while the actual reading would succeed. The
+    // probe must never be stricter than the request it stands in for.
     body: JSON.stringify({
       model: options.config.model,
-      messages: [{ role: "user", content: "ping" }],
+      messages: [{ role: "user", content: 'Reply with a compact JSON object like {"ok":true}.' }],
       stream: false,
-      max_tokens: 1,
+      response_format: { type: "json_object" },
     }),
     signal: options.signal,
   });

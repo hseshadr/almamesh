@@ -119,6 +119,8 @@ export type ConnectionErrorKind =
   | 'auth'
   | 'model'
   | 'privacy'
+  | 'rate_limited'
+  | 'server'
   | 'network'
   | 'unknown';
 
@@ -129,7 +131,10 @@ export type ConnectionErrorKind =
  * across the @almamesh/llm module boundary without `instanceof` coupling. Order
  * matters: billing (402) is checked before auth, and auth before model, because a
  * 402 body can also mention the model and a rejected key must not read as "bad
- * model". A `fetch` failure has no HTTP status → `network`.
+ * model". Rate limiting (429) and provider outages (5xx) are checked next — both
+ * are transient and out of the user's control, so they must not fall into the
+ * useless "check your settings" `unknown` bucket. A `fetch` failure has no HTTP
+ * status → `network`.
  */
 export function classifyConnectionError(err: unknown): ConnectionErrorKind {
   const message = err instanceof Error ? err.message : String(err);
@@ -149,6 +154,12 @@ export function classifyConnectionError(err: unknown): ConnectionErrorKind {
   if (status === 404 || isModelUnavailableMessage(message)) {
     return 'model';
   }
+  if (status === 429) {
+    return 'rate_limited';
+  }
+  if (status !== undefined && status >= 500) {
+    return 'server';
+  }
   // No HTTP status = the request never reached the endpoint (DNS, connection
   // refused, CORS, offline). Match on the message `fetch`'s TypeError carries —
   // "Failed to fetch" (Chrome) / "Load failed" (Safari) / "NetworkError"
@@ -160,6 +171,68 @@ export function classifyConnectionError(err: unknown): ConnectionErrorKind {
     return 'network';
   }
   return 'unknown';
+}
+
+/** Cap the surfaced connection-error detail so a huge body can't flood the UI. */
+const MAX_DETAIL_CHARS = 200;
+
+/**
+ * Extract a short, human-readable detail from a caught connectivity-test error —
+ * the PROVIDER'S OWN reason (e.g. "Expected a value >= 16, but got 1 instead.")
+ * — so an otherwise-unclassifiable failure (`unknown`: a 400/429/5xx or an
+ * exotic fetch error) is never a blind dead-end. Prefers the deepest structured
+ * message from an OpenAI/OpenRouter JSON error body (unwrapping OpenRouter's
+ * `error.metadata.raw` wrapper — see `deepestProviderMessage`); falls back to the
+ * raw body, then the error message. Returns `undefined` when there's nothing
+ * useful. This is the endpoint's response to a connection TEST the user
+ * triggered — surfacing it is honest and actionable, not an internal leak (a key
+ * never appears in a provider error body).
+ */
+/**
+ * Pull the deepest human-readable reason out of a provider error body. OpenAI-
+ * compatible bodies put it at `error.message`. OpenRouter, however, WRAPS the
+ * upstream error: the top-level `error.message` is a generic "Provider returned
+ * error" and the real reason is a JSON string in `error.metadata.raw` (verified
+ * live against openrouter.ai 2026-07-10). We recurse into that nested raw and
+ * prefer the deepest message, so the surfaced detail is the actionable upstream
+ * reason, not OpenRouter's generic wrapper. Returns undefined for non-JSON input
+ * (the caller then surfaces the raw text as-is).
+ */
+function deepestProviderMessage(raw: string): string | undefined {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return undefined;
+  }
+  const error = (parsed as { error?: unknown } | null)?.error;
+  const nestedRaw = (error as { metadata?: { raw?: unknown } } | undefined)?.metadata?.raw;
+  if (typeof nestedRaw === 'string' && nestedRaw.trim()) {
+    const deeper = deepestProviderMessage(nestedRaw);
+    if (deeper) {
+      return deeper;
+    }
+  }
+  const msg =
+    (error as { message?: unknown } | undefined)?.message ??
+    (parsed as { message?: unknown } | null)?.message;
+  return typeof msg === 'string' && msg.trim() ? msg : undefined;
+}
+
+export function connectionErrorDetail(err: unknown): string | undefined {
+  const body = (err as { body?: unknown } | null)?.body;
+  const raw =
+    typeof body === 'string' && body.trim()
+      ? body
+      : err instanceof Error
+        ? err.message
+        : '';
+  if (!raw.trim()) {
+    return undefined;
+  }
+  const text = deepestProviderMessage(raw) ?? raw;
+  const cleaned = text.replace(/\s+/g, ' ').trim().slice(0, MAX_DETAIL_CHARS);
+  return cleaned || undefined;
 }
 
 /**
