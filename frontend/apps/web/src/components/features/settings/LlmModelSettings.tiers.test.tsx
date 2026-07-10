@@ -17,18 +17,20 @@ function readSaved(): Record<string, unknown> {
   return raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
 }
 
-// Stub the balance read so a pre-seeded OpenRouter tier can't hit the real
-// network when the credits auto-fetch fires on mount.
+// Stub the balance + model-catalog reads so a pre-seeded OpenRouter tier can't
+// hit the real network when the auto-fetches fire on mount.
 const fetchCredits = vi.fn().mockResolvedValue({ totalCredits: 5, totalUsage: 1, remaining: 4 });
+const fetchModels = vi.fn().mockResolvedValue([]);
 
 function renderTiers() {
-  return render(<LlmModelSettings fetchCredits={fetchCredits} />);
+  return render(<LlmModelSettings fetchCredits={fetchCredits} fetchModels={fetchModels} />);
 }
 
 describe('LlmModelSettings — tiers', () => {
   beforeEach(() => {
     window.localStorage.clear();
     fetchCredits.mockClear();
+    fetchModels.mockClear();
   });
   afterEach(() => window.localStorage.clear());
 

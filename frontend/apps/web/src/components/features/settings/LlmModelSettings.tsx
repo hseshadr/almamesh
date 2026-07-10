@@ -15,32 +15,38 @@
  * stored ONLY in the browser's localStorage via @almamesh/llm; no backend.
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   CHAT_CLOUD_MODEL,
   describeLlmStatus,
   fetchOpenRouterCredits,
+  fetchOpenRouterModels,
   isLocalEndpoint,
   openRouterPreset,
+  OPENROUTER_API_BASE,
   readLlmSettings,
+  resolveProviderConfig,
   testProviderConnection,
   writeLlmSettings,
   RECOMMENDED_CLOUD_MODEL,
   type LlmSettings,
   type LlmStatus,
   type OpenRouterCredits,
+  type OpenRouterModel,
   type ProviderConfig,
 } from '@almamesh/llm';
-import { Badge, Button } from '../../ui';
+import { Badge, Button, ModelCombobox } from '../../ui';
 import { classifyConnectionError } from '../../../lib/errors';
 import { notifyLlmSettingsChanged } from '../../../lib/llmSettingsEvents';
 import { resolveInterpretationConfig } from '../../../hooks/useStreamingInterpretation';
 
 const OPENROUTER_KEYS_URL = 'https://openrouter.ai/keys';
 const PLACEHOLDER_BASE = 'http://localhost:11434/v1';
-const PLACEHOLDER_INTERP_MODEL = 'deepseek/deepseek-v4-pro';
-const PLACEHOLDER_CHAT_MODEL = 'minimax/minimax-m2.7';
+// Reuse the single source of truth from @almamesh/llm so the placeholders never
+// drift from the actual recommended interpretation/chat models.
+const PLACEHOLDER_INTERP_MODEL = RECOMMENDED_CLOUD_MODEL;
+const PLACEHOLDER_CHAT_MODEL = CHAT_CLOUD_MODEL;
 
 /** Which Save button a verdict belongs to, so it renders under the right one. */
 type ConnSource = 'guided' | 'advanced';
@@ -66,6 +72,13 @@ type CreditsState =
   | { phase: 'loaded'; credits: OpenRouterCredits }
   | { phase: 'error' };
 
+/** The live state of the OpenRouter model-catalog read (OpenRouter-only). */
+type ModelsState =
+  | { phase: 'idle' }
+  | { phase: 'loading' }
+  | { phase: 'loaded'; models: OpenRouterModel[] }
+  | { phase: 'error' };
+
 /**
  * Injectable seams so the component is unit-testable without a network round-trip
  * — default to the real interpretation-config resolver + connectivity probe +
@@ -78,12 +91,17 @@ export interface LlmModelSettingsProps {
     config: ProviderConfig;
     signal?: AbortSignal;
   }) => Promise<OpenRouterCredits>;
+  fetchModels?: (opts: {
+    config: ProviderConfig;
+    signal?: AbortSignal;
+  }) => Promise<OpenRouterModel[]>;
 }
 
 export default function LlmModelSettings({
   resolveConfig = resolveInterpretationConfig,
   testConnection = testProviderConnection,
   fetchCredits = fetchOpenRouterCredits,
+  fetchModels = fetchOpenRouterModels,
 }: LlmModelSettingsProps = {}) {
   const { t } = useTranslation('settings');
   const [status, setStatus] = useState<LlmStatus>(() => describeLlmStatus());
@@ -135,6 +153,50 @@ export default function LlmModelSettings({
     }
     return () => creditsAbort.current?.abort();
   }, [showCredits, loadCredits]);
+
+  // Populate the model pickers from OpenRouter's LIVE catalog so a user can never
+  // save a slug that isn't a real model (the "That model isn't available" dead-end).
+  // Derived from the CURRENTLY-typed endpoint (normalized), so the picker fills the
+  // moment the endpoint is OpenRouter — even before saving. A catalog read is
+  // PUBLIC: `resolveProviderConfig` omits the key (no VITE_LLM_API_KEY passed), so
+  // no key is ever sent — and `fetchOpenRouterModels` fail-closes to OpenRouter only.
+  const modelsConfig = useMemo(
+    () => resolveProviderConfig({ VITE_LLM_API_BASE: settings.apiBase }),
+    [settings.apiBase],
+  );
+  const showModels = modelsConfig.baseUrl.startsWith(OPENROUTER_API_BASE);
+  const [models, setModels] = useState<ModelsState>({ phase: 'idle' });
+  const modelsAbort = useRef<AbortController | null>(null);
+
+  const loadModels = useCallback(() => {
+    modelsAbort.current?.abort();
+    const controller = new AbortController();
+    modelsAbort.current = controller;
+    setModels({ phase: 'loading' });
+    fetchModels({ config: modelsConfig, signal: controller.signal })
+      .then((m) => {
+        if (!controller.signal.aborted) setModels({ phase: 'loaded', models: m });
+      })
+      .catch((err) => {
+        if (controller.signal.aborted) return;
+        // Never swallow: the picker is a nice-to-have, so we degrade to plain
+        // free-text entry (the combobox with no options), but log the reason.
+        console.error('[ai-settings] could not read OpenRouter models:', err);
+        setModels({ phase: 'error' });
+      });
+  }, [fetchModels, modelsConfig]);
+
+  useEffect(() => {
+    if (showModels) {
+      loadModels();
+    } else {
+      setModels({ phase: 'idle' });
+    }
+    return () => modelsAbort.current?.abort();
+  }, [showModels, loadModels]);
+
+  const modelOptions = models.phase === 'loaded' ? models.models : [];
+  const modelsLoading = models.phase === 'loading';
 
   // Editing any field invalidates any in-flight probe (its verdict was for the
   // OLD config) and abandons the last verdict — the config on screen is unsaved.
@@ -349,35 +411,52 @@ export default function LlmModelSettings({
               />
             </label>
 
-            <label className="block">
+            {showModels && models.phase === 'loaded' && (
+              <p className="text-text-muted text-xs" data-testid="llm-catalog-status">
+                {t('aiModels.catalog_hint', { count: models.models.length })}
+              </p>
+            )}
+            {showModels && models.phase === 'error' && (
+              <p className="text-text-muted text-xs" data-testid="llm-catalog-status">
+                {t('aiModels.catalog_unavailable')}
+              </p>
+            )}
+
+            <div className="block">
               <span className="text-text-primary text-sm font-medium">{t('aiModels.interpretation_label')}</span>
-              <input
-                type="text"
+              <ModelCombobox
                 value={interpretationValue}
+                onChange={(v) => patch({ interpretationModel: v })}
+                options={modelOptions}
+                loading={modelsLoading}
                 placeholder={PLACEHOLDER_INTERP_MODEL}
-                onChange={(e) => patch({ interpretationModel: e.target.value })}
-                className="mt-1 w-full px-3 py-2 bg-background-secondary border border-ui-border rounded-lg text-text-primary text-sm"
+                aria-label={t('aiModels.interpretation_label')}
+                loadingLabel={t('aiModels.loading_models')}
+                moreLabel={t('aiModels.more_models')}
                 data-testid="llm-model"
               />
               <p className="text-text-muted text-xs mt-1" data-testid="llm-model-advice">
                 {t('aiModels.interpretation_advice')}
               </p>
-            </label>
+            </div>
 
-            <label className="block">
+            <div className="block">
               <span className="text-text-primary text-sm font-medium">{t('aiModels.chat_label')}</span>
-              <input
-                type="text"
+              <ModelCombobox
                 value={settings.chatModel ?? ''}
+                onChange={(v) => patch({ chatModel: v })}
+                options={modelOptions}
+                loading={modelsLoading}
                 placeholder={PLACEHOLDER_CHAT_MODEL}
-                onChange={(e) => patch({ chatModel: e.target.value })}
-                className="mt-1 w-full px-3 py-2 bg-background-secondary border border-ui-border rounded-lg text-text-primary text-sm"
+                aria-label={t('aiModels.chat_label')}
+                loadingLabel={t('aiModels.loading_models')}
+                moreLabel={t('aiModels.more_models')}
                 data-testid="llm-chat-model"
               />
               <p className="text-text-muted text-xs mt-1" data-testid="llm-chat-model-advice">
                 {t('aiModels.chat_advice')}
               </p>
-            </label>
+            </div>
 
             <label className="flex items-center justify-between">
               <span className="text-text-primary text-sm font-medium">{t('ai.allow_cloud_label')}</span>

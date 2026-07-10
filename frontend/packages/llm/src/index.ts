@@ -99,8 +99,15 @@ export {
   LlmRequestError,
   testProviderConnection,
   fetchOpenRouterCredits,
+  fetchOpenRouterModels,
 } from "./client";
-export type { TestConnectionOptions, FetchCreditsOptions, OpenRouterCredits } from "./client";
+export type {
+  TestConnectionOptions,
+  FetchCreditsOptions,
+  OpenRouterCredits,
+  FetchModelsOptions,
+  OpenRouterModel,
+} from "./client";
 export type { ChatMessage, StreamChatOptions } from "./client";
 
 // Reading provenance: which resolved config (engine/model/endpoint — never a

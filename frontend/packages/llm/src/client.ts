@@ -248,6 +248,76 @@ export async function fetchOpenRouterCredits(
   return { totalCredits, totalUsage, remaining: totalCredits - totalUsage };
 }
 
+/** One model offered by the OpenRouter catalog (its `/models` list). */
+export interface OpenRouterModel {
+  /** The slug used verbatim as the `model` in a completion request. */
+  readonly id: string;
+  /** Human-friendly display name; falls back to `id` when the catalog omits it. */
+  readonly name: string;
+}
+
+interface OpenRouterModelsResponse {
+  readonly data?: ReadonlyArray<{ readonly id?: unknown; readonly name?: unknown }>;
+}
+
+/** Options for reading the OpenRouter model catalog. */
+export interface FetchModelsOptions {
+  readonly config: ProviderConfig;
+  readonly signal?: AbortSignal;
+  /** Optional fetch override for testing; defaults to the global `fetch`. */
+  readonly fetchImpl?: typeof fetch;
+}
+
+/**
+ * Read OpenRouter's model catalog via `GET {baseUrl}/models`, mapped to a sorted
+ * `{ id, name }[]` for a searchable model picker. Populating the picker from the
+ * LIVE catalog means a user can never save a slug that isn't a real model — the
+ * dead-end that "That model isn't available" was warning about.
+ *
+ * OpenRouter-ONLY by contract, enforced fail-closed HERE (not just by the caller):
+ * the endpoint MUST be OpenRouter's, so the Bearer key is never sent to a
+ * local/loopback or a bring-your-own host — mirroring {@link fetchOpenRouterCredits}.
+ * A non-2xx (401 bad key) throws the same typed `LlmRequestError` the reading path
+ * uses, so the UI can classify it with `classifyConnectionError` and degrade to
+ * plain free-text entry rather than a hard failure.
+ */
+export async function fetchOpenRouterModels(
+  options: FetchModelsOptions,
+): Promise<OpenRouterModel[]> {
+  const baseUrl = requireBaseUrl(options.config);
+  if (!baseUrl.startsWith(OPENROUTER_API_BASE)) {
+    throw new LlmRequestError(
+      `Models are only available for OpenRouter (endpoint was ${baseUrl})`,
+    );
+  }
+  const doFetch = options.fetchImpl ?? fetch;
+  const response = await doFetch(modelsUrl(baseUrl), {
+    method: "GET",
+    headers: buildHeaders(options.config),
+    signal: options.signal,
+  });
+  if (!response.ok) {
+    throw await requestErrorFor(response);
+  }
+  let payload: OpenRouterModelsResponse;
+  try {
+    payload = (await response.json()) as OpenRouterModelsResponse;
+  } catch {
+    throw new LlmRequestError("OpenRouter models response was not valid JSON");
+  }
+  const rows = Array.isArray(payload.data) ? payload.data : [];
+  const models: OpenRouterModel[] = [];
+  for (const row of rows) {
+    if (typeof row?.id !== "string" || row.id.length === 0) {
+      continue;
+    }
+    const name = typeof row.name === "string" && row.name.length > 0 ? row.name : row.id;
+    models.push({ id: row.id, name });
+  }
+  models.sort((a, b) => a.id.localeCompare(b.id));
+  return models;
+}
+
 function buildHeaders(config: ProviderConfig): Record<string, string> {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (config.apiKey) {
@@ -263,6 +333,11 @@ function joinUrl(baseUrl: string): string {
 /** OpenRouter's account-balance endpoint, off the same `{baseUrl}` (…/api/v1). */
 function creditsUrl(baseUrl: string): string {
   return `${baseUrl.replace(/\/$/, "")}/credits`;
+}
+
+/** OpenRouter's model-catalog endpoint, off the same `{baseUrl}` (…/api/v1). */
+function modelsUrl(baseUrl: string): string {
+  return `${baseUrl.replace(/\/$/, "")}/models`;
 }
 
 /**
