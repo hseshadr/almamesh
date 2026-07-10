@@ -52,9 +52,6 @@
     "themes": "Temas clave"
   },
   "continue": {
-    "report_title": "Informe para imprimir",
-    "report_body": "Un documento de archivo en papel con la carta, la capa de tiempos y la lectura.",
-    "report_locked": "Disponible cuando tu lectura esté generada.",
     "timing_body": "Tránsitos, las dieciséis cartas divisionales, Ashtakavarga y Shadbala — el panel de instrumentos completo.",
     "open": "Abrir"
   }

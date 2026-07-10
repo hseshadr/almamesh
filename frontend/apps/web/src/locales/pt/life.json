@@ -52,9 +52,6 @@
     "themes": "Temas-chave"
   },
   "continue": {
-    "report_title": "Relatório para impressão",
-    "report_body": "Um documento de arquivo em papel com o mapa, a camada de tempos e a leitura.",
-    "report_locked": "Disponível quando sua leitura for gerada.",
     "timing_body": "Trânsitos, os dezesseis mapas divisionais, Ashtakavarga e Shadbala — o painel de instrumentos completo.",
     "open": "Abrir"
   }

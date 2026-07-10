@@ -5,7 +5,7 @@
  * tier carries the honest "redacted chart data leaves your device" one-liner;
  * and "Turn AI off" returns a configured cloud tier to the None default.
  */
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 
 import '../../../i18n/config';
@@ -17,12 +17,19 @@ function readSaved(): Record<string, unknown> {
   return raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
 }
 
+// Stub the balance read so a pre-seeded OpenRouter tier can't hit the real
+// network when the credits auto-fetch fires on mount.
+const fetchCredits = vi.fn().mockResolvedValue({ totalCredits: 5, totalUsage: 1, remaining: 4 });
+
 function renderTiers() {
-  return render(<LlmModelSettings />);
+  return render(<LlmModelSettings fetchCredits={fetchCredits} />);
 }
 
 describe('LlmModelSettings — tiers', () => {
-  beforeEach(() => window.localStorage.clear());
+  beforeEach(() => {
+    window.localStorage.clear();
+    fetchCredits.mockClear();
+  });
   afterEach(() => window.localStorage.clear());
 
   it('renders the None + Cloud tiers', () => {
@@ -67,5 +74,10 @@ describe('LlmModelSettings — tiers', () => {
     const saved = readSaved();
     expect(saved.engine).toBe('');
     expect(saved.apiBase).toBe('');
+    // Security: disconnecting re-arms the fail-closed privacy fence (a persisted
+    // cloud_premium would otherwise stay and keep ensurePrivacy inert), and drops
+    // the key so nothing lingers in storage.
+    expect(saved.privacyMode).toBe('local_only');
+    expect(saved.apiKey).toBe('');
   });
 });

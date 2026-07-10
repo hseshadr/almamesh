@@ -106,6 +106,16 @@ describe("resolveProviderConfig — safe OSS defaults, never a bundled key", () 
     expect(cfg.model).toBe("deepseek/deepseek-chat");
   });
 
+  it("drops a leftover key when no explicit endpoint is configured (never a Bearer to loopback)", () => {
+    // Security: after "Turn AI off" the endpoint is cleared but a key can linger
+    // in localStorage. With no explicit base the config falls back to the local
+    // Ollama default — the leftover key must NOT be attached, so it can never be
+    // sent as a Bearer header to whatever listens on loopback.
+    const cfg = resolveProviderConfig({ VITE_LLM_API_KEY: "sk-leftover" });
+    expect(cfg.baseUrl).toBe("http://localhost:11434/v1");
+    expect(cfg.apiKey).toBeUndefined();
+  });
+
   it("ignores an unknown privacy mode and falls back to local_only", () => {
     const cfg = resolveProviderConfig({ VITE_LLM_PRIVACY_MODE: "wide_open" });
     expect(cfg.privacyMode).toBe("local_only");
