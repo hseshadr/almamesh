@@ -133,3 +133,11 @@ describe("ProviderConfig type-level guard", () => {
     expect(missingEndpoint.engine).toBe("openai-http");
   });
 });
+
+describe("ReadingProvenance.predictiveAware", () => {
+  it("does NOT affect the config fingerprint (a predictive upgrade is not a config change)", () => {
+    const base: ReadingProvenance = { engine: "openai-http", model: "m", baseUrl: "https://h/v1" };
+    const aware: ReadingProvenance = { ...base, predictiveAware: true };
+    expect(configFingerprint(aware)).toBe(configFingerprint(base));
+  });
+});

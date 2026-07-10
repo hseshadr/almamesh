@@ -25,6 +25,9 @@ export interface HttpReadingProvenance {
   readonly model: string;
   /** The OpenAI-compatible endpoint the reading was produced against. */
   readonly baseUrl?: string;
+  /** Was the full predictive superset composed into this reading? Additive;
+   *  ignored by configFingerprint (not a producer-identity field). */
+  readonly predictiveAware?: boolean;
 }
 
 /**
