@@ -80,6 +80,15 @@ const SECTION_JSON: Record<InterpretationSectionKey, unknown> = {
       },
     ],
   },
+  current_sky: {
+    current_sky: [
+      {
+        title: "The Saturn Mahadasha, Mercury Antardasha",
+        layman: "You're in a steady, building chapter right now.",
+        technical: "Saturn maha (2017-02 to 2036-02), Mercury antar active.",
+      },
+    ],
+  },
 };
 
 function markerFor(body: string): InterpretationSectionKey {
@@ -134,6 +143,7 @@ const ALL_SECTIONS: InterpretationSectionKey[] = [
   "guidance2",
   "remedial",
   "upcoming_periods",
+  "current_sky",
 ];
 
 describe("streamStructuredInterpretation — happy path", () => {
@@ -192,6 +202,10 @@ describe("streamStructuredInterpretation — happy path", () => {
     expect(interp.upcoming_periods).toHaveLength(1);
     expect(interp.upcoming_periods?.[0]?.title).toBe("Sun antardasha — 2027-01 to 2028-01");
     expect(interp.upcoming_periods?.[0]?.layman).toMatch(/visible/);
+
+    expect(interp.current_sky).toHaveLength(1);
+    expect(interp.current_sky?.[0]?.title).toBe("The Saturn Mahadasha, Mercury Antardasha");
+    expect(interp.current_sky?.[0]?.layman).toMatch(/building chapter/);
   });
 
   it("tolerates ```json-fenced section payloads", async () => {
@@ -231,13 +245,14 @@ describe("streamStructuredInterpretation — degrade gracefully", () => {
     expect(errors).toHaveLength(1);
     expect(errors[0]).toMatchObject({ type: "error", section: "yoga" });
 
-    // The other five sections still completed.
+    // The other six sections still completed.
     for (const key of [
       "core",
       "guidance1",
       "guidance2",
       "remedial",
       "upcoming_periods",
+      "current_sky",
     ] as const) {
       expect(events).toContainEqual({ type: "section_complete", section: key });
     }
@@ -274,7 +289,7 @@ describe("streamStructuredInterpretation — degrade gracefully", () => {
 
     // It surfaced per-section errors before throwing, and never emitted a
     // (misleading) `complete` event.
-    expect(seen.filter((e) => e.type === "error")).toHaveLength(6);
+    expect(seen.filter((e) => e.type === "error")).toHaveLength(7);
     expect(seen.filter((e) => e.type === "complete")).toHaveLength(0);
   });
 
@@ -421,7 +436,7 @@ describe("streamStructuredInterpretation — egress", () => {
       }),
     );
 
-    expect(bodies).toHaveLength(6);
+    expect(bodies).toHaveLength(7);
     for (const body of bodies) {
       expect(body).not.toMatch(/chart_id|generated_at|calculation_timestamp/);
       expect(body).not.toMatch(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/);
@@ -458,7 +473,7 @@ describe("streamStructuredInterpretation — engine predictive context", () => {
 
   it("injects the delimited predictive block into every section prompt", async () => {
     const bodies = await captureBodies(predictiveChart);
-    expect(bodies).toHaveLength(6);
+    expect(bodies).toHaveLength(7);
     for (const body of bodies) {
       expect(body).toContain("ENGINE PREDICTIVE CONTEXT");
       // Sade Sati + a month-precision window + a strength figure all reach the LLM.

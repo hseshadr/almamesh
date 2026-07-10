@@ -49,7 +49,8 @@ export type InterpretationSectionKey =
   | "guidance1"
   | "guidance2"
   | "remedial"
-  | "upcoming_periods";
+  | "upcoming_periods"
+  | "current_sky";
 
 export type InterpretationEvent =
   | { type: "section_start"; section: InterpretationSectionKey }
@@ -72,13 +73,14 @@ export interface StructuredInterpretationParams {
   readonly fetchImpl?: typeof fetch;
 }
 
-const ALL_SECTIONS: readonly InterpretationSectionKey[] = [
+export const ALL_SECTIONS: readonly InterpretationSectionKey[] = [
   "core",
   "yoga",
   "guidance1",
   "guidance2",
   "remedial",
   "upcoming_periods",
+  "current_sky",
 ];
 
 // =============================================================================
@@ -779,6 +781,11 @@ function parseUpcomingPeriods(json: unknown): TitledPersona[] {
   return parseTitledPersonas(rec.upcoming_periods);
 }
 
+function parseCurrentSky(json: unknown): TitledPersona[] {
+  const rec = asRecord(json);
+  return parseTitledPersonas(rec.current_sky);
+}
+
 // =============================================================================
 // Section results container (filled in parallel; merged at the end)
 // =============================================================================
@@ -790,6 +797,7 @@ interface SectionResults {
   guidance2: Guidance2Slice;
   remedial: RemedialMeasures | null;
   upcoming_periods: TitledPersona[];
+  current_sky: TitledPersona[];
 }
 
 function emptyResults(): SectionResults {
@@ -814,6 +822,7 @@ function emptyResults(): SectionResults {
     },
     remedial: null,
     upcoming_periods: [],
+    current_sky: [],
   };
 }
 
@@ -843,6 +852,9 @@ function applySection(
     case "upcoming_periods":
       results.upcoming_periods = parseUpcomingPeriods(json);
       return;
+    case "current_sky":
+      results.current_sky = parseCurrentSky(json);
+      return;
   }
 }
 
@@ -863,6 +875,9 @@ function mergeResults(results: SectionResults): VedicInterpretation {
     life_evolution_guidance: results.guidance2.life_evolution_guidance,
     remedial_measures: results.remedial,
     upcoming_periods: results.upcoming_periods,
+    // Degrades gracefully: an empty array (predictive absent, or the section
+    // failed) becomes null/absent so the UI never renders an empty block.
+    current_sky: results.current_sky.length > 0 ? results.current_sky : null,
   };
 }
 
