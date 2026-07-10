@@ -1,4 +1,4 @@
-// Structured six-section Vedic interpretation generator, ported to run entirely
+// Structured seven-section Vedic interpretation generator, ported to run entirely
 // client-side against any OpenAI-compatible endpoint (no backend).
 //
 // This is the in-browser port of the predecessor's multi-call orchestrator
@@ -928,7 +928,7 @@ function mergeResults(results: SectionResults): VedicInterpretation {
 }
 
 // =============================================================================
-// Orchestration: 5 parallel JSON calls -> stream of events -> merged complete
+// Orchestration: 7 parallel JSON calls -> stream of events -> merged complete
 // =============================================================================
 
 /** Internal per-section outcome reported back to the event loop. */
@@ -991,7 +991,7 @@ function summarizeFailures(messages: readonly string[]): string {
 }
 
 /**
- * Sanitize a chart and stream a structured six-section Vedic interpretation.
+ * Sanitize a chart and stream a structured seven-section Vedic interpretation.
  *
  * Emits `section_start` for every section up front, runs every section's JSON
  * call in PARALLEL, emits `section_complete` per successful section and `error`
