@@ -222,6 +222,7 @@
   },
   "interpretation": {
     "heading": "Interpretação",
+    "current_sky": "O que está ativo agora e a seguir",
     "strengths": "Forças",
     "challenges": "Desafios",
     "life_themes": "Grandes temas de vida",

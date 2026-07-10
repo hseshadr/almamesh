@@ -80,3 +80,51 @@ describe('ReportInterpretation — The Road Ahead (upcoming_periods)', () => {
     expect(screen.queryByTestId('report-road-ahead')).toBeNull();
   });
 });
+
+describe('ReportInterpretation — current_sky ("What\'s Active Now & Next", Spec 065)', () => {
+  beforeEach(() => {
+    useLanguageStore.setState({ language: 'en' });
+  });
+
+  it('renders the predictive section prominently, in the layman voice, for the "you" audience', () => {
+    const interpretation: VedicInterpretation = {
+      ...BASE,
+      current_sky: [
+        {
+          title: 'Saturn Antardasha',
+          layman: 'A steady, building phase.',
+          technical: 'Saturn antardasha within Jupiter mahadasha.',
+        },
+      ],
+    };
+    render(<ReportInterpretation interpretation={interpretation} audience="you" />);
+    const section = screen.getByTestId('report-current-sky');
+    expect(section.textContent).toContain('Saturn Antardasha');
+    expect(section.textContent).toContain('A steady, building phase.');
+    expect(section.textContent).not.toContain('Saturn antardasha within Jupiter mahadasha.');
+  });
+
+  it('renders the technical voice for the astrologer audience', () => {
+    const interpretation: VedicInterpretation = {
+      ...BASE,
+      current_sky: [
+        { title: 'Saturn Antardasha', layman: 'Plain words.', technical: 'Saturn antardasha within Jupiter mahadasha.' },
+      ],
+    };
+    render(<ReportInterpretation interpretation={interpretation} audience="astrologer" />);
+    expect(screen.getByTestId('report-current-sky').textContent).toContain(
+      'Saturn antardasha within Jupiter mahadasha.',
+    );
+  });
+
+  it('is ABSENT when current_sky is null (honesty fence: never invent timing)', () => {
+    render(<ReportInterpretation interpretation={{ ...BASE, current_sky: null }} audience="you" />);
+    expect(screen.queryByTestId('report-current-sky')).toBeNull();
+  });
+
+  it('OLD stored readings without the field render fine and skip the section', () => {
+    render(<ReportInterpretation interpretation={BASE} audience="you" />);
+    expect(screen.getByTestId('report-interpretation')).toBeTruthy();
+    expect(screen.queryByTestId('report-current-sky')).toBeNull();
+  });
+});
