@@ -38,6 +38,9 @@ function fullInterpretation(): VedicInterpretation {
       { title: 'Jupiter Period', layman: 'Growth ahead.', technical: 'Jupiter mahadasha begins.' },
     ],
     current_period_guidance: null,
+    current_sky: [
+      { title: 'Saturn Antardasha', layman: 'A steady, building phase.', technical: 'Saturn antardasha within Jupiter mahadasha.' },
+    ],
   };
 }
 
@@ -141,5 +144,46 @@ describe('DashboardInterpretation', () => {
 
     rerender(<DashboardInterpretation interpretation={minimalInterpretation()} audience="you" />);
     expect(screen.queryByTestId('dashboard-deepening-notice')).toBeNull();
+  });
+
+  it('renders the current_sky section prominently, always visible (not collapsed), when populated', () => {
+    render(<DashboardInterpretation interpretation={fullInterpretation()} audience="you" />);
+
+    const currentSky = screen.getByTestId('dashboard-current-sky');
+    expect(currentSky).toBeTruthy();
+    expect(screen.getByText('Saturn Antardasha')).toBeTruthy();
+    expect(screen.getByText('A steady, building phase.')).toBeTruthy();
+    // Not a collapsible: no toggle button inside it.
+    expect(within(currentSky).queryByRole('button')).toBeNull();
+  });
+
+  it('omits the current_sky section when null (honesty fence: never invent timing)', () => {
+    render(
+      <DashboardInterpretation
+        interpretation={{ ...fullInterpretation(), current_sky: null }}
+        audience="you"
+      />,
+    );
+    expect(screen.queryByTestId('dashboard-current-sky')).toBeNull();
+  });
+
+  it('omits the current_sky section when the array is empty', () => {
+    render(
+      <DashboardInterpretation
+        interpretation={{ ...fullInterpretation(), current_sky: [] }}
+        audience="you"
+      />,
+    );
+    expect(screen.queryByTestId('dashboard-current-sky')).toBeNull();
+  });
+
+  it('shows the "Enriched with your current timing" caption only when predictiveAware', () => {
+    const { rerender } = render(
+      <DashboardInterpretation interpretation={fullInterpretation()} audience="you" predictiveAware />,
+    );
+    expect(screen.getByTestId('dashboard-enriched-caption')).toBeTruthy();
+
+    rerender(<DashboardInterpretation interpretation={fullInterpretation()} audience="you" />);
+    expect(screen.queryByTestId('dashboard-enriched-caption')).toBeNull();
   });
 });

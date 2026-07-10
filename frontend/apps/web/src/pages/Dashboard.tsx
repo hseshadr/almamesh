@@ -898,6 +898,7 @@ export default function DashboardPage() {
               interpretation={interpretation}
               audience={audience}
               deepeningWithTiming={deepeningWithTiming}
+              predictiveAware={readingIsPredictiveAware}
             />
             {hasPeriodGuidance && periodGuidance && (
               <div className="space-y-1.5 border-l-2 border-accent-gold/40 pl-4">

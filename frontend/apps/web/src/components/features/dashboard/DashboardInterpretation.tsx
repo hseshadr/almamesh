@@ -132,6 +132,13 @@ interface DashboardInterpretationProps {
    * flicker/bug — never invents content itself.
    */
   readonly deepeningWithTiming?: boolean;
+  /**
+   * True when THIS reading's provenance shows the full predictive superset
+   * was composed at generation time (Spec 065). Drives the "Enriched with
+   * your current timing" caption; purely a display flag, never a claim about
+   * what `current_sky` contains.
+   */
+  readonly predictiveAware?: boolean;
 }
 
 /** The full reading on the dashboard: core narrative + collapsible depth. */
@@ -139,8 +146,15 @@ export function DashboardInterpretation({
   interpretation,
   audience,
   deepeningWithTiming = false,
+  predictiveAware = false,
 }: DashboardInterpretationProps): ReactElement | null {
   const { t } = useTranslation('dashboard');
+
+  // "What's active now & next" (Spec 065): the predictive differentiator.
+  // Degrades gracefully — absent/empty on a natal-only reading (honesty
+  // fence: never invent timing) — so it is simply not rendered.
+  const currentSky = resolveTitledItems(interpretation.current_sky ?? [], audience);
+  const hasCurrentSky = currentSky.length > 0;
 
   const strengths = resolveTitledItems(interpretation.strengths, audience);
   const challenges = resolveTitledItems(interpretation.challenges, audience);
@@ -152,7 +166,7 @@ export function DashboardInterpretation({
 
   const hasCore = strengths.length > 0 || challenges.length > 0 || themes.length > 0;
   const hasDepth = Boolean(yogaText) || guidance.length > 0 || roadAhead.length > 0;
-  if (!hasCore && !hasDepth && !deepeningWithTiming) {
+  if (!hasCore && !hasDepth && !hasCurrentSky && !deepeningWithTiming) {
     return null;
   }
 
@@ -168,6 +182,26 @@ export function DashboardInterpretation({
         >
           {t('reading.deepening')}
         </p>
+      ) : null}
+
+      {/* Prominent, ALWAYS-VISIBLE (never collapsed) — the predictive
+          differentiator leads the reading when present. */}
+      {hasCurrentSky ? (
+        <div>
+          <CoreGroup
+            title={t('interpretation.current_sky')}
+            items={currentSky}
+            testid="dashboard-current-sky"
+          />
+          {predictiveAware ? (
+            <p
+              className="mt-2 text-[11px] uppercase tracking-[0.18em] text-text-tertiary"
+              data-testid="dashboard-enriched-caption"
+            >
+              {t('reading.enriched_caption')}
+            </p>
+          ) : null}
+        </div>
       ) : null}
 
       {hasCore ? (
