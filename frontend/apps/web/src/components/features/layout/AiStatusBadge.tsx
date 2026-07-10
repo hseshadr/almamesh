@@ -40,13 +40,13 @@ export function AiStatusBadge() {
       data-testid="ai-status-badge"
       className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ${
         ready
-          ? 'border-accent-gold/30 bg-accent-gold/10 text-accent-gold hover:bg-accent-gold/20'
+          ? 'border-status-success/40 bg-status-success/10 text-status-success hover:bg-status-success/20'
           : 'border-amber-400/40 bg-amber-400/10 text-amber-300 hover:bg-amber-400/20'
       }`}
     >
       <span
         aria-hidden
-        className={`h-1.5 w-1.5 shrink-0 rounded-full ${ready ? 'bg-accent-gold' : 'bg-amber-400'}`}
+        className={`h-1.5 w-1.5 shrink-0 rounded-full ${ready ? 'bg-status-success' : 'bg-amber-400'}`}
       />
       <span className="hidden truncate sm:inline">{label}</span>
     </Link>

@@ -63,4 +63,18 @@ describe('AiStatusBadge', () => {
       'AI: OpenRouter',
     );
   });
+
+  it('renders an ACTIVE (configured) provider in the green success token, not warning gold', () => {
+    // Lucas's report: an active AI connection reading as gold/amber "looks like
+    // it's in question". A live, working AI should read as green (success).
+    renderBadge({ kind: 'openrouter', label: 'OpenRouter', configured: true });
+    const className = screen.getByTestId('ai-status-badge').className;
+    expect(className).toContain('status-success');
+    expect(className).not.toContain('accent-gold');
+  });
+
+  it('keeps the not-yet-configured state amber (a gentle "needs setup" cue)', () => {
+    renderBadge({ kind: 'none', label: 'Not set', configured: false });
+    expect(screen.getByTestId('ai-status-badge').className).toContain('amber');
+  });
 });
