@@ -180,13 +180,45 @@ const MAX_DETAIL_CHARS = 200;
  * Extract a short, human-readable detail from a caught connectivity-test error —
  * the PROVIDER'S OWN reason (e.g. "Expected a value >= 16, but got 1 instead.")
  * — so an otherwise-unclassifiable failure (`unknown`: a 400/429/5xx or an
- * exotic fetch error) is never a blind dead-end. Prefers the structured
- * `error.message` from an OpenAI/OpenRouter JSON error body; falls back to the
+ * exotic fetch error) is never a blind dead-end. Prefers the deepest structured
+ * message from an OpenAI/OpenRouter JSON error body (unwrapping OpenRouter's
+ * `error.metadata.raw` wrapper — see `deepestProviderMessage`); falls back to the
  * raw body, then the error message. Returns `undefined` when there's nothing
  * useful. This is the endpoint's response to a connection TEST the user
  * triggered — surfacing it is honest and actionable, not an internal leak (a key
  * never appears in a provider error body).
  */
+/**
+ * Pull the deepest human-readable reason out of a provider error body. OpenAI-
+ * compatible bodies put it at `error.message`. OpenRouter, however, WRAPS the
+ * upstream error: the top-level `error.message` is a generic "Provider returned
+ * error" and the real reason is a JSON string in `error.metadata.raw` (verified
+ * live against openrouter.ai 2026-07-10). We recurse into that nested raw and
+ * prefer the deepest message, so the surfaced detail is the actionable upstream
+ * reason, not OpenRouter's generic wrapper. Returns undefined for non-JSON input
+ * (the caller then surfaces the raw text as-is).
+ */
+function deepestProviderMessage(raw: string): string | undefined {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return undefined;
+  }
+  const error = (parsed as { error?: unknown } | null)?.error;
+  const nestedRaw = (error as { metadata?: { raw?: unknown } } | undefined)?.metadata?.raw;
+  if (typeof nestedRaw === 'string' && nestedRaw.trim()) {
+    const deeper = deepestProviderMessage(nestedRaw);
+    if (deeper) {
+      return deeper;
+    }
+  }
+  const msg =
+    (error as { message?: unknown } | undefined)?.message ??
+    (parsed as { message?: unknown } | null)?.message;
+  return typeof msg === 'string' && msg.trim() ? msg : undefined;
+}
+
 export function connectionErrorDetail(err: unknown): string | undefined {
   const body = (err as { body?: unknown } | null)?.body;
   const raw =
@@ -198,16 +230,7 @@ export function connectionErrorDetail(err: unknown): string | undefined {
   if (!raw.trim()) {
     return undefined;
   }
-  let text = raw;
-  try {
-    const parsed = JSON.parse(raw) as { error?: { message?: unknown }; message?: unknown };
-    const msg = parsed?.error?.message ?? parsed?.message;
-    if (typeof msg === 'string' && msg.trim()) {
-      text = msg;
-    }
-  } catch {
-    // Not JSON — surface the raw text as-is.
-  }
+  const text = deepestProviderMessage(raw) ?? raw;
   const cleaned = text.replace(/\s+/g, ' ').trim().slice(0, MAX_DETAIL_CHARS);
   return cleaned || undefined;
 }

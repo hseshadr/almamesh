@@ -216,6 +216,31 @@ describe('connectionErrorDetail', () => {
     );
   });
 
+  it("unwraps OpenRouter's nested metadata.raw to the upstream provider reason", () => {
+    // OpenRouter WRAPS the upstream error: the useful reason lives in
+    // error.metadata.raw (a JSON string), while the top-level error.message is a
+    // generic "Provider returned error". Real body captured live from
+    // openrouter.ai 2026-07-10 (openai/gpt-5.6-sol, max_tokens:1). Surfacing the
+    // generic wrapper would defeat connectionErrorDetail's whole purpose, so we
+    // recurse into the nested raw and prefer the deepest message.
+    const upstream = JSON.stringify({
+      error: {
+        message:
+          "Invalid 'max_output_tokens': integer below minimum value. Expected a value >= 16, but got 1 instead.",
+        type: 'invalid_request_error',
+        param: 'max_output_tokens',
+        code: 'integer_below_min_value',
+      },
+    });
+    const body = JSON.stringify({
+      error: { message: 'Provider returned error', code: 400, metadata: { raw: upstream } },
+    });
+    const err = new FakeLlmRequestError('LLM endpoint returned 400 Bad Request', 400, body);
+    expect(connectionErrorDetail(err)).toBe(
+      "Invalid 'max_output_tokens': integer below minimum value. Expected a value >= 16, but got 1 instead.",
+    );
+  });
+
   it('falls back to the raw body when it is not JSON', () => {
     const err = new FakeLlmRequestError('returned 429', 429, 'Too Many Requests — slow down');
     expect(connectionErrorDetail(err)).toBe('Too Many Requests — slow down');
