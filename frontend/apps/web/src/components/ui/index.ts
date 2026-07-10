@@ -22,3 +22,4 @@ export {
 } from './Tabs';
 export { Tooltip, type TooltipProps } from './Tooltip';
 export { Dialog, type DialogProps } from './Dialog';
+export { ModelCombobox, type ModelOption, type ModelComboboxProps } from './ModelCombobox';

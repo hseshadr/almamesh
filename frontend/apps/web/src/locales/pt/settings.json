@@ -171,7 +171,11 @@
     "interpretation_label": "Modelo de interpretação / leitura do mapa",
     "interpretation_advice": "Aqui recomenda-se um modelo forte e de ponta. A leitura do mapa é gerada uma única vez e é a análise mais profunda que o AlmaMesh produz.",
     "chat_label": "Modelo de chat",
-    "chat_advice": "Recomenda-se um modelo menor e mais rápido. O chat já reutiliza os dados do mapa e a leitura gerada, então não precisa de um modelo pesado — um rápido mantém as respostas ágeis."
+    "chat_advice": "Recomenda-se um modelo menor e mais rápido. O chat já reutiliza os dados do mapa e a leitura gerada, então não precisa de um modelo pesado — um rápido mantém as respostas ágeis.",
+    "loading_models": "Carregando modelos…",
+    "more_models": "Continue digitando para filtrar…",
+    "catalog_hint": "Escolha entre {{count}} modelos do OpenRouter — ou digite qualquer id de modelo.",
+    "catalog_unavailable": "Não foi possível carregar a lista de modelos — digite o id do seu modelo."
   },
   "tiers": {
     "none_title": "IA desativada",
