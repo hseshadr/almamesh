@@ -2,8 +2,8 @@
  * Dashboard — "Regenerate reading" + LLM-config-change auto-regeneration.
  *
  * A completed reading carries a provenance fingerprint of the config that
- * produced it. The reading-section header offers a Regenerate button (disabled
- * while generating / when no AI is configured), and the auto-generate effect
+ * produced it. The identity-strip actions row offers a Regenerate button
+ * (disabled while generating / when no AI is configured), and the auto-generate effect
  * regenerates ONCE when the stored provenance no longer matches the currently
  * resolved config — but only when AI is configured. A stale reading is NEVER
  * destroyed: it stays on screen through (and after, if) a failed regeneration.
@@ -53,7 +53,12 @@ vi.mock('../../providers/chartEngineContext', () => ({
 // Stub them so the minimal raw chart fixture below can stay minimal.
 vi.mock('../../components/features/dashboard', () => ({
   ChartVisualization: () => null,
-  IdentityStrip: () => null,
+  // Render the `actions` prop: the Regenerate button now lives in the identity
+  // strip's actions row (moved out of the reading-section header), so a null
+  // mock would swallow it and every regenerate-reading assertion would fail.
+  IdentityStrip: ({ actions }: { actions?: import('react').ReactNode }) => (
+    <div data-testid="identity-strip">{actions}</div>
+  ),
   LifeAtlas: () => null,
   DashboardInterpretation: () => null,
 }));
@@ -218,7 +223,7 @@ describe('Dashboard — regenerate reading', () => {
     useContentModeStore.setState({ contentMode: 'layman' });
   });
 
-  it('shows an enabled "Regenerate reading" button in the reading header when AI is configured', async () => {
+  it('shows an enabled "Regenerate reading" button in the top actions row when AI is configured', async () => {
     configureCloudAi();
     seedCompleteReading(currentProvenance());
     renderDashboard();
@@ -228,6 +233,34 @@ describe('Dashboard — regenerate reading', () => {
     // Scoped label: the READING regenerates — the chart is deterministic and
     // never needs to.
     expect(button.textContent ?? '').toContain('Regenerate reading');
+  });
+
+  it('REGRESSION: keeps the Regenerate button reachable when a completed reading has an EMPTY summary (recovery affordance, no dead-end)', async () => {
+    configureCloudAi();
+    // A completed, KEPT reading whose summary came back empty (placeholder) yet
+    // still carries a valid insight field — hasValidInterpretation stays true.
+    // The prose reading section (gated on a ready summary) does NOT render, but
+    // the Regenerate button must remain reachable so the user can recover
+    // instead of hitting a dead-end (auto-memory 17372).
+    const emptySummaryReading: VedicInterpretation = {
+      ...INTERPRETATION,
+      summary: { layman: '', technical: '' },
+    };
+    useInterpretationStore.setState({ byChart: {} });
+    useInterpretationStore
+      .getState()
+      .setInterpretation('chart-1', emptySummaryReading, '2026-06-20T00:00:00Z', currentProvenance());
+    // Nothing should auto-fire (provenance matches); pin the stream just in case.
+    mockedStream.mockImplementation(pendingStream());
+    renderDashboard();
+
+    const button = await screen.findByTestId<HTMLButtonElement>('regenerate-reading');
+    // Empty summary → the prose section is hidden, yet the recovery affordance survives.
+    expect(screen.queryByTestId('reading-section')).toBeNull();
+    expect(button.disabled).toBe(false);
+    await settle();
+    // Matching provenance + a kept reading → no spurious auto-regeneration.
+    expect(mockedStream).not.toHaveBeenCalled();
   });
 
   it('disables the Regenerate button when no AI is configured (reading still shown)', async () => {
