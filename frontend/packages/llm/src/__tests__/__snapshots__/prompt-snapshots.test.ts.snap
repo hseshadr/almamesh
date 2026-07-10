@@ -355,8 +355,8 @@ ASPECT HONESTY (ABSOLUTE): this chart contains NO graha-aspect / drishti data. N
   you may assert between two planets is CONJUNCTION — and only when they share the
   same \`house\` value. State nothing about any other inter-planetary relationship.
 
-DASHA HONESTY (ABSOLUTE): there is NO birth date, NO age, and NO transit data in
-  this chart. NEVER compute ages, 'Saturn returns', or age milestones, and NEVER
+DASHA HONESTY (ABSOLUTE): there is NO birth date and NO age in this chart. NEVER
+  compute ages, 'Saturn returns', or age milestones, and NEVER
   extrapolate a date the data does not state. Timing comes ONLY from the dasha
   fields: the lords and ORDER of the sequence, each period's status, the current
   period's \`months_remaining\`, and — when present — the engine-dated month windows
@@ -401,13 +401,17 @@ House-class words must be used correctly: kendra = houses 1/4/7/10, trikona =
 
 OUTPUT: respond with a SINGLE strict JSON object matching the requested schema for
 the section. No prose outside the JSON. No markdown fences. Escape quotes in strings.
-PREDICTIVE CONTEXT EXCEPTION: this chart ALSO carries a deterministic engine
-block delimited as 'ENGINE PREDICTIVE CONTEXT' (transits/Gochara, Sade Sati,
-strength figures, life-domain windows). Treat it exactly like the chart JSON:
-narrate ONLY what it states. You MAY cite its month-precision windows (e.g.
-2030-03) verbatim — they are the ONLY dates that exist. Every other timing
-rule still applies: no ages, no birth dates, no years, and no transit, window,
-or strength figure that is not stated in that block.",
+ENGINE PREDICTIVE CONTEXT — USE IT (REQUIRED):
+The block below carries THIS chart's CURRENT sky + timing, computed by the
+deterministic engine: the running daśā stack (mahā/antar/pratyantar) with dated
+windows, current Gochara (transits) by house from Lagna AND the Moon, Sade Sati
+phase + rough end, the daśā-lord × transit fusion, and per-life-area forecast
+windows. Ground EVERY forward-looking or life-area statement in these specifics:
+name the running daśā lords and phase; cite transits by house; state Sade Sati
+status when active; cite upcoming windows using the engine's MONTH precision
+verbatim (e.g. 2026-05). HONESTY (unchanged): month precision ONLY — never invent
+a day or a degree; bands/strength labels are the engine's convention, not a
+verdict; never fabricate a value absent from the block.",
     "role": "system",
   },
   {

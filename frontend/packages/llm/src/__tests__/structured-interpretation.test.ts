@@ -443,8 +443,11 @@ describe("streamStructuredInterpretation — egress", () => {
       // Requests JSON object responses.
       expect(JSON.parse(body).response_format).toEqual({ type: "json_object" });
       // The golden chart carries no predictive contexts — the prompt must stay
-      // byte-free of the predictive block (graceful absence).
-      expect(body).not.toContain("ENGINE PREDICTIVE CONTEXT");
+      // byte-free of the actual embedded predictive block (graceful absence).
+      // (The current_sky section's OWN task prose legitimately names the block
+      // — it must tell the model to return [] when it is absent — so this
+      // checks the delimited block's unique marker, not the bare phrase.)
+      expect(body).not.toContain("(deterministic engine output)");
     }
   });
 });
@@ -494,8 +497,12 @@ describe("streamStructuredInterpretation — engine predictive context", () => {
       return messages.find((m) => m.role === "system")?.content ?? "";
     };
 
-    expect(systemOf(withCtx[0]!)).toMatch(/PREDICTIVE CONTEXT EXCEPTION/);
-    expect(systemOf(withoutCtx[0]!)).not.toMatch(/PREDICTIVE CONTEXT EXCEPTION/);
+    // With predictive: the REQUIRED directive is present.
+    expect(systemOf(withCtx[0]!)).toMatch(/ENGINE PREDICTIVE CONTEXT — USE IT \(REQUIRED\)/);
+    // Without predictive: the natal-only honesty fence is present instead, and
+    // the required directive is absent.
+    expect(systemOf(withoutCtx[0]!)).not.toMatch(/ENGINE PREDICTIVE CONTEXT — USE IT/);
+    expect(systemOf(withoutCtx[0]!)).toMatch(/NATAL-ONLY HONESTY/);
   });
 
   it("does not duplicate the contexts as raw JSON in the chart payload", async () => {
