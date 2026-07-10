@@ -255,7 +255,7 @@ export default function DashboardPage() {
       // Compose the persisted raw predictive contexts (when ready for this
       // profile) so chat answers can cite the engine's transit/strength/domain
       // facts (Spec 062 delta 1); absent contexts → natal-only, as before.
-      chart: withRawPredictive(chart, chartId),
+      chart: withRawPredictive(chart, chartId).chart,
       question,
       config,
       mode: chatMode,
