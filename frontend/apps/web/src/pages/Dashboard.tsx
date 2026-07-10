@@ -30,7 +30,7 @@ import {
   useRectificationRecordsStore,
 } from "@almamesh/store";
 
-import { Button, Card, Spinner } from "../components/ui";
+import { Card, Spinner } from "../components/ui";
 import { ContentModeToggle } from "../components/ui/ContentModeToggle";
 import { MarkdownContent } from "../components/ui/MarkdownContent";
 import { FloatingChatPanel } from "../components/features/chat/FloatingChatPanel";
@@ -556,6 +556,37 @@ export default function DashboardPage() {
                 </svg>
                 {t('dashboard:actions.export_pdf')}
               </button>
+              {/* Regenerate the reading with the currently configured AI. Lives
+                  in the top actions row (reachable on mobile, unlike the old
+                  header slot) and is gated on an existing `interpretation` — so
+                  it stays present as a recovery affordance even when a completed
+                  reading came back with an empty summary (the prose section
+                  below unmounts, but this button does not). Disabled while a run
+                  is in flight or when no AI is configured (never a silent
+                  no-op). */}
+              {interpretation && (
+                <button
+                  type="button"
+                  onClick={handleRegenerateReading}
+                  disabled={isStreamingInterpretation || !canRegenerateReading}
+                  data-testid="regenerate-reading"
+                  title={
+                    !canRegenerateReading
+                      ? t('dashboard:reading.regen_no_ai')
+                      : t('dashboard:actions.regenerate')
+                  }
+                  className="inline-flex items-center gap-1.5 rounded-md border border-ui-border px-3 py-1.5 text-sm text-text-secondary transition-colors hover:border-accent-gold/40 hover:text-text-primary disabled:cursor-not-allowed disabled:border-ui-border/60 disabled:text-text-tertiary disabled:hover:border-ui-border/60"
+                >
+                  {isStreamingInterpretation ? (
+                    <Spinner size="sm" />
+                  ) : (
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                  )}
+                  {t('dashboard:actions.regenerate')}
+                </button>
+              )}
               <FeedbackWidget page="dashboard" />
               <Link
                 to="/settings"
@@ -672,47 +703,10 @@ export default function DashboardPage() {
                the full interpretation. */}
         {summaryReady && interpretation && (
           <section className="space-y-5" data-testid="reading-section">
-            <header className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+            <header>
               <h2 className="font-display text-xl text-text-primary">
                 {t('life:reading.heading')}
               </h2>
-              {/* Regenerate the reading with the currently configured AI. The
-                  old reading stays on screen until the new one lands; while a
-                  run is in flight — or when no AI is configured — this is
-                  disabled, WITH the caption below explaining why (never a
-                  silent no-op). */}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleRegenerateReading}
-                disabled={isStreamingInterpretation || !canRegenerateReading}
-                title={
-                  !canRegenerateReading
-                    ? t('dashboard:reading.regen_no_ai')
-                    : undefined
-                }
-                data-testid="regenerate-reading"
-              >
-                {isStreamingInterpretation ? (
-                  <Spinner size="sm" />
-                ) : (
-                  <svg
-                    className="h-4 w-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    aria-hidden="true"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                    />
-                  </svg>
-                )}
-                {t('dashboard:actions.regenerate')}
-              </Button>
             </header>
             {/* WHY Regenerate is unavailable: no AI configured — with the door
                 to AI settings. */}
