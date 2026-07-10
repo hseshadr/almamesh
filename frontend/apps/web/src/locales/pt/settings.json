@@ -153,6 +153,8 @@
     "error_privacy": "Este endpoint não é local. Marque «Permitir um endpoint na nuvem» em Avançado para enviar o mapa sem dados pessoais para fora do dispositivo.",
     "error_network": "Não foi possível acessar o endpoint. Verifique a URL e a sua conexão com a internet.",
     "error_unknown": "Não foi possível conectar. Verifique as suas configurações e tente novamente.",
+    "error_rate_limited": "O provedor está limitando as solicitações. Espere um momento e tente novamente.",
+    "error_server": "O provedor está com problemas no momento. Tente novamente em breve.",
     "error_detail": "O provedor respondeu: {{detail}}",
     "error_storage": "Não foi possível salvar as suas configurações neste navegador — o armazenamento pode estar cheio ou bloqueado (ex.: modo privado). Libere espaço ou use uma janela normal.",
     "credits_remaining": "Restam {{remaining}} de {{total}} em créditos do OpenRouter",

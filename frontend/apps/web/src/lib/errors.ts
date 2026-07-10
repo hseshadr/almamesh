@@ -119,6 +119,8 @@ export type ConnectionErrorKind =
   | 'auth'
   | 'model'
   | 'privacy'
+  | 'rate_limited'
+  | 'server'
   | 'network'
   | 'unknown';
 
@@ -129,7 +131,10 @@ export type ConnectionErrorKind =
  * across the @almamesh/llm module boundary without `instanceof` coupling. Order
  * matters: billing (402) is checked before auth, and auth before model, because a
  * 402 body can also mention the model and a rejected key must not read as "bad
- * model". A `fetch` failure has no HTTP status → `network`.
+ * model". Rate limiting (429) and provider outages (5xx) are checked next — both
+ * are transient and out of the user's control, so they must not fall into the
+ * useless "check your settings" `unknown` bucket. A `fetch` failure has no HTTP
+ * status → `network`.
  */
 export function classifyConnectionError(err: unknown): ConnectionErrorKind {
   const message = err instanceof Error ? err.message : String(err);
@@ -148,6 +153,12 @@ export function classifyConnectionError(err: unknown): ConnectionErrorKind {
   }
   if (status === 404 || isModelUnavailableMessage(message)) {
     return 'model';
+  }
+  if (status === 429) {
+    return 'rate_limited';
+  }
+  if (status !== undefined && status >= 500) {
+    return 'server';
   }
   // No HTTP status = the request never reached the endpoint (DNS, connection
   // refused, CORS, offline). Match on the message `fetch`'s TypeError carries —

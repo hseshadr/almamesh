@@ -64,6 +64,20 @@ describe("testProviderConnection", () => {
     expect(Array.isArray(body.messages)).toBe(true);
   });
 
+  it("mirrors chatCompletionJson's JSON mode — response_format json_object and a message containing 'json'", async () => {
+    const { mock, impl } = okFetch();
+    await testProviderConnection({ config: openRouterConfig, fetchImpl: impl });
+    const body = JSON.parse(String((mock.mock.calls[0][1] as RequestInit).body)) as {
+      readonly response_format?: { readonly type: string };
+      readonly messages: ReadonlyArray<{ readonly content: string }>;
+    };
+    // OpenAI's json_object mode 400s unless a message contains the word "json" —
+    // the probe must satisfy that constraint just like the real reading does.
+    expect(body.response_format).toEqual({ type: "json_object" });
+    expect(body.messages[0].content.toLowerCase()).toContain("json");
+    expect(body).not.toHaveProperty("max_tokens");
+  });
+
   it("throws a typed LlmRequestError carrying the status + body on a non-2xx (so it's classifiable)", async () => {
     const mock = vi.fn(() =>
       Promise.resolve({

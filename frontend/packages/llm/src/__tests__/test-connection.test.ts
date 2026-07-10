@@ -29,10 +29,17 @@ describe("testProviderConnection", () => {
     expect(url).toBe("https://openrouter.ai/api/v1/chat/completions");
     expect((init.headers as Record<string, string>).Authorization).toBe("Bearer sk-or-123");
     const sent = JSON.parse(init.body as string);
-    expect(sent).toMatchObject({ model: "deepseek/deepseek-v4-pro", stream: false });
+    expect(sent).toMatchObject({
+      model: "deepseek/deepseek-v4-pro",
+      stream: false,
+      response_format: { type: "json_object" },
+    });
     // A token cap is BELOW the min-output floor of reasoning models (GPT-5 family,
     // >= 16) → a `max_tokens: 1` probe 400s a model whose real reading would work.
     expect(sent).not.toHaveProperty("max_tokens");
+    // OpenAI's json_object mode 400s unless a message contains "json" — the probe
+    // must mirror that constraint, same as the real reading (chatCompletionJson).
+    expect((sent.messages[0].content as string).toLowerCase()).toContain("json");
   });
 
   it("throws PrivacyViolationError BEFORE any fetch when local_only targets a cloud host", async () => {

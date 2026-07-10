@@ -185,8 +185,24 @@ describe('classifyConnectionError', () => {
     );
   });
 
+  it('classifies a 429 as rate_limited', () => {
+    expect(classifyConnectionError(new FakeLlmRequestError('returned 429 Too Many Requests', 429))).toBe(
+      'rate_limited',
+    );
+  });
+
+  it('classifies any 5xx as server', () => {
+    expect(classifyConnectionError(new FakeLlmRequestError('returned 500 Internal Server Error', 500))).toBe(
+      'server',
+    );
+    expect(classifyConnectionError(new FakeLlmRequestError('returned 502 Bad Gateway', 502))).toBe('server');
+    expect(classifyConnectionError(new FakeLlmRequestError('returned 503 Service Unavailable', 503))).toBe(
+      'server',
+    );
+  });
+
   it('falls back to unknown for an unrecognized failure', () => {
-    expect(classifyConnectionError(new FakeLlmRequestError('returned 500 Internal Server Error', 500))).toBe('unknown');
+    expect(classifyConnectionError(new FakeLlmRequestError("I'm a teapot", 418))).toBe('unknown');
   });
 });
 
