@@ -37,7 +37,8 @@
   "reading": {
     "generated_by": "Gerada por {{model}} · {{date}}",
     "generated_at": "Gerada em {{date}}",
-    "regen_no_ai": "Conecte um modelo de IA para regenerar esta leitura."
+    "regen_no_ai": "Conecte um modelo de IA para regenerar esta leitura.",
+    "deepening": "Aprofundando com seu momento astral atual…"
   },
   "grounding": {
     "summary": "Como esta leitura é feita",

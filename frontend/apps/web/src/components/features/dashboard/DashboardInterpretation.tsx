@@ -125,12 +125,20 @@ function CollapsibleSection({
 interface DashboardInterpretationProps {
   readonly interpretation: VedicInterpretation;
   readonly audience: ReportAudience;
+  /**
+   * True while an enrich-when-ready upgrade (Spec 065) is streaming a
+   * predictive-aware reading over this already-visible one. Surfaced as a
+   * quiet affordance so the later refinement reads as intentional, not a
+   * flicker/bug — never invents content itself.
+   */
+  readonly deepeningWithTiming?: boolean;
 }
 
 /** The full reading on the dashboard: core narrative + collapsible depth. */
 export function DashboardInterpretation({
   interpretation,
   audience,
+  deepeningWithTiming = false,
 }: DashboardInterpretationProps): ReactElement | null {
   const { t } = useTranslation('dashboard');
 
@@ -144,7 +152,7 @@ export function DashboardInterpretation({
 
   const hasCore = strengths.length > 0 || challenges.length > 0 || themes.length > 0;
   const hasDepth = Boolean(yogaText) || guidance.length > 0 || roadAhead.length > 0;
-  if (!hasCore && !hasDepth) {
+  if (!hasCore && !hasDepth && !deepeningWithTiming) {
     return null;
   }
 
@@ -153,6 +161,15 @@ export function DashboardInterpretation({
     // collapsibles share a measure so the section reads as a single article,
     // never a narrow prose column beside edge-to-edge bars.
     <div className="max-w-2xl space-y-8" data-testid="dashboard-interpretation">
+      {deepeningWithTiming ? (
+        <p
+          className="animate-pulse text-[11px] uppercase tracking-[0.18em] text-accent-gold/80"
+          data-testid="dashboard-deepening-notice"
+        >
+          {t('reading.deepening')}
+        </p>
+      ) : null}
+
       {hasCore ? (
         <div className="space-y-8">
           <CoreGroup

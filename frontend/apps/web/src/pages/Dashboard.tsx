@@ -481,6 +481,35 @@ export default function DashboardPage() {
     regenerationQueued,
   ]);
 
+  // Enrich-when-ready (Spec 065): the reading paints fast (natal, above), then
+  // auto-upgrades ONCE the moment the predictive layer (LifeAtlas's
+  // usePredictiveLayer, auto-kicked-off elsewhere) reaches `ready` — so the
+  // reading re-streams composing the full predictive superset (current
+  // transits, dasha-transit fusion, Sade Sati, dated domain windows) instead
+  // of staying natal-only for the session. Guarded so it NEVER loops and NEVER
+  // replaces an already predictive-aware reading:
+  //   - `enrichFiredRef` caps this to at most one attempt per mount.
+  //   - `readingIsPredictiveAware` skips entirely once the reading already
+  //     carries the superset (including the "ready at first paint" case,
+  //     where the very first generation was already predictive-aware).
+  const predictiveStatus = usePredictiveStore((s) => s.status);
+  const enrichFiredRef = useRef(false);
+  const readingIsPredictiveAware = interpretationEntry?.provenance?.predictiveAware === true;
+  useEffect(() => {
+    if (enrichFiredRef.current) return;
+    if (predictiveStatus !== 'ready') return;
+    if (!aiConfigured || isStreamingInterpretation) return;
+    if (!hasValidInterpretation || readingIsPredictiveAware) return;
+    enrichFiredRef.current = true; // one-shot: never re-arms this mount
+    handleRegenerateReading(); // re-streams composing the now-ready superset
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fire-once via enrichFiredRef; handleRegenerateReading is stable per render and re-including it would re-trigger on every render
+  }, [predictiveStatus, aiConfigured, isStreamingInterpretation, hasValidInterpretation, readingIsPredictiveAware]);
+
+  // Quiet affordance: the reading is "deepening" while an upgrade streams over
+  // an already-visible (natal) reading — so the visible refinement reads as
+  // intentional, not a flicker/bug (Spec 065).
+  const deepeningWithTiming = isStreamingInterpretation && hasValidInterpretation && !readingIsPredictiveAware;
+
   // Extract sidereal context data for the identity strip + chart panels.
   const siderealCtx = astronomicalData?.sidereal_ctx;
 
@@ -865,7 +894,11 @@ export default function DashboardPage() {
             {/* The full reading: core narrative (always visible) + collapsible
                 depth (yogas, life-area guidance, remedies, the road ahead).
                 Voice-driven by `audience`; empty sections drop themselves. */}
-            <DashboardInterpretation interpretation={interpretation} audience={audience} />
+            <DashboardInterpretation
+              interpretation={interpretation}
+              audience={audience}
+              deepeningWithTiming={deepeningWithTiming}
+            />
             {hasPeriodGuidance && periodGuidance && (
               <div className="space-y-1.5 border-l-2 border-accent-gold/40 pl-4">
                 <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-text-tertiary">

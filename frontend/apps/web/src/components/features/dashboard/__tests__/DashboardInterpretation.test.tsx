@@ -128,4 +128,18 @@ describe('DashboardInterpretation', () => {
     expect(screen.queryByText('You persevere.')).toBeNull();
     expect(screen.queryByText('A rare uplifting pattern.')).toBeNull();
   });
+
+  it('shows a quiet "deepening" affordance while an upgrade streams over the visible reading', () => {
+    const { rerender } = render(
+      <DashboardInterpretation
+        interpretation={minimalInterpretation()}
+        audience="you"
+        deepeningWithTiming
+      />,
+    );
+    expect(screen.getByTestId('dashboard-deepening-notice')).toBeTruthy();
+
+    rerender(<DashboardInterpretation interpretation={minimalInterpretation()} audience="you" />);
+    expect(screen.queryByTestId('dashboard-deepening-notice')).toBeNull();
+  });
 });
