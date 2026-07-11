@@ -263,9 +263,24 @@ test('REAL onboarding -> rectify (persists) -> natal-only PDF is correct', async
   await rectifyInput.fill('06:14');
   await rectifyInput.blur();
 
-  // Save Changes -> confirm in the regeneration modal -> "Chart Updated!" card.
+  // Save Changes -> the regeneration modal. Because 06:44 -> 06:14 crosses the
+  // Leo/Cancer sign boundary, the modal raises its MANDATORY rising-sign-flip
+  // acknowledgement: "Confirm & Regenerate" stays DISABLED until the user ticks
+  // the "regen-flip-ack" checkbox. This is the real-visitor gate — a sign flip is
+  // a different chart, not a tweak — so the gate must drive it exactly as a person
+  // must. The checkbox is engine-gated (it appears only once BOTH lagna previews
+  // resolve on the shared Pyodide thread and disagree), so wait for it before
+  // ticking; that same wait removes the pre-fix race where the click could land
+  // on the button in its brief still-enabled window before the flip was detected.
   await page.getByRole('button', { name: 'Save Changes' }).click();
-  await page.getByRole('button', { name: 'Confirm & Regenerate' }).click();
+  const flipAck = page.getByTestId('regen-flip-ack').locator('input[type="checkbox"]');
+  await flipAck.waitFor({ state: 'visible', timeout: 60_000 });
+  await flipAck.check();
+  const confirmRegenerate = page.getByRole('button', { name: 'Confirm & Regenerate' });
+  await expect(confirmRegenerate, 'the sign-flip ack must enable Confirm & Regenerate').toBeEnabled({
+    timeout: 15_000,
+  });
+  await confirmRegenerate.click();
   // The on-device regenerate then shows a success card with a "View New Chart" CTA.
   const viewNewChart = page.getByRole('button', { name: /View New Chart/i });
   await expect(viewNewChart, 'rectification must regenerate the chart on-device').toBeVisible({
