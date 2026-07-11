@@ -22,13 +22,22 @@ export interface Product {
 	attributes: Record<string, string>;
 }
 
-/** The per-result rerank breakdown (why a product scored where it did). */
+/**
+ * The per-result rerank breakdown (why a product scored where it did).
+ *
+ * `similarity` is the Phase-2 weighted cosine-to-seed term; `cooccurrence` is the
+ * Phase-3 weighted co-occurrence-to-seed term. Both are 0 for every strategy that
+ * doesn't use them, so the breakdown reduces to today's. Field order mirrors the
+ * Python scorer's components dict (scorer.score_product) byte-for-byte.
+ */
 export interface ScoreComponents {
 	popularity: number;
 	category_match: number;
 	tag_match: number;
 	brand_match: number;
 	freshness: number;
+	similarity: number;
+	cooccurrence: number;
 	repetition_penalty: number;
 }
 

@@ -3,7 +3,11 @@ import { catalogFetch, latestBytes } from "./fixtures";
 import { MemoryCacheStore } from "./memoryStore";
 import { materializeFile, syncIndex } from "./sync";
 import type { IndexManifest, Verify, VersionPointer } from "./types";
-import { loadVectorIndex, type VectorIndexFiles } from "./vectorIndex";
+import {
+	loadVectorIndex,
+	VectorIndexError,
+	type VectorIndexFiles,
+} from "./vectorIndex";
 
 const acceptVerify: Verify = () => Promise.resolve();
 const DECODER = new TextDecoder();
@@ -44,7 +48,18 @@ function encoder(vectors: ReadonlyArray<ReadonlyArray<number>>): {
 	const ids = vectors.map((_v, i) => `p${i}`);
 	const flat = new Float32Array(vectors.flat());
 	const products = ids
-		.map((id) => JSON.stringify({ id, title: `title ${id}`, category: "c" }))
+		.map((id) =>
+			JSON.stringify({
+				id,
+				title: `title ${id}`,
+				category: "c",
+				brand: "b",
+				tags: ["t"],
+				popularity_score: 0.5,
+				freshness_score: 0.3,
+				price: 9.99,
+			}),
+		)
 		.join("\n");
 	const text = new TextEncoder();
 	return {
@@ -140,5 +155,274 @@ describe("loadVectorIndex over the real synced bundle", () => {
 		const hits = index.search(self, 1);
 		expect(hits[0]?.id).toBe(index.idAt(0));
 		expect(hits[0]?.score).toBeCloseTo(1, 4);
+	});
+});
+
+describe("VectorIndex.nearest (kNN-to-seed primitive)", () => {
+	it("excludes the seed and returns descending cosine neighbors", async () => {
+		// A query closest to row 1, then 2, then 0; nearest(seed=p1) drops p1 itself
+		// and returns its neighbors p2 (cosine ~0.8) then p0 (cosine 0), descending.
+		const enc = encoder([
+			[1, 0, 0],
+			[0, 1, 0],
+			[0.6, 0.8, 0],
+		]);
+		const index = await loadVectorIndex({
+			meta: enc.meta,
+			state: enc.state,
+			embeddings: enc.embeddings,
+			products: enc.products,
+		});
+		const hits = index.nearest("p1", 2);
+		expect(hits.map((h) => h.id)).toEqual(["p2", "p0"]);
+		expect(hits[0]?.score).toBeGreaterThan(hits[1]?.score ?? Number.NaN);
+	});
+
+	it("throws on an unknown seed id", async () => {
+		const enc = encoder([[1, 0]]);
+		const index = await loadVectorIndex({
+			meta: enc.meta,
+			state: enc.state,
+			embeddings: enc.embeddings,
+			products: enc.products,
+		});
+		expect(() => index.nearest("missing", 5)).toThrow(/unknown product id/);
+	});
+
+	it("over the real bundle: seed excluded, k results, strictly descending", async () => {
+		const files = await syncedFiles();
+		const index = await loadVectorIndex(files);
+		const seed = "B07FPCD8BM";
+		const hits = index.nearest(seed, 10);
+		expect(hits).toHaveLength(10);
+		expect(hits.some((h) => h.id === seed)).toBe(false);
+		for (let i = 1; i < hits.length; i += 1) {
+			expect(hits[i - 1]?.score).toBeGreaterThanOrEqual(
+				hits[i]?.score ?? Number.NaN,
+			);
+		}
+		// cosine to a unit seed lives in [-1, 1].
+		for (const hit of hits) {
+			expect(hit.score).toBeLessThanOrEqual(1 + 1e-5);
+			expect(hit.score).toBeGreaterThanOrEqual(-1 - 1e-5);
+		}
+	});
+});
+
+/**
+ * A corrupt-but-signed catalog (products.jsonl / catalog_meta.json / state.json)
+ * must fail CLOSED, not be blindly `JSON.parse(...) as T` cast into the index where
+ * a non-string id or non-finite dim would silently corrupt retrieval. Mirrors the
+ * fail-closed validation rankingConfig.ts / cooccurrence.ts already do: a missing
+ * field, wrong type, or non-finite number must THROW (VectorIndexError).
+ */
+describe("loadVectorIndex fail-closed validation", () => {
+	const text = new TextEncoder();
+
+	/** A structurally valid set of files we mutate per-case to isolate one defect. */
+	function validFiles(): VectorIndexFiles {
+		const enc = encoder([
+			[1, 0],
+			[0, 1],
+		]);
+		return {
+			meta: enc.meta,
+			state: enc.state,
+			embeddings: enc.embeddings,
+			products: enc.products,
+		};
+	}
+
+	function encode(value: unknown): Uint8Array {
+		return text.encode(JSON.stringify(value));
+	}
+
+	it("the valid baseline still loads", async () => {
+		await expect(loadVectorIndex(validFiles())).resolves.toBeDefined();
+	});
+
+	it("throws on non-JSON catalog_meta.json bytes", async () => {
+		const files = { ...validFiles(), meta: text.encode("{not json") };
+		await expect(loadVectorIndex(files)).rejects.toThrow();
+	});
+
+	it("throws when catalog_meta embedding_dim is not a finite number", async () => {
+		const files = {
+			...validFiles(),
+			meta: encode({ embedding_count: 2, embedding_dim: null }),
+		};
+		await expect(loadVectorIndex(files)).rejects.toThrow(VectorIndexError);
+	});
+
+	it("throws when catalog_meta embedding_count is the wrong type", async () => {
+		const files = {
+			...validFiles(),
+			meta: encode({ embedding_count: "2", embedding_dim: 2 }),
+		};
+		await expect(loadVectorIndex(files)).rejects.toThrow(/embedding_count/);
+	});
+
+	it("throws when state.json faiss_ids is not an array", async () => {
+		const files = { ...validFiles(), state: encode({ faiss_ids: "p0,p1" }) };
+		await expect(loadVectorIndex(files)).rejects.toThrow(/faiss_ids/);
+	});
+
+	it("throws when a faiss_id is not a string", async () => {
+		const files = { ...validFiles(), state: encode({ faiss_ids: ["p0", 7] }) };
+		await expect(loadVectorIndex(files)).rejects.toThrow(VectorIndexError);
+	});
+
+	it("throws when a products.jsonl line is not a JSON object", async () => {
+		const files = { ...validFiles(), products: text.encode('"p0"\n"p1"') };
+		await expect(loadVectorIndex(files)).rejects.toThrow(VectorIndexError);
+	});
+
+	it("throws when a product is missing its string id", async () => {
+		const broken = [
+			JSON.stringify({
+				id: "p0",
+				title: "ok",
+				category: "c",
+				brand: "b",
+				tags: ["t"],
+				popularity_score: 0.5,
+				freshness_score: 0.5,
+				price: 1,
+			}),
+			JSON.stringify({ title: "no id", category: "c" }),
+		].join("\n");
+		const files = { ...validFiles(), products: text.encode(broken) };
+		await expect(loadVectorIndex(files)).rejects.toThrow(/id/);
+	});
+
+	it("throws when a product id is the wrong type", async () => {
+		const broken = JSON.stringify({ id: 7, title: "bad id", category: "c" });
+		const files = { ...validFiles(), products: text.encode(broken) };
+		await expect(loadVectorIndex(files)).rejects.toThrow(VectorIndexError);
+	});
+
+	it("throws on a non-JSON products.jsonl line", async () => {
+		const broken = [
+			JSON.stringify({
+				id: "p0",
+				title: "ok",
+				category: "c",
+				brand: "b",
+				tags: ["t"],
+				popularity_score: 0.5,
+				freshness_score: 0.5,
+				price: 1,
+			}),
+			"{not json",
+		].join("\n");
+		const files = { ...validFiles(), products: text.encode(broken) };
+		await expect(loadVectorIndex(files)).rejects.toThrow(VectorIndexError);
+	});
+
+	// A fully-valid product row we mutate per-case to isolate one ranking/display
+	// field defect (mirrors the field-by-field guard in rankingConfig.ts).
+	function product(
+		overrides: Record<string, unknown>,
+	): Record<string, unknown> {
+		return {
+			id: "p0",
+			title: "ok",
+			category: "c",
+			brand: "b",
+			tags: ["t"],
+			popularity_score: 0.5,
+			freshness_score: 0.5,
+			price: 9.99,
+			...overrides,
+		};
+	}
+
+	function withProductRow(row: Record<string, unknown>): VectorIndexFiles {
+		return { ...validFiles(), products: encode(row) };
+	}
+
+	it("throws when popularity_score is not a finite number", async () => {
+		const files = withProductRow(product({ popularity_score: "high" }));
+		await expect(loadVectorIndex(files)).rejects.toThrow(VectorIndexError);
+	});
+
+	it("throws when freshness_score is not a finite number", async () => {
+		// freshness_score is a live ranking input (0.10*fresh in reranker.ts); a
+		// corrupt-but-signed value would feed NaN straight into the rerank score.
+		const files = withProductRow(product({ freshness_score: "warm" }));
+		await expect(loadVectorIndex(files)).rejects.toThrow(VectorIndexError);
+	});
+
+	it("throws when a product is missing its freshness_score", async () => {
+		const { freshness_score: _omit, ...noFreshness } = product({});
+		const files = withProductRow(noFreshness);
+		await expect(loadVectorIndex(files)).rejects.toThrow(/freshness_score/);
+	});
+
+	it("throws when a product is missing its title", async () => {
+		const { title: _omit, ...noTitle } = product({});
+		const files = withProductRow(noTitle);
+		await expect(loadVectorIndex(files)).rejects.toThrow(/title/);
+	});
+
+	it("throws when category is the wrong type", async () => {
+		const files = withProductRow(product({ category: 7 }));
+		await expect(loadVectorIndex(files)).rejects.toThrow(VectorIndexError);
+	});
+
+	it("throws when tags is not an array", async () => {
+		const files = withProductRow(product({ tags: "a,b" }));
+		await expect(loadVectorIndex(files)).rejects.toThrow(/tags/);
+	});
+
+	it("throws when price is neither a finite number nor null", async () => {
+		const files = withProductRow(product({ price: "free" }));
+		await expect(loadVectorIndex(files)).rejects.toThrow(VectorIndexError);
+	});
+
+	it("accepts a null price (out-of-stock products carry no price)", async () => {
+		const files = withProductRow(product({ price: null }));
+		await expect(loadVectorIndex(files)).resolves.toBeDefined();
+	});
+
+	it("throws VectorIndexError when embedding_dim is zero", async () => {
+		const files = {
+			...validFiles(),
+			meta: encode({ embedding_count: 2, embedding_dim: 0 }),
+		};
+		await expect(loadVectorIndex(files)).rejects.toThrow(VectorIndexError);
+	});
+
+	it("throws VectorIndexError when embedding_dim is fractional", async () => {
+		const files = {
+			...validFiles(),
+			meta: encode({ embedding_count: 2, embedding_dim: 1.5 }),
+		};
+		await expect(loadVectorIndex(files)).rejects.toThrow(VectorIndexError);
+	});
+
+	it("throws VectorIndexError when embedding_count is fractional", async () => {
+		const files = {
+			...validFiles(),
+			meta: encode({ embedding_count: 2.5, embedding_dim: 2 }),
+		};
+		await expect(loadVectorIndex(files)).rejects.toThrow(VectorIndexError);
+	});
+
+	it("routes an embeddings byte-length mismatch through VectorIndexError", async () => {
+		// meta declares dim=2,count=2 -> 16 bytes expected; supply a short buffer.
+		const files = { ...validFiles(), embeddings: new Uint8Array(8) };
+		await expect(loadVectorIndex(files)).rejects.toThrow(VectorIndexError);
+	});
+
+	it("routes an embedding_count vs faiss_ids length mismatch through VectorIndexError", async () => {
+		// state.json carries 2 faiss_ids; declare a meta count of 3 so the
+		// malformed-bundle mismatch surfaces as the typed boundary error, not a
+		// bare Error a caller catching VectorIndexError would miss.
+		const files = {
+			...validFiles(),
+			meta: encode({ embedding_count: 3, embedding_dim: 2 }),
+		};
+		await expect(loadVectorIndex(files)).rejects.toThrow(VectorIndexError);
 	});
 });
