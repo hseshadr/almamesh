@@ -8,7 +8,7 @@
   },
   "hero": {
     "headline": "Seu céu real. Calculado no seu dispositivo. Grátis, para sempre.",
-    "subhead": "Um mapa védico (sideral) fiel — planetas, nakshatras, dashas — calculado no seu navegador. Um experimento honesto, não um adivinho. Sem conta. Sem e-mail. Seus dados de nascimento nunca saem do seu navegador.",
+    "subhead": "Um mapa védico (sideral) fiel — planetas, nakshatras, dashas — calculado no seu navegador. Um experimento honesto, não um adivinho. Sem conta. Sem e-mail. Sua data, hora e mapa de nascimento nunca saem do seu navegador.",
     "cta": "Gerar meu mapa — grátis",
     "ctaReturning": "Abrir meu mapa",
     "openSource": "Grátis e de código aberto no GitHub",
@@ -41,7 +41,7 @@
       },
       {
         "title": "Use sua própria IA",
-        "body": "Por padrão: sem IA — seu mapa é puro cálculo e nada sai do seu dispositivo. Opcional: adicione narração com qualquer modelo compatível com OpenAI (OpenRouter ou seu próprio endpoint)."
+        "body": "Por padrão: sem IA — seu mapa é puro cálculo e nunca sai do seu dispositivo. Opcional: adicione narração com qualquer modelo compatível com OpenAI (OpenRouter ou seu próprio endpoint)."
       },
       {
         "title": "Converse com seu mapa",
@@ -72,7 +72,7 @@
         "b": "Cadastro e e-mail obrigatórios"
       },
       {
-        "a": "Seus dados de nascimento nunca saem do seu navegador",
+        "a": "Sua data, hora e mapa de nascimento nunca saem do seu navegador",
         "b": "Dados de nascimento armazenados, perfilados, monetizados"
       },
       {
@@ -101,7 +101,7 @@
         "body": "Mergulhe no seu mapa, nas suas dashas e na malha — com uma IA opcional que apenas narra, nunca inventa."
       }
     ],
-    "zeroEgress": "O motor de mapas não faz chamadas de rede. Seus dados de nascimento permanecem no seu dispositivo."
+    "zeroEgress": "O motor de mapas não faz chamadas de rede. Sua data, hora e mapa de nascimento permanecem no seu dispositivo — apenas o nome do local de nascimento que você busca é consultado on-line."
   },
   "who": {
     "title": "Para quem é",
@@ -145,7 +145,7 @@
     "viewSource": "Ver o código no GitHub"
   },
   "footer": {
-    "tagline": "Astrologia védica grátis e no seu dispositivo. Um experimento honesto — seus dados de nascimento nunca saem do seu navegador.",
+    "tagline": "Astrologia védica grátis e no seu dispositivo. Um experimento honesto — sua data, hora e mapa de nascimento nunca saem do seu navegador.",
     "privacy": "Política de privacidade",
     "terms": "Termos de serviço",
     "dataDeletion": "Exclusão de dados",

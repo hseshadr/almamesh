@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { searchCities, timezoneForCoordinates } from './cityLookup';
+import { searchCitiesOffline, timezoneForCoordinates } from './cityLookup';
 
 describe('cityLookup (offline geocoder)', () => {
     it('resolves Chennai to its coordinates and IANA timezone', async () => {
-        const results = await searchCities('Chennai');
+        const results = await searchCitiesOffline('Chennai');
         const chennai = results.find((r) => r.city === 'Chennai');
 
         expect(chennai).toBeDefined();
@@ -15,7 +15,7 @@ describe('cityLookup (offline geocoder)', () => {
     });
 
     it('resolves New York to America/New_York', async () => {
-        const results = await searchCities('New York');
+        const results = await searchCitiesOffline('New York');
         const ny = results.find((r) => r.countryCode === 'US' && r.city.startsWith('New York'));
 
         expect(ny).toBeDefined();
@@ -25,7 +25,7 @@ describe('cityLookup (offline geocoder)', () => {
     });
 
     it('ranks the most populous match first for an exact-name query', async () => {
-        const results = await searchCities('London');
+        const results = await searchCitiesOffline('London');
         expect(results.length).toBeGreaterThan(0);
         // London, GB (8M+) should outrank smaller Londons (e.g. Ontario, Ohio).
         expect(results[0].city).toBe('London');
@@ -34,17 +34,17 @@ describe('cityLookup (offline geocoder)', () => {
     });
 
     it('returns no results for queries shorter than two characters', async () => {
-        expect(await searchCities('')).toEqual([]);
-        expect(await searchCities('a')).toEqual([]);
+        expect(await searchCitiesOffline('')).toEqual([]);
+        expect(await searchCitiesOffline('a')).toEqual([]);
     });
 
     it('returns an empty list for a nonsense query (city-not-found)', async () => {
-        const results = await searchCities('zzzzzqqqqqxxxxx');
+        const results = await searchCitiesOffline('zzzzzqqqqqxxxxx');
         expect(results).toEqual([]);
     });
 
     it('every result carries a non-empty IANA timezone', async () => {
-        const results = await searchCities('Tokyo');
+        const results = await searchCitiesOffline('Tokyo');
         expect(results.length).toBeGreaterThan(0);
         for (const result of results) {
             expect(result.timezone).toMatch(/^[A-Za-z]+\/[A-Za-z_]+/);
@@ -72,7 +72,7 @@ describe('cityLookup — natural-language & diacritic matching', () => {
     ];
 
     it.each(SF_QUERIES)('surfaces San Francisco #1 for %j', async (query) => {
-        const results = await searchCities(query);
+        const results = await searchCitiesOffline(query);
         expect(results.length).toBeGreaterThan(0);
         const top = results[0];
         expect(top.city).toBe('San Francisco');
@@ -83,33 +83,33 @@ describe('cityLookup — natural-language & diacritic matching', () => {
     });
 
     it('folds diacritics: "Sao Paulo" -> São Paulo, Brazil #1', async () => {
-        const results = await searchCities('Sao Paulo');
+        const results = await searchCitiesOffline('Sao Paulo');
         expect(results[0].city).toBe('São Paulo');
         expect(results[0].country).toBe('Brazil');
     });
 
     it('folds diacritics: "Zurich" -> Zürich, Switzerland #1', async () => {
-        const results = await searchCities('Zurich');
+        const results = await searchCitiesOffline('Zurich');
         expect(results[0].city).toBe('Zürich');
         expect(results[0].country).toBe('Switzerland');
     });
 
     it('folds diacritics: "Bogota" -> Bogotá, Colombia #1', async () => {
-        const results = await searchCities('Bogota');
+        const results = await searchCitiesOffline('Bogota');
         expect(results[0].city).toBe('Bogotá');
         expect(results[0].country).toBe('Colombia');
     });
 
     it('does not over-match: a nonsense query returns nothing', async () => {
-        expect(await searchCities('Zzzznotacity')).toEqual([]);
+        expect(await searchCitiesOffline('Zzzznotacity')).toEqual([]);
     });
 
     it('honours the min-2-char gate (a single char returns nothing)', async () => {
-        expect(await searchCities('x')).toEqual([]);
+        expect(await searchCitiesOffline('x')).toEqual([]);
     });
 
     it('a plain unqualified city still resolves: "Paris" -> Paris, France #1', async () => {
-        const results = await searchCities('Paris');
+        const results = await searchCitiesOffline('Paris');
         expect(results[0].city).toBe('Paris');
         expect(results[0].country).toBe('France');
     });

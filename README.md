@@ -104,12 +104,16 @@ PWA and it works offline after the first load.
   with zero extra network requests** — no runtime translation fetch. English is
   authoritative; **es/pt are machine-translated** and tracked against it.
 
-> **The chart engine is zero-egress; only AI calls leave the device.** Charts,
-> geometry, the force-field, and the offline geocoder never touch the network
-> after the first bundle sync. The *only* outbound requests are the optional AI
-> calls you opt into — to whichever OpenAI-compatible endpoint you configure
-> (OpenRouter, or a local Ollama-style endpoint that stays on your machine). The
-> prompt is PII-redacted, and `local_only` fail-closes against a cloud host.
+> **The chart engine is zero-egress; exactly two things reach the network.**
+> Charts, geometry, and the force-field never touch the network after the first
+> bundle sync. There are exactly two deliberate outbound requests: (1) **birthplace
+> search** — the city name you type is sent to the Open-Meteo geocoding API to
+> resolve coordinates + timezone (online-primary, with an offline fallback to a
+> bundled city list; never your birth date, time, name, or chart), and (2) the
+> optional **AI** calls you opt into — to whichever OpenAI-compatible endpoint you
+> configure (OpenRouter, or a local Ollama-style endpoint that stays on your
+> machine). The AI prompt is PII-redacted, and `local_only` fail-closes against a
+> cloud host.
 
 ## Building from source — prerequisites
 

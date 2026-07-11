@@ -73,7 +73,7 @@
   "location": {
     "search_placeholder": "Busca una ciudad...",
     "no_results": "No se encontraron ciudades",
-    "offline_hint": "Base de datos de ciudades sin conexión · no requiere red",
+    "offline_hint": "Solo se envía el nombre de la ciudad · también funciona sin conexión",
     "search_aria": "Buscar una ciudad",
     "clear_aria": "Borrar búsqueda de ubicación",
     "coordinates": {

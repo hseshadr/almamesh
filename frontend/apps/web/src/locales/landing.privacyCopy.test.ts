@@ -12,12 +12,15 @@ import ptLegal from './pt/legal.json';
 /**
  * Privacy-honesty invariant: the landing hero + footer must NOT claim an
  * unqualified absolute like "Nothing leaves your browser" / "your data never
- * leaves your browser". The opt-in AI chat DOES send the user's typed questions
- * to the configured endpoint, so the only zero-egress guarantee we may state is
- * scoped to BIRTH DATA (the chart engine makes no network calls, and birth data
- * is PII-redacted before any AI call). The scoped phrasing reuses the exact
- * wording already shipped in `why.rows` ("Your birth data never leaves your
- * browser") so the page is internally consistent across all three locales.
+ * leaves your browser". Two features reach the network on the user's behalf:
+ * the opt-in AI chat sends the user's typed questions to the configured
+ * endpoint, and birthplace search sends the typed CITY NAME to a maps geocoder
+ * (Open-Meteo). So we may NOT claim "birth data" as a whole stays local — the
+ * birthplace name is part of it. The only zero-egress guarantee we state is
+ * scoped precisely to the BIRTH DATE, TIME, AND CHART (the chart engine makes no
+ * network calls; the date/time and the computed chart never leave the device,
+ * and the chart is PII-redacted before any AI call). The scoped phrasing is used
+ * consistently in the hero, footer, and `why.rows` across all three locales.
  */
 type LocaleCopy = {
   hero: { subhead: string };
@@ -27,18 +30,30 @@ type LocaleCopy = {
 const LOCALES: Record<string, { copy: LocaleCopy; scoped: string; bannedAbsolutes: string[] }> = {
   en: {
     copy: en as LocaleCopy,
-    scoped: 'your birth data never leaves your browser',
-    bannedAbsolutes: ['nothing leaves your browser', 'your data never leaves your browser'],
+    scoped: 'your birth date, time, and chart never leave your browser',
+    bannedAbsolutes: [
+      'nothing leaves your browser',
+      'your data never leaves your browser',
+      'your birth data never leaves your browser',
+    ],
   },
   es: {
     copy: es as LocaleCopy,
-    scoped: 'tus datos de nacimiento nunca salen de tu navegador',
-    bannedAbsolutes: ['nada sale de tu navegador', 'tus datos nunca salen de tu navegador'],
+    scoped: 'tu fecha, hora y carta de nacimiento nunca salen de tu navegador',
+    bannedAbsolutes: [
+      'nada sale de tu navegador',
+      'tus datos nunca salen de tu navegador',
+      'tus datos de nacimiento nunca salen de tu navegador',
+    ],
   },
   pt: {
     copy: pt as LocaleCopy,
-    scoped: 'seus dados de nascimento nunca saem do seu navegador',
-    bannedAbsolutes: ['nada sai do seu navegador', 'seus dados nunca saem do seu navegador'],
+    scoped: 'sua data, hora e mapa de nascimento nunca saem do seu navegador',
+    bannedAbsolutes: [
+      'nada sai do seu navegador',
+      'seus dados nunca saem do seu navegador',
+      'seus dados de nascimento nunca saem do seu navegador',
+    ],
   },
 };
 
@@ -94,21 +109,21 @@ const ENGINE_SURFACES: Record<
   en: {
     meshNote: (enMesh as MeshCopy).page.computed_note,
     legalRights: (enLegal as LegalCopy).privacy.s5_p1,
-    scoped: 'birth data never leaves',
+    scoped: 'birth date, time, and chart',
     bannedMeshAbsolute: 'nothing leaves it',
     bannedLegalAbsolute: 'your data never leaves your device',
   },
   es: {
     meshNote: (esMesh as MeshCopy).page.computed_note,
     legalRights: (esLegal as LegalCopy).privacy.s5_p1,
-    scoped: 'datos de nacimiento nunca salen',
+    scoped: 'fecha, hora y carta',
     bannedMeshAbsolute: 'nada sale de él',
     bannedLegalAbsolute: 'tus datos nunca salen de tu dispositivo',
   },
   pt: {
     meshNote: (ptMesh as MeshCopy).page.computed_note,
     legalRights: (ptLegal as LegalCopy).privacy.s5_p1,
-    scoped: 'dados de nascimento nunca saem',
+    scoped: 'data, hora e mapa',
     bannedMeshAbsolute: 'nada sai dele',
     bannedLegalAbsolute: 'seus dados nunca saem do seu dispositivo',
   },

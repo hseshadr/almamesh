@@ -70,7 +70,7 @@
   "location": {
     "search_placeholder": "Search for a city...",
     "no_results": "No matching cities found",
-    "offline_hint": "Offline city database · no network required",
+    "offline_hint": "Only the city name is sent · works offline too",
     "search_aria": "Search for a city",
     "clear_aria": "Clear location search",
     "coordinates": {

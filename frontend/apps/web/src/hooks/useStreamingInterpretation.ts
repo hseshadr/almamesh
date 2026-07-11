@@ -7,7 +7,7 @@
  * dashboard + astrologer cards read the finished `VedicInterpretation` straight
  * from that store; this hook is the bridge that fills it.
  *
- * No backend. The only runtime egress is this optional, PII-redacted LLM call,
+ * No backend. This hook's only egress is the optional, PII-redacted LLM call,
  * and it is fail-closed: in `local_only` mode a non-local endpoint refuses to
  * send anything (PrivacyViolationError). When no model is reachable / configured
  * we surface a friendly notice instead of crashing.

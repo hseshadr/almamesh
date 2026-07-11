@@ -31,14 +31,15 @@ function useDebounce<T>(value: T, delay: number): T {
     return debouncedValue;
 }
 
-/** Map an offline city match onto the LocationResult contract callers expect. */
+/** Map a city match onto the LocationResult contract callers expect. */
 function toLocationResult(match: CityMatch): LocationResult {
     return {
         displayName: match.displayName,
         city: match.city,
-        // The bundled GeoNames set has no human-readable state/province name,
-        // only an admin code; state is cosmetic for the engine, so we omit it.
-        state: '',
+        // The online geocoder supplies a real state/province (admin1); the
+        // offline fallback list has none, so it stays empty there. State is
+        // cosmetic for the engine (only lat/lon/timezone matter).
+        state: match.state ?? '',
         country: match.country,
         lat: match.latitude,
         lon: match.longitude,
@@ -47,13 +48,14 @@ function toLocationResult(match: CityMatch): LocationResult {
 }
 
 /**
- * Birth-location typeahead, fully offline.
+ * Birth-location typeahead.
  *
- * Queries the bundled city database (lazy-loaded) and resolves the IANA
- * timezone from coordinates with zero network calls — closing the local-first
- * gap left by the previous Google Places / Nominatim implementation. The
- * external contract (props + `LocationResult`) is unchanged; every emitted
- * result now carries a valid `timezone`, which the engine path requires.
+ * Search is ONLINE-PRIMARY via the Open-Meteo geocoder (one of the two
+ * owner-approved network egresses — only the typed city string leaves the
+ * device), with a transparent OFFLINE FALLBACK to the bundled city list so it
+ * keeps working with no network. A manual lat/long entry remains as a last
+ * resort. The external contract (props + `LocationResult`) is unchanged; every
+ * emitted result carries a valid IANA `timezone`, which the engine path requires.
  */
 export function LocationSearch({
     value,
@@ -61,7 +63,7 @@ export function LocationSearch({
     placeholder,
     className = '',
 }: LocationSearchProps) {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     // The placeholder prop is an optional override; default to the translated
     // value resolved at render (a prop default can't call a hook).
     const resolvedPlaceholder = placeholder ?? t('location.search_placeholder');
@@ -85,31 +87,46 @@ export function LocationSearch({
 
     const debouncedQuery = useDebounce(query, 250);
 
-    // Run the offline city search when the debounced query changes.
-    const runSearch = useCallback(async (searchQuery: string) => {
-        if (searchQuery.trim().length < 2) {
-            setResults([]);
-            setIsOpen(false);
-            return;
-        }
+    // Run the online-primary city search (offline fallback) when the debounced
+    // query changes. The UI language localizes the geocoder's place names; we
+    // pass the base tag (e.g. "en" from "en-US") since Open-Meteo wants a plain
+    // 2-letter code.
+    const runSearch = useCallback(
+        async (searchQuery: string, signal?: AbortSignal) => {
+            if (searchQuery.trim().length < 2) {
+                setResults([]);
+                setIsOpen(false);
+                return;
+            }
 
-        setIsLoading(true);
-        try {
-            const matches = await searchCities(searchQuery);
-            setResults(matches);
-            setIsOpen(matches.length > 0);
-            setSelectedIndex(-1);
-        } catch (error) {
-            console.error('City lookup failed:', error);
-            setResults([]);
-        } finally {
-            setIsLoading(false);
-        }
-    }, []);
+            setIsLoading(true);
+            try {
+                const language = i18n.language.split('-')[0];
+                const matches = await searchCities(searchQuery, 8, { language, signal });
+                // A newer keystroke superseded this query — drop its (stale) results
+                // so a slow earlier response can't overwrite newer ones.
+                if (signal?.aborted) return;
+                setResults(matches);
+                setIsOpen(matches.length > 0);
+                setSelectedIndex(-1);
+            } catch (error) {
+                if (signal?.aborted) return; // an aborted search is expected, not a failure
+                console.error('City lookup failed:', error);
+                setResults([]);
+            } finally {
+                if (!signal?.aborted) setIsLoading(false);
+            }
+        },
+        [i18n],
+    );
 
     useEffect(() => {
         if (debouncedQuery && isSearching) {
-            runSearch(debouncedQuery);
+            // Cancel the previous in-flight geocode on each new query / unmount so
+            // results always reflect the latest keystroke (no stale-response race).
+            const controller = new AbortController();
+            runSearch(debouncedQuery, controller.signal);
+            return () => controller.abort();
         }
     }, [debouncedQuery, isSearching, runSearch]);
 
