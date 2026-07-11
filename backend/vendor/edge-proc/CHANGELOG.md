@@ -2,6 +2,43 @@
 
 All notable changes to **edge-proc**. Newest first; we follow [SemVer](https://semver.org).
 
+## [Unreleased]
+
+## [0.1.2] — 2026-07-11
+
+Propagation-chain release: re-pins the upstream Lego so downstream consumers can bump
+in one hop (`shared-libs-python v0.1.3 → edge-proc v0.1.2 → edge-reco`). No library
+code changes.
+
+- **Deps.** `shared-libs-python` git-tag pin bumped v0.1.2 → **v0.1.3** (upstream
+  release is gate/CI/docs-only — zero runtime change).
+
+Also ships the house engineering-standard alignment — CI and docs only:
+
+- **CI.** The workflow now literally runs `uv run poe gate`, so the local gate and CI
+  can never drift one-sidedly; minimal token permissions; `uv sync --frozen`;
+  `astral-sh/setup-uv` full-pinned to v8.3.2 (no floating major tag exists); new
+  full-history gitleaks secret-scan job.
+- **Security.** Weekly `security-audit.yml` (pip-audit over the exported lock) and
+  `dependabot.yml` (weekly, grouped: github-actions + uv ecosystems).
+- **Docs.** New `CLAUDE.md` (agent guide: invariants, commands, scarred quality gates);
+  the roadmap's WASM entry upgraded to the named "First-party WASM kernel v0" item with
+  a gradeable definition of done (README + ROADMAP.md).
+
+## 0.1.1 — 2026-06-19
+
+Public open-source release (MIT). Part of the `edge-reco → edge-proc →
+shared-libs-python` stack going public together; live demo at https://edge-reco.com.
+
+- **Clone-and-go onboarding.** `shared-libs-python` is now pulled from public GitHub
+  via a git source pinned to a tag (`[tool.uv.sources]`), so `git clone … && uv sync`
+  works with no sibling checkout. A commented path-source override remains for local
+  co-development.
+- **CI simplified.** Dropped the private-sibling checkout + path-patch steps and the
+  `PORTFOLIO_PAT` secret — CI now builds exactly as an external cloner does.
+- **Docs.** README sharpened to lead with the substrate value proposition (edge compute
+  cost, CDN-scale, offline resilience) and cross-link the three-repo stack.
+
 ## 0.1.0 — 2026-05-28
 
 First public release: the AI-native local execution substrate as a library + CLI.
