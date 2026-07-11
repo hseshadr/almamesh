@@ -101,7 +101,8 @@
         "body": "Mergulhe no seu mapa, nas suas dashas e na malha — com uma IA opcional que apenas narra, nunca inventa."
       }
     ],
-    "zeroEgress": "O motor de mapas não faz chamadas de rede; sua data e hora de nascimento nunca saem do seu dispositivo. Duas coisas usam a rede: o local de nascimento que você busca e (apenas se você ativar a IA opcional) um mapa sem dados pessoais, sem nome nem data de nascimento."
+    "zeroEgress": "O motor de mapas não faz chamadas de rede; sua data e hora de nascimento nunca saem do seu dispositivo. Duas coisas usam a rede: o local de nascimento que você busca e (apenas se você ativar a IA opcional) um mapa sem dados pessoais, sem nome nem data de nascimento.",
+    "portability": "Não há nenhum servidor guardando seus dados, então eles são seus para levar: exporte tudo — perfis, mapas e chat — para um único arquivo e restaure em outro navegador ou dispositivo. Nada é enviado; só você pode movê-los."
   },
   "who": {
     "title": "Para quem é",

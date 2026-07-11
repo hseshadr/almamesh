@@ -101,7 +101,8 @@
         "body": "Sumérgete en tu carta, tus dashas y la malla — con una IA opcional que solo narra, nunca inventa."
       }
     ],
-    "zeroEgress": "El motor de cartas no hace llamadas de red; tu fecha y hora de nacimiento nunca salen de tu dispositivo. Dos cosas usan la red: el lugar de nacimiento que buscas y (solo si activas la IA opcional) una carta sin datos personales, sin nombre ni fecha de nacimiento."
+    "zeroEgress": "El motor de cartas no hace llamadas de red; tu fecha y hora de nacimiento nunca salen de tu dispositivo. Dos cosas usan la red: el lugar de nacimiento que buscas y (solo si activas la IA opcional) una carta sin datos personales, sin nombre ni fecha de nacimiento.",
+    "portability": "No hay ningún servidor que guarde tus datos, así que son tuyos para llevar: exporta todo — perfiles, cartas y chat — a un solo archivo y restáuralo en otro navegador o dispositivo. Nada se sube; solo tú puedes moverlos."
   },
   "who": {
     "title": "Para quién es",

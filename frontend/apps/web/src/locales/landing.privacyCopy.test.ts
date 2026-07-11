@@ -145,3 +145,30 @@ describe('engine-surface privacy copy is scoped to birth data (anti-overclaim)',
     });
   }
 });
+
+/**
+ * Data-portability promise (the flip side of no-centralization): because there
+ * is NO server copy of your data, the "How it works" section states that YOU can
+ * export everything to a single file and restore it in another browser/device
+ * yourself — reinforcing the no-server promise rather than contradicting it (it
+ * mirrors the shipped Settings → Data → Backup & Restore feature). Each locale's
+ * `how.portability` must name the data export AND the other-device restore, so
+ * the promise can't silently regress to a vague "your data is safe".
+ */
+type HowPortabilityCopy = { how: { portability: string } };
+
+const PORTABILITY: Record<string, { note: string; mustMention: string[] }> = {
+  en: { note: (en as HowPortabilityCopy).how.portability, mustMention: ['export', 'device'] },
+  es: { note: (es as HowPortabilityCopy).how.portability, mustMention: ['export', 'dispositivo'] },
+  pt: { note: (pt as HowPortabilityCopy).how.portability, mustMention: ['export', 'dispositivo'] },
+};
+
+describe('landing how.portability states the export/restore promise', () => {
+  for (const [lang, { note, mustMention }] of Object.entries(PORTABILITY)) {
+    it(`[${lang}] names data export + another device`, () => {
+      expect(typeof note).toBe('string');
+      const lower = (note ?? '').toLowerCase();
+      for (const term of mustMention) expect(lower).toContain(term);
+    });
+  }
+});
