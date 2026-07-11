@@ -20,7 +20,7 @@
   },
   "entry": {
     "title": "Your Life Events",
-    "subtitle": "These can be hard to revisit — but each dated event helps pin down your birth time, which sharpens the most time-sensitive parts of your chart. The more specific the date, the better.",
+    "subtitle": "Optional, and there's no minimum — add as many or as few as you like. Each dated event helps the engine pin down your birth time, and a more specific date helps more.",
     "add": "Add Event",
     "date_label": "Date",
     "category_label": "Category",

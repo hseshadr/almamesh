@@ -47,9 +47,9 @@
   },
   "life_events": {
     "title": "Compartilhe a história da sua vida",
-    "subtitle": "Descreva com suas próprias palavras os eventos importantes da sua vida. Eles são salvos neste dispositivo como notas opcionais — o aplicativo não refina sua hora de nascimento por você.",
+    "subtitle": "Opcional. Se quiser, anote com suas próprias palavras alguns eventos da sua vida — eles são salvos neste dispositivo como notas privadas que você pode usar depois para refinar à mão um horário de nascimento incerto. Pule quando quiser; seu mapa está pronto sem eles.",
     "why_title": "Por que salvar isso?",
-    "why_body": "Grandes eventos da vida (casamento, mudanças de carreira, filhos) coincidem com os períodos planetários, então são pontos de referência úteis quando VOCÊ retifica sua hora de nascimento à mão mais tarde em Configurações: ajuste a hora, observe o Ascendente mudar ao vivo e confronte-o com esses eventos. O aplicativo nunca relaciona os eventos com a sincronia nem altera sua hora de nascimento por você.",
+    "why_body": "Grandes momentos (um casamento, uma mudança de carreira, um filho) coincidem com os períodos planetários, então mais tarde são pontos de referência úteis se você refinar à mão um horário de nascimento incerto em Configurações: ajuste a hora, observe o Ascendente mudar e veja qual encaixa. Totalmente opcional — o aplicativo nunca relaciona os eventos com a sincronia nem altera sua hora de nascimento por você.",
     "textarea_label": "Conte-nos sobre os eventos da sua vida:",
     "textarea_placeholder": "Por exemplo: casei em 2015, tive meu primeiro filho em 2018, mudei de carreira em 2020...",
     "char_count": "{{count}}/5000 caracteres",
@@ -60,7 +60,7 @@
     "helpful_title": "Os eventos que mais ajudam:",
     "analyzing": "Salvando...",
     "analyze_continue": "Salvar e continuar",
-    "skip": "Pular: vou usar uma hora de nascimento aproximada",
+    "skip": "Pular por enquanto",
     "examples": [
       "Casei em junho de 2015, tive meu primeiro filho em 2018 e mudei da engenharia para o ensino em 2020.",
       "Meu pai faleceu quando eu tinha 23 anos, comprei minha primeira casa aos 30 e me mudei de Nova York para a Califórnia em 2019.",

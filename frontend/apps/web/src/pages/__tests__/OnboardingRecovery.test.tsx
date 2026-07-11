@@ -99,7 +99,7 @@ describe('Onboarding — in-app bootstrap recovery', () => {
     // Drive the last step's "analyze & continue" which triggers generation.
     fireEvent.click(screen.getByTestId('life-events-input'));
     // Skip life events to reach generation directly.
-    fireEvent.click(screen.getByText(/skip/i));
+    fireEvent.click(screen.getByTestId('skip-life-events-button'));
 
     await waitFor(() => expect(reboot).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(navigateSpy).toHaveBeenCalledWith('/dashboard'));
@@ -121,7 +121,7 @@ describe('Onboarding — in-app bootstrap recovery', () => {
     seedReadyToGenerate();
 
     renderPage();
-    fireEvent.click(screen.getByText(/skip/i));
+    fireEvent.click(screen.getByTestId('skip-life-events-button'));
 
     await waitFor(() => expect(whenReady).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(navigateSpy).toHaveBeenCalledWith('/dashboard'));
@@ -146,7 +146,7 @@ describe('Onboarding — in-app bootstrap recovery', () => {
 
     renderPage();
     await act(async () => {
-      fireEvent.click(screen.getByText(/skip/i));
+      fireEvent.click(screen.getByTestId('skip-life-events-button'));
     });
 
     // The error card appears with all three recovery actions.
@@ -177,7 +177,7 @@ describe('Onboarding — in-app bootstrap recovery', () => {
 
     renderPage();
     await act(async () => {
-      fireEvent.click(screen.getByText(/skip/i));
+      fireEvent.click(screen.getByTestId('skip-life-events-button'));
     });
 
     await screen.findByTestId('retry-generation-button');

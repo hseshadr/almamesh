@@ -540,6 +540,7 @@ export default function DashboardPage() {
           moon={moon}
           dasha={astronomicalData?.dasha_ctx}
           rectification={rectification}
+          timeConfidence={birthData?.birth_time_confidence}
           actions={
             <>
               <ContentModeToggle />

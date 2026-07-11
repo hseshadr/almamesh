@@ -21,7 +21,7 @@
   },
   "entry": {
     "title": "Seus eventos de vida",
-    "subtitle": "Revisitá-los pode ser difícil, mas cada evento datado ajuda a precisar seu horário de nascimento, o que refina as partes mais sensíveis ao tempo do seu gráfico. Quanto mais específica a data, melhor.",
+    "subtitle": "Opcional, e não há mínimo: adicione quantos ou quão poucos quiser. Cada evento datado ajuda o motor a precisar seu horário de nascimento, e uma data mais específica ajuda mais.",
     "add": "Adicionar evento",
     "date_label": "Data",
     "category_label": "Categoria",

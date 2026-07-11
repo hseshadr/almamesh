@@ -130,7 +130,7 @@ describe('Onboarding — birth-time confidence selector', () => {
     appEvents.on('birth-info-changed', handler);
     renderPage();
 
-    fireEvent.click(screen.getByText(/skip/i));
+    fireEvent.click(screen.getByTestId('skip-life-events-button'));
 
     await waitFor(() => expect(navigateSpy).toHaveBeenCalledWith('/dashboard'));
     appEvents.off('birth-info-changed', handler);
