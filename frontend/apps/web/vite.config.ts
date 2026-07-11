@@ -103,13 +103,52 @@ function pwaPlugin(): Plugin[] {
         'assets/prerender-entry-*.js',
       ],
       // App-shell SPA fallback: an offline navigation to any route serves the
-      // precached index.html (then React Router takes over).
-      navigateFallback: '/index.html',
-      navigateFallbackDenylist: [/^\/(pyodide|bundle|models)\//, /^\/version\.json$/],
+      // precached shell (then React Router takes over). The shell is precached
+      // under the extensionless canonical URL `/` (see manifestTransforms below),
+      // NOT `/index.html`, because Cloudflare Pages 308-redirects `/index.html`
+      // -> `/`. Precaching/falling-back on a redirecting URL is fragile and left
+      // returning users with an empty precache + a Chrome error page. `/` is
+      // served 200 by CF Pages and by `vite preview`.
+      navigateFallback: '/',
+      navigateFallbackDenylist: [
+        /^\/(pyodide|bundle|models)\//,
+        /^\/version\.json$/,
+        // Hashed, immutable code-split chunks and the Workbox runtime are never
+        // navigations — never answer a script request with the app-shell HTML.
+        /^\/assets\//,
+        /^\/workbox-[^/]+\.js$/,
+      ],
       // Raise the 2 MiB default so the offline geocoder data (~2 MB cities) and
       // the larger app-shell chunks precache.
       maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
       cleanupOutdatedCaches: true,
+      // Cloudflare Pages 308-redirects the prerendered `*.html` shells to their
+      // extensionless canonical URLs (`index.html`->`/`, `welcome.html`->
+      // `/welcome`, ... — the SEO-canonical behaviour from spec 064). Workbox
+      // precaches by fetching each entry; precaching under a REDIRECTING key is
+      // fragile and is the root cause of the empty-precache wedge. Rewrite those
+      // 5 shell entries to the 200 canonical URL before the manifest is written
+      // (revisions preserved). Hashed assets are untouched, and the SEO redirect
+      // is unchanged — we only change the service worker's precache keys.
+      manifestTransforms: [
+        (
+          entries: { url: string; revision: string | null; integrity?: string; size: number }[],
+        ) => {
+          // Derive the shell->canonical map from the SAME source of truth the
+          // prerender + SEO gates use (PUBLIC_ROUTE_PATHS + prerenderOutputFile in
+          // src/seo/routeHead.ts): `welcome.html` -> `/welcome`, root -> `/`. A
+          // future public route is picked up automatically, so it can never
+          // silently reintroduce a redirecting precache key (the wedge root cause).
+          const canonical: Record<string, string> = Object.fromEntries(
+            PUBLIC_ROUTE_PATHS.map((p) => [prerenderOutputFile(p), p === '/' ? '/' : p]),
+          )
+          const manifest = entries.map((entry) => {
+            const url = canonical[entry.url.replace(/^\//, '')]
+            return url ? { ...entry, url } : entry
+          })
+          return { manifest, warnings: [] as string[] }
+        },
+      ],
       runtimeCaching: [
         {
           // Immutable, content-addressed bundle data (chunks + manifests).

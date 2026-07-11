@@ -129,16 +129,24 @@ if (!existsSync(swPath)) {
 } else {
   const sw = readFileSync(swPath, 'utf-8');
   const urls = [...sw.matchAll(/["'`]([^"'`]+?)["'`]\s*,\s*revision/g)].map((m) => m[1]);
+  // Raw keys (leading slash preserved) — the shell HTMLs are now precached under
+  // their extensionless canonical URL, so we must compare against '/', '/welcome'…
+  const precachedRaw = new Set(urls);
   const precached = new Set(urls.map((u) => u.replace(/^\//, '')));
-  const listAll = precached.size ? [...precached] : [];
+  const listAll = precachedRaw.size ? [...precachedRaw] : [];
 
+  // The shell HTMLs are precached under their EXTENSIONLESS CANONICAL URL
+  // (index.html -> '/', welcome.html -> '/welcome', …) because Cloudflare Pages
+  // 308-redirects the '.html' forms; precaching a redirecting key breaks the SW
+  // install (see manifestTransforms in vite.config.ts).
   for (const route of PUBLIC_ROUTE_PATHS) {
-    const file = prerenderOutputFile(route);
-    if (precached.has(file)) ok(`precache manifest lists ${file}`);
-    else fail(`precache manifest is MISSING ${file} (found: ${listAll.join(', ') || '∅'})`);
+    if (precachedRaw.has(route)) ok(`precache manifest lists canonical ${route}`);
+    else fail(`precache manifest is MISSING canonical ${route} (found: ${listAll.join(', ') || '∅'})`);
   }
-  // Nested form must not be precached either.
+  // The redirecting flat '.html' and nested forms must NOT be precached.
   for (const route of PUBLIC_ROUTE_PATHS) {
+    const flat = prerenderOutputFile(route);
+    if (precached.has(flat)) fail(`precache manifest still lists redirecting ${flat} (want canonical ${route})`);
     if (route === '/') continue;
     const slug = route.replace(/^\//, '');
     if (precached.has(`${slug}/index.html`)) fail(`precache manifest still lists ${slug}/index.html`);

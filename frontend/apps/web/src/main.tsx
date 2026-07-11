@@ -9,6 +9,7 @@ import i18n from './i18n/config'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { AlmaMeshRuntimeProvider } from './providers/AlmaMeshRuntimeProvider'
 import { runProfileMigration } from '@almamesh/store'
+import { installChunkErrorRecovery } from './lib/swSelfHeal'
 import App from './App'
 // Self-hosted observatory typography (no external font CDN — keeps the app
 // fully offline and free of cross-origin requests). Variable fonts: one woff2
@@ -51,6 +52,13 @@ queryClient = new QueryClient({
 // shipped, assign any pre-existing charts to a default "Me" profile. Idempotent
 // and hydration-aware, so it is safe to fire-and-forget here.
 void runProfileMigration()
+
+// Auto-recover from a failed code-split import (a stale/poisoned SW cache after a
+// deploy). Installed before render so a chunk error anywhere — including dynamic
+// imports inside a page — reloads once to the fresh build instead of stranding
+// the user. Route chunks additionally retry via lazyWithRetry; the boot-time
+// wedge (empty precache) is healed in useServiceWorker.
+installChunkErrorRecovery()
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

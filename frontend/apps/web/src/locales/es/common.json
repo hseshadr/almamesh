@@ -52,7 +52,10 @@
     "details": "Detalles del error (solo desarrollo)",
     "warning_aria": "advertencia",
     "reset_app_data": "Restablecer datos de la app",
-    "reset_hint": "¿Sigue sin funcionar tras una actualización? Esto borra los datos en caché y recarga una copia nueva. Tus cartas guardadas podrían eliminarse."
+    "reset_hint": "¿Sigue sin funcionar tras una actualización? Esto borra los datos en caché y recarga una copia nueva. Tus cartas guardadas podrían eliminarse.",
+    "update_title": "Actualizando a la última versión",
+    "update_body": "Hay una nueva versión de AlmaMesh disponible. Recargando ahora — tus cartas guardadas permanecen en este dispositivo.",
+    "update_reload": "Recargar ahora"
   },
   "update": {
     "available": "¡Hay una nueva versión disponible!",

@@ -1,5 +1,6 @@
-import { lazy, Suspense, type ReactNode } from 'react'
+import { Suspense, type ReactNode } from 'react'
 import { Route, Routes, Navigate } from 'react-router-dom'
+import { lazyWithRetry } from './lib/lazyWithRetry'
 import { useTranslation } from 'react-i18next'
 import { UpdateBanner } from './components/UpdateBanner'
 import { ErrorBoundary } from './components/ErrorBoundary'
@@ -17,25 +18,27 @@ function page(element: ReactNode): ReactNode {
   return <AnimatedPage>{element}</AnimatedPage>
 }
 
-// Lazy-loaded page components for code splitting
-const LandingPage = lazy(() => import('./pages/Landing'))
-const OnboardingPage = lazy(() => import('./pages/Onboarding'))
-const DashboardPage = lazy(() => import('./pages/Dashboard'))
-const PredictivePage = lazy(() => import('./pages/Predictive'))
-const LifeDomainPage = lazy(() => import('./pages/LifeDomain'))
-const MeshPage = lazy(() => import('./pages/Mesh'))
-const MeshEdgePage = lazy(() => import('./pages/MeshEdge'))
-const RectifyPage = lazy(() => import('./pages/Rectify'))
-const ReportViewPage = lazy(() => import('./pages/ReportView'))
-const PrivacyPolicy = lazy(() => import('./pages/legal/PrivacyPolicy'))
-const TermsOfService = lazy(() => import('./pages/legal/TermsOfService'))
-const DataDeletion = lazy(() => import('./pages/legal/DataDeletion'))
-const SettingsLayout = lazy(() => import('./pages/settings/SettingsLayout'))
-const ProfileSettings = lazy(() => import('./pages/settings/ProfileSettings'))
-const PeopleSettings = lazy(() => import('./pages/settings/PeopleSettings'))
-const PreferencesSettings = lazy(() => import('./pages/settings/PreferencesSettings'))
-const AiSettings = lazy(() => import('./pages/settings/AiSettings'))
-const DataSettings = lazy(() => import('./pages/settings/DataSettings'))
+// Lazy-loaded page components for code splitting. `lazyWithRetry` makes a failed
+// chunk import (a stale/poisoned SW cache after a deploy) self-recover — retry
+// once, then a single guarded reload — instead of white-screening the route.
+const LandingPage = lazyWithRetry(() => import('./pages/Landing'), 'Landing')
+const OnboardingPage = lazyWithRetry(() => import('./pages/Onboarding'), 'Onboarding')
+const DashboardPage = lazyWithRetry(() => import('./pages/Dashboard'), 'Dashboard')
+const PredictivePage = lazyWithRetry(() => import('./pages/Predictive'), 'Predictive')
+const LifeDomainPage = lazyWithRetry(() => import('./pages/LifeDomain'), 'LifeDomain')
+const MeshPage = lazyWithRetry(() => import('./pages/Mesh'), 'Mesh')
+const MeshEdgePage = lazyWithRetry(() => import('./pages/MeshEdge'), 'MeshEdge')
+const RectifyPage = lazyWithRetry(() => import('./pages/Rectify'), 'Rectify')
+const ReportViewPage = lazyWithRetry(() => import('./pages/ReportView'), 'ReportView')
+const PrivacyPolicy = lazyWithRetry(() => import('./pages/legal/PrivacyPolicy'), 'PrivacyPolicy')
+const TermsOfService = lazyWithRetry(() => import('./pages/legal/TermsOfService'), 'TermsOfService')
+const DataDeletion = lazyWithRetry(() => import('./pages/legal/DataDeletion'), 'DataDeletion')
+const SettingsLayout = lazyWithRetry(() => import('./pages/settings/SettingsLayout'), 'SettingsLayout')
+const ProfileSettings = lazyWithRetry(() => import('./pages/settings/ProfileSettings'), 'ProfileSettings')
+const PeopleSettings = lazyWithRetry(() => import('./pages/settings/PeopleSettings'), 'PeopleSettings')
+const PreferencesSettings = lazyWithRetry(() => import('./pages/settings/PreferencesSettings'), 'PreferencesSettings')
+const AiSettings = lazyWithRetry(() => import('./pages/settings/AiSettings'), 'AiSettings')
+const DataSettings = lazyWithRetry(() => import('./pages/settings/DataSettings'), 'DataSettings')
 
 /**
  * Loading fallback component for Suspense boundaries

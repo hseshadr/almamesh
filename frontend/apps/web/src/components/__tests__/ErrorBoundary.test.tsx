@@ -9,6 +9,31 @@ function Boom(): never {
   throw new Error('stale-state boom');
 }
 
+/** A child that throws a failed-chunk-import error (stale SW cache after deploy). */
+function ChunkBoom(): never {
+  throw new Error('Failed to fetch dynamically imported module: /assets/Dashboard-x.js');
+}
+
+function stubBrowserForReload() {
+  const unregister = vi.fn().mockResolvedValue(true);
+  vi.stubGlobal('navigator', {
+    serviceWorker: { getRegistrations: vi.fn().mockResolvedValue([{ unregister }]) },
+  });
+  vi.stubGlobal('caches', {
+    keys: vi.fn().mockResolvedValue(['workbox-precache-v2-x', 'almamesh-bundle-immutable']),
+    delete: vi.fn().mockResolvedValue(true),
+  });
+  const reload = vi.fn();
+  vi.stubGlobal('location', { reload });
+  const store = new Map<string, string>();
+  vi.stubGlobal('sessionStorage', {
+    getItem: (k: string) => store.get(k) ?? null,
+    setItem: (k: string, v: string) => store.set(k, String(v)),
+    removeItem: (k: string) => store.delete(k),
+  });
+  return { unregister, reload };
+}
+
 describe('ErrorBoundary', () => {
   let consoleError: ReturnType<typeof vi.spyOn>;
 
@@ -36,6 +61,53 @@ describe('ErrorBoundary', () => {
     // The existing recovery actions remain.
     expect(screen.getByRole('button', { name: /try again/i })).toBeTruthy();
     expect(screen.getByRole('button', { name: /refresh page/i })).toBeTruthy();
+  });
+
+  it('shows the update card and auto-reloads (engine-preserving) on a failed chunk import', async () => {
+    const { unregister, reload } = stubBrowserForReload();
+
+    render(
+      <ErrorBoundary>
+        <ChunkBoom />
+      </ErrorBoundary>,
+    );
+
+    // A chunk failure is a deploy/update artifact, not a crash — distinct copy.
+    expect(screen.getByText('Updating to the latest version')).toBeTruthy();
+    expect(screen.queryByText('Something went wrong')).toBeNull();
+    // Auto-heals once: unregister SW + reload, WITHOUT the nuclear data wipe.
+    await waitFor(() => expect(reload).toHaveBeenCalledTimes(1));
+    expect(unregister).toHaveBeenCalled();
+  });
+
+  it('does NOT auto-reload a second time once the per-session chunk-heal guard is set', async () => {
+    const { reload } = stubBrowserForReload();
+    // Simulate an earlier chunk-heal already performed THIS session: the boundary's
+    // one-shot guard flag (EB_CHUNK_HEAL_KEY) is set. A second chunk error must
+    // still show the update card but NOT auto-reload again — the no-loop guarantee.
+    sessionStorage.setItem('almamesh:eb-chunk-heal', '1');
+
+    render(
+      <ErrorBoundary>
+        <ChunkBoom />
+      </ErrorBoundary>,
+    );
+
+    expect(screen.getByText('Updating to the latest version')).toBeTruthy();
+    await new Promise((r) => setTimeout(r, 10));
+    expect(reload).not.toHaveBeenCalled();
+  });
+
+  it('does NOT auto-reload for a normal (non-chunk) error', async () => {
+    const { reload } = stubBrowserForReload();
+    render(
+      <ErrorBoundary>
+        <Boom />
+      </ErrorBoundary>,
+    );
+    expect(screen.getByText('Something went wrong')).toBeTruthy();
+    await new Promise((r) => setTimeout(r, 10));
+    expect(reload).not.toHaveBeenCalled();
   });
 
   it('logs the real underlying error (never hides the cause behind a blank fallback)', () => {

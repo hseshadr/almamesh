@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { registerSW } from 'virtual:pwa-register'
 
+import { healStrandedServiceWorker } from '../lib/swSelfHeal'
+
 /**
  * Registers the PWA Service Worker and surfaces its update lifecycle.
  *
@@ -22,6 +24,12 @@ export function useServiceWorker() {
 
   useEffect(() => {
     void navigator.storage?.persist?.().catch(() => false)
+
+    // Self-heal a wedged session: an active SW whose app-shell precache is
+    // missing/empty serves nothing for `navigateFallback`, so navigations hit a
+    // Chrome error page. Detect + repair (unregister + reload once, engine caches
+    // preserved) so a returning visitor is never stranded — no manual reset.
+    void healStrandedServiceWorker()
 
     updateRef.current = registerSW({
       immediate: true,
