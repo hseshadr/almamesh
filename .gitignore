@@ -109,5 +109,8 @@ docs/*.local.md
 # Ephemeral agent git worktrees
 .claude/worktrees/
 
+# Agent scratch (Claude Code per-session skills/agents workspace)
+.agents/
+
 # Live-validation screenshots (generated, never committed)
 shots/
