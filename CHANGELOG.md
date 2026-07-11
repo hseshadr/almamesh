@@ -6,17 +6,30 @@ All notable changes to AlmaMesh are documented here. Format follows
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-07-11
+
+> Release-discipline note: tags v0.1.0–v0.3.0 were never cut (the public repo
+> history begins at the 2026-06-25 "Initial public release" commit). Annotated
+> tagging starts at **v0.4.0**; earlier versions are never backfilled.
+
+Release notes: [docs/releases/v0.4.0.md](docs/releases/v0.4.0.md)
+
 ### Added
+- **Backup & Restore (Spec 061).** Export all your data — profiles, charts,
+  members, readings, settings — to a single file and import it in another
+  browser. Everything stays client-side; the file is yours. Hardened with a
+  follow-up integrity pass.
 - **Robust birth-time rectification + comprehensive report (Spec 062).** The
   rectifier gains D9-lagna signals, deeper dasha keys, and a labeled score
   anatomy with honest qualitative bands (never a headline %); the wizard tells
   the per-event evidence story; the exported report grows to a comprehensive
   document including Section XII "Birth Time Authority"; chat + interpretation
   are grounded in the rectification record and live predictive contexts.
-- **AI tiers (Spec 063).** No AI by default — the chart is pure calculation.
-  Opt in to **on-device** AI (WebLLM on WebGPU, beta; chat + rectification
-  interview, weights downloaded once) or **cloud** AI (OpenRouter or any
-  OpenAI-compatible endpoint, one-click preset, stronger models).
+- **Opt-in cloud AI (Spec 063, then OpenRouter-first).** No AI by default —
+  the chart is pure calculation. Opting in gets an OpenRouter-first setup with
+  test-on-save connectivity checks, a model picker, an AI security gate, and
+  live credits surfacing. (Spec 063's experimental on-device WebLLM tier
+  shipped mid-cycle and was removed before this release — see Removed.)
 - **SEO prerender (Spec 064).** Public routes (landing, welcome, legal) ship
   real HTML for crawlers — no JavaScript required — plus sitemap, robots, and
   IndexNow.
@@ -33,11 +46,28 @@ All notable changes to AlmaMesh are documented here. Format follows
   legal) carries its own Open Graph image, generated at build time from the
   brand design tokens and self-hosted fonts — link previews are
   route-specific.
+- **Online-primary birthplace search.** Birthplace lookup now queries
+  Open-Meteo's geocoder first (with the offline city list as fallback), plus a
+  coordinate-entry fallback for places missing from both.
+- **"How this reading is made."** An honest grounding explainer on the
+  dashboard names exactly what the deterministic engine computed and what the
+  optional AI narrated.
+- **Anonymous product feedback.** An optional, anonymous feedback signal
+  (Cloudflare Pages Function + D1 + Turnstile), stamped with the app version.
+- **Live e2e gates in CI.** A real first-run onboarding journey against the
+  live in-browser engine, plus an unhappy-boot recovery drill (blocked bundle
+  → recover).
 
 ### Changed
 - **The Living Astrolabe.** The dashboard's 3D force-field hero is
   de-cluttered into one radiant core, a quiet zodiac wheel, and at most three
   dasha threads.
+- **Landing page.** Readable hero, prominent open-source signal, the Generate
+  CTA routes to your existing chart — and the data-privacy story is fully
+  honest: the optional AI egress is named, with a data-portability blurb.
+- **Rectification tone.** The life-events ask is reframed as an optional,
+  warm invitation; the interview chat matches the chart chat (roomier
+  textarea, shared bubbles, processing indicators).
 
 ### Fixed
 - **Bundle signature verification on nested routes.** The verify key
@@ -58,6 +88,26 @@ All notable changes to AlmaMesh are documented here. Format follows
   out of credits (e.g. an OpenRouter `402`), the reading says exactly that and
   points to billing — instead of the generic "check your model / try again"
   advice, which can never fix a billing problem.
+- **Service worker self-heals.** A wedged service-worker session (the "site
+  is down" symptom) now auto-recovers; `/public.key` is served NetworkFirst so
+  a stale verify key can never be pinned by the cache.
+- **Connectivity probe accepts reasoning models.** The test-on-save probe no
+  longer rejects valid reasoning models (`max_tokens: 1` → 400).
+- **Combustion carries into divisional charts** (D9 and the full D1–D60
+  vargas).
+- **Predictive layer persists.** Life Atlas no longer recomputes the full
+  predictive superset on every reload.
+- **Mobile.** Responsive layout pass kills horizontal overflow; the Regenerate
+  button is reachable on mobile and the active-AI badge reads green.
+- **Birthplace queries match natural input** — diacritics and state/country
+  qualifiers no longer break matching.
+- **Report PDF.** The life-events blob is cleaned up, with real
+  render-to-bytes coverage.
+
+### Removed
+- **The on-device WebLLM AI tier.** Added mid-cycle (Spec 063), removed in
+  favor of the cloud-only opt-in path — WebGPU model quality did not yet
+  justify the weight. On-device AI may return when it does.
 
 ## [0.3.0] - 2026-06-11
 
