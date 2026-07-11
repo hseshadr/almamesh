@@ -8,8 +8,10 @@ interface HowStep {
 
 /**
  * HOW it works — three honest steps (enter details → compute locally → explore),
- * closed by the load-bearing zero-egress note: the chart engine makes no network
- * calls; the optional AI only narrates.
+ * closed by two load-bearing data notes: the zero-egress note (the chart engine
+ * makes no network calls; the optional AI only narrates) and the portability
+ * note (no server copy means you export + carry your own data across devices —
+ * the flip side of the no-centralization promise).
  */
 export function HowItWorksSection(): ReactElement {
   const { t } = useTranslation('landing');
@@ -49,12 +51,20 @@ export function HowItWorksSection(): ReactElement {
         ))}
       </ol>
 
-      <p className="mt-14 flex items-start gap-3 rounded-xl border border-accent-lapis/30 bg-accent-lapis/5 p-5 text-sm leading-relaxed text-text-secondary">
-        <span aria-hidden="true" className="mt-0.5 text-accent-gold">
-          &#9679;
-        </span>
-        {t('how.zeroEgress')}
-      </p>
+      <div className="mt-14 grid gap-4">
+        <p className="flex items-start gap-3 rounded-xl border border-accent-lapis/30 bg-accent-lapis/5 p-5 text-sm leading-relaxed text-text-secondary">
+          <span aria-hidden="true" className="mt-0.5 text-accent-gold">
+            &#9679;
+          </span>
+          {t('how.zeroEgress')}
+        </p>
+        <p className="flex items-start gap-3 rounded-xl border border-accent-lapis/30 bg-accent-lapis/5 p-5 text-sm leading-relaxed text-text-secondary">
+          <span aria-hidden="true" className="mt-0.5 text-accent-gold">
+            &#9679;
+          </span>
+          {t('how.portability')}
+        </p>
+      </div>
     </section>
   );
 }

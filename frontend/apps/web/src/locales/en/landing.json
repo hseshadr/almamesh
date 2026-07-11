@@ -100,7 +100,8 @@
         "body": "Dive into your chart, dashas, and the mesh — with an optional AI that only narrates, never invents."
       }
     ],
-    "zeroEgress": "The chart engine makes no network calls. Your birth date, time, and chart stay on your device — only the birthplace name you search is looked up online."
+    "zeroEgress": "The chart engine makes no network calls; your birth date and time never leave your device. Two things reach the network — the birthplace you search, and (only if you turn on the optional AI) a privacy-redacted chart with no name or birth date.",
+    "portability": "There's no server holding your data, so it's yours to carry: export everything — profiles, charts, and chat — to a single file and restore it in another browser or device. Nothing is uploaded; only you can move it."
   },
   "who": {
     "title": "Who it's for",
