@@ -15,7 +15,7 @@
 # both correct and silent. See the UV var below.
 
 .DEFAULT_GOAL := help
-.PHONY: help demo demo-fresh build assets test
+.PHONY: help demo demo-fresh build assets test gate
 
 # uv, invoked with any stale VIRTUAL_ENV cleared so the project's own .venv is
 # always used (no "does not match the project environment" warning).
@@ -39,3 +39,6 @@ assets: ## Fetch/sign the dev assets (Pyodide dist + signed edge bundle)
 
 test: ## Run the backend engine test suite
 	cd backend && $(UV) run pytest -q
+
+gate: ## THE quality gate (backend + frontend) — what CI runs; run before every commit
+	$(UV) run poe gate

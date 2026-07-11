@@ -44,6 +44,23 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # Key-custody tree-guard (ENGINEERING-STANDARDS §7): the bundle-signing
+      # key directories (backend/keys*/ = private keys, backend/origin*/ =
+      # signed origin trees) must NEVER be tracked. .gitignore covers them, but
+      # a `git add -f` would slip past it — this step fails the build if any
+      # path under them ever lands in the index. Production key custody:
+      # password manager + repo secrets (see .github/workflows/deploy.yml
+      # header and docs/deploy/almamesh-com.md).
+      - name: Tree-guard — signing-key paths must not be tracked
+        run: |
+          tracked=$(git ls-files 'backend/keys*' 'backend/origin*')
+          if [ -n "$tracked" ]; then
+            echo "::error::Signing-key/origin paths are tracked in git:"
+            echo "$tracked"
+            exit 1
+          fi
+          echo "OK: no backend/keys*/ or backend/origin*/ paths tracked."
+
   backend:
     name: Backend Tests
     runs-on: ubuntu-latest
@@ -60,8 +77,10 @@ jobs:
         with:
           python-version: "3.13"
 
+      # setup-uv publishes no floating major tag — full pin required
+      # (ENGINEERING-STANDARDS §4; v8.3.2 verified 2026-07-11).
       - name: Install uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@v8.3.2
         with:
           version: "latest"
 
@@ -80,26 +99,17 @@ jobs:
       - name: Install dependencies
         run: uv sync --locked --extra dev
 
-      # ruff/mypy are scoped to this project's own code — pyproject excludes
-      # vendor/ (vendored sources keep their upstream style; see VENDORED.md).
-      - name: Lint + format + types
-        run: |
-          uv run ruff check .
-          uv run ruff format --check .
-          uv run mypy src/
-
-      - name: Run tests
-        run: uv run pytest -q
-
-      # The vendored edge-proc substrate ships its own pinned test suite (its
-      # uv.lock creates a private .venv under vendor/edge-proc). Run it as a
-      # gate so a re-vendor or a local patch can never silently break the
-      # bundle/signing substrate. `--all-extras` pulls the bundles + localvec
-      # extras the tests exercise — the command documented in
-      # backend/vendor/edge-proc/VENDORED.md.
-      - name: Run vendored edge-proc suite
-        working-directory: backend/vendor/edge-proc
-        run: uv run --all-extras pytest -q
+      # THE backend gate — the same single command a developer runs locally
+      # (`make gate` fans out to it). Composition lives in ONE place,
+      # backend/pyproject.toml [tool.poe.tasks]: ruff lint → ruff format
+      # --check → mypy strict → xenon (grandfathered C/C/A, see CLAUDE.md) →
+      # pytest with the coverage floor (addopts) → the vendored edge-proc
+      # suite (its own pinned .venv; see backend/vendor/edge-proc/VENDORED.md).
+      # Running the gate command itself (not a re-listing of its steps) is what
+      # keeps CI and the local gate mirrored both directions
+      # (ENGINEERING-STANDARDS §3/§4).
+      - name: Run the backend gate (lint, types, complexity, tests+coverage, vendored suite)
+        run: uv run poe gate
 
   frontend:
     name: Frontend Tests
@@ -114,11 +124,12 @@ jobs:
 
       # The whole frontend — including @edgeproc/browser, the edge-proc browser
       # sync tier vendored at packages/edgeproc-browser — is a single bun
-      # workspace installed from this checkout.
+      # workspace installed from this checkout. Bun is the sanctioned toolchain
+      # exception (ENGINEERING-STANDARDS §2), pinned in frontend/.bun-version.
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version-file: frontend/.bun-version
 
       - name: Cache Bun dependencies
         uses: actions/cache@v5
@@ -135,41 +146,17 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      # Emit package type declarations (dist) BEFORE the workspace typecheck —
-      # composite project references need the shared-types/constants dist
-      # present or dependents fail TS6305. --force ignores a stale/cached
-      # .tsbuildinfo that would otherwise skip the emit. (@edgeproc/browser and
-      # @almamesh/memory export raw TS source — no declaration build needed.)
-      - name: Build package declarations (forced, dependency order)
-        run: bunx tsc -b packages/shared-types packages/constants packages/store packages/llm --force
-
-      # Workspace-wide: every package + the app (incl. the vendored
-      # @edgeproc/browser) — the same gate as local dev.
-      - name: Type check
-        run: bun run --filter '*' typecheck
-
-      - name: Lint
-        run: bun run --filter @almamesh/web lint
-
-      # Unit tests: the package vitest suites (incl. the vendored
-      # @edgeproc/browser engine suite) + the web app's vitest suite.
-      # EDGE_RECO_SKIP_EMBEDDING_PARITY=1 skips the one parity case that would
-      # download an embedding model, keeping the run offline + deterministic
-      # (see packages/edgeproc-browser/VENDORED.md). (Playwright e2e is NOT run
-      # here — it needs the generated 38 MB engine assets + a built preview
-      # server.)
-      - name: Unit tests
-        env:
-          EDGE_RECO_SKIP_EMBEDDING_PARITY: "1"
-        run: |
-          bun run --filter @edgeproc/browser test
-          bun run --filter @almamesh/browser test
-          bun run --filter @almamesh/store test
-          bun run --filter @almamesh/llm test
-          bun run --filter @almamesh/web test:unit
-
-      - name: Build
-        run: bun run --filter @almamesh/web build
+      # THE frontend gate — the same single command a developer runs locally
+      # (`make gate` fans out to it). Composition lives in ONE place,
+      # frontend/package.json "gate": declarations build (composite project
+      # refs need dist present or dependents fail TS6305) → workspace-wide
+      # typecheck → lint → unit tests (offline-deterministic via
+      # EDGE_RECO_SKIP_EMBEDDING_PARITY inside the script) → production build.
+      # Playwright e2e is deliberately NOT here — it needs the generated 38 MB
+      # engine assets and runs as the exit-gate / e2e-smoke / nightly lanes
+      # (see CLAUDE.md "Playwright e2e tiering").
+      - name: Run the frontend gate (declarations, typecheck, lint, unit tests, build)
+        run: bun run gate
 
   # Live-browser exit gate: the heavyweight e2e job that PROVES the in-browser
   # engine works end-to-end with no backend and no login. It generates the large
@@ -204,8 +191,9 @@ jobs:
         with:
           python-version: "3.13"
 
+      # setup-uv publishes no floating major tag — full pin required (§4).
       - name: Install uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@v8.3.2
         with:
           version: "latest"
 
@@ -221,7 +209,7 @@ jobs:
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version-file: frontend/.bun-version
 
       - name: Cache Bun dependencies
         uses: actions/cache@v5
@@ -405,3 +393,104 @@ jobs:
           # Retry recovers to a rendered chart once the bundle is reachable again
           # (the 2026-06-19 "returning visitor stuck on Connection Issue" scar).
           node scripts/verify-onboarding-recovery.mjs http://localhost:4200
+
+  # PR smoke lane for the Playwright flow specs (ENGINEERING-STANDARDS §4:
+  # heavyweight browser suites split into a PR smoke lane + a nightly full
+  # lane — this is the smoke half; nightly-e2e.yml runs all 11 specs).
+  # The two fastest KEYLESS specs not already covered by the exit-gate job:
+  #   - ai-settings.spec.ts   — the AI-setup wizard flow; settings UI +
+  #     localStorage only, no engine boot, so it is the cheapest spec we have.
+  #   - report-pdf.e2e.spec.ts — the hardest real gate: ACTUAL onboarding →
+  #     engine bootstrap → Generate → dashboard → rectify → PDF download, built
+  #     WITHOUT hooks (no __almameshGenerate seeding) and needing no LLM key.
+  # Each playwright config self-builds its production bundle and serves it via
+  # `vite preview` on its own strict port (4188 / 4196). Tiering doc: CLAUDE.md
+  # "Playwright e2e tiering".
+  e2e-smoke:
+    name: E2E Smoke (ai-settings + real report-PDF)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      # ---- Python toolchain (for the bundle publisher) ----
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      # setup-uv publishes no floating major tag — full pin required (§4).
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.3.2
+        with:
+          version: "latest"
+
+      - name: Cache uv dependencies
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/uv
+          key: ${{ runner.os }}-uv-${{ hashFiles('backend/uv.lock', 'backend/vendor/edge-proc/uv.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-uv-
+
+      # ---- JS toolchain ----
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: frontend/.bun-version
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.bun/install/cache
+            frontend/node_modules
+            frontend/apps/*/node_modules
+            frontend/packages/*/node_modules
+          key: ${{ runner.os }}-bun-${{ hashFiles('frontend/bun.lock', 'frontend/**/package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # Same flake engineering as the exit-gate job: NASA's JPL server is
+      # unreliable from runners; the files are static, so a fixed-key cache
+      # kills the flaky download after the first green run.
+      - name: Cache Skyfield ephemeris data (de421.bsp + finals2000A.all)
+        uses: actions/cache@v5
+        with:
+          path: ~/.skyfield-data
+          key: skyfield-data-de421-v1
+
+      # report-pdf drives the REAL engine — it needs the Pyodide dist + signed
+      # bundle in apps/web/public (ai-settings does not, but one generation
+      # serves both).
+      - name: Generate dev assets (Pyodide dist + signed bundle)
+        run: bash apps/web/scripts/setup-dev-assets.sh
+
+      - name: Install Playwright Chromium
+        working-directory: frontend/apps/web
+        run: bunx playwright install --with-deps chromium
+
+      # report-pdf.e2e.spec.ts extracts the downloaded PDF's text with the
+      # system `pdftotext` (poppler-utils).
+      - name: Install pdftotext (poppler-utils)
+        run: sudo apt-get update && sudo apt-get install -y poppler-utils
+
+      - name: Smoke — AI-setup wizard flow (no engine)
+        working-directory: frontend/apps/web
+        env:
+          VITE_API_URL: ""
+        run: bun run test:e2e:ai
+
+      - name: Smoke — REAL chart generation → report PDF (no hooks, no LLM key)
+        working-directory: frontend/apps/web
+        env:
+          VITE_API_URL: ""
+        run: bun run test:e2e:report:pdf

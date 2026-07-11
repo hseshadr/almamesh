@@ -62,6 +62,13 @@ This repo builds against `~/dev/project-ideas/oss/ENGINEERING-STANDARDS.md`
 - **Release discipline:** Keep-a-Changelog + annotated tags, tag-forward-only.
   Tags start at v0.4.0 (v0.1.0–v0.3.0 were never cut; never backfill). Cut the
   tag at merged HEAD on main, never mid-PR.
+- **JS dependency-audit backlog (2026-07-11):** the weekly `security-audit.yml`
+  covers Python (pip-audit) only. `bun audit` currently reports advisories
+  across deep dev/transitive JS chains (node-tar + xmldom via
+  `@huggingface/transformers` / `@react-three/fiber`'s expo chain, ajv via
+  eslint/vite-plugin-pwa) — not exploitable through the shipped static PWA's
+  runtime surface and not fixable by in-range bumps. Remediate the chain, then
+  add the `bun audit` job to security-audit.yml.
 
 ---
 

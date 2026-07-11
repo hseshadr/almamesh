@@ -1,0 +1,59 @@
+# Weekly dependency-CVE audit (ENGINEERING-STANDARDS §4, Published tier).
+# A red run of this workflow is a red repo — scheduled workflows count as CI;
+# they don't block merges and rot silently, so check them explicitly:
+#   gh run list --workflow=security-audit.yml
+#
+# SCOPE (2026-07-11): Python (pip-audit) only. A `bun audit` job is
+# deliberately absent: the JS dev/transitive chain currently carries known
+# advisories that span deep third-party trees (node-tar + @xmldom/xmldom via
+# @huggingface/transformers and @react-three/fiber's expo chain, ajv via
+# eslint/vite-plugin-pwa, …) — none exploitable through the shipped app's
+# runtime surface (static PWA, no server, no tar extraction or XML parsing of
+# untrusted input at runtime), and none fixable by an in-range bump today.
+# Adding the job now would be a permanently-red signal with no action path.
+# Remediating the JS chain and then adding the `bun audit` job here is a
+# labeled backlog item (see the PR that introduced this workflow). Run it
+# locally anytime with: cd frontend && bun audit
+name: Security Audit
+
+on:
+  schedule:
+    # 06:23 UTC every Monday — off-peak, offset from the hour.
+    - cron: "23 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pip-audit:
+    name: pip-audit (backend, locked deps)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      # setup-uv publishes no floating major tag — full pin required (§4).
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.3.2
+        with:
+          version: "latest"
+
+      # The §4 standard invocation: export the frozen lock to requirements and
+      # audit that (pip-audit's default venv mode is fragile). The vendored
+      # local path sources (edge-proc, shared-libs-python) are excluded — they
+      # have no registry release to audit — but their third-party dependencies
+      # remain in the export and ARE audited.
+      - name: Export locked dependencies
+        run: >-
+          uv export --frozen --all-extras --no-emit-project --no-hashes
+          --no-emit-package edge-proc
+          --no-emit-package shared-libs-python
+          -o requirements.txt
+
+      - name: Audit against known CVEs
+        run: uvx pip-audit -r requirements.txt --disable-pip --no-deps

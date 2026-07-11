@@ -51,3 +51,19 @@ sequence = [
   { ref = "frontend-build" },
   { ref = "frontend-preview" },
 ]
+
+# ---- The gate (ENGINEERING-STANDARDS §3: dual-stack = `make gate`) ----------
+# One canonical quality gate for the whole repo. CI's backend/frontend jobs run
+# exactly the two sub-commands below — the gate and CI mirror, both directions.
+
+[tool.poe.tasks.gate-backend]
+help = "Backend gate: ruff lint+format, mypy strict, xenon, pytest (cov >= floor), vendored edge-proc suite"
+shell = "cd backend && env -u VIRTUAL_ENV uv run poe gate"
+
+[tool.poe.tasks.gate-frontend]
+help = "Frontend gate: declarations build, typecheck, lint, unit tests, build"
+shell = "cd frontend && bun run gate"
+
+[tool.poe.tasks.gate]
+help = "Full dual-stack quality gate (backend + frontend) — run before every commit"
+sequence = [{ ref = "gate-backend" }, { ref = "gate-frontend" }]

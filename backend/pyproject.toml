@@ -32,6 +32,10 @@ dev = [
     "pytest-cov>=4.1.0",
     "ruff>=0.8.0",
     "mypy>=1.13.0",
+    # Complexity gate (radon-based) — see [tool.poe.tasks.lint].
+    "xenon>=0.9.3",
+    # Task runner: `uv run poe gate` is THE backend gate (CI runs exactly it).
+    "poethepoet>=0.30",
 ]
 
 [project.scripts]
@@ -57,11 +61,29 @@ constraint-dependencies = ["cryptography>=48.0.1,<49"]
 edge-proc = { path = "vendor/edge-proc", editable = true }
 shared-libs-python = { path = "vendor/shared-libs-python", editable = true }
 
+# The backend quality gate (ENGINEERING-STANDARDS §3): `uv run poe gate`.
+# CI's backend job runs exactly this command — gate and CI mirror both ways.
+# xenon thresholds are grandfathered at C/C/A (2026-07-11): pre-existing B/C
+# blocks are listed in CLAUDE.md ("xenon grandfather" punch list) and must be
+# ratcheted to A/A/A; new code must be A. Coverage floor lives in pytest
+# addopts below so every `pytest` run (local or CI) enforces it identically.
+[tool.poe.tasks]
+lint = { shell = "ruff check . && ruff format --check . && mypy src/ && xenon --max-absolute C --max-modules C --max-average A src/" }
+test = "pytest -q"
+# The vendored edge-proc substrate ships its own pinned suite (private .venv
+# under vendor/edge-proc) — run it so a re-vendor or local patch can never
+# silently break the bundle/signing substrate (see vendor/edge-proc/VENDORED.md).
+test-vendored = { shell = "cd vendor/edge-proc && uv run --all-extras pytest -q" }
+gate = ["lint", "test", "test-vendored"]
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 testpaths = ["tests"]
 pythonpath = ["src"]
+# Coverage floor (ENGINEERING-STANDARDS §2). In addopts so the floor holds for
+# EVERY pytest invocation — a bare `uv run pytest` can't silently skip it.
+addopts = "--cov=almamesh --cov-report=term-missing:skip-covered --cov-fail-under=90"
 markers = [
     "integration: marks tests as integration tests (require external services)",
 ]

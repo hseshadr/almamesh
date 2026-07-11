@@ -9,6 +9,13 @@
 # exist are local-disk-only (a developer's optional LLM API key in an untracked
 # backend/.env, and a bundle signing private.key — both gitignored). Nothing
 # secret is tracked or in history; the .env.example files ship placeholders.
+#
+# Key-custody tree-guard (ENGINEERING-STANDARDS §7): gitleaks scans CONTENT,
+# so the companion PATH guard lives in CI — the "Tree-guard" step of the
+# secret-scan job (.github/workflows/test.yml) fails the build if anything
+# under backend/keys*/ or backend/origin*/ is ever tracked. Production key
+# custody: password manager + repo secrets (deploy.yml header,
+# docs/deploy/almamesh-com.md).
 title = "AlmaMesh gitleaks config"
 
 [extend]
