@@ -6,6 +6,27 @@ All notable changes to AlmaMesh are documented here. Format follows
 
 ## [Unreleased]
 
+### Changed
+- **Re-vendored the three vendored packages to their latest upstream releases**
+  (provenance + recorded adaptations in each `VENDORED.md`; no storage-format,
+  signing, or trust-root changes):
+  - `backend/vendor/edge-proc`: v0.1.0 (`e3f1faa`) → **v0.1.2** (`3dabffa`).
+    Docs/CI/release-plumbing delta only — zero changes to `edgeproc/` or its
+    151-test suite. The snapshot keeps `[tool.uv.sources]` pointed at the
+    sibling `../shared-libs-python` via upstream's own documented path-source
+    toggle (now recorded as a local adaptation, since upstream ships a git-tag
+    pin active).
+  - `backend/vendor/shared-libs-python`: `0533ea0` → **v0.1.3** (`0ba9ba8`).
+    Gate/CI/docs delta only — zero runtime code beyond the version string; the
+    documented LICENSE-holder normalization is preserved.
+  - `frontend/packages/edgeproc-browser`: edge-reco `999d987` → **`2471b0b`**
+    (current main). Brings the embedder hardening + fail-closed bundle
+    validation (`0da71f5`), signed ranking-config/co-occurrence support, and
+    their parity suites. Local adaptations re-applied and now both recorded in
+    `VENDORED.md`: the biome lint script/devDep drop, and the root-absolute
+    `/public.key` resolution (+ `runtimeConfig.test.ts` regression test) that
+    keeps deep-link loads verifying against the app origin's pinned key.
+
 ## [0.4.0] - 2026-07-11
 
 > Release-discipline note: tags v0.1.0–v0.3.0 were never cut (the public repo

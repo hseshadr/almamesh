@@ -4,7 +4,7 @@ This package contains reusable libraries for various purposes.
 Currently includes vector_mgmt for HNSW vector indexing and partitioning.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.1.2"
 
 # Re-export vector_mgmt for backward compatibility and convenience
 # Package exports

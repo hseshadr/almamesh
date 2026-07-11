@@ -7,6 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3] — 2026-07-11
+
+Standards-alignment release — Wave-0 pilot of the portfolio house standard
+(`ENGINEERING-STANDARDS.md`). No library code changes; the public API is
+identical to 0.1.2.
+
+### Changed
+- Renamed the composite quality task `poe quality` → `poe gate` and added the
+  missing `ruff format --check` step (as `poe fmt-check`), so the local gate
+  mirrors CI exactly in both directions. No `poe quality` alias kept.
+- CI now runs `uv run poe gate` directly. Previously the xenon complexity step
+  ran only locally and the format check ran only in CI — both one-sided drifts
+  are gone.
+- Bumped CI actions to the house floor: `actions/checkout@v5`,
+  `actions/setup-python@v6`, `astral-sh/setup-uv@v8`,
+  `codecov/codecov-action@v5`.
+- Restructured the README into the two-altitude shape: plain-language front
+  door, technical depth under "Under the hood (for developers)".
+- Dev-dependency security fixes from the first pip-audit run:
+  pygments → 2.20.0 (CVE-2026-4539), pytest → 9.1.1 (PYSEC-2026-1845);
+  replaced yanked numpy 2.4.0 → 2.5.1.
+
+### Added
+- Full-history gitleaks secret-scan job in CI (`gitleaks/gitleaks-action@v3`).
+- Weekly `security-audit.yml` workflow running pip-audit over the locked
+  dependency export.
+- `.github/dependabot.yml` — weekly, grouped updates for GitHub Actions and
+  the uv lockfile.
+- `CLAUDE.md`: "Quality Gates (Non-Negotiable)" section with scars, and the
+  house-standard §8 WASM/edge-compute N/A declaration.
+
+## [0.1.2] — 2026-06-19
+
+Public open-source release (MIT). Part of the `edge-reco → edge-proc →
+shared-libs-python` stack going public together; live demo at https://edge-reco.com.
+
 ### Added
 - `shared_libs_python.vector_mgmt.testing` — `InMemoryVectorIndex` reference
   implementation and `in_memory_factory`, so the bundled `examples/` run
@@ -15,6 +51,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   examples.
 
 ### Changed
+- README cross-links the three-repo stack and states its role (the
+  vector-partitioning protocol edge-proc's FAISS runtime builds on).
 - Root `README.md` rewritten for cold-reader clarity: 4-part TL;DR, ≤15-line
   teaser quickstart, source-tree diagram aligned to the actual layout.
 - `examples/basic_usage.py`, `custom_partition_key.py`,

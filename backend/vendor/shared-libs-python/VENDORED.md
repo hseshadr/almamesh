@@ -1,16 +1,16 @@
 # VENDORED — shared-libs-python
 
-**TL;DR:** This is a verbatim source snapshot of the private
+**TL;DR:** This is a verbatim source snapshot of the
 `shared-libs-python` repo (a dependency of the vendored `edge-proc`), vendored
 so `almamesh` builds from a single clone. Do not edit by hand — re-vendor from
 upstream (policy below).
 
 | | |
 |---|---|
-| Source repo | `git@github.com:hseshadr/shared-libs-python.git` (private) |
-| Commit vendored | `0533ea0aa97f18d7db06b69efd2e5e0c5883bdb9` |
-| Vendored on | 2026-06-11 |
-| Upstream tree state | clean at that commit |
+| Source repo | `https://github.com/hseshadr/shared-libs-python.git` (public) |
+| Commit vendored | `0ba9ba8c945b55073474322c353d838cf7b3dbba` (tag `v0.1.3`) |
+| Vendored on | 2026-07-11 |
+| Upstream tree state | clean at that tag |
 | License | **MIT — Copyright (c) 2025 Harish Seshadri** (`LICENSE`; holder normalized from upstream's "Vector Management Team" — same owner) |
 
 ## Legal / attribution (resolved)
