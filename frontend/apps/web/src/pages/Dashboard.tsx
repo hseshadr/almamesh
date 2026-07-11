@@ -41,6 +41,7 @@ import {
   DashboardInterpretation,
   IdentityStrip,
   LifeAtlas,
+  ReadingGrounding,
 } from "../components/features/dashboard";
 import { getUserFriendlyError, isModelUnavailableMessage } from "../lib/errors";
 import { isMappedChatStreamError } from "../hooks/useChatThread";
@@ -836,6 +837,11 @@ export default function DashboardPage() {
                 {readingCaption}
               </p>
             )}
+            {/* Trust, not hype: a quiet, closed-by-default explainer of WHY this
+                reading is grounded (deterministic on-device astronomy,
+                externally-validated positions, engine-grounded narration,
+                privacy). Static i18n copy — no astrology, no LLM call. */}
+            <ReadingGrounding />
           </section>
         )}
 

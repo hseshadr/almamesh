@@ -61,6 +61,7 @@ vi.mock('../../components/features/dashboard', () => ({
   ),
   LifeAtlas: () => null,
   DashboardInterpretation: () => null,
+  ReadingGrounding: () => null,
 }));
 
 import {
