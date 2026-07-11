@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { searchCities, type CityMatch } from '../../lib/geo/cityLookup';
+import { searchCities, timezoneForCoordinates, type CityMatch } from '../../lib/geo/cityLookup';
 
 export interface LocationResult {
     displayName: string;
@@ -71,6 +71,15 @@ export function LocationSearch({
     const [isLoading, setIsLoading] = useState(false);
     const [selectedIndex, setSelectedIndex] = useState(-1);
     const [isSearching, setIsSearching] = useState(false);
+    // Coordinate fallback: some birthplaces (small towns/villages under the
+    // dataset's population cutoff) are genuinely absent from the offline city
+    // list. This secondary affordance lets the user enter lat/long directly and
+    // still emit the exact same LocationResult the picker does — with a valid
+    // IANA timezone resolved on-device.
+    const [showCoords, setShowCoords] = useState(false);
+    const [latInput, setLatInput] = useState('');
+    const [lonInput, setLonInput] = useState('');
+    const [labelInput, setLabelInput] = useState('');
     const inputRef = useRef<HTMLInputElement>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -175,6 +184,44 @@ export function LocationSearch({
         const latDir = lat >= 0 ? 'N' : 'S';
         const lonDir = lon >= 0 ? 'E' : 'W';
         return `${Math.abs(lat).toFixed(2)}${latDir}, ${Math.abs(lon).toFixed(2)}${lonDir}`;
+    };
+
+    // --- Coordinate fallback: validation + commit ---
+    const latNum = Number(latInput);
+    const lonNum = Number(lonInput);
+    const latFilled = latInput.trim() !== '';
+    const lonFilled = lonInput.trim() !== '';
+    const latValid = latFilled && Number.isFinite(latNum) && latNum >= -90 && latNum <= 90;
+    const lonValid = lonFilled && Number.isFinite(lonNum) && lonNum >= -180 && lonNum <= 180;
+    const coordsValid = latValid && lonValid;
+    // Only surface the range error once the user has actually typed an
+    // out-of-range value — an empty field is "incomplete", not "wrong".
+    const coordsOutOfRange = (latFilled && !latValid) || (lonFilled && !lonValid);
+
+    const handleCoordinateSubmit = () => {
+        if (!coordsValid) return;
+        const trimmedLabel = labelInput.trim();
+        // name = the optional label, else a formatted "lat, lon".
+        const displayName = trimmedLabel || formatCoords(latNum, lonNum);
+        const location: LocationResult = {
+            displayName,
+            city: displayName,
+            // No dataset row backs a hand-entered coordinate, so state/country
+            // are unknown — the engine only needs lat/lon + timezone.
+            state: '',
+            country: '',
+            lat: latNum,
+            lon: lonNum,
+            // Resolved on-device, identical to the city path — toBirthInput
+            // fails closed without a valid IANA timezone.
+            timezone: timezoneForCoordinates(latNum, lonNum),
+        };
+        setIsSearching(false);
+        setIsOpen(false);
+        setResults([]);
+        setQuery(displayName);
+        setShowCoords(false);
+        onChange(location);
     };
 
     return (
@@ -344,6 +391,106 @@ export function LocationSearch({
                     <p className="text-text-muted text-center text-sm">{t('location.no_results')}</p>
                 </div>
             )}
+
+            {/* Coordinate fallback — a secondary affordance for birthplaces
+                missing from the offline city list (small towns/villages under
+                the population cutoff). City search stays the primary path. */}
+            <div className="mt-3">
+                <button
+                    type="button"
+                    onClick={() => setShowCoords((prev) => !prev)}
+                    aria-expanded={showCoords}
+                    className="text-sm text-text-muted hover:text-accent-gold underline decoration-dotted underline-offset-2 transition-colors"
+                    data-testid="coordinate-fallback-toggle"
+                >
+                    {showCoords ? t('location.coordinates.hide') : t('location.coordinates.toggle')}
+                </button>
+
+                {showCoords && (
+                    <div className="mt-3 p-4 bg-background-tertiary border border-ui-border rounded-lg space-y-3">
+                        <p className="text-text-secondary text-sm">{t('location.coordinates.hint')}</p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label
+                                    htmlFor="coordinate-lat"
+                                    className="block text-text-primary text-sm font-medium mb-1"
+                                >
+                                    {t('location.coordinates.latitude_label')}
+                                </label>
+                                <input
+                                    id="coordinate-lat"
+                                    type="number"
+                                    inputMode="decimal"
+                                    step="any"
+                                    min={-90}
+                                    max={90}
+                                    value={latInput}
+                                    onChange={(e) => setLatInput(e.target.value)}
+                                    placeholder={t('location.coordinates.latitude_placeholder')}
+                                    className="w-full px-3 py-2 bg-background-secondary border border-ui-border rounded-lg text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-accent-gold/50"
+                                    data-testid="coordinate-lat-input"
+                                />
+                            </div>
+                            <div>
+                                <label
+                                    htmlFor="coordinate-lon"
+                                    className="block text-text-primary text-sm font-medium mb-1"
+                                >
+                                    {t('location.coordinates.longitude_label')}
+                                </label>
+                                <input
+                                    id="coordinate-lon"
+                                    type="number"
+                                    inputMode="decimal"
+                                    step="any"
+                                    min={-180}
+                                    max={180}
+                                    value={lonInput}
+                                    onChange={(e) => setLonInput(e.target.value)}
+                                    placeholder={t('location.coordinates.longitude_placeholder')}
+                                    className="w-full px-3 py-2 bg-background-secondary border border-ui-border rounded-lg text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-accent-gold/50"
+                                    data-testid="coordinate-lon-input"
+                                />
+                            </div>
+                        </div>
+                        <div>
+                            <label
+                                htmlFor="coordinate-label"
+                                className="block text-text-primary text-sm font-medium mb-1"
+                            >
+                                {t('location.coordinates.place_label')}
+                            </label>
+                            <input
+                                id="coordinate-label"
+                                type="text"
+                                value={labelInput}
+                                onChange={(e) => setLabelInput(e.target.value)}
+                                placeholder={t('location.coordinates.place_placeholder')}
+                                className="w-full px-3 py-2 bg-background-secondary border border-ui-border rounded-lg text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-accent-gold/50"
+                                data-testid="coordinate-label-input"
+                            />
+                        </div>
+                        {coordsOutOfRange && (
+                            <p
+                                role="alert"
+                                className="text-status-warning text-sm"
+                                data-testid="coordinate-error"
+                            >
+                                {t('location.coordinates.range_error')}
+                            </p>
+                        )}
+                        <button
+                            type="button"
+                            onClick={handleCoordinateSubmit}
+                            disabled={!coordsValid}
+                            className="w-full px-4 py-2 bg-accent-gold/20 border border-accent-gold/40 rounded-lg text-text-primary font-medium hover:bg-accent-gold/30 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                            data-testid="coordinate-submit"
+                        >
+                            {t('location.coordinates.submit')}
+                        </button>
+                    </div>
+                )}
+            </div>
         </div>
     );
 }

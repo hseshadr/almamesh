@@ -69,7 +69,20 @@
     "no_results": "No matching cities found",
     "offline_hint": "Offline city database · no network required",
     "search_aria": "Search for a city",
-    "clear_aria": "Clear location search"
+    "clear_aria": "Clear location search",
+    "coordinates": {
+      "toggle": "Can't find your birthplace? Enter coordinates",
+      "hide": "Back to city search",
+      "hint": "Enter the birthplace's latitude and longitude in decimal degrees. The timezone is resolved on your device — no network needed.",
+      "latitude_label": "Latitude",
+      "longitude_label": "Longitude",
+      "latitude_placeholder": "e.g. 12.9716",
+      "longitude_placeholder": "e.g. 77.5946",
+      "place_label": "Place name (optional)",
+      "place_placeholder": "e.g. Grandmother's village",
+      "range_error": "Latitude must be between −90 and 90, and longitude between −180 and 180.",
+      "submit": "Use these coordinates"
+    }
   },
   "content_mode": {
     "for_you": "For You",
