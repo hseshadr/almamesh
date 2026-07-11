@@ -77,31 +77,118 @@ function toMatch(row: CityRow): CityMatch {
   };
 }
 
-function scoreRow(row: CityRow, needle: string): number {
-  const name = row.n.toLowerCase();
-  if (name === needle) return 3;
-  if (name.startsWith(needle)) return 2;
-  if (name.includes(needle)) return 1;
-  // Allow matching on country name (e.g. "japan") as a weak fallback.
-  return row.c.toLowerCase().includes(needle) ? 0 : -1;
+/**
+ * Fold diacritics and lower-case so "Sao Paulo" matches stored "São Paulo" and
+ * "Zurich" matches "Zürich". NFD splits accented letters into base + combining
+ * mark; stripping the marks leaves the plain ASCII base.
+ */
+function fold(text: string): string {
+  return text
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLowerCase();
+}
+
+/** Split (already-folded) text into non-empty word tokens. */
+function splitWords(folded: string): string[] {
+  return folded.split(/[\s,]+/).filter(Boolean);
+}
+
+/** Diacritic-fold then tokenize free text into words. */
+function tokenize(text: string): string[] {
+  return splitWords(fold(text));
 }
 
 /**
- * Search the bundled city DB. Ranks exact > prefix > substring matches, then by
+ * Extra qualifier words the dataset's country name/code don't spell out
+ * literally. Keyed by ISO 3166-1 alpha-2 code so a query like "San Francisco,
+ * USA" or "London UK" resolves. "US"/"United States"/"United Kingdom"/"United
+ * Arab Emirates" already fold out of the code + country name.
+ */
+const COUNTRY_ALIASES: Readonly<Record<string, readonly string[]>> = {
+  US: ['usa'],
+  GB: ['uk'],
+  AE: ['uae'],
+};
+
+/** Country name words + code + aliases — the searchable "where" of a row. */
+function qualifierWords(row: CityRow): string[] {
+  return [...tokenize(row.c), fold(row.cc), ...(COUNTRY_ALIASES[row.cc] ?? [])];
+}
+
+/**
+ * Do the trailing (post-city) tokens read as location qualifiers? Each must
+ * prefix-match a country word / code / alias — except a SINGLE trailing token
+ * may go unverified: the dataset has no state/province field, so "San
+ * Francisco, CA" and "San Francisco California" each strand one qualifier we
+ * can't confirm. A non-trailing stray (e.g. a stranded city word like the
+ * "francisco" left over when "san" alone anchored on "Sanford") rejects the row,
+ * which keeps the tolerance from producing false positives.
+ */
+function qualifiersOk(remainder: readonly string[], qualWords: readonly string[]): boolean {
+  let unverified = 0;
+  for (let i = 0; i < remainder.length; i += 1) {
+    if (qualWords.some((w) => w.startsWith(remainder[i]))) continue;
+    unverified += 1;
+    if (unverified > 1 || i !== remainder.length - 1) return false;
+  }
+  return true;
+}
+
+/**
+ * Match a "<city> <qualifiers>" query: the leading tokens must form the city
+ * name as a contiguous word-prefix phrase (anchored from the first token, so
+ * "san francisco" can't scatter across "Santiago … Caballeros"), and the rest
+ * must read as location qualifiers.
+ */
+function cityWithQualifiers(
+  nameTokens: readonly string[],
+  qualWords: readonly string[],
+  tokens: readonly string[],
+): boolean {
+  if (tokens.length <= nameTokens.length) return false;
+  for (let i = 0; i < nameTokens.length; i += 1) {
+    if (!nameTokens[i].startsWith(tokens[i])) return false;
+  }
+  return qualifiersOk(tokens.slice(nameTokens.length), qualWords);
+}
+
+/** Rank: exact name > prefix > substring > qualifier-only, then by population. */
+function nameScore(foldedName: string, normQuery: string): number {
+  if (foldedName === normQuery) return 3;
+  if (foldedName.startsWith(normQuery)) return 2;
+  if (foldedName.includes(normQuery)) return 1;
+  return 0;
+}
+
+/**
+ * Search the bundled city DB, diacritic-insensitively. A row matches when the
+ * query is a substring of the (folded) city name, OR the query reads as
+ * "<city> <state/country qualifiers>", OR every token is a country qualifier
+ * (country-only search). Ranks exact > prefix > substring name matches, then by
  * population, so the most likely birth city surfaces first.
  *
- * @param query - free text (city or country); queries under 2 chars return [].
+ * @param query - free text (city, optionally with state/country qualifiers);
+ *   queries under 2 chars return [].
  * @param limit - maximum results to return (default 8).
  */
 export async function searchCities(query: string, limit = 8): Promise<CityMatch[]> {
-  const needle = query.trim().toLowerCase();
-  if (needle.length < 2) return [];
+  if (query.trim().length < 2) return [];
+  const tokens = tokenize(query);
+  if (tokens.length === 0) return [];
+  const normQuery = tokens.join(' ');
 
   const db = await loadCityDb();
   const scored: Array<{ row: CityRow; score: number }> = [];
   for (const row of db) {
-    const score = scoreRow(row, needle);
-    if (score >= 0) scored.push({ row, score });
+    const name = fold(row.n);
+    const nameTokens = splitWords(name);
+    const qualWords = qualifierWords(row);
+    const matched =
+      name.includes(normQuery) ||
+      cityWithQualifiers(nameTokens, qualWords, tokens) ||
+      tokens.every((token) => qualWords.some((w) => w.startsWith(token)));
+    if (matched) scored.push({ row, score: nameScore(name, normQuery) });
   }
 
   scored.sort((a, b) => b.score - a.score || b.row.p - a.row.p);
