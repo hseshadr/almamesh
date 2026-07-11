@@ -166,8 +166,10 @@ async function driveRealOnboarding(page: Page): Promise<void> {
   await fillTimePicker(page, 'birth-time-input');
   await advanceStep(page, () => page.getByTestId('life-events-input'));
 
-  // Step 5 — life events: skip (uses approximate time) -> generate the chart.
-  const skip = page.getByRole('button', { name: /Skip - I'll use approximate birth time/i });
+  // Step 5 — life events: skip ("Skip for now" since the #44 warm-invitation
+  // reframe) -> generate the chart. The testid is copy/locale-proof — the same
+  // locator scripts/verify-real-onboarding.mjs uses.
+  const skip = page.getByTestId('skip-life-events-button');
   await skip.waitFor({ state: 'visible', timeout: 15_000 });
   await skip.click();
 
