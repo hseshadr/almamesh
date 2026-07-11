@@ -30,6 +30,14 @@ export {
 	EMBEDDING_MODEL,
 	type Embedder,
 } from "./engine/embedder";
+// --- the bundle-carried ranking config: strategy map + weights ---
+export {
+	type CandidatePolicy,
+	DEFAULT_RANKING_CONFIG,
+	type RankingConfig,
+	type ScoringWeights,
+	type Strategy,
+} from "./engine/rankingConfig";
 // --- runtime: bootstrap the engine over the synced bundle ---
 export {
 	type BootStage,
@@ -49,6 +57,7 @@ export {
 	type RecommendOptions,
 	type SearchEngine,
 	type SearchOptions,
+	type SimilarOptions,
 } from "./engine/searchEngine";
 // --- the in-tab session profile, folded forward by interaction events ---
 export {

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "shared-libs-python"
-version = "0.1.1"
+version = "0.1.3"
 description = "HNSW vector indexing and generic partition-key management for Python."
 readme = "README.md"
 requires-python = ">=3.13"
@@ -100,6 +100,7 @@ addopts = [
     "--strict-markers",
     "--cov=shared_libs_python",
     "--cov-report=term-missing",
+    "--cov-report=xml",
     "--cov-fail-under=90",
     "-v",
 ]
@@ -123,7 +124,9 @@ fail_under = 90.0
 [tool.poe.tasks]
 lint = "ruff check shared_libs_python/ tests/"
 fmt = "ruff format shared_libs_python/ tests/"
+fmt-check = "ruff format --check shared_libs_python/ tests/"
 typecheck = "mypy --strict shared_libs_python/"
 complexity = "xenon --max-absolute A --max-modules A --max-average A shared_libs_python/"
 test = "pytest"
-quality = ["lint", "typecheck", "complexity", "test"]
+# The canonical quality gate (house standard §3). Mirrors CI exactly, both directions.
+gate = ["lint", "fmt-check", "typecheck", "complexity", "test"]
