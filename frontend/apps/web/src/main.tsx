@@ -19,8 +19,9 @@ import '@fontsource-variable/spline-sans-mono'
 import './index.css'
 
 // P5 local-first: there is no backend API to configure and no auth tokens to
-// store. The app runs entirely on the in-browser engine + on-device storage;
-// the only runtime egress is the optional, user-configured local LLM endpoint.
+// store. The app runs on the in-browser engine + on-device storage; there are
+// exactly two runtime egresses, both user-facing: the optional, user-configured
+// LLM endpoint and the birthplace geocoding lookup (only the typed city name).
 
 let queryClient: QueryClient
 queryClient = new QueryClient({

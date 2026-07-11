@@ -135,7 +135,7 @@
     "title": "AI Model",
     "description": "AI is off by default — your chart is pure calculation. Turn it on with a free OpenRouter key for written interpretations and chat. Your key lives only in this browser, and AI is never required to draw a chart.",
     "info_title": "The chart engine never calls the network",
-    "info_description": "By default no AI is configured: your chart is pure calculation and nothing leaves your device. If you connect AI, only the optional narration and chat use it — and only a privacy-redacted chart (no name, no birth date) is ever sent to your chosen provider.",
+    "info_description": "By default no AI is configured: your chart is pure calculation and never leaves your device. If you connect AI, only the optional narration and chat use it — and only a privacy-redacted chart (no name, no birth date) is ever sent to your chosen provider.",
     "step1_title": "1. Create a free API key",
     "step1_body": "OpenRouter gives you one endpoint with hundreds of models. Sign up and create a key — it takes a minute.",
     "step1_link": "Get a key at openrouter.ai/keys",
@@ -180,7 +180,7 @@
   "tiers": {
     "none_title": "AI off",
     "none_default_badge": "Default",
-    "none_body": "Your chart is pure calculation — nothing leaves your device. AI narration stays off.",
+    "none_body": "Your chart is pure calculation — it never leaves your device. AI narration stays off.",
     "none_button": "Turn AI off",
     "active_badge": "Active",
     "cloud_title": "Connect AI",

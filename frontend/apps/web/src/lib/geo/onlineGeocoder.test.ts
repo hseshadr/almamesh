@@ -56,6 +56,15 @@ describe('geocodeCitiesOnline', () => {
     expect(url).toContain('format=json');
   });
 
+  it('privacy contract: the request carries ONLY the city name + benign params (no PII)', async () => {
+    const fetchMock = stubFetch({ results: [] });
+    await geocodeCitiesOnline('Chennai', { language: 'en', limit: 8 });
+    const url = new URL(String(fetchMock.mock.calls[0][0]));
+    // Exactly these four keys leave the device — never a birth date/time/coords/name field.
+    expect([...url.searchParams.keys()].sort()).toEqual(['count', 'format', 'language', 'name']);
+    expect(url.searchParams.get('name')).toBe('Chennai');
+  });
+
   it('returns [] when the response has no results array', async () => {
     stubFetch({ generationtime_ms: 0.1 });
     expect(await geocodeCitiesOnline('zzzznowhere')).toEqual([]);
@@ -93,6 +102,26 @@ describe('geocodeCitiesOnline', () => {
     stubFetch({ results: [{ name: 'Paris', latitude: 48.8566, longitude: 2.3522, country: 'France', country_code: 'FR', admin1: 'Île-de-France', feature_code: 'PPLC' }] });
     const [m] = await geocodeCitiesOnline('paris');
     expect(m.timezone).toBe('Europe/Paris');
+  });
+
+  it('drops malformed results (missing name or non-finite coordinates)', async () => {
+    stubFetch({
+      results: [
+        { name: 'Good', latitude: 1, longitude: 2, country: 'X', country_code: 'X', feature_code: 'PPL' },
+        { name: 'NoLat', longitude: 2, country: 'X', country_code: 'X', feature_code: 'PPL' },
+        { name: 'NaNLon', latitude: 1, longitude: Number.NaN, country: 'X', country_code: 'X', feature_code: 'PPL' },
+        { latitude: 1, longitude: 2, country: 'X', country_code: 'X', feature_code: 'PPL' },
+      ],
+    });
+    const out = await geocodeCitiesOnline('good');
+    expect(out.map((m) => m.city)).toEqual(['Good']);
+  });
+
+  it('sends no Referer to the third-party geocoder (referrerPolicy no-referrer)', async () => {
+    const fetchMock = stubFetch({ results: [] });
+    await geocodeCitiesOnline('paris');
+    const init = fetchMock.mock.calls[0][1] as { referrerPolicy?: string };
+    expect(init.referrerPolicy).toBe('no-referrer');
   });
 
   it('aborts a hung request after the timeout so the caller can fall back', async () => {

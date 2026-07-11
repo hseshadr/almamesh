@@ -40,7 +40,7 @@
       },
       {
         "title": "Bring your own AI",
-        "body": "Default: no AI — your chart is pure calculation, nothing leaves your device. Optional: add narration via any OpenAI-compatible model (OpenRouter or your own endpoint)."
+        "body": "Default: no AI — your chart is pure calculation and never leaves your device. Optional: add narration via any OpenAI-compatible model (OpenRouter or your own endpoint)."
       },
       {
         "title": "Chat with your chart",

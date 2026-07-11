@@ -58,4 +58,33 @@ describe('searchCities (online-primary + offline fallback)', () => {
     expect(await searchCities('a')).toEqual([]);
     expect(fetchMock).not.toHaveBeenCalled();
   });
+
+  it('returns an empty online result as-is (no silent offline fallback on a valid empty response)', async () => {
+    stubOnline(true);
+    // The offline list HAS Chennai; the online geocoder authoritatively says none.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) }),
+    );
+    // Online is primary + authoritative — an empty result must NOT fall back to
+    // the offline list (that would resurface a stale/inconsistent match).
+    expect(await searchCities('Chennai')).toEqual([]);
+  });
+
+  it('propagates a caller abort without falling back to the offline list', async () => {
+    stubOnline(true);
+    const controller = new AbortController();
+    controller.abort();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((_url: string, init: { signal: AbortSignal }) =>
+        init.signal.aborted
+          ? Promise.reject(new DOMException('aborted', 'AbortError'))
+          : Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) }),
+      ),
+    );
+    // A superseded keystroke aborts — must reject (caller bails), NOT quietly
+    // run an offline search and surface stale results.
+    await expect(searchCities('Chennai', 8, { signal: controller.signal })).rejects.toThrow();
+  });
 });

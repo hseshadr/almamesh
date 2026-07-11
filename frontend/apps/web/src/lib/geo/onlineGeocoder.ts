@@ -97,6 +97,9 @@ export async function geocodeCitiesOnline(
     const response = await fetch(`${ENDPOINT}?${params.toString()}`, {
       signal: controller.signal,
       headers: { accept: 'application/json' },
+      // Don't leak the app's Origin/Referer to the third-party geocoder — the
+      // only thing that should reach it is the typed city name (in the query).
+      referrerPolicy: 'no-referrer',
     });
     if (!response.ok) {
       throw new Error(`Open-Meteo geocoding failed: ${response.status}`);
@@ -105,7 +108,16 @@ export async function geocodeCitiesOnline(
     const data = (await response.json()) as { results?: OpenMeteoPlace[] };
     const results = data.results ?? [];
     return results
-      .filter((place) => !place.feature_code || place.feature_code.startsWith('PPL'))
+      .filter(
+        (place) =>
+          // Drop malformed rows: the engine path fails closed without finite
+          // coordinates, and a place with no usable name is unpickable.
+          Boolean(place.name) &&
+          Number.isFinite(place.latitude) &&
+          Number.isFinite(place.longitude) &&
+          // Populated places only (PPL*); tolerate a missing feature_code.
+          (!place.feature_code || place.feature_code.startsWith('PPL')),
+      )
       .map(toMatch);
   } finally {
     clearTimeout(timer);

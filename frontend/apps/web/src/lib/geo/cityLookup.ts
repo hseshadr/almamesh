@@ -214,11 +214,13 @@ export async function searchCitiesOffline(query: string, limit = 8): Promise<Cit
  * @param limit - maximum results to return (default 8).
  * @param opts.language - UI language forwarded to the geocoder for localized
  *   place names (en/es/pt).
+ * @param opts.signal - abort signal so a superseded keystroke cancels the
+ *   in-flight geocode (prevents a slow older query overwriting newer results).
  */
 export async function searchCities(
   query: string,
   limit = 8,
-  opts: { language?: string } = {},
+  opts: { language?: string; signal?: AbortSignal } = {},
 ): Promise<CityMatch[]> {
   if (query.trim().length < 2) return [];
 
@@ -226,9 +228,23 @@ export async function searchCities(
   const online = typeof navigator === 'undefined' || navigator.onLine !== false;
   if (online) {
     try {
-      return await geocodeCitiesOnline(query, { language: opts.language, limit });
-    } catch {
-      // Network/geocoder failure — fall through to the offline list.
+      return await geocodeCitiesOnline(query, {
+        language: opts.language,
+        limit,
+        signal: opts.signal,
+      });
+    } catch (err) {
+      // A CALLER abort (a newer keystroke superseded this query) must NOT waste
+      // an offline search or resurface stale results — propagate so the caller
+      // bails. (The geocoder's own 3.5s timeout aborts a DIFFERENT controller,
+      // so opts.signal stays unset there and we still fall back below.)
+      if (opts.signal?.aborted) throw err;
+      // A genuine network/geocoder failure degrades gracefully to the bundled
+      // list. Surface it in dev (this app is zero-egress, no telemetry) so a
+      // systemic Open-Meteo outage isn't an invisible silent degradation.
+      if (import.meta.env.DEV) {
+        console.warn('city geocode online failed; falling back to the offline list', err);
+      }
     }
   }
   return searchCitiesOffline(query, limit);

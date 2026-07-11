@@ -74,7 +74,7 @@ export const PUBLIC_ROUTE_HEADS: readonly RouteHead[] = [
   route(
     '/privacy',
     'Privacy Policy — AlmaMesh',
-    'AlmaMesh runs entirely in your browser: your birth data never leaves your device. How the local-first design makes privacy the default, not a promise.',
+    'AlmaMesh runs in your browser: your birth date, time & chart never leave your device — only a birthplace lookup reaches the network. Privacy by design.',
   ),
   route(
     '/terms',

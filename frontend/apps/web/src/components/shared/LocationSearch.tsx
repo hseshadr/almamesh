@@ -92,7 +92,7 @@ export function LocationSearch({
     // pass the base tag (e.g. "en" from "en-US") since Open-Meteo wants a plain
     // 2-letter code.
     const runSearch = useCallback(
-        async (searchQuery: string) => {
+        async (searchQuery: string, signal?: AbortSignal) => {
             if (searchQuery.trim().length < 2) {
                 setResults([]);
                 setIsOpen(false);
@@ -102,15 +102,19 @@ export function LocationSearch({
             setIsLoading(true);
             try {
                 const language = i18n.language.split('-')[0];
-                const matches = await searchCities(searchQuery, 8, { language });
+                const matches = await searchCities(searchQuery, 8, { language, signal });
+                // A newer keystroke superseded this query — drop its (stale) results
+                // so a slow earlier response can't overwrite newer ones.
+                if (signal?.aborted) return;
                 setResults(matches);
                 setIsOpen(matches.length > 0);
                 setSelectedIndex(-1);
             } catch (error) {
+                if (signal?.aborted) return; // an aborted search is expected, not a failure
                 console.error('City lookup failed:', error);
                 setResults([]);
             } finally {
-                setIsLoading(false);
+                if (!signal?.aborted) setIsLoading(false);
             }
         },
         [i18n],
@@ -118,7 +122,11 @@ export function LocationSearch({
 
     useEffect(() => {
         if (debouncedQuery && isSearching) {
-            runSearch(debouncedQuery);
+            // Cancel the previous in-flight geocode on each new query / unmount so
+            // results always reflect the latest keystroke (no stale-response race).
+            const controller = new AbortController();
+            runSearch(debouncedQuery, controller.signal);
+            return () => controller.abort();
         }
     }, [debouncedQuery, isSearching, runSearch]);
 
