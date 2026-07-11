@@ -1,10 +1,13 @@
 /**
- * Offline city lookup — zero-network birth-location resolution.
+ * City lookup for birthplace entry.
  *
- * AlmaMesh's engine runs on-device (Pyodide) and the product promise is
- * local-first / no-egress. Birth-location entry therefore must NOT hit Google
- * Places or Nominatim. This module resolves a typed city to
- * { latitude, longitude, timezone (IANA) } entirely from bundled data:
+ * `searchCities` is ONLINE-PRIMARY: it queries the Open-Meteo geocoding API
+ * (see onlineGeocoder.ts) — a deliberate, owner-approved network egress, one of
+ * exactly two things AlmaMesh sends over the network (the other is the optional
+ * AI). Only the typed city string leaves the device. When the network is
+ * unreachable (or the browser is offline) it FALLS BACK to `searchCitiesOffline`,
+ * which resolves a typed city to { latitude, longitude, timezone (IANA) }
+ * entirely from bundled data — so birthplace search still works offline:
  *
  *   - city list: `cities.min.json` (pre-baked from `all-the-cities`, GeoNames,
  *     population > 15k; see scripts/generate-cities.mjs). Lazy-loaded via dynamic
@@ -16,12 +19,16 @@
  */
 import tzlookup from 'tz-lookup';
 
+import { geocodeCitiesOnline } from './onlineGeocoder';
+
 /** A city match ready to feed the onboarding store / engine. */
 export interface CityMatch {
   /** Human display string, e.g. "Chennai, India". */
   displayName: string;
   /** City name, e.g. "Chennai". */
   city: string;
+  /** State / province / region (admin1), when the geocoder provides it. */
+  state?: string;
   /** Country display name, e.g. "India". */
   country: string;
   /** ISO 3166-1 alpha-2 country code, e.g. "IN". */
@@ -172,7 +179,7 @@ function nameScore(foldedName: string, normQuery: string): number {
  *   queries under 2 chars return [].
  * @param limit - maximum results to return (default 8).
  */
-export async function searchCities(query: string, limit = 8): Promise<CityMatch[]> {
+export async function searchCitiesOffline(query: string, limit = 8): Promise<CityMatch[]> {
   if (query.trim().length < 2) return [];
   const tokens = tokenize(query);
   if (tokens.length === 0) return [];
@@ -193,4 +200,36 @@ export async function searchCities(query: string, limit = 8): Promise<CityMatch[
 
   scored.sort((a, b) => b.score - a.score || b.row.p - a.row.p);
   return scored.slice(0, limit).map(({ row }) => toMatch(row));
+}
+
+/**
+ * Birthplace search — ONLINE-PRIMARY with an OFFLINE FALLBACK.
+ *
+ * Tries the Open-Meteo geocoder first (richer data: real state/province names +
+ * a ready IANA timezone). If the browser is offline, or the request fails for
+ * any reason, it transparently falls back to the bundled offline list so search
+ * keeps working with no network. Queries under 2 chars short-circuit to [].
+ *
+ * @param query - free text (city, optionally with state/country qualifiers).
+ * @param limit - maximum results to return (default 8).
+ * @param opts.language - UI language forwarded to the geocoder for localized
+ *   place names (en/es/pt).
+ */
+export async function searchCities(
+  query: string,
+  limit = 8,
+  opts: { language?: string } = {},
+): Promise<CityMatch[]> {
+  if (query.trim().length < 2) return [];
+
+  // Skip the network when the browser reports it is offline.
+  const online = typeof navigator === 'undefined' || navigator.onLine !== false;
+  if (online) {
+    try {
+      return await geocodeCitiesOnline(query, { language: opts.language, limit });
+    } catch {
+      // Network/geocoder failure — fall through to the offline list.
+    }
+  }
+  return searchCitiesOffline(query, limit);
 }

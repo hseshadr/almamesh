@@ -8,7 +8,7 @@
   },
   "hero": {
     "headline": "Tu cielo real. Calculado en tu dispositivo. Gratis, para siempre.",
-    "subhead": "Una carta védica (sideral) fiel — planetas, nakshatras, dashas — calculada en tu navegador. Un experimento honesto, no un adivino. Sin cuenta. Sin correo. Tus datos de nacimiento nunca salen de tu navegador.",
+    "subhead": "Una carta védica (sideral) fiel — planetas, nakshatras, dashas — calculada en tu navegador. Un experimento honesto, no un adivino. Sin cuenta. Sin correo. Tu fecha, hora y carta de nacimiento nunca salen de tu navegador.",
     "cta": "Generar mi carta — gratis",
     "ctaReturning": "Abrir mi carta",
     "openSource": "Gratis y de código abierto en GitHub",
@@ -72,7 +72,7 @@
         "b": "Requiere registro y correo electrónico"
       },
       {
-        "a": "Tus datos de nacimiento nunca salen de tu navegador",
+        "a": "Tu fecha, hora y carta de nacimiento nunca salen de tu navegador",
         "b": "Datos de nacimiento almacenados, perfilados, monetizados"
       },
       {
@@ -101,7 +101,7 @@
         "body": "Sumérgete en tu carta, tus dashas y la malla — con una IA opcional que solo narra, nunca inventa."
       }
     ],
-    "zeroEgress": "El motor de cartas no hace llamadas de red. Tus datos de nacimiento permanecen en tu dispositivo."
+    "zeroEgress": "El motor de cartas no hace llamadas de red. Tu fecha, hora y carta de nacimiento permanecen en tu dispositivo — solo el nombre del lugar de nacimiento que buscas se consulta en línea."
   },
   "who": {
     "title": "Para quién es",
@@ -145,7 +145,7 @@
     "viewSource": "Ver el código en GitHub"
   },
   "footer": {
-    "tagline": "Astrología védica gratis y en tu dispositivo. Un experimento honesto — tus datos de nacimiento nunca salen de tu navegador.",
+    "tagline": "Astrología védica gratis y en tu dispositivo. Un experimento honesto — tu fecha, hora y carta de nacimiento nunca salen de tu navegador.",
     "privacy": "Política de privacidad",
     "terms": "Términos del servicio",
     "dataDeletion": "Eliminación de datos",

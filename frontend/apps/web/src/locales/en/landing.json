@@ -7,7 +7,7 @@
   },
   "hero": {
     "headline": "Your real sky. Computed on your device. Free, forever.",
-    "subhead": "A faithful Vedic (sidereal) chart — planets, nakshatras, dashas — calculated in your browser. An honest experiment, not a fortune-teller. No account. No email. Your birth data never leaves your browser.",
+    "subhead": "A faithful Vedic (sidereal) chart — planets, nakshatras, dashas — calculated in your browser. An honest experiment, not a fortune-teller. No account. No email. Your birth date, time, and chart never leave your browser.",
     "cta": "Generate my chart — free",
     "ctaReturning": "Open my chart",
     "openSource": "Free & open source on GitHub",
@@ -71,7 +71,7 @@
         "b": "Sign-up + email required"
       },
       {
-        "a": "Your birth data never leaves your browser",
+        "a": "Your birth date, time & chart never leave your browser",
         "b": "Birth data stored, profiled, monetized"
       },
       {
@@ -100,7 +100,7 @@
         "body": "Dive into your chart, dashas, and the mesh — with an optional AI that only narrates, never invents."
       }
     ],
-    "zeroEgress": "The chart engine makes no network calls. Your birth data stays on your device."
+    "zeroEgress": "The chart engine makes no network calls. Your birth date, time, and chart stay on your device — only the birthplace name you search is looked up online."
   },
   "who": {
     "title": "Who it's for",
@@ -144,7 +144,7 @@
     "viewSource": "View source on GitHub"
   },
   "footer": {
-    "tagline": "Free, on-device Vedic astrology. An honest experiment — your birth data never leaves your browser.",
+    "tagline": "Free, on-device Vedic astrology. An honest experiment — your birth date, time, and chart never leave your browser.",
     "privacy": "Privacy Policy",
     "terms": "Terms of Service",
     "dataDeletion": "Data Deletion",

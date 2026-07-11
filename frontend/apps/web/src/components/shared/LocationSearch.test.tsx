@@ -6,9 +6,10 @@
  * user can't select them. The fallback lets them enter latitude/longitude
  * directly (with an optional place label) and MUST emit the exact same
  * `LocationResult` shape the city picker emits, so the engine path still
- * receives a valid lat/lon + IANA timezone. It stays fully offline: the
- * timezone is resolved on-device via `timezoneForCoordinates` (tz-lookup),
- * never a network geocoder.
+ * receives a valid lat/lon + IANA timezone. This fallback path is fully
+ * offline: the timezone is resolved on-device via `timezoneForCoordinates`
+ * (tz-lookup), never a network geocoder. (City typeahead is online-primary —
+ * covered by the geo-layer tests, not here; these tests never type a city.)
  *
  * These tests pin: the fallback toggle reveals the coordinate inputs; a
  * valid entry emits the correct location object (timezone derived from the

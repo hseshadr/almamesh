@@ -200,9 +200,17 @@ model/endpoint the reading will use — a faithful stand-in that mirrors the
 JSON-mode reading body (no `max_tokens` cap), so a bad key / bad model /
 out-of-credits / rate-limited / provider-outage / unreachable endpoint is
 reported immediately (with the provider's own reason) instead of a silent no-op. PII-redacted,
-fail-closed local_only for local endpoints. The chart engine is zero-egress; the
-only outbound requests are the optional AI calls the user opts into (the
-configured endpoint). NOTE: the engine emits the
+fail-closed local_only for local endpoints. The chart engine is zero-egress;
+there are exactly TWO deliberate network egresses (besides one-way bundle/app
+delivery): (1) the optional AI calls the user opts into (the configured
+endpoint), and (2) **birthplace search** — the typed city string is sent to the
+Open-Meteo geocoding API (keyless, CORS) to resolve coordinates + IANA timezone,
+online-primary with an offline fallback to the bundled `cities.min.json` list
+(`lib/geo/onlineGeocoder.ts` + `searchCities` in `lib/geo/cityLookup.ts`). Only
+the city name leaves the device — never the birth date/time, name, or chart.
+Privacy copy is scoped accordingly (landing/legal/mesh say "birth date, time,
+and chart never leave"; the privacy policy discloses the geocoder as touchpoint
+#2). NOTE: the engine emits the
 full D1–D60 varga set; the adapter populates `varga_ctx` (D9 Navamsa rendered in
 both kundli styles + the print report, D1–D60 in the predictive "Divisional Charts"
 tab) and the predictive contexts above.

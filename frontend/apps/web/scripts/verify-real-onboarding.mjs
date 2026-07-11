@@ -12,7 +12,7 @@
  * the actual UI: it types the name, drives the MUI X v8 DatePicker /
  * TimePicker section spinbuttons (focus-first-section-then-type — the accessible
  * DOM has NO fillable <input>, which is what stalled the earlier attempt),
- * runs the offline city typeahead, picks birth-time confidence, skips life
+ * runs the online-primary city typeahead (offline fallback), picks birth-time confidence, skips life
  * events, clicks Generate, and then WAITS for the real ~38 MB engine bootstrap
  * + on-device compute before asserting a chart renders on /dashboard with a
  * clean console.
@@ -113,16 +113,17 @@ async function main() {
   await shot(page, '02-date.png')
   await page.getByTestId('next-button').click()
 
-  // ---- Step 4: birth location (offline typeahead) ----
+  // ---- Step 4: birth location (online-primary typeahead, offline fallback) ----
   await page.waitForSelector('[data-testid="location-search-input"]', { timeout: 15_000 })
   await page.getByTestId('location-search-input').fill(REF.city)
-  // Debounced 250 ms + lazy city-DB load → wait for the listbox, then pick #1.
+  // Debounced 250 ms + online geocode (or offline city-DB fallback) → wait for
+  // the listbox, then pick #1. Either path resolves a major city like Bengaluru.
   await page.waitForSelector('[role="option"]', { timeout: 15_000 })
   const firstOption = page.locator('[role="option"]').first()
   const optionText = (await firstOption.innerText()).replace(/\s+/g, ' ').trim()
   await firstOption.click()
   await page.waitForSelector('[data-testid="next-button"]:not([disabled])', { timeout: 10_000 })
-  record('3 — offline city search selected a match', true, optionText)
+  record('3 — city search selected a match', true, optionText)
   await shot(page, '03-location.png')
   await page.getByTestId('next-button').click()
 
