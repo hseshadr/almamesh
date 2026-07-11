@@ -275,6 +275,16 @@ jobs:
           VITE_EXIT_GATE_HOOKS: "1"
         run: ./node_modules/.bin/vite build --outDir dist-verify
 
+      # Fast, browser-free precache-layout gate: serve the built bundle through a
+      # server that mimics Cloudflare Pages' .html->extensionless 308 clean-URL
+      # redirects and assert EVERY Workbox precache URL resolves 200 with no
+      # redirect. This reproduces the prod-only failure the plain `vite preview`
+      # gates miss (preview serves .html as 200), where a redirecting precache key
+      # left returning users with an empty app-shell precache + a Chrome error page.
+      - name: Verify precache is robust to Cloudflare clean-URL redirects
+        working-directory: frontend/apps/web
+        run: node scripts/verify-precache-redirect.mjs dist-verify
+
       # Serve the built bundle and run the headless-Chromium gate. The preview
       # server is started in the background on a fixed strict port; we poll until
       # it responds before driving the gate. verify-exit-gate.mjs exits non-zero
