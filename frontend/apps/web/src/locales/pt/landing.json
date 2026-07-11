@@ -101,7 +101,7 @@
         "body": "Mergulhe no seu mapa, nas suas dashas e na malha — com uma IA opcional que apenas narra, nunca inventa."
       }
     ],
-    "zeroEgress": "O motor de mapas não faz chamadas de rede. Sua data, hora e mapa de nascimento permanecem no seu dispositivo — apenas o nome do local de nascimento que você busca é consultado on-line."
+    "zeroEgress": "O motor de mapas não faz chamadas de rede; sua data e hora de nascimento nunca saem do seu dispositivo. Duas coisas usam a rede: o local de nascimento que você busca e (apenas se você ativar a IA opcional) um mapa sem dados pessoais, sem nome nem data de nascimento."
   },
   "who": {
     "title": "Para quem é",
