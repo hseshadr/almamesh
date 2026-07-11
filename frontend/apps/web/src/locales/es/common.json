@@ -72,7 +72,20 @@
     "no_results": "No se encontraron ciudades",
     "offline_hint": "Base de datos de ciudades sin conexión · no requiere red",
     "search_aria": "Buscar una ciudad",
-    "clear_aria": "Borrar búsqueda de ubicación"
+    "clear_aria": "Borrar búsqueda de ubicación",
+    "coordinates": {
+      "toggle": "¿No encuentras tu lugar de nacimiento? Introduce las coordenadas",
+      "hide": "Volver a la búsqueda de ciudad",
+      "hint": "Introduce la latitud y longitud del lugar de nacimiento en grados decimales. La zona horaria se resuelve en tu dispositivo — sin conexión a la red.",
+      "latitude_label": "Latitud",
+      "longitude_label": "Longitud",
+      "latitude_placeholder": "p. ej. 12.9716",
+      "longitude_placeholder": "p. ej. 77.5946",
+      "place_label": "Nombre del lugar (opcional)",
+      "place_placeholder": "p. ej. Pueblo de la abuela",
+      "range_error": "La latitud debe estar entre −90 y 90, y la longitud entre −180 y 180.",
+      "submit": "Usar estas coordenadas"
+    }
   },
   "content_mode": {
     "for_you": "Para ti",

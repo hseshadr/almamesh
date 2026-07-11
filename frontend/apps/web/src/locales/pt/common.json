@@ -72,7 +72,20 @@
     "no_results": "Nenhuma cidade encontrada",
     "offline_hint": "Banco de dados de cidades offline · não requer rede",
     "search_aria": "Procurar uma cidade",
-    "clear_aria": "Limpar busca de localização"
+    "clear_aria": "Limpar busca de localização",
+    "coordinates": {
+      "toggle": "Não encontra seu local de nascimento? Insira as coordenadas",
+      "hide": "Voltar à busca de cidade",
+      "hint": "Insira a latitude e a longitude do local de nascimento em graus decimais. O fuso horário é resolvido no seu dispositivo — sem rede.",
+      "latitude_label": "Latitude",
+      "longitude_label": "Longitude",
+      "latitude_placeholder": "ex. 12.9716",
+      "longitude_placeholder": "ex. 77.5946",
+      "place_label": "Nome do lugar (opcional)",
+      "place_placeholder": "ex. Vila da avó",
+      "range_error": "A latitude deve estar entre −90 e 90, e a longitude entre −180 e 180.",
+      "submit": "Usar estas coordenadas"
+    }
   },
   "content_mode": {
     "for_you": "Para você",
