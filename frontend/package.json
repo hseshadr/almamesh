@@ -12,9 +12,11 @@
     "dev": "bun run --filter '*' dev",
     "typecheck": "bun run --filter '*' typecheck",
     "lint": "bun run --filter '*' lint",
+    "gate": "bunx tsc -b packages/shared-types packages/constants packages/store packages/llm --force && bun run --filter '*' typecheck && bun run --filter @almamesh/web lint && EDGE_RECO_SKIP_EMBEDDING_PARITY=1 bun run --filter @edgeproc/browser test && bun run --filter @almamesh/browser test && bun run --filter @almamesh/store test && bun run --filter @almamesh/llm test && bun run --filter @almamesh/web test:unit && bun run --filter @almamesh/web build",
     "clean": "bun run --filter '*' clean && rm -rf node_modules",
     "prepare": "cd .. && husky frontend/.husky"
   },
+  "//gate": "The frontend quality gate — CI's frontend job runs exactly this script (ENGINEERING-STANDARDS §3: gate mirrors CI, both directions). EDGE_RECO_SKIP_EMBEDDING_PARITY=1 keeps the vendored @edgeproc/browser suite offline-deterministic (see packages/edgeproc-browser/VENDORED.md). Playwright e2e is deliberately NOT here — it needs generated 38MB engine assets and runs as the exit-gate / e2e-smoke / nightly CI lanes (see CLAUDE.md 'Playwright e2e tiering').",
   "lint-staged": {
     "apps/web/**/*.{ts,tsx}": "bun run --filter @almamesh/web lint"
   },
@@ -23,8 +25,10 @@
     "lint-staged": "^16.0.0",
     "typescript": "~5.7.0"
   },
+  "//engines": "Bun is the sanctioned toolchain exception (ENGINEERING-STANDARDS §2) — pinned exactly in .bun-version (CI reads it via setup-bun's bun-version-file); engines.bun is the floor for humans.",
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=20.0.0",
+    "bun": ">=1.3.5"
   },
   "dependencies": {
     "baseline-browser-mapping": "^2.10.38",
