@@ -11,7 +11,8 @@
     "pada": "pada {{pada}}",
     "unavailable": "Not available",
     "rectified": "Birth time rectified: entered {{entered}} → using {{rectified}} ({{sign}}{{minutes}} min)",
-    "refine_cta": "Remembered a life event? Refine your birth time"
+    "refine_hint": "Not sure of your exact birth time? A few dated life events let the engine refine it — entirely optional, skip anytime.",
+    "refine_cta": "Refine your birth time"
   },
   "atlas": {
     "heading": "Life Atlas",

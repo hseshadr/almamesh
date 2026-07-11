@@ -62,6 +62,16 @@ export interface IdentityStripProps {
    * about which time produced this chart. Display only — never recomputed here.
    */
   readonly rectification?: RectificationDelta | null;
+  /**
+   * The recorded birth-time confidence for this chart (a `TIME_CONFIDENCE` key
+   * such as `'exact'` / `'approximate'` / `'rough'` / `'unknown'`). The optional
+   * life-events refine invitation is surfaced only when this is anything other
+   * than `'exact'`: a person with a birth-certificate time is not nagged, while
+   * an uncertain (or unknown / legacy-undefined) time gets a gentle, skippable
+   * prompt. The genuinely time-sensitive near-cusp callout fires on its own
+   * signal regardless.
+   */
+  readonly timeConfidence?: string;
   /** Right-aligned action cluster (mode toggle, quiet page actions). */
   readonly actions?: ReactNode;
 }
@@ -380,6 +390,7 @@ export function IdentityStrip({
   moon,
   dasha,
   rectification,
+  timeConfidence,
   actions,
 }: IdentityStripProps): ReactElement {
   const { t } = useTranslation('life');
@@ -404,8 +415,9 @@ export function IdentityStrip({
 
       <RectificationNote rectification={rectification} />
 
-      {profileId != null && (
+      {profileId != null && timeConfidence !== 'exact' && (
         <p className="mt-2 text-xs text-text-muted">
+          {t('identity.refine_hint')}{' '}
           <Link
             to={`/rectify/${profileId}`}
             className="font-medium text-text-secondary underline underline-offset-2 hover:text-text-primary"

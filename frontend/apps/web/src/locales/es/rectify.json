@@ -21,7 +21,7 @@
   },
   "entry": {
     "title": "Tus eventos de vida",
-    "subtitle": "Recordarlos puede ser difícil, pero cada evento con fecha ayuda a precisar tu hora de nacimiento, lo que afina las partes más sensibles al tiempo de tu gráfico. Cuanto más específica sea la fecha, mejor.",
+    "subtitle": "Opcional, y no hay mínimo: añade tantos o tan pocos como quieras. Cada evento con fecha ayuda al motor a precisar tu hora de nacimiento, y una fecha más específica ayuda más.",
     "add": "Agregar evento",
     "date_label": "Fecha",
     "category_label": "Categoría",

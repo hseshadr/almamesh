@@ -12,7 +12,8 @@
     "pada": "pada {{pada}}",
     "unavailable": "No disponible",
     "rectified": "Hora de nacimiento rectificada: introducida {{entered}} → usando {{rectified}} ({{sign}}{{minutes}} min)",
-    "refine_cta": "¿Recordaste un evento de tu vida? Precisa tu hora de nacimiento"
+    "refine_hint": "¿No sabes con certeza tu hora de nacimiento exacta? Unos pocos eventos con fecha permiten al motor precisarla — totalmente opcional, puedes omitirlo cuando quieras.",
+    "refine_cta": "Precisa tu hora de nacimiento"
   },
   "atlas": {
     "heading": "Atlas de Vida",

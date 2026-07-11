@@ -153,7 +153,11 @@ describe('IdentityStrip', () => {
   });
 });
 
-describe('IdentityStrip — unconditional refine-birth-time CTA', () => {
+describe('IdentityStrip — refine-birth-time invitation (confidence-gated)', () => {
+  // A mid-sign lagna (15° into Aquarius) so BirthTimeSensitivity renders null —
+  // isolating the standalone refine invitation from the near-cusp callout.
+  const MID_SIGN = { sign: 'Aquarius', longitude: 315.0, nakshatra: 'Shatabhisha' } as const;
+
   beforeEach(() => {
     useLanguageStore.setState({ language: 'en' });
     useProfilesStore.setState({ activeProfileId: 'p1' });
@@ -163,11 +167,20 @@ describe('IdentityStrip — unconditional refine-birth-time CTA', () => {
     useProfilesStore.setState({ activeProfileId: null });
   });
 
-  it('shows the always-available refine-birth-time CTA even when not near a cusp', () => {
-    // mid-sign lagna: 15° into Aquarius — BirthTimeSensitivity renders null (no cusp callout)
-    renderStrip({ lagna: { sign: 'Aquarius', longitude: 315.0, nakshatra: 'Shatabhisha' } });
+  it('shows the optional refine invitation when the birth time is uncertain', () => {
+    renderStrip({ lagna: MID_SIGN, timeConfidence: 'rough' });
     const link = screen.getByRole('link', { name: /refine your birth time/i });
     expect(link.getAttribute('href')).toBe('/rectify/p1');
+  });
+
+  it('shows the invitation for unknown/legacy charts (no confidence recorded)', () => {
+    renderStrip({ lagna: MID_SIGN }); // timeConfidence undefined
+    expect(screen.getByRole('link', { name: /refine your birth time/i })).toBeTruthy();
+  });
+
+  it('hides the invitation when the birth time is recorded as exact (no nagging)', () => {
+    renderStrip({ lagna: MID_SIGN, timeConfidence: 'exact' });
+    expect(screen.queryByRole('link', { name: /refine your birth time/i })).toBeNull();
   });
 });
 
