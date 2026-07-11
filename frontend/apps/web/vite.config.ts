@@ -134,13 +134,14 @@ function pwaPlugin(): Plugin[] {
         (
           entries: { url: string; revision: string | null; integrity?: string; size: number }[],
         ) => {
-          const canonical: Record<string, string> = {
-            'index.html': '/',
-            'welcome.html': '/welcome',
-            'privacy.html': '/privacy',
-            'terms.html': '/terms',
-            'data-deletion.html': '/data-deletion',
-          }
+          // Derive the shell->canonical map from the SAME source of truth the
+          // prerender + SEO gates use (PUBLIC_ROUTE_PATHS + prerenderOutputFile in
+          // src/seo/routeHead.ts): `welcome.html` -> `/welcome`, root -> `/`. A
+          // future public route is picked up automatically, so it can never
+          // silently reintroduce a redirecting precache key (the wedge root cause).
+          const canonical: Record<string, string> = Object.fromEntries(
+            PUBLIC_ROUTE_PATHS.map((p) => [prerenderOutputFile(p), p === '/' ? '/' : p]),
+          )
           const manifest = entries.map((entry) => {
             const url = canonical[entry.url.replace(/^\//, '')]
             return url ? { ...entry, url } : entry

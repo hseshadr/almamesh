@@ -95,9 +95,13 @@ export async function healStrandedServiceWorker(): Promise<void> {
     }
     markHealAttempted(HEAL_KEY);
     await unregisterAllServiceWorkers();
+    await clearShellCaches();
     window.location.reload();
-  } catch {
+  } catch (err) {
     // Best-effort: a heal that itself fails must never crash the boot path.
+    // Surface it on-device (this app is zero-egress — no telemetry backend), so
+    // a regressed heal is visible in the console instead of silently swallowed.
+    console.warn('healStrandedServiceWorker: heal attempt failed', err);
   }
 }
 
@@ -112,8 +116,10 @@ export async function reloadForUpdate(): Promise<void> {
   try {
     await unregisterAllServiceWorkers();
     await clearShellCaches();
-  } catch {
-    // Best-effort — reload regardless so the user is never stuck.
+  } catch (err) {
+    // Best-effort — reload regardless so the user is never stuck. Surface the
+    // failure on-device (zero-egress app, no telemetry) rather than swallow it.
+    console.warn('reloadForUpdate: shell cleanup failed; reloading anyway', err);
   } finally {
     window.location.reload();
   }

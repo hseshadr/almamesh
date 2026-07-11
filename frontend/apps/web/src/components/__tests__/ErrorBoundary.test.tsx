@@ -80,6 +80,24 @@ describe('ErrorBoundary', () => {
     expect(unregister).toHaveBeenCalled();
   });
 
+  it('does NOT auto-reload a second time once the per-session chunk-heal guard is set', async () => {
+    const { reload } = stubBrowserForReload();
+    // Simulate an earlier chunk-heal already performed THIS session: the boundary's
+    // one-shot guard flag (EB_CHUNK_HEAL_KEY) is set. A second chunk error must
+    // still show the update card but NOT auto-reload again — the no-loop guarantee.
+    sessionStorage.setItem('almamesh:eb-chunk-heal', '1');
+
+    render(
+      <ErrorBoundary>
+        <ChunkBoom />
+      </ErrorBoundary>,
+    );
+
+    expect(screen.getByText('Updating to the latest version')).toBeTruthy();
+    await new Promise((r) => setTimeout(r, 10));
+    expect(reload).not.toHaveBeenCalled();
+  });
+
   it('does NOT auto-reload for a normal (non-chunk) error', async () => {
     const { reload } = stubBrowserForReload();
     render(

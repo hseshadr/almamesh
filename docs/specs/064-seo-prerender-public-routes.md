@@ -130,10 +130,16 @@ one-time GSC actions below).
 
 - The four new per-route HTML files match the existing `**/*.html` precache
   glob — a few KB each, fine.
-- `navigateFallback: '/index.html'` is untouched: offline/SW navigations to any
-  route still serve the app shell (which for public paths now contains the
-  landing markup — same content the route renders anyway; for private paths the
-  inline guard empties it, exactly like the network path).
+- `navigateFallback` serves the app shell for offline/SW navigations to any
+  route (which for public paths now contains the landing markup — same content
+  the route renders anyway; for private paths the inline guard empties it,
+  exactly like the network path). **Amended (PR #45, SW self-heal):** the
+  fallback target is now the canonical `'/'` (was `'/index.html'`), and the
+  prerendered `*.html` shells are precached under their **extensionless
+  canonical URLs** (`index.html`→`/`, `welcome.html`→`/welcome`, … via
+  `manifestTransforms`). Reason: Cloudflare Pages 308-redirects the `.html`
+  forms, and precaching under a redirecting key left an empty precache + a
+  wedged session. `scripts/verify-precache-redirect.mjs` gates this in CI.
 - Crawlers never run the SW: a no-JS fetch of `/welcome` is Cloudflare Pages
   serving `welcome/index.html` directly.
 

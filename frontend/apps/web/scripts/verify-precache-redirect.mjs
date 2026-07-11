@@ -27,27 +27,45 @@
 
 import { createServer } from 'node:http'
 import { existsSync, readFileSync, statSync } from 'node:fs'
-import { join, extname, resolve } from 'node:path'
+import { dirname, join, extname, resolve } from 'node:path'
+import { fileURLToPath, pathToFileURL } from 'node:url'
+
+const here = dirname(fileURLToPath(import.meta.url))
+const webRoot = resolve(here, '..')
 
 // Accept an optional dist dir (CI builds to `dist-verify`); default to `dist`.
 const DIST = resolve(process.argv[2] ?? join(process.cwd(), 'dist'))
 
-// Cloudflare Pages clean-URL map: the prerendered shells are reachable at their
-// extensionless canonical URL (200); the `.html` form 308-redirects to it.
-const CANONICAL = {
-  '/index.html': '/',
-  '/welcome.html': '/welcome',
-  '/privacy.html': '/privacy',
-  '/terms.html': '/terms',
-  '/data-deletion.html': '/data-deletion',
-}
-// The reverse: an extensionless canonical URL is served by the matching flat file.
-const CANON_TO_FILE = {
-  '/': 'index.html',
-  '/welcome': 'welcome.html',
-  '/privacy': 'privacy.html',
-  '/terms': 'terms.html',
-  '/data-deletion': 'data-deletion.html',
+// Load the typed route source so this gate and the app agree on the layout —
+// the SAME single source of truth (PUBLIC_ROUTE_PATHS + prerenderOutputFile in
+// src/seo/routeHead.ts) that vite.config.ts's manifestTransforms derives from.
+// A `.ts` import needs a TS-aware runtime (bun, which CI uses); plain `node`
+// falls back to the literal public routes so the script still runs standalone.
+const routeHead = await import(
+  pathToFileURL(join(webRoot, 'src/seo/routeHead.ts')).href
+).catch(() => null)
+
+const PUBLIC_ROUTE_PATHS = routeHead?.PUBLIC_ROUTE_PATHS ?? [
+  '/',
+  '/welcome',
+  '/privacy',
+  '/terms',
+  '/data-deletion',
+]
+const prerenderOutputFile =
+  routeHead?.prerenderOutputFile ??
+  ((p) => (p === '/' ? 'index.html' : `${p.replace(/^\//, '')}.html`))
+
+// Cloudflare Pages clean-URL map, DERIVED from the route source: the prerendered
+// shells are reachable at their extensionless canonical URL (200); the `.html`
+// form 308-redirects to it. `CANON_TO_FILE` is the reverse (canonical -> flat file).
+const CANONICAL = {}
+const CANON_TO_FILE = {}
+for (const p of PUBLIC_ROUTE_PATHS) {
+  const file = prerenderOutputFile(p) // e.g. 'index.html', 'welcome.html'
+  const canonical = p === '/' ? '/' : p
+  CANONICAL[`/${file}`] = canonical
+  CANON_TO_FILE[canonical] = file
 }
 
 const MIME = {

@@ -99,8 +99,8 @@ class ErrorBoundaryBase extends Component<Props, State> {
       // the stale service worker; the engine data + saved charts are preserved.
       if (this.state.isChunkError) {
         return (
-          <div className="min-h-screen flex items-center justify-center bg-background p-4">
-            <div className="max-w-md w-full bg-surface rounded-xl shadow-lg p-6 text-center">
+          <div className="min-h-screen flex items-center justify-center bg-background-primary p-4">
+            <div className="max-w-md w-full bg-background-secondary border border-ui-border rounded-xl shadow-lg p-6 text-center">
               <div className="text-4xl mb-4">
                 <span role="img" aria-label={t('error_boundary.warning_aria')}>🔄</span>
               </div>
@@ -110,7 +110,7 @@ class ErrorBoundaryBase extends Component<Props, State> {
               <p className="text-text-secondary mb-6">{t('error_boundary.update_body')}</p>
               <button
                 onClick={this.handleReloadForUpdate}
-                className="px-4 py-2 bg-accent-primary text-white rounded-lg hover:bg-accent-primary/90 transition-colors"
+                className="px-4 py-2 rounded-lg bg-accent-gold text-background-darkest font-medium hover:bg-accent-gold-bright transition-colors"
               >
                 {t('error_boundary.update_reload')}
               </button>
@@ -120,8 +120,8 @@ class ErrorBoundaryBase extends Component<Props, State> {
       }
 
       return (
-        <div className="min-h-screen flex items-center justify-center bg-background p-4">
-          <div className="max-w-md w-full bg-surface rounded-xl shadow-lg p-6 text-center">
+        <div className="min-h-screen flex items-center justify-center bg-background-primary p-4">
+          <div className="max-w-md w-full bg-background-secondary border border-ui-border rounded-xl shadow-lg p-6 text-center">
             <div className="text-4xl mb-4">
               <span role="img" aria-label={t('error_boundary.warning_aria')}>⚠️</span>
             </div>
@@ -132,11 +132,11 @@ class ErrorBoundaryBase extends Component<Props, State> {
               {t('error_boundary.body')}
             </p>
             {import.meta.env.DEV && this.state.error && (
-              <details className="text-left mb-4 p-3 bg-red-50 rounded-lg text-sm">
-                <summary className="cursor-pointer text-red-700 font-medium">
+              <details className="text-left mb-4 p-3 bg-status-error/10 rounded-lg text-sm">
+                <summary className="cursor-pointer text-status-error font-medium">
                   {t('error_boundary.details')}
                 </summary>
-                <pre className="mt-2 text-red-600 overflow-auto text-xs">
+                <pre className="mt-2 text-status-error/90 overflow-auto text-xs">
                   {this.state.error.message}
                   {'\n'}
                   {this.state.error.stack}
@@ -146,25 +146,25 @@ class ErrorBoundaryBase extends Component<Props, State> {
             <div className="flex gap-3 justify-center">
               <button
                 onClick={this.handleReset}
-                className="px-4 py-2 bg-accent-primary text-white rounded-lg hover:bg-accent-primary/90 transition-colors"
+                className="px-4 py-2 rounded-lg bg-accent-gold text-background-darkest font-medium hover:bg-accent-gold-bright transition-colors"
               >
                 {t('error_boundary.try_again')}
               </button>
               <button
                 onClick={() => window.location.reload()}
-                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                className="px-4 py-2 rounded-lg bg-background-elevated text-text-body border border-ui-border hover:bg-background-tertiary transition-colors"
               >
                 {t('error_boundary.refresh')}
               </button>
             </div>
             {/* The bulletproof escape hatch: clears stale SW + caches + storage. */}
-            <div className="mt-6 pt-4 border-t border-border-subtle">
-              <p className="text-text-tertiary text-xs mb-2">
+            <div className="mt-6 pt-4 border-t border-ui-border">
+              <p className="text-text-muted text-xs mb-2">
                 {t('error_boundary.reset_hint')}
               </p>
               <button
                 onClick={this.handleResetAppData}
-                className="px-4 py-2 text-red-700 border border-red-300 rounded-lg hover:bg-red-50 transition-colors text-sm"
+                className="px-4 py-2 rounded-lg text-status-error border border-status-error/40 hover:bg-status-error/10 transition-colors text-sm"
               >
                 {t('error_boundary.reset_app_data')}
               </button>
