@@ -49,7 +49,10 @@
     "details": "Error details (dev only)",
     "warning_aria": "warning",
     "reset_app_data": "Reset app data",
-    "reset_hint": "Still stuck after an update? This clears cached data and reloads a fresh copy. Your saved charts may be cleared."
+    "reset_hint": "Still stuck after an update? This clears cached data and reloads a fresh copy. Your saved charts may be cleared.",
+    "update_title": "Updating to the latest version",
+    "update_body": "A new version of AlmaMesh is available. Reloading now — your saved charts stay on this device.",
+    "update_reload": "Reload now"
   },
   "update": {
     "available": "A new version is available!",

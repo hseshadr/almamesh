@@ -52,7 +52,10 @@
     "details": "Detalhes do erro (apenas desenvolvimento)",
     "warning_aria": "aviso",
     "reset_app_data": "Redefinir dados do app",
-    "reset_hint": "Ainda travado após uma atualização? Isto limpa os dados em cache e recarrega uma cópia nova. Seus mapas salvos podem ser apagados."
+    "reset_hint": "Ainda travado após uma atualização? Isto limpa os dados em cache e recarrega uma cópia nova. Seus mapas salvos podem ser apagados.",
+    "update_title": "Atualizando para a versão mais recente",
+    "update_body": "Uma nova versão do AlmaMesh está disponível. Recarregando agora — seus mapas salvos permanecem neste dispositivo.",
+    "update_reload": "Recarregar agora"
   },
   "update": {
     "available": "Uma nova versão está disponível!",

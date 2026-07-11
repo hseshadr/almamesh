@@ -2,6 +2,11 @@ import { Component, ReactNode } from 'react';
 import { withTranslation, type WithTranslation } from 'react-i18next';
 
 import { resetAppData } from '../lib/resetAppData';
+import { isChunkLoadError } from '../lib/chunkError';
+import { reloadForUpdate } from '../lib/swSelfHeal';
+
+/** One automatic engine-preserving reload per session for a chunk failure. */
+const EB_CHUNK_HEAL_KEY = 'almamesh:eb-chunk-heal';
 
 interface OwnProps {
   children: ReactNode;
@@ -13,6 +18,7 @@ type Props = OwnProps & WithTranslation;
 interface State {
   hasError: boolean;
   error: Error | null;
+  isChunkError: boolean;
 }
 
 /**
@@ -22,11 +28,11 @@ interface State {
 class ErrorBoundaryBase extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false, error: null, isChunkError: false };
   }
 
   static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error };
+    return { hasError: true, error, isChunkError: isChunkLoadError(error) };
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
@@ -37,10 +43,39 @@ class ErrorBoundaryBase extends Component<Props, State> {
     // AlmaMesh is local-first and zero-egress — no telemetry backend, no Sentry,
     // nothing here leaves the browser.
     console.error('ErrorBoundary caught an error:', error, errorInfo.componentStack);
+
+    // A failed code-split import is a deploy/update artifact, not a crash. Heal
+    // it automatically ONCE per session (unregister SW + drop the stale shell +
+    // reload — engine data preserved). Guarded so a persistent fault can't loop;
+    // after that the update card's manual reload button is the fallback.
+    if (isChunkLoadError(error) && !this.chunkHealAttempted()) {
+      this.markChunkHealAttempted();
+      void reloadForUpdate();
+    }
+  }
+
+  chunkHealAttempted(): boolean {
+    try {
+      return sessionStorage.getItem(EB_CHUNK_HEAL_KEY) === '1';
+    } catch {
+      return false;
+    }
+  }
+
+  markChunkHealAttempted(): void {
+    try {
+      sessionStorage.setItem(EB_CHUNK_HEAL_KEY, '1');
+    } catch {
+      // Best-effort; a missing guard only risks one extra reload.
+    }
   }
 
   handleReset = () => {
-    this.setState({ hasError: false, error: null });
+    this.setState({ hasError: false, error: null, isChunkError: false });
+  };
+
+  handleReloadForUpdate = () => {
+    void reloadForUpdate();
   };
 
   /**
@@ -57,6 +92,31 @@ class ErrorBoundaryBase extends Component<Props, State> {
     if (this.state.hasError) {
       if (this.props.fallback) {
         return this.props.fallback;
+      }
+
+      // A failed chunk import means the app updated while this tab was open.
+      // Present it as an update (not a crash) with a repair-reload that clears
+      // the stale service worker; the engine data + saved charts are preserved.
+      if (this.state.isChunkError) {
+        return (
+          <div className="min-h-screen flex items-center justify-center bg-background p-4">
+            <div className="max-w-md w-full bg-surface rounded-xl shadow-lg p-6 text-center">
+              <div className="text-4xl mb-4">
+                <span role="img" aria-label={t('error_boundary.warning_aria')}>🔄</span>
+              </div>
+              <h1 className="text-xl font-semibold text-text-primary mb-2">
+                {t('error_boundary.update_title')}
+              </h1>
+              <p className="text-text-secondary mb-6">{t('error_boundary.update_body')}</p>
+              <button
+                onClick={this.handleReloadForUpdate}
+                className="px-4 py-2 bg-accent-primary text-white rounded-lg hover:bg-accent-primary/90 transition-colors"
+              >
+                {t('error_boundary.update_reload')}
+              </button>
+            </div>
+          </div>
+        );
       }
 
       return (
