@@ -213,6 +213,10 @@ to produce the local dev bundle.)
 
 ## Architecture
 
+Deeper dives: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) (the signed-bundle →
+OPFS → Pyodide flow, with the d2 diagram) and
+[docs/QUICKSTART.md](docs/QUICKSTART.md) (`make demo` to a rendered chart).
+
 ```
 Browser (the product) ─ installable PWA, offline after first load
 │

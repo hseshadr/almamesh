@@ -13,6 +13,62 @@ does NOT run as a server.
 > crisp contracts; delegate the validation loop too), library-first, **TDD**,
 > **validate-end-to-end in the running app**, typed contracts, no dead code. This
 > file is **only the AlmaMesh-specific** context below.
+>
+> **AGENTS.md is a thin pointer to this file** — this is the single canonical
+> agent doc; never maintain the two as twins.
+
+---
+
+## Engineering standards (portfolio contract)
+
+This repo builds against `~/dev/project-ideas/oss/ENGINEERING-STANDARDS.md`
+(Published tier). Repo-specific declarations:
+
+- **§8 (WASM/edge-compute): applicable — exemplar for pattern (a) Pyodide app
+  engine.** The unchanged Python `almamesh` wheel runs in the browser tab under
+  Pyodide, gated by golden byte-parity fixtures (`test:parity`); no browser-only
+  forks of domain logic.
+- **Documented toolchain exception — Bun instead of pnpm** (workspace + test
+  runner): migrating the shipped Bun monorepo mid-development is
+  high-risk/low-reward; a pnpm migration stays a labeled backlog item. Pinned in
+  `frontend/.bun-version` (CI installs exactly that via `bun-version-file`;
+  `engines.bun` sets the floor).
+- **The gate** is `make gate` (dual-stack): fans out to `backend` (`uv run poe
+  gate`: ruff lint → format check → mypy strict → xenon → pytest with coverage
+  floor → vendored edge-proc suite) and `frontend` (`bun run gate`: declarations
+  build → typecheck → lint → unit tests → build). CI runs the same two commands
+  — the gate and CI mirror exactly, both directions.
+- **xenon grandfather (2026-07-11):** the gate pins `--max-absolute C
+  --max-modules C --max-average A`. Pre-existing debt, to be ratcheted to A/A/A
+  (punch list): 3 C blocks in `dasha/scoring.py`
+  (`score_events_from_signals`, `apply_expert_rules`,
+  `stitch_segments_into_events`; module rank C) and 14 B blocks across
+  `dasha/{vimshottari,engine,chara}.py`, `rectification/{__init__,scorer}.py`,
+  `rules/rule_types.py`. New code must be A; do not add to this list.
+- **Playwright e2e tiering** (heavyweight suites split per §4, both lanes in CI):
+  - **PR lane** (`test.yml`): the `exit-gate` job (hooked exit gate + i18n +
+    precache + stubbed interpretation/chat-grounding/rectification/wizard specs
+    + the REAL no-hooks onboarding & recovery drives) **plus the `e2e-smoke`
+    job** — the 2 fastest keyless specs not already in the exit gate:
+    `ai-settings.spec.ts` (settings wizard flow, no engine boot) and
+    `report-pdf.e2e.spec.ts` (real onboarding → chart generation → rectify →
+    PDF, no LLM key).
+  - **Nightly lane** (`nightly-e2e.yml`, cron + manual dispatch): all 11
+    `e2e/*.spec.ts` suites, with the exit-gate job's flake engineering
+    (Skyfield ephemeris + uv + Bun caches). The five `*.real.*` specs and the
+    dual-voice B/C checks self-skip unless the optional `OPENROUTER_API_KEY`
+    repo secret is configured — a keyless nightly is still a green, honest run
+    of the deterministic surface.
+- **Release discipline:** Keep-a-Changelog + annotated tags, tag-forward-only.
+  Tags start at v0.4.0 (v0.1.0–v0.3.0 were never cut; never backfill). Cut the
+  tag at merged HEAD on main, never mid-PR.
+- **JS dependency-audit backlog (2026-07-11):** the weekly `security-audit.yml`
+  covers Python (pip-audit) only. `bun audit` currently reports advisories
+  across deep dev/transitive JS chains (node-tar + xmldom via
+  `@huggingface/transformers` / `@react-three/fiber`'s expo chain, ajv via
+  eslint/vite-plugin-pwa) — not exploitable through the shipped static PWA's
+  runtime surface and not fixable by in-range bumps. Remediate the chain, then
+  add the `bun audit` job to security-audit.yml.
 
 ---
 
@@ -76,8 +132,11 @@ build-time bundle publisher; the browser app is the entire product surface.
 ## Commands
 
 ```bash
+# THE quality gate — run before every commit; CI runs exactly this (§3 mirror)
+make gate            # = backend `uv run poe gate` + frontend `bun run gate`
+
 # Engine + bundle publisher (Python)
-cd backend && uv sync --extra dev && uv run pytest -q
+cd backend && uv sync --extra dev && uv run pytest -q   # pytest enforces the coverage floor via addopts
 cd backend && uv run ruff format . && uv run ruff check --fix . && uv run mypy src/
 cd backend && uv run almamesh-chart "1990-01-15T12:00:00+00:00" 40.7128 -74.0060   # offline chart, no frontend
 cd backend && uv run almamesh-bundle keygen ./keys                                  # sign a bundle

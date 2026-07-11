@@ -1,0 +1,187 @@
+# Nightly full Playwright lane (ENGINEERING-STANDARDS §4: heavyweight browser
+# suites split into a PR smoke lane + a scheduled nightly full lane — this is
+# the full half; test.yml's e2e-smoke + exit-gate jobs are the PR half).
+#
+# Runs ALL 11 flow specs in frontend/apps/web/e2e/. Each playwright config
+# self-builds its production bundle (most with VITE_EXIT_GATE_HOOKS=1; the
+# report-pdf + dual-voice configs deliberately WITHOUT hooks — the real-visitor
+# build) and serves it on its own strict port, so specs are isolated and can
+# run back-to-back in one job.
+#
+# Secrets (optional): OPENROUTER_API_KEY — the five *.real.* specs and the
+# dual-voice B/C checks make LIVE OpenRouter round-trips and self-skip
+# (`test.skip(!KEY)`) when it is absent. A keyless nightly is therefore still
+# a green, honest run of the deterministic surface; configure the secret to
+# light up the live-LLM assertions. The key is read only from process.env —
+# never a VITE_ var, never bundled into the app.
+#
+# A red run of this workflow is a red repo (scheduled workflows count as CI —
+# ENGINEERING-STANDARDS §4). Check it with: gh run list --workflow=nightly-e2e.yml
+#
+# Tiering documentation: CLAUDE.md "Playwright e2e tiering".
+name: Nightly E2E (all Playwright specs)
+
+on:
+  schedule:
+    # 09:17 UTC daily — off-peak, offset from the hour to dodge the scheduler rush.
+    - cron: "17 9 * * *"
+  # Manual trigger: run the full lane on demand (e.g. before cutting a release,
+  # or to validate a fix to one of the nightly-only specs).
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  nightly-e2e:
+    name: All 11 Playwright flow specs
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      # ---- Python toolchain (for the bundle publisher) ----
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      # setup-uv publishes no floating major tag — full pin required (§4).
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.3.2
+        with:
+          version: "latest"
+
+      - name: Cache uv dependencies
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/uv
+          key: ${{ runner.os }}-uv-${{ hashFiles('backend/uv.lock', 'backend/vendor/edge-proc/uv.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-uv-
+
+      # ---- JS toolchain (Bun pinned via frontend/.bun-version, §2 exception) ----
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: frontend/.bun-version
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.bun/install/cache
+            frontend/node_modules
+            frontend/apps/*/node_modules
+            frontend/packages/*/node_modules
+          key: ${{ runner.os }}-bun-${{ hashFiles('frontend/bun.lock', 'frontend/**/package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # Flake engineering copied from the exit-gate job: NASA's JPL server is
+      # unreliable from GH runners; the ephemeris files are static, so a
+      # fixed-key cache kills the flaky download after the first green run.
+      - name: Cache Skyfield ephemeris data (de421.bsp + finals2000A.all)
+        uses: actions/cache@v5
+        with:
+          path: ~/.skyfield-data
+          key: skyfield-data-de421-v1
+
+      # Pyodide dist + signed dev bundle into apps/web/public — the engine
+      # assets every chart-driving spec boots from (generated once, reused by
+      # every self-built config below).
+      - name: Generate dev assets (Pyodide dist + signed bundle)
+        run: bash apps/web/scripts/setup-dev-assets.sh
+
+      - name: Install Playwright Chromium
+        working-directory: frontend/apps/web
+        run: bunx playwright install --with-deps chromium
+
+      # report-pdf + dual-voice extract downloaded-PDF text via `pdftotext`.
+      - name: Install pdftotext (poppler-utils)
+        run: sudo apt-get update && sudo apt-get install -y poppler-utils
+
+      # ---- Tier 1: no engine boot (fastest) ----
+      - name: ai-settings — AI-setup wizard flow
+        working-directory: frontend/apps/web
+        env:
+          VITE_API_URL: ""
+        run: bun run test:e2e:ai
+
+      # ---- Tier 2: real engine, stubbed LLM (deterministic, keyless) ----
+      - name: interpretation — 5-section reading renders (stubbed LLM)
+        working-directory: frontend/apps/web
+        env:
+          VITE_API_URL: ""
+        run: bun run test:e2e:interp
+
+      - name: chat.grounding — chat model + prompt-grounding contract (stubbed LLM)
+        working-directory: frontend/apps/web
+        env:
+          VITE_API_URL: ""
+        run: bun run test:e2e:chat:grounding
+
+      - name: rectification — cusp + unknown-time engine paths
+        working-directory: frontend/apps/web
+        env:
+          VITE_API_URL: ""
+        run: bun run test:e2e:rectification
+
+      - name: wizard-phase2 — /rectify wizard e2e
+        working-directory: frontend/apps/web
+        env:
+          VITE_API_URL: ""
+        run: bun run test:e2e:wizard
+
+      # ---- Tier 3: REAL no-hooks visitor journeys (keyless) ----
+      - name: report-pdf — real onboarding → rectify → PDF (no hooks)
+        working-directory: frontend/apps/web
+        env:
+          VITE_API_URL: ""
+        run: bun run test:e2e:report:pdf
+
+      - name: dual-voice + Life Atlas — real journey (B/C self-skip without key)
+        working-directory: frontend/apps/web
+        env:
+          VITE_API_URL: ""
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: bun run test:e2e:dual-voice
+
+      # ---- Tier 4: LIVE-LLM specs (each self-skips without the secret) ----
+      - name: interpretation.real — real reading from a live endpoint
+        working-directory: frontend/apps/web
+        env:
+          VITE_API_URL: ""
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: bun run test:e2e:interp:real
+
+      - name: interpretation.heal.real — stale-model self-heal against live OpenRouter
+        working-directory: frontend/apps/web
+        env:
+          VITE_API_URL: ""
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: bun run test:e2e:interp:heal:real
+
+      - name: chat.rag.real — live chat + in-browser RAG recall
+        working-directory: frontend/apps/web
+        env:
+          VITE_API_URL: ""
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: bun run test:e2e:chat:rag:real
+
+      - name: dashboard.agentic.real — live agentic chat + grounding tools
+        working-directory: frontend/apps/web
+        env:
+          VITE_API_URL: ""
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: bun run test:e2e:dashboard:agentic:real

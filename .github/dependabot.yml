@@ -1,0 +1,31 @@
+# Weekly grouped dependency PRs (ENGINEERING-STANDARDS §4, Published tier).
+# Vendored trees (backend/vendor/*, frontend/packages/edgeproc-browser) are
+# deliberately NOT covered — they re-vendor from their source repos on their
+# own policy (see each VENDORED.md), never via dependency PRs here.
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      actions:
+        patterns: ["*"]
+
+  # Python engine + bundle publisher (uv.lock).
+  - package-ecosystem: "uv"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+    groups:
+      python:
+        patterns: ["*"]
+
+  # Bun workspace (bun.lock) — dependabot's bun ecosystem.
+  - package-ecosystem: "bun"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+    groups:
+      frontend:
+        patterns: ["*"]

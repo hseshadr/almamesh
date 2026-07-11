@@ -32,6 +32,11 @@ export default [
     ignores: [
       "dist/**",
       "dist-verify/**",
+      // The no-hooks real-journey build (report-pdf/dual-voice configs + the
+      // documented local live-validation flow) — same generated output, same
+      // 4900+ false positives if linted. Without this, running the exit gate
+      // locally breaks the next `git commit` (lint-staged runs the lint).
+      "dist-real/**",
       "node_modules/**",
       "playwright-report/**",
       "test-results/**",
