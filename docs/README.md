@@ -1,6 +1,6 @@
 # AlmaMesh Documentation
 
-**Last Updated**: 2026-06-11
+**Last Updated**: 2026-07-11
 
 AlmaMesh is a **free, local-first, in-browser** Vedic astrology app. The chart
 engine runs entirely on the user's device (the unchanged Python `almamesh`
@@ -11,13 +11,17 @@ Start with the top-level docs:
 
 - **[Root README](../README.md)** — what it is, the browser quickstart (clone →
   build → preview → generate a chart offline), and the no-frontend CLI path.
+- **[QUICKSTART](QUICKSTART.md)** — `make demo` to a rendered chart, plus the
+  one-command quality gate.
+- **[ARCHITECTURE](ARCHITECTURE.md)** — the signed-bundle → OPFS → Pyodide flow
+  in one diagram (d2 source committed).
 - **[Tech stack](tech-stack.md)** — the local-first engine + bundle delivery +
   in-browser Pyodide architecture, with the real commands.
 - **[Frontend README](../frontend/README.md)** — the Bun monorepo, the
   `@almamesh/*` packages, how the in-browser engine works, and dev/build/test.
 - **[CHANGELOG](../CHANGELOG.md)** — every release, from the SaaS-to-local-first
   pivot onward.
-- **[Release notes](releases/v0.3.0.md)** — what v0.3.0 delivers, in plain
+- **[Release notes](releases/v0.4.0.md)** — what v0.4.0 delivers, in plain
   language (this is the GitHub release body).
 
 ## Architecture in one diagram
