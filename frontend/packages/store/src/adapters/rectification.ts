@@ -54,6 +54,10 @@ export function adaptRectification(raw: RectificationResultRaw): RectificationRe
     margin: raw.margin,
     band: raw.band,
     discriminatingEventCount: raw.discriminating_event_count,
+    // Rigor Stage 3 (Tier E) — verbatim when the wheel supplies it (already
+    // gated to null below MIN_DISCRIMINATING_EVENTS in the engine). An OLDER
+    // wheel omits the key; default to null (a safe under-claim, never invented).
+    confidencePct: raw.confidence_pct ?? null,
     recordedTimeSign: raw.recorded_time_sign,
     honestyNoteKey: raw.honesty_note_key,
   };

@@ -1430,6 +1430,17 @@ export interface RectificationResult {
   readonly margin: number;
   readonly band: RectificationBand;
   readonly discriminatingEventCount: number;
+  /**
+   * Rigor Stage 3 (Tier E): the AGGREGATE event-fit confidence = margin*100,
+   * or `null` when gated below the minimum-evidence bar (render "inconclusive").
+   * "How much better the best-fit birth time explains the user's dated events
+   * than the runner-up" — NEVER "the probability the time is correct." The
+   * per-signal contributions stay words+polarity only; only THIS aggregate is a
+   * calibrated number. Optional: freshly-adapted results always carry it, but
+   * records persisted BEFORE Stage 3 have no field (undefined) — renderers must
+   * treat undefined as "no calibrated %", distinct from null (gated/inconclusive).
+   */
+  readonly confidencePct?: number | null;
   readonly recordedTimeSign: string | null;
   readonly honestyNoteKey: string;
 }

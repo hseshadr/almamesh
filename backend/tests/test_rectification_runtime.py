@@ -34,6 +34,9 @@ _EXPECTED_KEYS = frozenset(
         "margin",
         "band",
         "discriminating_event_count",
+        # Rigor Stage 3 (Tier E): aggregate event-fit confidence % (margin*100),
+        # or None when gated below the min-evidence bar.
+        "confidence_pct",
         "recorded_time_sign",
         "honesty_note_key",
     }

@@ -182,6 +182,11 @@
       "window": "Time-window scan — candidate birth times across the stated window compared against dated life events"
     },
     "band_label": "Confidence",
+    "confidence_confirmed_one": "{{pct}}% — confirmed by {{count}} of your events",
+    "confidence_confirmed_other": "{{pct}}% — confirmed by {{count}} of your events",
+    "confidence_inconclusive": "Inconclusive — not enough dated events to tell your candidate times apart",
+    "confidence_meaning": "This confidence is how much better your best-fit time explains your events than the runner-up — not the odds the time itself is correct.",
+    "evidence_balance_label": "Evidence balance",
     "confirmed_label": "Confirmed",
     "events_heading": "Supporting life events",
     "events_empty": "No dated life events are attached to this rectification.",

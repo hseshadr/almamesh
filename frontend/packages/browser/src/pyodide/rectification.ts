@@ -168,6 +168,10 @@ export interface RectificationResultRaw {
   readonly margin: number;
   readonly band: RectificationBand;
   readonly discriminating_event_count: number;
+  // Rigor Stage 3 (Tier E): aggregate event-fit confidence = margin*100, or
+  // null when gated below MIN_DISCRIMINATING_EVENTS. Optional here because an
+  // OLDER bundled wheel omits it; the adapter defaults it to null.
+  readonly confidence_pct?: number | null;
   readonly recorded_time_sign: string | null;
   readonly honesty_note_key: string;
 }

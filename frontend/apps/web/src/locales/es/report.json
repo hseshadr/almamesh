@@ -185,6 +185,11 @@
       "window": "Barrido de ventana de tiempo — se compararon horas de nacimiento candidatas dentro de la ventana indicada con eventos de vida fechados"
     },
     "band_label": "Confianza",
+    "confidence_confirmed_one": "{{pct}} % — confirmado por {{count}} de tus eventos",
+    "confidence_confirmed_other": "{{pct}} % — confirmado por {{count}} de tus eventos",
+    "confidence_inconclusive": "No concluyente — no hay suficientes eventos fechados para distinguir tus horas candidatas",
+    "confidence_meaning": "Esta confianza indica cuánto mejor explica tus eventos la hora que mejor encaja frente a la siguiente — no la probabilidad de que la hora sea correcta.",
+    "evidence_balance_label": "Balance de evidencia",
     "confirmed_label": "Confirmada",
     "events_heading": "Eventos de vida que la respaldan",
     "events_empty": "No hay eventos de vida fechados adjuntos a esta rectificación.",

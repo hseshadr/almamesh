@@ -3,10 +3,16 @@
  * time of this chart was established.
  *
  * Renders the confirmed `RectificationRecord` verbatim: entered vs working
- * time + rising sign, the engine fit mode, the QUALITATIVE confidence band
- * (a convention, never a verdict — NO percentage, NO margin number, NO fit
- * scores), the confirmation date, and the dated life events that supported the
- * fit (resolved by the page from the lifeEvents store).
+ * time + rising sign, the engine fit mode, the confidence band, the
+ * confirmation date, and the dated life events that supported the fit
+ * (resolved by the page from the lifeEvents store).
+ *
+ * Rigor Stage 3 (Tier E): the band carries the AGGREGATE calibrated confidence
+ * % (margin×100, "confirmed by N of your events"), or "inconclusive" when the
+ * engine gated it below the min-evidence bar — plus a supporting-vs-opposing
+ * COUNT balance. The honesty covenant is intact: the raw margin / fit-score
+ * floats are still NEVER shown, and per-signal evidence stays words + polarity
+ * only. Only this one aggregate, anchored, event-validated number is a %.
  *
  * Phase 2 (Spec 062): when the record carries a `resultSnapshot` (v2), the
  * full story prints without recompute — the candidate comparison table (sign,
@@ -34,7 +40,12 @@ import { formatReportDate } from '../../../lib/reportData';
 // a day west of GMT).
 import { formatPredictiveDate } from '../../../lib/predictive';
 import { signName } from '../../../lib/predictiveEventCopy';
-import { evidencePolarity, localizeSignal } from '../../../lib/rectifySignals';
+import {
+  confidenceLine,
+  evidenceBalance,
+  evidencePolarity,
+  localizeSignal,
+} from '../../../lib/rectifySignals';
 import { ReportSectionHeading } from './ReportSectionHeading';
 
 interface ReportRectificationProps {
@@ -74,6 +85,7 @@ export function ReportRectification({ record, events }: ReportRectificationProps
 
   const snapshot = record.resultSnapshot ?? null;
   const chosen = snapshot != null ? chosenCandidate(record, snapshot) : null;
+  const confidence = snapshot != null ? confidenceLine(snapshot, t) : null;
 
   /** Qualitative reading cell for a snapshot candidate — never a number. */
   const candidateReading = (candidate: RectificationCandidate): string => {
@@ -104,13 +116,35 @@ export function ReportRectification({ record, events }: ReportRectificationProps
         </div>
         <div className="report-dasha-leg">
           <dt>{t('rectification.band_label')}</dt>
-          <dd data-testid="report-rectification-band">{t(`rectify:band.${record.band}`)}</dd>
+          <dd data-testid="report-rectification-band">
+            {t(`rectify:band.${record.band}`)}
+            {confidence != null && (
+              <span
+                className="report-rectification-confidence"
+                data-testid="report-rectification-confidence"
+              >
+                {` · ${confidence.text}`}
+              </span>
+            )}
+          </dd>
         </div>
+        {chosen != null && (
+          <div className="report-dasha-leg">
+            <dt>{t('rectification.evidence_balance_label')}</dt>
+            <dd data-testid="report-rectification-balance">{evidenceBalance(chosen, t)}</dd>
+          </div>
+        )}
         <div className="report-dasha-leg">
           <dt>{t('rectification.confirmed_label')}</dt>
           <dd>{formatReportDate(record.confirmedAt)}</dd>
         </div>
       </dl>
+
+      {confidence?.isPct && (
+        <p className="report-note" data-testid="report-rectification-confidence-note">
+          {t('rectification.confidence_meaning')}
+        </p>
+      )}
 
       <h3 className="report-subsection-title">{t('rectification.events_heading')}</h3>
       {events.length === 0 ? (
