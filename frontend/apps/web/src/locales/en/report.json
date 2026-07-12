@@ -101,7 +101,13 @@
       "moderate": "moderate",
       "weak": "weak"
     },
-    "grade_aria": "Yoga grade: {{grade}}"
+    "grade_aria": "Yoga grade: {{grade}}",
+    "strength": {
+      "tier": "structural estimate",
+      "summary_max": "net {{net}} of max {{bound}}",
+      "summary_min": "net {{net}} of min {{bound}}",
+      "aria": "Structural strength estimate: {{pct}} percent, {{band}}"
+    }
   },
   "dasha": {
     "heading": "Vimshottari Daśā",

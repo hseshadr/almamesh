@@ -116,6 +116,12 @@ export interface YogaStrengthFactor {
   readonly value: string;
   /** Human-readable classical basis for counting this factor. */
   readonly basis: string;
+  /**
+   * The signed ±1 this factor contributes to the yoga's net marks (0 = neutral).
+   * Additive; absent on bundles stored before the calibrated-strength upgrade.
+   * The marks across a yoga's factors sum EXACTLY to `YogaData.net_marks`.
+   */
+  readonly mark?: number;
 }
 
 /** An explicit formation clause that fired, with its classical source. */
@@ -145,6 +151,18 @@ export interface YogaData {
   readonly effects: string;
   readonly grade: YogaGrade;
   readonly strength_factors: readonly YogaStrengthFactor[];
+  /**
+   * Calibrated STRUCTURAL strength (a Layer-2 MODEL output over the ±1 mark
+   * lattice — never a measured fact). All additive; absent on bundles stored
+   * before the calibrated-strength upgrade, so render behind a presence guard.
+   * `strength_pct` = 100·(net_marks + max_unfavorable)/(max_favorable +
+   * max_unfavorable), anchored to this yoga's OWN achievable mark range.
+   */
+  readonly net_marks?: number;
+  readonly max_favorable?: number;
+  readonly max_unfavorable?: number;
+  readonly strength_pct?: number;
+  readonly strength_tier?: "structural";
   readonly planets_involved: readonly string[];
   readonly houses_involved: readonly number[];
   readonly planetary_signature: string;

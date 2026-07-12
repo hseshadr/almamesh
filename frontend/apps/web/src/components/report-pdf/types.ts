@@ -124,6 +124,17 @@ export interface ReportPdfYoga {
   readonly signature: string;
   /** Grade, used to tint the chip ("strong" | "moderate" | "weak"). */
   readonly grade: string;
+  /**
+   * Calibrated structural-strength headline, e.g. "91% · Strong · structural
+   * estimate". Empty string for bundles stored before the calibrated-strength
+   * upgrade (renderer omits the line).
+   */
+  readonly strength: string;
+  /**
+   * Signed factor ledger, e.g. "Jupiter exalted +1 · Moon kendra +1 · net +3 of
+   * max +5". Empty when strength is absent or the yoga has no non-neutral marks.
+   */
+  readonly strengthLedger: string;
 }
 
 /** One interpretation block — an optional heading + ordered prose paragraphs. */

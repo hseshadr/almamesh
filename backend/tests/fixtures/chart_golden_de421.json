@@ -1010,7 +1010,10 @@
         "houses_involved": [
           9
         ],
+        "max_favorable": 5,
+        "max_unfavorable": 6,
         "name": "Gajakesari Yoga",
+        "net_marks": 3,
         "planetary_signature": "jupiter_moon_h9",
         "planets_involved": [
           "jupiter",
@@ -1020,28 +1023,34 @@
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 1,
             "planet": "jupiter",
             "value": "own"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 1,
             "planet": "jupiter",
             "value": "trikona (house 9)"
           },
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "moon",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 1,
             "planet": "moon",
             "value": "trikona (house 9)"
           }
-        ]
+        ],
+        "strength_pct": 81.82,
+        "strength_tier": "structural"
       },
       {
         "category": "raja",
@@ -1068,7 +1077,10 @@
           4,
           9
         ],
+        "max_favorable": 5,
+        "max_unfavorable": 6,
         "name": "Raja Yoga",
+        "net_marks": 3,
         "planetary_signature": "jupiter_moon_h4_h9",
         "planets_involved": [
           "jupiter",
@@ -1078,28 +1090,34 @@
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 1,
             "planet": "jupiter",
             "value": "own"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 1,
             "planet": "jupiter",
             "value": "trikona (house 9)"
           },
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "moon",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 1,
             "planet": "moon",
             "value": "trikona (house 9)"
           }
-        ]
+        ],
+        "strength_pct": 81.82,
+        "strength_tier": "structural"
       },
       {
         "category": "raja",
@@ -1126,7 +1144,10 @@
           1,
           7
         ],
+        "max_favorable": 6,
+        "max_unfavorable": 6,
         "name": "Raja Yoga",
+        "net_marks": 3,
         "planetary_signature": "mars_venus_h1_h7",
         "planets_involved": [
           "mars",
@@ -1136,28 +1157,34 @@
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 1,
             "planet": "mars",
             "value": "own"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 1,
             "planet": "mars",
             "value": "kendra (house 1)"
           },
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "venus",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 1,
             "planet": "venus",
             "value": "kendra (house 1)"
           }
-        ]
+        ],
+        "strength_pct": 75.0,
+        "strength_tier": "structural"
       },
       {
         "category": "mahapurusha",
@@ -1181,7 +1208,10 @@
         "houses_involved": [
           1
         ],
+        "max_favorable": 3,
+        "max_unfavorable": 3,
         "name": "Ruchaka Yoga",
+        "net_marks": 2,
         "planetary_signature": "mars_h1",
         "planets_involved": [
           "mars"
@@ -1190,16 +1220,20 @@
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 1,
             "planet": "mars",
             "value": "own"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 1,
             "planet": "mars",
             "value": "kendra (house 1)"
           }
-        ]
+        ],
+        "strength_pct": 83.33,
+        "strength_tier": "structural"
       },
       {
         "category": "dhana",
@@ -1225,7 +1259,10 @@
           2,
           11
         ],
+        "max_favorable": 3,
+        "max_unfavorable": 3,
         "name": "Dhana Yoga",
+        "net_marks": 0,
         "planetary_signature": "saturn_h2_h11",
         "planets_involved": [
           "saturn"
@@ -1234,16 +1271,20 @@
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "saturn",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 0,
             "planet": "saturn",
             "value": "neutral (house 2)"
           }
-        ]
+        ],
+        "strength_pct": 50.0,
+        "strength_tier": "structural"
       },
       {
         "category": "dhana",
@@ -1269,7 +1310,10 @@
           5,
           11
         ],
+        "max_favorable": 2,
+        "max_unfavorable": 2,
         "name": "Dhana Yoga",
+        "net_marks": 0,
         "planetary_signature": "sun_h5_h11",
         "planets_involved": [
           "sun"
@@ -1278,16 +1322,20 @@
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "sun",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 0,
             "planet": "sun",
             "value": "upachaya (house 11)"
           }
-        ]
+        ],
+        "strength_pct": 50.0,
+        "strength_tier": "structural"
       },
       {
         "category": "dosha",
@@ -1311,7 +1359,10 @@
         "houses_involved": [
           9
         ],
+        "max_favorable": 2,
+        "max_unfavorable": 3,
         "name": "Kemadruma Yoga",
+        "net_marks": 1,
         "planetary_signature": "moon_h9",
         "planets_involved": [
           "moon"
@@ -1320,16 +1371,20 @@
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "moon",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 1,
             "planet": "moon",
             "value": "trikona (house 9)"
           }
-        ]
+        ],
+        "strength_pct": 80.0,
+        "strength_tier": "structural"
       },
       {
         "category": "raja",
@@ -1370,7 +1425,10 @@
           9,
           12
         ],
+        "max_favorable": 9,
+        "max_unfavorable": 9,
         "name": "Neecha Bhanga Raja Yoga",
+        "net_marks": 1,
         "planetary_signature": "jupiter_mercury_venus_h1_h9_h12",
         "planets_involved": [
           "jupiter",
@@ -1381,40 +1439,48 @@
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 1,
             "planet": "jupiter",
             "value": "own"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 1,
             "planet": "jupiter",
             "value": "trikona (house 9)"
           },
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": -1,
             "planet": "mercury",
             "value": "debilitated"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": -1,
             "planet": "mercury",
             "value": "dusthana (house 12)"
           },
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "venus",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 1,
             "planet": "venus",
             "value": "kendra (house 1)"
           }
-        ]
+        ],
+        "strength_pct": 55.56,
+        "strength_tier": "structural"
       },
       {
         "category": "surya",
@@ -1441,7 +1507,10 @@
           11,
           12
         ],
+        "max_favorable": 5,
+        "max_unfavorable": 5,
         "name": "Vesi Yoga",
+        "net_marks": -2,
         "planetary_signature": "mercury_sun_h11_h12",
         "planets_involved": [
           "mercury",
@@ -1451,28 +1520,34 @@
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": -1,
             "planet": "mercury",
             "value": "debilitated"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": -1,
             "planet": "mercury",
             "value": "dusthana (house 12)"
           },
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "sun",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 0,
             "planet": "sun",
             "value": "upachaya (house 11)"
           }
-        ]
+        ],
+        "strength_pct": 30.0,
+        "strength_tier": "structural"
       },
       {
         "category": "raja",
@@ -1498,7 +1573,10 @@
           6,
           12
         ],
+        "max_favorable": 3,
+        "max_unfavorable": 3,
         "name": "Vipareeta Raja Yoga",
+        "net_marks": -2,
         "planetary_signature": "mercury_h6_h12",
         "planets_involved": [
           "mercury"
@@ -1507,16 +1585,20 @@
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": -1,
             "planet": "mercury",
             "value": "debilitated"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": -1,
             "planet": "mercury",
             "value": "dusthana (house 12)"
           }
-        ]
+        ],
+        "strength_pct": 16.67,
+        "strength_tier": "structural"
       }
     ]
   },
@@ -2530,7 +2612,10 @@
         "houses_involved": [
           10
         ],
+        "max_favorable": 3,
+        "max_unfavorable": 3,
         "name": "Amala Yoga",
+        "net_marks": 2,
         "planetary_signature": "venus_h10",
         "planets_involved": [
           "venus"
@@ -2539,16 +2624,20 @@
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 1,
             "planet": "venus",
             "value": "own"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 1,
             "planet": "venus",
             "value": "kendra (house 10)"
           }
-        ]
+        ],
+        "strength_pct": 83.33,
+        "strength_tier": "structural"
       },
       {
         "category": "chandra",
@@ -2578,7 +2667,10 @@
           2,
           3
         ],
+        "max_favorable": 8,
+        "max_unfavorable": 9,
         "name": "Durudhara Yoga",
+        "net_marks": 3,
         "planetary_signature": "mercury_moon_saturn_h1_h2_h3",
         "planets_involved": [
           "mercury",
@@ -2589,46 +2681,55 @@
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "mercury",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 1,
             "planet": "mercury",
             "value": "kendra (house 1)"
           },
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "moon",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 0,
             "planet": "moon",
             "value": "neutral (house 2)"
           },
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 1,
             "planet": "saturn",
             "value": "exalted"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 0,
             "planet": "saturn",
             "value": "upachaya (house 3)"
           },
           {
             "basis": "Vakra (retrograde) motion confers high cheshta-bala (BPHS, Shadbala adhyaya)",
             "factor_type": "retrograde",
+            "mark": 1,
             "planet": "saturn",
             "value": "retrograde"
           }
-        ]
+        ],
+        "strength_pct": 70.59,
+        "strength_tier": "structural"
       },
       {
         "category": "mahapurusha",
@@ -2652,7 +2753,10 @@
         "houses_involved": [
           10
         ],
+        "max_favorable": 3,
+        "max_unfavorable": 3,
         "name": "Malavya Yoga",
+        "net_marks": 2,
         "planetary_signature": "venus_h10",
         "planets_involved": [
           "venus"
@@ -2661,16 +2765,20 @@
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 1,
             "planet": "venus",
             "value": "own"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 1,
             "planet": "venus",
             "value": "kendra (house 10)"
           }
-        ]
+        ],
+        "strength_pct": 83.33,
+        "strength_tier": "structural"
       },
       {
         "category": "surya",
@@ -2697,7 +2805,10 @@
           1,
           12
         ],
+        "max_favorable": 5,
+        "max_unfavorable": 5,
         "name": "Vesi Yoga",
+        "net_marks": 0,
         "planetary_signature": "mercury_sun_h1_h12",
         "planets_involved": [
           "mercury",
@@ -2707,28 +2818,34 @@
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "mercury",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 1,
             "planet": "mercury",
             "value": "kendra (house 1)"
           },
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "sun",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": -1,
             "planet": "sun",
             "value": "dusthana (house 12)"
           }
-        ]
+        ],
+        "strength_pct": 50.0,
+        "strength_tier": "structural"
       },
       {
         "category": "raja",
@@ -2755,7 +2872,10 @@
           2,
           12
         ],
+        "max_favorable": 5,
+        "max_unfavorable": 6,
         "name": "Neecha Bhanga Raja Yoga",
+        "net_marks": -3,
         "planetary_signature": "mars_moon_h2_h12",
         "planets_involved": [
           "mars",
@@ -2765,34 +2885,41 @@
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": -1,
             "planet": "mars",
             "value": "debilitated"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": -1,
             "planet": "mars",
             "value": "dusthana (house 12)"
           },
           {
             "basis": "Asta (combustion) within the classical orb of the Sun (Surya-Siddhanta tradition; B.V. Raman, Graha and Bhava Balas)",
             "factor_type": "combustion",
+            "mark": -1,
             "planet": "mars",
             "value": "combust (1.56 deg from the Sun)"
           },
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "moon",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 0,
             "planet": "moon",
             "value": "neutral (house 2)"
           }
-        ]
+        ],
+        "strength_pct": 27.27,
+        "strength_tier": "structural"
       },
       {
         "category": "raja",
@@ -2825,7 +2952,10 @@
           9,
           12
         ],
+        "max_favorable": 6,
+        "max_unfavorable": 6,
         "name": "Raja Yoga",
+        "net_marks": -4,
         "planetary_signature": "jupiter_mars_h4_h5_h6_h9_h12",
         "planets_involved": [
           "jupiter",
@@ -2835,40 +2965,48 @@
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": -1,
             "planet": "jupiter",
             "value": "debilitated"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": -1,
             "planet": "jupiter",
             "value": "dusthana (house 6)"
           },
           {
             "basis": "Vakra (retrograde) motion confers high cheshta-bala (BPHS, Shadbala adhyaya)",
             "factor_type": "retrograde",
+            "mark": 1,
             "planet": "jupiter",
             "value": "retrograde"
           },
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": -1,
             "planet": "mars",
             "value": "debilitated"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": -1,
             "planet": "mars",
             "value": "dusthana (house 12)"
           },
           {
             "basis": "Asta (combustion) within the classical orb of the Sun (Surya-Siddhanta tradition; B.V. Raman, Graha and Bhava Balas)",
             "factor_type": "combustion",
+            "mark": -1,
             "planet": "mars",
             "value": "combust (1.56 deg from the Sun)"
           }
-        ]
+        ],
+        "strength_pct": 16.67,
+        "strength_tier": "structural"
       },
       {
         "category": "raja",
@@ -2899,7 +3037,10 @@
           6,
           12
         ],
+        "max_favorable": 5,
+        "max_unfavorable": 5,
         "name": "Raja Yoga",
+        "net_marks": -2,
         "planetary_signature": "jupiter_sun_h1_h5_h6_h12",
         "planets_involved": [
           "jupiter",
@@ -2909,34 +3050,41 @@
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": -1,
             "planet": "jupiter",
             "value": "debilitated"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": -1,
             "planet": "jupiter",
             "value": "dusthana (house 6)"
           },
           {
             "basis": "Vakra (retrograde) motion confers high cheshta-bala (BPHS, Shadbala adhyaya)",
             "factor_type": "retrograde",
+            "mark": 1,
             "planet": "jupiter",
             "value": "retrograde"
           },
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "sun",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": -1,
             "planet": "sun",
             "value": "dusthana (house 12)"
           }
-        ]
+        ],
+        "strength_pct": 30.0,
+        "strength_tier": "structural"
       },
       {
         "category": "raja",
@@ -2969,7 +3117,10 @@
           9,
           12
         ],
+        "max_favorable": 6,
+        "max_unfavorable": 6,
         "name": "Raja Yoga",
+        "net_marks": -1,
         "planetary_signature": "mars_saturn_h3_h4_h7_h9_h12",
         "planets_involved": [
           "mars",
@@ -2979,40 +3130,48 @@
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": -1,
             "planet": "mars",
             "value": "debilitated"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": -1,
             "planet": "mars",
             "value": "dusthana (house 12)"
           },
           {
             "basis": "Asta (combustion) within the classical orb of the Sun (Surya-Siddhanta tradition; B.V. Raman, Graha and Bhava Balas)",
             "factor_type": "combustion",
+            "mark": -1,
             "planet": "mars",
             "value": "combust (1.56 deg from the Sun)"
           },
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 1,
             "planet": "saturn",
             "value": "exalted"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 0,
             "planet": "saturn",
             "value": "upachaya (house 3)"
           },
           {
             "basis": "Vakra (retrograde) motion confers high cheshta-bala (BPHS, Shadbala adhyaya)",
             "factor_type": "retrograde",
+            "mark": 1,
             "planet": "saturn",
             "value": "retrograde"
           }
-        ]
+        ],
+        "strength_pct": 41.67,
+        "strength_tier": "structural"
       },
       {
         "category": "raja",
@@ -3043,7 +3202,10 @@
           9,
           12
         ],
+        "max_favorable": 5,
+        "max_unfavorable": 5,
         "name": "Raja Yoga",
+        "net_marks": -4,
         "planetary_signature": "mars_sun_h1_h4_h9_h12",
         "planets_involved": [
           "mars",
@@ -3053,34 +3215,41 @@
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": -1,
             "planet": "mars",
             "value": "debilitated"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": -1,
             "planet": "mars",
             "value": "dusthana (house 12)"
           },
           {
             "basis": "Asta (combustion) within the classical orb of the Sun (Surya-Siddhanta tradition; B.V. Raman, Graha and Bhava Balas)",
             "factor_type": "combustion",
+            "mark": -1,
             "planet": "mars",
             "value": "combust (1.56 deg from the Sun)"
           },
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "sun",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": -1,
             "planet": "sun",
             "value": "dusthana (house 12)"
           }
-        ]
+        ],
+        "strength_pct": 10.0,
+        "strength_tier": "structural"
       },
       {
         "category": "raja",
@@ -3106,7 +3275,10 @@
           6,
           8
         ],
+        "max_favorable": 3,
+        "max_unfavorable": 3,
         "name": "Vipareeta Raja Yoga",
+        "net_marks": -1,
         "planetary_signature": "jupiter_h6_h8",
         "planets_involved": [
           "jupiter"
@@ -3115,22 +3287,27 @@
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": -1,
             "planet": "jupiter",
             "value": "debilitated"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": -1,
             "planet": "jupiter",
             "value": "dusthana (house 6)"
           },
           {
             "basis": "Vakra (retrograde) motion confers high cheshta-bala (BPHS, Shadbala adhyaya)",
             "factor_type": "retrograde",
+            "mark": 1,
             "planet": "jupiter",
             "value": "retrograde"
           }
-        ]
+        ],
+        "strength_pct": 33.33,
+        "strength_tier": "structural"
       },
       {
         "category": "raja",
@@ -3156,7 +3333,10 @@
           4,
           9
         ],
+        "max_favorable": 3,
+        "max_unfavorable": 3,
         "name": "Yogakaraka",
+        "net_marks": -3,
         "planetary_signature": "mars_h4_h9",
         "planets_involved": [
           "mars"
@@ -3165,22 +3345,27 @@
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": -1,
             "planet": "mars",
             "value": "debilitated"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": -1,
             "planet": "mars",
             "value": "dusthana (house 12)"
           },
           {
             "basis": "Asta (combustion) within the classical orb of the Sun (Surya-Siddhanta tradition; B.V. Raman, Graha and Bhava Balas)",
             "factor_type": "combustion",
+            "mark": -1,
             "planet": "mars",
             "value": "combust (1.56 deg from the Sun)"
           }
-        ]
+        ],
+        "strength_pct": 0.0,
+        "strength_tier": "structural"
       }
     ]
   },
@@ -4194,7 +4379,10 @@
         "houses_involved": [
           10
         ],
+        "max_favorable": 3,
+        "max_unfavorable": 3,
         "name": "Amala Yoga",
+        "net_marks": 1,
         "planetary_signature": "jupiter_h10",
         "planets_involved": [
           "jupiter"
@@ -4203,16 +4391,20 @@
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "jupiter",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 1,
             "planet": "jupiter",
             "value": "kendra (house 10)"
           }
-        ]
+        ],
+        "strength_pct": 66.67,
+        "strength_tier": "structural"
       },
       {
         "category": "auspicious",
@@ -4237,7 +4429,10 @@
         "houses_involved": [
           12
         ],
+        "max_favorable": 5,
+        "max_unfavorable": 5,
         "name": "Budha-Aditya Yoga",
+        "net_marks": -3,
         "planetary_signature": "mercury_sun_h12",
         "planets_involved": [
           "mercury",
@@ -4247,34 +4442,41 @@
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "mercury",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": -1,
             "planet": "mercury",
             "value": "dusthana (house 12)"
           },
           {
             "basis": "Asta (combustion) within the classical orb of the Sun (Surya-Siddhanta tradition; B.V. Raman, Graha and Bhava Balas)",
             "factor_type": "combustion",
+            "mark": -1,
             "planet": "mercury",
             "value": "combust (5.27 deg from the Sun)"
           },
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "sun",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": -1,
             "planet": "sun",
             "value": "dusthana (house 12)"
           }
-        ]
+        ],
+        "strength_pct": 20.0,
+        "strength_tier": "structural"
       },
       {
         "category": "chandra",
@@ -4304,7 +4506,10 @@
           11,
           12
         ],
+        "max_favorable": 8,
+        "max_unfavorable": 9,
         "name": "Durudhara Yoga",
+        "net_marks": -1,
         "planetary_signature": "jupiter_mercury_moon_h10_h11_h12",
         "planets_involved": [
           "jupiter",
@@ -4315,46 +4520,55 @@
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "jupiter",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 1,
             "planet": "jupiter",
             "value": "kendra (house 10)"
           },
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "mercury",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": -1,
             "planet": "mercury",
             "value": "dusthana (house 12)"
           },
           {
             "basis": "Asta (combustion) within the classical orb of the Sun (Surya-Siddhanta tradition; B.V. Raman, Graha and Bhava Balas)",
             "factor_type": "combustion",
+            "mark": -1,
             "planet": "mercury",
             "value": "combust (5.27 deg from the Sun)"
           },
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "moon",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 0,
             "planet": "moon",
             "value": "upachaya (house 11)"
           }
-        ]
+        ],
+        "strength_pct": 47.06,
+        "strength_tier": "structural"
       },
       {
         "category": "special",
@@ -4381,7 +4595,10 @@
           11,
           12
         ],
+        "max_favorable": 5,
+        "max_unfavorable": 6,
         "name": "Parivartana Yoga",
+        "net_marks": -2,
         "planetary_signature": "mercury_moon_h11_h12",
         "planets_involved": [
           "mercury",
@@ -4391,34 +4608,41 @@
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "mercury",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": -1,
             "planet": "mercury",
             "value": "dusthana (house 12)"
           },
           {
             "basis": "Asta (combustion) within the classical orb of the Sun (Surya-Siddhanta tradition; B.V. Raman, Graha and Bhava Balas)",
             "factor_type": "combustion",
+            "mark": -1,
             "planet": "mercury",
             "value": "combust (5.27 deg from the Sun)"
           },
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "moon",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 0,
             "planet": "moon",
             "value": "upachaya (house 11)"
           }
-        ]
+        ],
+        "strength_pct": 36.36,
+        "strength_tier": "structural"
       },
       {
         "category": "surya",
@@ -4445,7 +4669,10 @@
           11,
           12
         ],
+        "max_favorable": 5,
+        "max_unfavorable": 5,
         "name": "Vasi Yoga",
+        "net_marks": -1,
         "planetary_signature": "sun_venus_h11_h12",
         "planets_involved": [
           "sun",
@@ -4455,28 +4682,34 @@
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "sun",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": -1,
             "planet": "sun",
             "value": "dusthana (house 12)"
           },
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "venus",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 0,
             "planet": "venus",
             "value": "upachaya (house 11)"
           }
-        ]
+        ],
+        "strength_pct": 40.0,
+        "strength_tier": "structural"
       },
       {
         "category": "raja",
@@ -4502,7 +4735,10 @@
           4,
           9
         ],
+        "max_favorable": 3,
+        "max_unfavorable": 3,
         "name": "Yogakaraka",
+        "net_marks": -1,
         "planetary_signature": "mars_h4_h9",
         "planets_involved": [
           "mars"
@@ -4511,16 +4747,20 @@
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "mars",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": -1,
             "planet": "mars",
             "value": "dusthana (house 8)"
           }
-        ]
+        ],
+        "strength_pct": 33.33,
+        "strength_tier": "structural"
       }
     ]
   },
@@ -5537,7 +5777,10 @@
           1,
           7
         ],
+        "max_favorable": 6,
+        "max_unfavorable": 6,
         "name": "Parivartana Yoga",
+        "net_marks": 4,
         "planetary_signature": "jupiter_mercury_h1_h7",
         "planets_involved": [
           "jupiter",
@@ -5547,40 +5790,48 @@
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "jupiter",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 1,
             "planet": "jupiter",
             "value": "kendra (house 1)"
           },
           {
             "basis": "Vakra (retrograde) motion confers high cheshta-bala (BPHS, Shadbala adhyaya)",
             "factor_type": "retrograde",
+            "mark": 1,
             "planet": "jupiter",
             "value": "retrograde"
           },
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "mercury",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 1,
             "planet": "mercury",
             "value": "kendra (house 7)"
           },
           {
             "basis": "Vakra (retrograde) motion confers high cheshta-bala (BPHS, Shadbala adhyaya)",
             "factor_type": "retrograde",
+            "mark": 1,
             "planet": "mercury",
             "value": "retrograde"
           }
-        ]
+        ],
+        "strength_pct": 83.33,
+        "strength_tier": "structural"
       },
       {
         "category": "raja",
@@ -5611,7 +5862,10 @@
           7,
           10
         ],
+        "max_favorable": 6,
+        "max_unfavorable": 6,
         "name": "Raja Yoga",
+        "net_marks": 4,
         "planetary_signature": "jupiter_mercury_h1_h4_h7_h10",
         "planets_involved": [
           "jupiter",
@@ -5621,40 +5875,48 @@
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "jupiter",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 1,
             "planet": "jupiter",
             "value": "kendra (house 1)"
           },
           {
             "basis": "Vakra (retrograde) motion confers high cheshta-bala (BPHS, Shadbala adhyaya)",
             "factor_type": "retrograde",
+            "mark": 1,
             "planet": "jupiter",
             "value": "retrograde"
           },
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "mercury",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 1,
             "planet": "mercury",
             "value": "kendra (house 7)"
           },
           {
             "basis": "Vakra (retrograde) motion confers high cheshta-bala (BPHS, Shadbala adhyaya)",
             "factor_type": "retrograde",
+            "mark": 1,
             "planet": "mercury",
             "value": "retrograde"
           }
-        ]
+        ],
+        "strength_pct": 83.33,
+        "strength_tier": "structural"
       },
       {
         "category": "raja",
@@ -5685,7 +5947,10 @@
           9,
           10
         ],
+        "max_favorable": 6,
+        "max_unfavorable": 6,
         "name": "Raja Yoga",
+        "net_marks": 2,
         "planetary_signature": "jupiter_saturn_h1_h7_h9_h10",
         "planets_involved": [
           "jupiter",
@@ -5695,40 +5960,48 @@
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "jupiter",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 1,
             "planet": "jupiter",
             "value": "kendra (house 1)"
           },
           {
             "basis": "Vakra (retrograde) motion confers high cheshta-bala (BPHS, Shadbala adhyaya)",
             "factor_type": "retrograde",
+            "mark": 1,
             "planet": "jupiter",
             "value": "retrograde"
           },
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "saturn",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 1,
             "planet": "saturn",
             "value": "kendra (house 7)"
           },
           {
             "basis": "Asta (combustion) within the classical orb of the Sun (Surya-Siddhanta tradition; B.V. Raman, Graha and Bhava Balas)",
             "factor_type": "combustion",
+            "mark": -1,
             "planet": "saturn",
             "value": "combust (7.76 deg from the Sun)"
           }
-        ]
+        ],
+        "strength_pct": 66.67,
+        "strength_tier": "structural"
       },
       {
         "category": "raja",
@@ -5759,7 +6032,10 @@
           7,
           9
         ],
+        "max_favorable": 6,
+        "max_unfavorable": 6,
         "name": "Raja Yoga",
+        "net_marks": 2,
         "planetary_signature": "mercury_saturn_h1_h4_h7_h9",
         "planets_involved": [
           "mercury",
@@ -5769,40 +6045,48 @@
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "mercury",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 1,
             "planet": "mercury",
             "value": "kendra (house 7)"
           },
           {
             "basis": "Vakra (retrograde) motion confers high cheshta-bala (BPHS, Shadbala adhyaya)",
             "factor_type": "retrograde",
+            "mark": 1,
             "planet": "mercury",
             "value": "retrograde"
           },
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "saturn",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 1,
             "planet": "saturn",
             "value": "kendra (house 7)"
           },
           {
             "basis": "Asta (combustion) within the classical orb of the Sun (Surya-Siddhanta tradition; B.V. Raman, Graha and Bhava Balas)",
             "factor_type": "combustion",
+            "mark": -1,
             "planet": "saturn",
             "value": "combust (7.76 deg from the Sun)"
           }
-        ]
+        ],
+        "strength_pct": 66.67,
+        "strength_tier": "structural"
       },
       {
         "category": "dosha",
@@ -5826,7 +6110,10 @@
         "houses_involved": [
           3
         ],
+        "max_favorable": 2,
+        "max_unfavorable": 3,
         "name": "Kemadruma Yoga",
+        "net_marks": 0,
         "planetary_signature": "moon_h3",
         "planets_involved": [
           "moon"
@@ -5835,16 +6122,20 @@
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "moon",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 0,
             "planet": "moon",
             "value": "upachaya (house 3)"
           }
-        ]
+        ],
+        "strength_pct": 60.0,
+        "strength_tier": "structural"
       },
       {
         "category": "surya",
@@ -5872,7 +6163,10 @@
           7,
           8
         ],
+        "max_favorable": 8,
+        "max_unfavorable": 8,
         "name": "Vasi Yoga",
+        "net_marks": 1,
         "planetary_signature": "mercury_saturn_sun_h7_h8",
         "planets_involved": [
           "mercury",
@@ -5883,52 +6177,62 @@
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "mercury",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 1,
             "planet": "mercury",
             "value": "kendra (house 7)"
           },
           {
             "basis": "Vakra (retrograde) motion confers high cheshta-bala (BPHS, Shadbala adhyaya)",
             "factor_type": "retrograde",
+            "mark": 1,
             "planet": "mercury",
             "value": "retrograde"
           },
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "saturn",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 1,
             "planet": "saturn",
             "value": "kendra (house 7)"
           },
           {
             "basis": "Asta (combustion) within the classical orb of the Sun (Surya-Siddhanta tradition; B.V. Raman, Graha and Bhava Balas)",
             "factor_type": "combustion",
+            "mark": -1,
             "planet": "saturn",
             "value": "combust (7.76 deg from the Sun)"
           },
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "sun",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": -1,
             "planet": "sun",
             "value": "dusthana (house 8)"
           }
-        ]
+        ],
+        "strength_pct": 56.25,
+        "strength_tier": "structural"
       },
       {
         "category": "raja",
@@ -5952,7 +6256,10 @@
         "houses_involved": [
           6
         ],
+        "max_favorable": 3,
+        "max_unfavorable": 3,
         "name": "Vipareeta Raja Yoga",
+        "net_marks": 0,
         "planetary_signature": "mars_h6",
         "planets_involved": [
           "mars"
@@ -5961,16 +6268,20 @@
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 1,
             "planet": "mars",
             "value": "own"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": -1,
             "planet": "mars",
             "value": "dusthana (house 6)"
           }
-        ]
+        ],
+        "strength_pct": 50.0,
+        "strength_tier": "structural"
       },
       {
         "category": "raja",
@@ -5996,7 +6307,10 @@
           8,
           12
         ],
+        "max_favorable": 3,
+        "max_unfavorable": 3,
         "name": "Vipareeta Raja Yoga",
+        "net_marks": -1,
         "planetary_signature": "venus_h8_h12",
         "planets_involved": [
           "venus"
@@ -6005,28 +6319,34 @@
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "venus",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": -1,
             "planet": "venus",
             "value": "dusthana (house 8)"
           },
           {
             "basis": "Asta (combustion) within the classical orb of the Sun (Surya-Siddhanta tradition; B.V. Raman, Graha and Bhava Balas)",
             "factor_type": "combustion",
+            "mark": -1,
             "planet": "venus",
             "value": "combust (5.61 deg from the Sun)"
           },
           {
             "basis": "Vakra (retrograde) motion confers high cheshta-bala (BPHS, Shadbala adhyaya)",
             "factor_type": "retrograde",
+            "mark": 1,
             "planet": "venus",
             "value": "retrograde"
           }
-        ]
+        ],
+        "strength_pct": 33.33,
+        "strength_tier": "structural"
       }
     ]
   },
@@ -7045,7 +7365,10 @@
           9,
           11
         ],
+        "max_favorable": 6,
+        "max_unfavorable": 6,
         "name": "Raja Yoga",
+        "net_marks": 2,
         "planetary_signature": "jupiter_saturn_h7_h9_h11",
         "planets_involved": [
           "jupiter",
@@ -7055,40 +7378,48 @@
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "jupiter",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 0,
             "planet": "jupiter",
             "value": "upachaya (house 11)"
           },
           {
             "basis": "Vakra (retrograde) motion confers high cheshta-bala (BPHS, Shadbala adhyaya)",
             "factor_type": "retrograde",
+            "mark": 1,
             "planet": "jupiter",
             "value": "retrograde"
           },
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "saturn",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 0,
             "planet": "saturn",
             "value": "upachaya (house 11)"
           },
           {
             "basis": "Vakra (retrograde) motion confers high cheshta-bala (BPHS, Shadbala adhyaya)",
             "factor_type": "retrograde",
+            "mark": 1,
             "planet": "saturn",
             "value": "retrograde"
           }
-        ]
+        ],
+        "strength_pct": 66.67,
+        "strength_tier": "structural"
       },
       {
         "category": "dhana",
@@ -7114,7 +7445,10 @@
           9,
           11
         ],
+        "max_favorable": 3,
+        "max_unfavorable": 3,
         "name": "Dhana Yoga",
+        "net_marks": 1,
         "planetary_signature": "jupiter_h9_h11",
         "planets_involved": [
           "jupiter"
@@ -7123,22 +7457,27 @@
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "jupiter",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 0,
             "planet": "jupiter",
             "value": "upachaya (house 11)"
           },
           {
             "basis": "Vakra (retrograde) motion confers high cheshta-bala (BPHS, Shadbala adhyaya)",
             "factor_type": "retrograde",
+            "mark": 1,
             "planet": "jupiter",
             "value": "retrograde"
           }
-        ]
+        ],
+        "strength_pct": 66.67,
+        "strength_tier": "structural"
       },
       {
         "category": "auspicious",
@@ -7165,7 +7504,10 @@
           8,
           11
         ],
+        "max_favorable": 5,
+        "max_unfavorable": 6,
         "name": "Gajakesari Yoga",
+        "net_marks": 0,
         "planetary_signature": "jupiter_moon_h8_h11",
         "planets_involved": [
           "jupiter",
@@ -7175,34 +7517,41 @@
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "jupiter",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 0,
             "planet": "jupiter",
             "value": "upachaya (house 11)"
           },
           {
             "basis": "Vakra (retrograde) motion confers high cheshta-bala (BPHS, Shadbala adhyaya)",
             "factor_type": "retrograde",
+            "mark": 1,
             "planet": "jupiter",
             "value": "retrograde"
           },
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "moon",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": -1,
             "planet": "moon",
             "value": "dusthana (house 8)"
           }
-        ]
+        ],
+        "strength_pct": 54.55,
+        "strength_tier": "structural"
       },
       {
         "category": "special",
@@ -7229,7 +7578,10 @@
           8,
           11
         ],
+        "max_favorable": 6,
+        "max_unfavorable": 6,
         "name": "Parivartana Yoga",
+        "net_marks": 0,
         "planetary_signature": "saturn_venus_h8_h11",
         "planets_involved": [
           "saturn",
@@ -7239,34 +7591,41 @@
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "saturn",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 0,
             "planet": "saturn",
             "value": "upachaya (house 11)"
           },
           {
             "basis": "Vakra (retrograde) motion confers high cheshta-bala (BPHS, Shadbala adhyaya)",
             "factor_type": "retrograde",
+            "mark": 1,
             "planet": "saturn",
             "value": "retrograde"
           },
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "venus",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": -1,
             "planet": "venus",
             "value": "dusthana (house 8)"
           }
-        ]
+        ],
+        "strength_pct": 50.0,
+        "strength_tier": "structural"
       },
       {
         "category": "raja",
@@ -7292,7 +7651,10 @@
           5,
           10
         ],
+        "max_favorable": 3,
+        "max_unfavorable": 3,
         "name": "Yogakaraka",
+        "net_marks": 1,
         "planetary_signature": "mars_h5_h10",
         "planets_involved": [
           "mars"
@@ -7301,16 +7663,20 @@
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "mars",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 1,
             "planet": "mars",
             "value": "kendra (house 4)"
           }
-        ]
+        ],
+        "strength_pct": 66.67,
+        "strength_tier": "structural"
       },
       {
         "category": "auspicious",
@@ -7335,7 +7701,10 @@
         "houses_involved": [
           6
         ],
+        "max_favorable": 5,
+        "max_unfavorable": 5,
         "name": "Budha-Aditya Yoga",
+        "net_marks": -3,
         "planetary_signature": "mercury_sun_h6",
         "planets_involved": [
           "mercury",
@@ -7345,34 +7714,41 @@
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "mercury",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": -1,
             "planet": "mercury",
             "value": "dusthana (house 6)"
           },
           {
             "basis": "Asta (combustion) within the classical orb of the Sun (Surya-Siddhanta tradition; B.V. Raman, Graha and Bhava Balas)",
             "factor_type": "combustion",
+            "mark": -1,
             "planet": "mercury",
             "value": "combust (3.64 deg from the Sun)"
           },
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "sun",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": -1,
             "planet": "sun",
             "value": "dusthana (house 6)"
           }
-        ]
+        ],
+        "strength_pct": 20.0,
+        "strength_tier": "structural"
       },
       {
         "category": "dosha",
@@ -7396,7 +7772,10 @@
         "houses_involved": [
           8
         ],
+        "max_favorable": 2,
+        "max_unfavorable": 3,
         "name": "Kemadruma Yoga",
+        "net_marks": -1,
         "planetary_signature": "moon_h8",
         "planets_involved": [
           "moon"
@@ -7405,16 +7784,20 @@
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "moon",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": -1,
             "planet": "moon",
             "value": "dusthana (house 8)"
           }
-        ]
+        ],
+        "strength_pct": 40.0,
+        "strength_tier": "structural"
       },
       {
         "category": "raja",
@@ -7443,7 +7826,10 @@
           4,
           8
         ],
+        "max_favorable": 5,
+        "max_unfavorable": 6,
         "name": "Raja Yoga",
+        "net_marks": -2,
         "planetary_signature": "moon_venus_h1_h4_h8",
         "planets_involved": [
           "moon",
@@ -7453,28 +7839,34 @@
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "moon",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": -1,
             "planet": "moon",
             "value": "dusthana (house 8)"
           },
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "venus",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": -1,
             "planet": "venus",
             "value": "dusthana (house 8)"
           }
-        ]
+        ],
+        "strength_pct": 36.36,
+        "strength_tier": "structural"
       },
       {
         "category": "raja",
@@ -7500,7 +7892,10 @@
           6,
           12
         ],
+        "max_favorable": 3,
+        "max_unfavorable": 3,
         "name": "Vipareeta Raja Yoga",
+        "net_marks": -2,
         "planetary_signature": "mercury_h6_h12",
         "planets_involved": [
           "mercury"
@@ -7509,22 +7904,27 @@
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "mercury",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": -1,
             "planet": "mercury",
             "value": "dusthana (house 6)"
           },
           {
             "basis": "Asta (combustion) within the classical orb of the Sun (Surya-Siddhanta tradition; B.V. Raman, Graha and Bhava Balas)",
             "factor_type": "combustion",
+            "mark": -1,
             "planet": "mercury",
             "value": "combust (3.64 deg from the Sun)"
           }
-        ]
+        ],
+        "strength_pct": 16.67,
+        "strength_tier": "structural"
       }
     ]
   },
@@ -8541,7 +8941,10 @@
           4,
           7
         ],
+        "max_favorable": 5,
+        "max_unfavorable": 6,
         "name": "Parivartana Yoga",
+        "net_marks": 2,
         "planetary_signature": "moon_venus_h4_h7",
         "planets_involved": [
           "moon",
@@ -8551,28 +8954,34 @@
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "moon",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 1,
             "planet": "moon",
             "value": "kendra (house 7)"
           },
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "venus",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 1,
             "planet": "venus",
             "value": "kendra (house 4)"
           }
-        ]
+        ],
+        "strength_pct": 72.73,
+        "strength_tier": "structural"
       },
       {
         "category": "auspicious",
@@ -8596,7 +9005,10 @@
         "houses_involved": [
           4
         ],
+        "max_favorable": 3,
+        "max_unfavorable": 3,
         "name": "Amala Yoga",
+        "net_marks": 1,
         "planetary_signature": "venus_h4",
         "planets_involved": [
           "venus"
@@ -8605,16 +9017,20 @@
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "venus",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 1,
             "planet": "venus",
             "value": "kendra (house 4)"
           }
-        ]
+        ],
+        "strength_pct": 66.67,
+        "strength_tier": "structural"
       },
       {
         "category": "chandra",
@@ -8641,7 +9057,10 @@
           6,
           7
         ],
+        "max_favorable": 5,
+        "max_unfavorable": 6,
         "name": "Anapha Yoga",
+        "net_marks": 0,
         "planetary_signature": "moon_saturn_h6_h7",
         "planets_involved": [
           "moon",
@@ -8651,28 +9070,34 @@
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "moon",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 1,
             "planet": "moon",
             "value": "kendra (house 7)"
           },
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "saturn",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": -1,
             "planet": "saturn",
             "value": "dusthana (house 6)"
           }
-        ]
+        ],
+        "strength_pct": 54.55,
+        "strength_tier": "structural"
       },
       {
         "category": "surya",
@@ -8702,7 +9127,10 @@
           3,
           4
         ],
+        "max_favorable": 8,
+        "max_unfavorable": 8,
         "name": "Ubhayachari Yoga",
+        "net_marks": 0,
         "planetary_signature": "mercury_sun_venus_h2_h3_h4",
         "planets_involved": [
           "mercury",
@@ -8713,46 +9141,55 @@
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "mercury",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 0,
             "planet": "mercury",
             "value": "neutral (house 2)"
           },
           {
             "basis": "Asta (combustion) within the classical orb of the Sun (Surya-Siddhanta tradition; B.V. Raman, Graha and Bhava Balas)",
             "factor_type": "combustion",
+            "mark": -1,
             "planet": "mercury",
             "value": "combust (8.20 deg from the Sun)"
           },
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "sun",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 0,
             "planet": "sun",
             "value": "upachaya (house 3)"
           },
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "venus",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 1,
             "planet": "venus",
             "value": "kendra (house 4)"
           }
-        ]
+        ],
+        "strength_pct": 50.0,
+        "strength_tier": "structural"
       },
       {
         "category": "raja",
@@ -8776,7 +9213,10 @@
         "houses_involved": [
           12
         ],
+        "max_favorable": 3,
+        "max_unfavorable": 3,
         "name": "Vipareeta Raja Yoga",
+        "net_marks": 0,
         "planetary_signature": "jupiter_h12",
         "planets_involved": [
           "jupiter"
@@ -8785,16 +9225,20 @@
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 1,
             "planet": "jupiter",
             "value": "own"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": -1,
             "planet": "jupiter",
             "value": "dusthana (house 12)"
           }
-        ]
+        ],
+        "strength_pct": 50.0,
+        "strength_tier": "structural"
       },
       {
         "category": "raja",
@@ -8825,7 +9269,10 @@
           10,
           12
         ],
+        "max_favorable": 6,
+        "max_unfavorable": 6,
         "name": "Raja Yoga",
+        "net_marks": -1,
         "planetary_signature": "jupiter_saturn_h6_h9_h10_h12",
         "planets_involved": [
           "jupiter",
@@ -8835,28 +9282,34 @@
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 1,
             "planet": "jupiter",
             "value": "own"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": -1,
             "planet": "jupiter",
             "value": "dusthana (house 12)"
           },
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "saturn",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": -1,
             "planet": "saturn",
             "value": "dusthana (house 6)"
           }
-        ]
+        ],
+        "strength_pct": 41.67,
+        "strength_tier": "structural"
       },
       {
         "category": "auspicious",
@@ -8883,7 +9336,10 @@
           2,
           12
         ],
+        "max_favorable": 6,
+        "max_unfavorable": 6,
         "name": "Shubha Kartari Yoga",
+        "net_marks": -1,
         "planetary_signature": "jupiter_mercury_h2_h12",
         "planets_involved": [
           "jupiter",
@@ -8893,34 +9349,41 @@
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 1,
             "planet": "jupiter",
             "value": "own"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": -1,
             "planet": "jupiter",
             "value": "dusthana (house 12)"
           },
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "mercury",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 0,
             "planet": "mercury",
             "value": "neutral (house 2)"
           },
           {
             "basis": "Asta (combustion) within the classical orb of the Sun (Surya-Siddhanta tradition; B.V. Raman, Graha and Bhava Balas)",
             "factor_type": "combustion",
+            "mark": -1,
             "planet": "mercury",
             "value": "combust (8.20 deg from the Sun)"
           }
-        ]
+        ],
+        "strength_pct": 41.67,
+        "strength_tier": "structural"
       }
     ]
   },
@@ -9937,7 +10400,10 @@
           4,
           7
         ],
+        "max_favorable": 5,
+        "max_unfavorable": 6,
         "name": "Gajakesari Yoga",
+        "net_marks": 3,
         "planetary_signature": "jupiter_moon_h4_h7",
         "planets_involved": [
           "jupiter",
@@ -9947,28 +10413,34 @@
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 1,
             "planet": "jupiter",
             "value": "own"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 1,
             "planet": "jupiter",
             "value": "kendra (house 4)"
           },
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "moon",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 1,
             "planet": "moon",
             "value": "kendra (house 7)"
           }
-        ]
+        ],
+        "strength_pct": 81.82,
+        "strength_tier": "structural"
       },
       {
         "category": "mahapurusha",
@@ -9992,7 +10464,10 @@
         "houses_involved": [
           4
         ],
+        "max_favorable": 3,
+        "max_unfavorable": 3,
         "name": "Hamsa Yoga",
+        "net_marks": 2,
         "planetary_signature": "jupiter_h4",
         "planets_involved": [
           "jupiter"
@@ -10001,16 +10476,20 @@
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 1,
             "planet": "jupiter",
             "value": "own"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 1,
             "planet": "jupiter",
             "value": "kendra (house 4)"
           }
-        ]
+        ],
+        "strength_pct": 83.33,
+        "strength_tier": "structural"
       },
       {
         "category": "raja",
@@ -10039,7 +10518,10 @@
           5,
           7
         ],
+        "max_favorable": 6,
+        "max_unfavorable": 6,
         "name": "Raja Yoga",
+        "net_marks": 3,
         "planetary_signature": "jupiter_saturn_h4_h5_h7",
         "planets_involved": [
           "jupiter",
@@ -10049,28 +10531,34 @@
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 1,
             "planet": "jupiter",
             "value": "own"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 1,
             "planet": "jupiter",
             "value": "kendra (house 4)"
           },
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "saturn",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 1,
             "planet": "saturn",
             "value": "kendra (house 4)"
           }
-        ]
+        ],
+        "strength_pct": 75.0,
+        "strength_tier": "structural"
       },
       {
         "category": "dosha",
@@ -10094,7 +10582,10 @@
         "houses_involved": [
           7
         ],
+        "max_favorable": 2,
+        "max_unfavorable": 3,
         "name": "Kemadruma Yoga",
+        "net_marks": 1,
         "planetary_signature": "moon_h7",
         "planets_involved": [
           "moon"
@@ -10103,16 +10594,20 @@
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "moon",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 1,
             "planet": "moon",
             "value": "kendra (house 7)"
           }
-        ]
+        ],
+        "strength_pct": 80.0,
+        "strength_tier": "structural"
       },
       {
         "category": "raja",
@@ -10139,7 +10634,10 @@
           2,
           4
         ],
+        "max_favorable": 5,
+        "max_unfavorable": 5,
         "name": "Neecha Bhanga Raja Yoga",
+        "net_marks": 0,
         "planetary_signature": "saturn_sun_h2_h4",
         "planets_involved": [
           "saturn",
@@ -10149,28 +10647,34 @@
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "saturn",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 1,
             "planet": "saturn",
             "value": "kendra (house 4)"
           },
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": -1,
             "planet": "sun",
             "value": "debilitated"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 0,
             "planet": "sun",
             "value": "neutral (house 2)"
           }
-        ]
+        ],
+        "strength_pct": 50.0,
+        "strength_tier": "structural"
       },
       {
         "category": "surya",
@@ -10200,7 +10704,10 @@
           2,
           3
         ],
+        "max_favorable": 8,
+        "max_unfavorable": 8,
         "name": "Ubhayachari Yoga",
+        "net_marks": 0,
         "planetary_signature": "mars_sun_venus_h1_h2_h3",
         "planets_involved": [
           "mars",
@@ -10211,40 +10718,48 @@
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "mars",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 1,
             "planet": "mars",
             "value": "kendra (house 1)"
           },
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": -1,
             "planet": "sun",
             "value": "debilitated"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 0,
             "planet": "sun",
             "value": "neutral (house 2)"
           },
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "venus",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 0,
             "planet": "venus",
             "value": "upachaya (house 3)"
           }
-        ]
+        ],
+        "strength_pct": 50.0,
+        "strength_tier": "structural"
       },
       {
         "category": "auspicious",
@@ -10269,7 +10784,10 @@
         "houses_involved": [
           2
         ],
+        "max_favorable": 5,
+        "max_unfavorable": 5,
         "name": "Budha-Aditya Yoga",
+        "net_marks": -1,
         "planetary_signature": "mercury_sun_h2",
         "planets_involved": [
           "mercury",
@@ -10279,40 +10797,48 @@
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": 0,
             "planet": "mercury",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 0,
             "planet": "mercury",
             "value": "neutral (house 2)"
           },
           {
             "basis": "Asta (combustion) within the classical orb of the Sun (Surya-Siddhanta tradition; B.V. Raman, Graha and Bhava Balas)",
             "factor_type": "combustion",
+            "mark": -1,
             "planet": "mercury",
             "value": "combust (4.41 deg from the Sun)"
           },
           {
             "basis": "Vakra (retrograde) motion confers high cheshta-bala (BPHS, Shadbala adhyaya)",
             "factor_type": "retrograde",
+            "mark": 1,
             "planet": "mercury",
             "value": "retrograde"
           },
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
+            "mark": -1,
             "planet": "sun",
             "value": "debilitated"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 0,
             "planet": "sun",
             "value": "neutral (house 2)"
           }
-        ]
+        ],
+        "strength_pct": 40.0,
+        "strength_tier": "structural"
       }
     ]
   }
