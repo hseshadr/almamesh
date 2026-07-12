@@ -111,5 +111,11 @@ class RectificationResult(BaseModel):
     margin: float
     band: RectificationBand
     discriminating_event_count: int
+    # Rigor Stage 3 (Tier E): the AGGREGATE event-fit confidence = margin*100,
+    # or None below MIN_DISCRIMINATING_EVENTS (render "inconclusive"). The gate
+    # is guarded HERE at assembly, never in the renderer. Additive/defaulted so
+    # older stored payloads validate. "How much better the best-fit time
+    # explains the events than the runner-up" — never "probability it is right."
+    confidence_pct: float | None = None
     recorded_time_sign: ZodiacSign | None
     honesty_note_key: str

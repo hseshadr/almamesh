@@ -725,6 +725,19 @@ def _band_for(margin: float, discriminating_event_count: int) -> RectificationBa
     return RectificationBand.NEAR_TIE
 
 
+def confidence_pct_for(margin: float, discriminating_event_count: int) -> float | None:
+    """Aggregate event-fit confidence % (margin*100), gated below the evidence bar.
+
+    Returns ``None`` below ``MIN_DISCRIMINATING_EVENTS`` — the SAME gate that
+    forces NEAR_TIE in ``_band_for``, reused so the % and the band can never
+    disagree. Direct (no re-curving): margin is already a calibrated, event-
+    derived ratio in [0, 1) whose under-claiming bias must be preserved. Tier E.
+    """
+    if discriminating_event_count < MIN_DISCRIMINATING_EVENTS:
+        return None
+    return margin * 100.0
+
+
 def rank_candidates(
     candidates: list[RectificationCandidate],
     *,

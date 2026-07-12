@@ -25,6 +25,7 @@ from almamesh.rectification.models import (
 from almamesh.rectification.scorer import (
     EPS,
     compute_transit_signs,
+    confidence_pct_for,
     rank_candidates,
     score_candidate,
 )
@@ -202,6 +203,7 @@ def _build_result(
         margin=margin,
         band=band,
         discriminating_event_count=disc_count,
+        confidence_pct=confidence_pct_for(margin, disc_count),
         recorded_time_sign=recorded_sign,
         honesty_note_key=_honesty_note_key(band, ranked),
     )

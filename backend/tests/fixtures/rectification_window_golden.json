@@ -889,6 +889,7 @@
         ]
       }
     ],
+    "confidence_pct": 50.746269,
     "discriminating_event_count": 6,
     "honesty_note_key": "rectify.honesty.consistent",
     "margin": 0.507463,
@@ -1763,6 +1764,7 @@
         ]
       }
     ],
+    "confidence_pct": 5.23918,
     "discriminating_event_count": 6,
     "honesty_note_key": "rectify.honesty.near_tie",
     "margin": 0.052392,
@@ -1941,6 +1943,7 @@
         "supporting_events": []
       }
     ],
+    "confidence_pct": null,
     "discriminating_event_count": 0,
     "honesty_note_key": "rectify.honesty.near_tie",
     "margin": 0.0,
@@ -2363,6 +2366,7 @@
         ]
       }
     ],
+    "confidence_pct": null,
     "discriminating_event_count": 2,
     "honesty_note_key": "rectify.honesty.near_tie",
     "margin": 0.001437,
