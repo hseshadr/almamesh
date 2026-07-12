@@ -21,6 +21,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -120,6 +121,16 @@ class StrengthSummary(BaseModel):
     is True because the band thresholds are an AlmaMesh heuristic over the
     rigorous BPHS inputs (Shadbala + SAV), not a single canonical scalar — the
     underlying Rupas/bindus themselves are exact.
+
+    The Stage-2 rigor upgrade adds a CALIBRATED headline % under two anchored,
+    monotonic, chart-invariant axes (see ``domains/strength_summary.py`` and
+    rigor spec §A.1/§A.2). ``shadbala_pct`` is piecewise-linear on the classical
+    ``required_rupas`` pass line (-> 60%); ``sav_pct`` is linear over the 56
+    bindus/house hard max (the śāstric average 28 -> 50%); ``strength_pct`` is
+    their ``min()`` — a domain is only as strong as its weaker classical signal,
+    matching today's conjunctive band. ``strength_tier`` is ``"model"``: these
+    percents are a Layer-2 MODEL over exact BPHS inputs, never a measured fact.
+    All four are additive with defaults so older stored payloads still validate.
     """
 
     model_config = ConfigDict(frozen=True)
@@ -129,6 +140,10 @@ class StrengthSummary(BaseModel):
     key_graha_meets_minimum: bool
     sav_bindus: int  # SAV summed over the domain's houses
     band: StrengthBand
+    shadbala_pct: float = 0.0  # 0..100; required_rupas -> 60% pass line, 2×required -> 100%
+    sav_pct: float = 0.0  # 0..100; 100·avg_bindus/56, so the śāstric average 28 -> 50%
+    strength_pct: float = 0.0  # headline = min(shadbala_pct, sav_pct): the weaker classical axis
+    strength_tier: Literal["model"] = "model"  # Layer-2 model over exact BPHS inputs, not measured
     approximated: bool = True
     note: str = (
         "band = AlmaMesh heuristic over exact Shadbala Rupas + SAV bindus; "

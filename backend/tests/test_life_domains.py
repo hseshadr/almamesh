@@ -18,6 +18,7 @@ from almamesh.calculations import calculate_sidereal_context
 from almamesh.constants.astrology import PlanetName
 from almamesh.domains import compute_life_domains
 from almamesh.domains.recipes import DOMAIN_RECIPES
+from almamesh.domains.strength_summary import _pct_sav, _pct_shadbala
 from almamesh.schemas.domains import (
     LifeDomain,
     LifeDomainsContext,
@@ -243,6 +244,26 @@ def test_strength_summary_fuses_shadbala_and_sav(pipelines: dict[str, Pipeline])
             assert summary.sav_bindus == expected_bindus
             assert summary.band in StrengthBand
             assert summary.approximated is True  # banding is a flagged heuristic
+
+
+def test_strength_summary_threads_the_calibrated_pct_axes(pipelines: dict[str, Pipeline]) -> None:
+    """The Stage-2 calibrated %s wire through on real charts: two anchored axes
+    (re-derived here from the engine inputs) and a min-combiner headline, all in
+    [0, 100], tier-tagged ``model`` (Tier M — a Layer-2 model, never measured)."""
+    for natal, _, _, strength, domains in pipelines.values():
+        for domain, forecast in domains.forecasts.items():
+            recipe = DOMAIN_RECIPES[domain]
+            bala = strength.shadbala.planets[recipe.key_graha]
+            sav = strength.ashtakavarga.sarva.bindus
+            bindus = sum(sav[natal.houses[h.house].sign] for h in recipe.houses)
+            expected_shadbala = _pct_shadbala(bala.total_rupas, bala.required_rupas)
+            expected_sav = _pct_sav(bindus / len(recipe.houses))
+            summary = forecast.strength_summary
+            assert summary.shadbala_pct == pytest.approx(expected_shadbala)
+            assert summary.sav_pct == pytest.approx(expected_sav)
+            assert summary.strength_pct == pytest.approx(min(expected_shadbala, expected_sav))
+            assert 0.0 <= summary.strength_pct <= 100.0
+            assert summary.strength_tier == "model"
 
 
 # --- current emphasis ---
