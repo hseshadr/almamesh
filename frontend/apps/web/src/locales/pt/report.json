@@ -179,6 +179,11 @@
       "window": "Varredura de janela de tempo — horários de nascimento candidatos dentro da janela indicada comparados com eventos de vida datados"
     },
     "band_label": "Confiança",
+    "confidence_confirmed_one": "{{pct}}% — confirmado por {{count}} dos seus eventos",
+    "confidence_confirmed_other": "{{pct}}% — confirmado por {{count}} dos seus eventos",
+    "confidence_inconclusive": "Inconclusivo — eventos datados insuficientes para distinguir os seus horários candidatos",
+    "confidence_meaning": "Esta confiança indica o quanto o horário de melhor ajuste explica os seus eventos em comparação com o segundo colocado — não a probabilidade de o horário estar correto.",
+    "evidence_balance_label": "Balanço de evidências",
     "confirmed_label": "Confirmada",
     "events_heading": "Eventos de vida de apoio",
     "events_empty": "Nenhum evento de vida datado está anexado a esta retificação.",

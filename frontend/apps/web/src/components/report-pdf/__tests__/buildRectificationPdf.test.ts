@@ -216,3 +216,41 @@ describe('buildRectificationPdf — phase 2 snapshot', () => {
     expect(text).not.toContain('1.85');
   });
 });
+
+// ---------------------------------------------------------------------------
+// Rigor Stage 3: the aggregate confidence % + evidence-balance facts in the PDF.
+// ---------------------------------------------------------------------------
+
+const CONFIDENT_V2_RECORD: RectificationRecord = {
+  ...V2_RECORD,
+  band: 'consistent',
+  resultSnapshot: {
+    ...V2_RECORD.resultSnapshot!,
+    band: 'consistent',
+    margin: 0.42,
+    discriminatingEventCount: 5,
+    confidencePct: 42,
+    honestyNoteKey: 'rectify.honesty.consistent',
+  },
+};
+
+describe('buildRectificationPdf — Stage 3 confidence % + opposing vectors', () => {
+  beforeEach(() => {
+    useLanguageStore.setState({ language: 'en' });
+  });
+
+  it('appends the calibrated % + "confirmed by N events" to the confidence fact', () => {
+    const slice = buildRectificationPdf({ record: CONFIDENT_V2_RECORD, events: EVENTS, t });
+    const band = slice.facts.find((f) => f.label === t('rectification.band_label'));
+    expect(band?.value).toContain('42%');
+    expect(band?.value).toMatch(/confirmed by 5 of your events/i);
+  });
+
+  it('adds an evidence-balance fact as honest COUNTS (never raw score floats)', () => {
+    const slice = buildRectificationPdf({ record: CONFIDENT_V2_RECORD, events: EVENTS, t });
+    const balance = slice.facts.find((f) => f.label === t('rectification.evidence_balance_label'));
+    expect(balance?.value).toMatch(/supporting fit/i);
+    expect(balance?.value).toMatch(/quiet-period|unexplained/i);
+    expect(allText(slice)).not.toContain('3.55');
+  });
+});

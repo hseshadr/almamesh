@@ -2,12 +2,14 @@
  * buildRectificationPdf — reshape a confirmed `RectificationRecord` (+ its
  * resolved supporting life events) into the pre-formatted Section XII slice.
  *
- * QUALITATIVE ONLY by contract: the facts carry the entered/working clocks +
- * rising signs, the fit mode, the confidence band and the confirm date — the
- * record's numeric `margin` is deliberately NEVER rendered (no percentage, no
- * fit score; band = convention, never a verdict). Band + category labels reuse
- * the `rectify` namespace via the injected `t`, so report and wizard copy stay
- * identical. Pure: no store reads, no astrology.
+ * The facts carry the entered/working clocks + rising signs, the fit mode, the
+ * confidence band and the confirm date. Rigor Stage 3 (Tier E): the band fact
+ * also carries the AGGREGATE calibrated confidence % ("42% — confirmed by N of
+ * your events") or "inconclusive" when gated, plus a supporting-vs-opposing
+ * COUNT balance fact. The honesty covenant holds: the raw `margin`/fit-score
+ * floats are still NEVER rendered, and per-signal evidence stays words only.
+ * Band + category labels reuse the `rectify` namespace via the injected `t`, so
+ * report and wizard copy stay identical. Pure: no store reads, no astrology.
  */
 
 import type { TFunction } from 'i18next';
@@ -22,7 +24,12 @@ import { formatReportDate } from '../../lib/reportData';
 // a day west of GMT).
 import { formatPredictiveDate } from '../../lib/predictive';
 import { signName } from '../../lib/predictiveEventCopy';
-import { evidencePolarity, localizeSignal } from '../../lib/rectifySignals';
+import {
+  confidenceLine,
+  evidenceBalance,
+  evidencePolarity,
+  localizeSignal,
+} from '../../lib/rectifySignals';
 import { glyphSafe } from './glyphSafe';
 import type { ReportPdfRectification } from './types';
 
@@ -180,13 +187,17 @@ function buildSnapshotSlices(
   };
 }
 
-/** Build the pre-localized Birth Time Authority slice for the PDF. */
-export function buildRectificationPdf({
-  record,
-  events,
-  t,
-}: BuildRectificationPdfInput): ReportPdfRectification {
-  const facts = [
+/**
+ * The always-present fact rows. Rigor Stage 3: the band fact carries the
+ * aggregate confidence % (or "inconclusive"), and a supporting-vs-opposing
+ * COUNT balance fact is added when a chosen candidate exists.
+ */
+function buildFacts(record: RectificationRecord, t: TFunction): ReportPdfRectification['facts'] {
+  const snapshot = record.resultSnapshot ?? null;
+  const conf = snapshot != null ? confidenceLine(snapshot, t) : null;
+  const chosen = snapshot != null ? chosenCandidate(record, snapshot) : null;
+  const bandWord = t(`rectify:band.${record.band}`);
+  const rows = [
     {
       label: t('rectification.entered_label'),
       value: timeWithSign(t, record.originalTime, record.originalSign),
@@ -196,9 +207,22 @@ export function buildRectificationPdf({
       value: timeWithSign(t, record.rectifiedTime, record.rectifiedSign),
     },
     { label: t('rectification.mode_label'), value: t(`rectification.mode.${record.mode}`) },
-    { label: t('rectification.band_label'), value: t(`rectify:band.${record.band}`) },
+    { label: t('rectification.band_label'), value: conf != null ? `${bandWord} · ${conf.text}` : bandWord },
+    ...(chosen != null
+      ? [{ label: t('rectification.evidence_balance_label'), value: evidenceBalance(chosen, t) }]
+      : []),
     { label: t('rectification.confirmed_label'), value: formatReportDate(record.confirmedAt) },
-  ].map((fact) => ({ label: glyphSafe(fact.label), value: glyphSafe(fact.value) }));
+  ];
+  return rows.map((fact) => ({ label: glyphSafe(fact.label), value: glyphSafe(fact.value) }));
+}
+
+/** Build the pre-localized Birth Time Authority slice for the PDF. */
+export function buildRectificationPdf({
+  record,
+  events,
+  t,
+}: BuildRectificationPdfInput): ReportPdfRectification {
+  const facts = buildFacts(record, t);
 
   return {
     chrome: {
