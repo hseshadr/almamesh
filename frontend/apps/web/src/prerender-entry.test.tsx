@@ -18,12 +18,23 @@ describe('prerender-entry (Node renderToString of the public shells)', () => {
     const result = await prerender({ url: '/' });
     expect(result.html).toContain(enLanding.hero.headline);
     expect(result.head.title).toBe(getRouteHead('/')!.title);
+    expect(result.html.match(/<h1(?:\s|>)/g)).toHaveLength(1);
   });
 
-  it('renders the same landing shell at /welcome with its own head', async () => {
+  it('renders the full explainer at /welcome with its own head', async () => {
     const result = await prerender({ url: '/welcome' });
     expect(result.html).toContain(enLanding.hero.headline);
+    expect(result.html).toContain(enLanding.what.title);
     expect(result.head.title).toBe(getRouteHead('/welcome')!.title);
+    expect(result.html.match(/<h1(?:\s|>)/g)).toHaveLength(1);
+  });
+
+  it('keeps / brand-first without duplicating the substantial /welcome body', async () => {
+    const home = await prerender({ url: '/' });
+    const welcome = await prerender({ url: '/welcome' });
+    expect(home.html).not.toBe(welcome.html);
+    expect(home.html).not.toContain(enLanding.what.title);
+    expect(home.html.length).toBeLessThan(welcome.html.length * 0.6);
   });
 
   it('renders each legal page with its real title text', async () => {
@@ -64,13 +75,9 @@ describe('prerender-entry (Node renderToString of the public shells)', () => {
     expect(result.html).not.toContain('data-testid="hero-forcefield"');
   });
 
-  it('falls back to the landing shell for an unknown (private/SPA) url', async () => {
-    const result = await prerender({ url: '/dashboard' });
-    expect(result.html).toContain(enLanding.hero.headline);
-    // ...but never claims a private canonical.
-    const canonical = [...result.head.elements].find(
-      (el) => el.type === 'link' && el.props.rel === 'canonical',
+  it('refuses to assign the root shell or canonical to an unknown url', async () => {
+    await expect(prerender({ url: '/definitely-not-a-route' })).rejects.toThrow(
+      'no public shell registered',
     );
-    expect(canonical?.props.href).toBe(getRouteHead('/')!.canonical);
   });
 });

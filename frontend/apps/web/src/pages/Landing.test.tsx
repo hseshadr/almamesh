@@ -29,10 +29,10 @@ import Landing from './Landing';
 
 const mockHasLocalChart = vi.mocked(hasLocalChart);
 
-function renderLanding() {
+function renderLanding(variant: 'home' | 'welcome' = 'welcome') {
   return render(
     <MemoryRouter>
-      <Landing />
+      <Landing variant={variant} />
     </MemoryRouter>,
   );
 }
@@ -105,5 +105,12 @@ describe('Landing', () => {
       'The engine you can trust',
       'Generate your chart — free, private, yours.',
     ]);
+  });
+
+  it('keeps the home variant focused on the brand hero instead of duplicating the explainer', () => {
+    renderLanding('home');
+    const main = screen.getByRole('main');
+    expect(within(main).getAllByRole('heading', { level: 1 })).toHaveLength(1);
+    expect(within(main).queryAllByRole('heading', { level: 2 })).toHaveLength(0);
   });
 });

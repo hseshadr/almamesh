@@ -13,7 +13,9 @@ vi.mock('./providers/chartEngineContext', () => ({
 // The landing page is heavy (force-field); stub it to a marker so the routing
 // test asserts WHICH element renders at `/welcome`, not the page internals.
 vi.mock('./pages/Landing', () => ({
-  default: () => <div data-testid="landing-page">landing</div>,
+  default: ({ variant }: { variant: string }) => (
+    <div data-testid="landing-page" data-variant={variant}>landing</div>
+  ),
 }));
 
 // The Dashboard page is heavy; stub it to a marker so we can prove `/welcome`
@@ -64,7 +66,7 @@ describe('WelcomeRoute (/welcome)', () => {
   it('renders the LandingPage even when a chart already exists (no redirect)', async () => {
     hasLocalChart.mockReturnValue(true);
     renderAt('/welcome');
-    expect(await screen.findByTestId('landing-page')).toBeTruthy();
+    expect((await screen.findByTestId('landing-page')).getAttribute('data-variant')).toBe('welcome');
     // A returning visitor must NOT be bounced to the dashboard here.
     expect(screen.queryByTestId('dashboard-page')).toBeNull();
   });
