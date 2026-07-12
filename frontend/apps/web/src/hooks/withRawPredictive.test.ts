@@ -6,9 +6,15 @@
 // untouched — LLM features degrade gracefully to natal-only, NEVER an error.
 // All fixtures are synthetic.
 
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PredictiveContexts, SiderealChart } from '@almamesh/browser/types';
-import { usePredictiveStore, useProfilesStore } from '@almamesh/store';
+import {
+  predictiveRequestKey,
+  useChartLibraryStore,
+  usePredictiveStore,
+  useProfilesStore,
+  type StoredChart,
+} from '@almamesh/store';
 
 import { withRawPredictive } from './useStreamingInterpretation';
 
@@ -27,19 +33,56 @@ const RAW = {
   domains_context: { forecasts: {} },
 } as unknown as PredictiveContexts;
 
+const CURRENT_BIRTH = {
+  birth_datetime_utc: '1990-03-30T06:45:00Z',
+  birth_location_details: { latitude: 12.97, longitude: 77.59 },
+};
+
+function currentRequestKey(profileKey: string): string {
+  return predictiveRequestKey({
+    profileKey,
+    datetimeUtc: CURRENT_BIRTH.birth_datetime_utc,
+    latitude: CURRENT_BIRTH.birth_location_details.latitude,
+    longitude: CURRENT_BIRTH.birth_location_details.longitude,
+    referenceInstant: '2026-06-09T00:00:00Z',
+  });
+}
+
 function seedProfiles(activeProfileId: string | null): void {
   useProfilesStore.setState({ activeProfileId });
 }
 
 describe('withRawPredictive (Spec 062 delta 1)', () => {
   beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-09T12:00:00Z'));
     usePredictiveStore.getState().reset();
+    useChartLibraryStore.setState({
+      charts: {
+        'chart-1': {
+          chart_id: 'chart-1',
+          profile_id: 'profile-1',
+          is_primary: true,
+          birth_data: CURRENT_BIRTH,
+          sidereal_chart: CHART,
+        } as StoredChart,
+      },
+      hydrated: true,
+    });
     seedProfiles(null);
+  });
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('composes the raw contexts onto the chart when ready for the active profile', () => {
     seedProfiles('profile-1');
-    usePredictiveStore.setState({ status: 'ready', rawContexts: RAW, profileKey: 'profile-1' });
+    usePredictiveStore.setState({
+      status: 'ready',
+      rawContexts: RAW,
+      profileKey: 'profile-1',
+      requestKey: currentRequestKey('profile-1'),
+    });
 
     const composed = withRawPredictive(CHART, 'chart-1');
     expect(composed.transit_context).toBe(RAW.transit_context);
@@ -51,8 +94,13 @@ describe('withRawPredictive (Spec 062 delta 1)', () => {
     expect(CHART.transit_context).toBeUndefined();
   });
 
-  it('falls back to the chart id when no profile is active (usePredictiveLayer parity)', () => {
-    usePredictiveStore.setState({ status: 'ready', rawContexts: RAW, profileKey: 'chart-1' });
+  it('uses the stored chart profile when no profile is active', () => {
+    usePredictiveStore.setState({
+      status: 'ready',
+      rawContexts: RAW,
+      profileKey: 'profile-1',
+      requestKey: currentRequestKey('profile-1'),
+    });
     expect(withRawPredictive(CHART, 'chart-1').transit_context).toBe(RAW.transit_context);
   });
 
@@ -70,7 +118,54 @@ describe('withRawPredictive (Spec 062 delta 1)', () => {
 
   it("never composes another profile's contexts onto this chart", () => {
     seedProfiles('profile-2');
-    usePredictiveStore.setState({ status: 'ready', rawContexts: RAW, profileKey: 'profile-1' });
+    usePredictiveStore.setState({
+      status: 'ready',
+      rawContexts: RAW,
+      profileKey: 'profile-2',
+      requestKey: currentRequestKey('profile-2'),
+    });
+    expect(withRawPredictive(CHART, 'chart-1')).toBe(CHART);
+  });
+
+  it('uses the requested chart profile even if the active profile switches mid-request', () => {
+    seedProfiles('profile-2');
+    usePredictiveStore.setState({
+      status: 'ready',
+      rawContexts: RAW,
+      profileKey: 'profile-1',
+      requestKey: currentRequestKey('profile-1'),
+    });
+
+    expect(withRawPredictive(CHART, 'chart-1').transit_context).toBe(RAW.transit_context);
+  });
+
+  it('never composes raw contexts produced for a pre-rectification birth instant', () => {
+    seedProfiles('profile-1');
+    useChartLibraryStore.setState({
+      charts: {
+        'chart-1': {
+          chart_id: 'chart-1',
+          profile_id: 'profile-1',
+          is_primary: true,
+          birth_data: CURRENT_BIRTH,
+          sidereal_chart: CHART,
+        } as StoredChart,
+      },
+      hydrated: true,
+    });
+    usePredictiveStore.setState({
+      status: 'ready',
+      rawContexts: RAW,
+      profileKey: 'profile-1',
+      requestKey: predictiveRequestKey({
+        profileKey: 'profile-1',
+        datetimeUtc: '1990-03-30T06:30:00Z',
+        latitude: 12.97,
+        longitude: 77.59,
+        referenceInstant: '2026-06-09T00:00:00Z',
+      }),
+    });
+
     expect(withRawPredictive(CHART, 'chart-1')).toBe(CHART);
   });
 });

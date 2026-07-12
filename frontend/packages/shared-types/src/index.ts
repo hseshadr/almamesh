@@ -1358,10 +1358,14 @@ export interface RectificationEventInput {
   readonly date: string;
   readonly category: LifeEventCategory;
   readonly precision: EventDatePrecision;
+}
+
+/** Validated local/review event draft; summaries never enter engine payloads. */
+export interface CanonicalLifeEventDraft extends RectificationEventInput {
   /**
    * Optional human-readable description of what happened, in the user's own
-   * words. Used only for on-device display (so gathered events are
-   * distinguishable); never required and never sent to the engine.
+   * words. Potentially identifying: keep on-device and project it out before
+   * engine, chat, or interpretation egress.
    */
   readonly summary?: string;
 }

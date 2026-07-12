@@ -123,19 +123,28 @@ export const styles = StyleSheet.create({
   },
 
   /* Running footer pinned to the bottom of every page. */
-  pageFooter: {
+  pageFooterNote: {
     position: 'absolute',
     bottom: 28,
     left: 56,
-    right: 56,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     fontFamily: FONT_MONO,
     fontSize: type.micro,
     letterSpacing: 0.6,
     color: palette.faint,
     textTransform: 'uppercase',
+  },
+  pageFooterCounter: {
+    position: 'absolute',
+    bottom: 28,
+    right: 56,
+    width: 80,
+    height: 12,
+    fontFamily: FONT_MONO,
+    fontSize: type.micro,
+    lineHeight: 0,
+    letterSpacing: 0.6,
+    color: palette.faint,
+    textAlign: 'right',
   },
   pageFooterRule: {
     position: 'absolute',

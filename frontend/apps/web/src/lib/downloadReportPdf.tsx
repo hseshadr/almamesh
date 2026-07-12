@@ -41,6 +41,8 @@ export interface ReportPdfChrome {
   readonly formatRectifiedNote?: (delta: RectificationDelta) => string;
   /** Binds `report:dasha.antar_heading` for the all-mahā antar tables. */
   readonly formatAntarHeading?: (lord: string) => string;
+  /** Binds `report:dasha.pratyantar_heading` for the running antar's table. */
+  readonly formatPratyantarHeading?: (lord: string) => string;
   /** Localized kundli plate captions ("Rāśi · D1" / "Navāṁśa · D9"). */
   readonly chartCaptions: { readonly rasi: string; readonly navamsa: string };
   readonly detailLabels: BirthDetailLabels;
@@ -105,6 +107,7 @@ export async function downloadReportPdf(input: DownloadReportPdfInput): Promise<
     ascendantNote: input.chrome.ascendantNote,
     formatRectifiedNote: input.chrome.formatRectifiedNote,
     formatAntarHeading: input.chrome.formatAntarHeading,
+    formatPratyantarHeading: input.chrome.formatPratyantarHeading,
     detailLabels: input.chrome.detailLabels,
     chromeLabels: input.chrome.chromeLabels,
     comprehensive: input.comprehensive,

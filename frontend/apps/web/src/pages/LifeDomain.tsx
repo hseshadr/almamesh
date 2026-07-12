@@ -18,7 +18,7 @@
 import type { ReactElement, ReactNode } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useChartLibraryStore, useInterpretationStore } from '@almamesh/store';
+import { useChartLibraryStore, useInterpretationStore, useProfilesStore } from '@almamesh/store';
 import type { LifeDomain, LifeDomainForecastData } from '@almamesh/shared-types';
 
 import { Button, Card, Disclosure, Spinner } from '../components/ui';
@@ -32,6 +32,7 @@ import {
 import { BandBadge } from '../components/features/predictive/PredictiveBadges';
 import { useElapsedSeconds, formatElapsed } from '../hooks/useElapsedSeconds';
 import { usePredictiveLayer, type PredictiveLayer } from '../hooks/usePredictiveLayer';
+import { currentInterpretationForChart } from '../hooks/useStreamingInterpretation';
 import { domainGuidance, DOMAIN_GUIDANCE_KEY, isLifeDomain } from '../lib/lifeAtlas';
 import { formatRupas, selectPrimaryStoredChart } from '../lib/predictive';
 import { grahaName } from '../lib/predictiveEventCopy';
@@ -136,9 +137,10 @@ function EngineSection({ forecast }: { forecast: LifeDomainForecastData }): Reac
 function AiSection({ domain }: { domain: LifeDomain }): ReactElement {
   const { t } = useTranslation('life');
   const charts = useChartLibraryStore((s) => s.charts);
-  const chartId = selectPrimaryStoredChart(charts)?.chart_id ?? null;
-  const entry = useInterpretationStore((s) => (chartId ? s.byChart[chartId] : undefined));
-  const interpretation = entry?.status === 'complete' ? entry.interpretation : undefined;
+  const activeProfileId = useProfilesStore((s) => s.activeProfileId);
+  const chartId = selectPrimaryStoredChart(charts, activeProfileId)?.chart_id ?? null;
+  useInterpretationStore((s) => (chartId ? s.byChart[chartId] : undefined));
+  const interpretation = currentInterpretationForChart(chartId);
   const guidance = domainGuidance(interpretation, domain);
 
   let body: ReactNode;

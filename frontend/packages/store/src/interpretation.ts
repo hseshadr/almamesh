@@ -23,6 +23,19 @@ import type { VedicInterpretation } from '@almamesh/shared-types';
 /** Lifecycle of a chart's interpretation generation. */
 export type InterpretationStatus = 'idle' | 'generating' | 'complete' | 'error';
 
+/**
+ * Deterministic inputs that may have shaped a generated reading.
+ *
+ * A string means the LLM received predictive facts computed for that exact
+ * natal-input/day key. `null` explicitly means the reading was natal-only.
+ * An absent `inputProvenance` is legacy/unknown and must not be conflated with
+ * natal-only by consumers: older builds could narrate predictive facts without
+ * recording which request produced them.
+ */
+export interface InterpretationInputProvenance {
+  readonly predictiveRequestKey: string | null;
+}
+
 /** The persisted record for a single chart's interpretation. */
 export interface ChartInterpretationEntry {
   readonly status: InterpretationStatus;
@@ -51,6 +64,8 @@ export interface ChartInterpretationEntry {
    * pre-v3 persisted entries — treated as a mismatch by the consumer.
    */
   readonly provenance?: ReadingProvenance;
+  /** Exact predictive input used for this reading, or explicit natal-only. */
+  readonly inputProvenance?: InterpretationInputProvenance;
 }
 
 export interface InterpretationStore {
@@ -72,12 +87,15 @@ export interface InterpretationStore {
    * Store the finished reading: status -> 'complete'. `provenance` is the
    * identity of the config that produced it; omitting it (legacy callers)
    * stores an unattributed reading, which consumers treat as config-mismatched.
+   * `inputProvenance` independently records whether the LLM received an exact
+   * predictive request or a natal-only chart. Omitting it means legacy/unknown.
    */
   setInterpretation: (
     chartId: string,
     interpretation: VedicInterpretation,
     updatedAt: string,
     provenance?: ReadingProvenance,
+    inputProvenance?: InterpretationInputProvenance,
   ) => void;
   /** Record a failure: status -> 'error'. */
   setError: (chartId: string, error: string) => void;
@@ -101,8 +119,12 @@ const PERSIST_NAME = 'almamesh-interpretations';
  * additive: v2 entries hydrate unchanged with `provenance: undefined` and keep
  * rendering; the dashboard treats the missing fingerprint as a config
  * mismatch and regenerates once when an AI capable of readings is configured.
+ * v4: entries gained optional `inputProvenance`, distinguishing an exact
+ * predictive request from explicit natal-only generation. Existing entries
+ * remain unknown so consumers can fail closed instead of reusing possibly
+ * stale predictive prose.
  */
-export const INTERPRETATION_PERSIST_VERSION = 3;
+export const INTERPRETATION_PERSIST_VERSION = 4;
 
 /** The slice of the store that `partialize` actually persists. */
 export interface PersistedInterpretationState {
@@ -261,6 +283,9 @@ export const interpretationStoreCreator: StateCreator<InterpretationStore> = (se
           ? {
               interpretation: current.interpretation,
               ...(current.provenance !== undefined ? { provenance: current.provenance } : {}),
+              ...(current.inputProvenance !== undefined
+                ? { inputProvenance: current.inputProvenance }
+                : {}),
               ...(current.updatedAt !== undefined ? { updatedAt: current.updatedAt } : {}),
             }
           : {};
@@ -290,7 +315,7 @@ export const interpretationStoreCreator: StateCreator<InterpretationStore> = (se
     });
   },
 
-  setInterpretation: (chartId, interpretation, updatedAt, provenance) => {
+  setInterpretation: (chartId, interpretation, updatedAt, provenance, inputProvenance) => {
     set((state) => {
       const current = entryOf(state.byChart, chartId);
       // `provenance` always overwrites (including with undefined): the stored
@@ -302,6 +327,7 @@ export const interpretationStoreCreator: StateCreator<InterpretationStore> = (se
         error: undefined,
         updatedAt,
         provenance,
+        inputProvenance,
       };
       return { byChart: withEntry(state.byChart, chartId, entry) };
     });

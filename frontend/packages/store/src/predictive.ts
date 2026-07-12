@@ -6,7 +6,7 @@
  * - The natal chart pipeline stays fast and byte-identical; the predictive
  *   superset takes ~35s under Pyodide, so it is computed LAZILY through the
  *   engine's second entrypoint (`computePredictive`) and cached here.
- * - `ensurePredictive(runtime, input)` is IDEMPOTENT per profile + reference
+ * - `ensurePredictive(runtime, input)` is IDEMPOTENT per natal input + reference
  *   instant: a repeat call while `ready` or `loading` for the same key is a
  *   no-op. A failed run can always be retried.
  * - The reference instant is EXPLICIT (never a silent now()): callers pin it,
@@ -74,7 +74,7 @@ export interface PredictiveStore {
   rawContexts?: PredictiveContexts;
   /** The profile the loaded/loading contexts belong to. */
   profileKey?: string;
-  /** Internal idempotency key: `${profileKey}@${referenceInstant}`. */
+  /** Internal idempotency key over profile, natal birth input, and reference instant. */
   requestKey?: string;
   /**
    * Compute (once) the predictive contexts for `input` via the engine.
@@ -94,8 +94,23 @@ const EMPTY_CONTEXTS = {
   rawContexts: undefined,
 } as const;
 
-const requestKeyOf = (input: EnsurePredictiveInput): string =>
-  `${input.profileKey}@${input.referenceInstant}`;
+/**
+ * Complete identity of one predictive computation.
+ *
+ * Birth time and coordinates are load-bearing: rectification or a profile edit
+ * can change the natal lagna while retaining the same profile and reference
+ * day. Omitting them re-serves transit houses rotated from the previous chart.
+ * JSON over an ordered tuple is deterministic and avoids delimiter collisions.
+ */
+export function predictiveRequestKey(input: EnsurePredictiveInput): string {
+  return JSON.stringify([
+    input.profileKey,
+    input.datetimeUtc,
+    input.latitude,
+    input.longitude,
+    input.referenceInstant,
+  ]);
+}
 
 // --- Persistence (IndexedDB via idb-keyval) ---------------------------------
 //
@@ -103,8 +118,9 @@ const requestKeyOf = (input: EnsurePredictiveInput): string =>
 // store reset to `idle` on every page reload / PWA relaunch, so the auto-kickoff
 // re-ran the whole compute even though the chart + reference day were unchanged
 // ("Life Atlas keeps regenerating"). We persist ONLY a completed (`ready`)
-// result keyed by `${profileKey}@${referenceInstant}`, so a reload with the same
-// chart + day rehydrates to `ready` and `ensurePredictive` short-circuits.
+// result keyed by the complete natal input + reference instant, so a reload
+// with the same chart + day rehydrates to `ready` and `ensurePredictive`
+// short-circuits without ever crossing a rectification boundary.
 
 /**
  * Bump when the persisted predictive shape changes; always pair with `migrate`.
@@ -273,7 +289,7 @@ export const predictiveStoreCreator: StateCreator<PredictiveStore> = (set, get) 
   requestKey: undefined,
 
   async ensurePredictive(runtime, input) {
-    const key = requestKeyOf(input);
+    const key = predictiveRequestKey(input);
     const { status, requestKey } = get();
     const settledForKey = status === 'ready' || status === 'loading';
     if (settledForKey && requestKey === key) {

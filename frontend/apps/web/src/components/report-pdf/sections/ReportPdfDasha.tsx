@@ -31,6 +31,27 @@ function PeriodRow({ period }: { period: ReportPdfDashaPeriod }): ReactElement {
   );
 }
 
+function PeriodTable({
+  heading,
+  periods,
+}: {
+  heading: string;
+  periods: readonly ReportPdfDashaPeriod[];
+}): ReactElement {
+  const [first, ...remaining] = periods;
+  return (
+    <View>
+      <View wrap={false}>
+        <Text style={styles.subLabel}>{heading}</Text>
+        {first ? <PeriodRow period={first} /> : null}
+      </View>
+      {remaining.map((period) => (
+        <PeriodRow key={`${heading}-${period.lord}-${period.start}`} period={period} />
+      ))}
+    </View>
+  );
+}
+
 export function ReportPdfDasha({ data }: ReportPdfDashaProps): ReactElement {
   const { dasha, labels } = data;
   return (
@@ -58,12 +79,13 @@ export function ReportPdfDasha({ data }: ReportPdfDashaProps): ReactElement {
       {/* Antar-daśās of every mahā, in mahā order (empty on older payloads). */}
       {dasha.antarTables.map((table) => (
         <View key={table.heading}>
-          <Text style={styles.subLabel}>{table.heading}</Text>
-          <View>
-            {table.periods.map((period) => (
-              <PeriodRow key={`${table.heading}-${period.lord}-${period.start}`} period={period} />
-            ))}
-          </View>
+          <PeriodTable heading={table.heading} periods={table.periods} />
+          {table.pratyantarTable ? (
+            <PeriodTable
+              heading={table.pratyantarTable.heading}
+              periods={table.pratyantarTable.periods}
+            />
+          ) : null}
         </View>
       ))}
     </View>

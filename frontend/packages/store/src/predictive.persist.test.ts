@@ -23,6 +23,7 @@ import {
   usePredictiveStore,
   PREDICTIVE_PERSIST_NAME,
   PREDICTIVE_PERSIST_VERSION,
+  predictiveRequestKey,
   type EnsurePredictiveInput,
 } from "./predictive";
 
@@ -84,7 +85,7 @@ const INPUT: EnsurePredictiveInput = {
   referenceInstant: "2026-06-09T12:00:00+00:00",
 };
 
-const KEY = `${INPUT.profileKey}@${INPUT.referenceInstant}`;
+const KEY = predictiveRequestKey(INPUT);
 
 const makeRuntime = (impl?: () => Promise<PredictiveContexts>) => ({
   computePredictive: vi.fn(impl ?? (() => Promise.resolve(RAW))),
@@ -201,6 +202,24 @@ describe("usePredictiveStore persistence", () => {
 
     expect(fresh.computePredictive).toHaveBeenCalledTimes(1);
     expect(usePredictiveStore.getState().profileKey).toBe("profile-2");
+  });
+
+  it("after a reload, a rectified birth instant on the SAME profile/day recomputes", async () => {
+    await seedReadyThenReload();
+
+    const fresh = makeRuntime();
+    await usePredictiveStore.getState().ensurePredictive(fresh, {
+      ...INPUT,
+      datetimeUtc: "1990-01-15T12:15:00+00:00",
+    });
+
+    expect(fresh.computePredictive).toHaveBeenCalledTimes(1);
+    expect(usePredictiveStore.getState().requestKey).toBe(
+      predictiveRequestKey({
+        ...INPUT,
+        datetimeUtc: "1990-01-15T12:15:00+00:00",
+      }),
+    );
   });
 
   it("coerces a persisted 'loading' status to idle with empty contexts (reload mid-compute)", async () => {

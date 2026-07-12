@@ -1,10 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useLanguageStore } from '@almamesh/store';
+import { useLanguageStore, type StoredChart } from '@almamesh/store';
 import type { ProcessedBirthData } from '@almamesh/shared-types';
 import {
   buildEnsurePredictiveInput,
   formatPredictiveDate,
   predictiveReferenceInstant,
+  selectPrimaryStoredChart,
   titleCaseToken,
   toVargaChart,
 } from '../predictive';
@@ -43,6 +44,25 @@ describe('buildEnsurePredictiveInput', () => {
 
   it('returns null when birth data is missing (no silent guesses)', () => {
     expect(buildEnsurePredictiveInput('p', undefined, '2026-06-09T00:00:00Z')).toBeNull();
+  });
+});
+
+describe('selectPrimaryStoredChart', () => {
+  it('selects the primary chart inside the active profile, not another profile', () => {
+    const charts = {
+      'other-primary': {
+        chart_id: 'other-primary',
+        profile_id: 'profile-2',
+        is_primary: true,
+      },
+      'active-primary': {
+        chart_id: 'active-primary',
+        profile_id: 'profile-1',
+        is_primary: true,
+      },
+    } as unknown as Readonly<Record<string, StoredChart>>;
+
+    expect(selectPrimaryStoredChart(charts, 'profile-1')?.chart_id).toBe('active-primary');
   });
 });
 

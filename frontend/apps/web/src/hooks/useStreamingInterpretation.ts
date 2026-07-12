@@ -35,15 +35,17 @@ import {
   useInterpretationStore,
   useLanguageStore,
   usePredictiveStore,
-  useProfilesStore,
+  predictiveRequestKey,
+  type InterpretationInputProvenance,
   type InterpretationStatus,
 } from '@almamesh/store';
 import type { SiderealChart } from '@almamesh/browser/types';
-import type { VedicInterpretation } from '@almamesh/shared-types';
+import type { ProcessedBirthData, VedicInterpretation } from '@almamesh/shared-types';
 import type { SepViewMode } from '@almamesh/shared-types';
 
 import i18n from '../i18n/config';
 import { isInsufficientCreditsMessage, isModelUnavailableMessage } from '../lib/errors';
+import { buildEnsurePredictiveInput, predictiveReferenceInstant } from '../lib/predictive';
 
 /** The five structured sections, in the order the generator announces them. */
 export const INTERPRETATION_SECTIONS: readonly InterpretationSectionKey[] = [
@@ -127,6 +129,82 @@ export function resolveInterpretationConfig(): ProviderConfig {
   return resolveProviderConfig(readLlmEnv());
 }
 
+interface NarrationInput {
+  readonly chart: SiderealChart;
+  readonly provenance: InterpretationInputProvenance;
+}
+
+/** The requested chart owns its profile identity, independent of active-UI races. */
+function predictiveProfileKey(chartId: string | null): string {
+  const stored = chartId ? useChartLibraryStore.getState().getChart(chartId) : undefined;
+  return stored?.profile_id ?? chartId ?? 'primary';
+}
+
+/** Build today's deterministic predictive identity for one stored chart. */
+function expectedPredictiveKey(chartId: string | null): string | null {
+  const stored = chartId ? useChartLibraryStore.getState().getChart(chartId) : undefined;
+  const input = buildEnsurePredictiveInput(
+    predictiveProfileKey(chartId),
+    stored?.birth_data as ProcessedBirthData | undefined,
+    predictiveReferenceInstant(),
+  );
+  return input ? predictiveRequestKey(input) : null;
+}
+
+/** Compose only exact-key predictive facts and record what the LLM received. */
+function narrationInput(chart: SiderealChart, chartId: string | null): NarrationInput {
+  const { status, rawContexts, profileKey, requestKey } = usePredictiveStore.getState();
+  const expectedProfile = predictiveProfileKey(chartId);
+  const expectedRequest = expectedPredictiveKey(chartId);
+  const predictiveIsCurrent =
+    status === 'ready' &&
+    rawContexts !== undefined &&
+    profileKey === expectedProfile &&
+    requestKey !== undefined &&
+    requestKey === expectedRequest;
+  if (!predictiveIsCurrent) {
+    return { chart, provenance: { predictiveRequestKey: null } };
+  }
+  return {
+    chart: { ...chart, ...rawContexts },
+    provenance: { predictiveRequestKey: requestKey },
+  };
+}
+
+/**
+ * True only when a persisted reading's deterministic inputs are still valid.
+ * Legacy entries fail closed because they may contain unkeyed predictive prose.
+ */
+export function isInterpretationInputCurrent(
+  provenance: InterpretationInputProvenance | undefined,
+  chartId: string | null,
+): boolean {
+  if (!provenance) {
+    return false;
+  }
+  return (
+    provenance.predictiveRequestKey === null ||
+    provenance.predictiveRequestKey === expectedPredictiveKey(chartId)
+  );
+}
+
+/** Read a complete interpretation only when its deterministic inputs are current. */
+export function currentInterpretationForChart(
+  chartId: string | null,
+): VedicInterpretation | undefined {
+  if (!chartId) {
+    return undefined;
+  }
+  const entry = useInterpretationStore.getState().getEntry(chartId);
+  if (
+    entry?.status !== 'complete' ||
+    !isInterpretationInputCurrent(entry.inputProvenance, chartId)
+  ) {
+    return undefined;
+  }
+  return entry.interpretation;
+}
+
 /**
  * Compose the persisted RAW engine predictive contexts onto the natal chart
  * (Spec 062, LLM delta 1) so interpretation + chat prompts carry the engine's
@@ -145,15 +223,7 @@ export function resolveInterpretationConfig(): ProviderConfig {
  * can never be composed onto another profile's chart.
  */
 export function withRawPredictive(chart: SiderealChart, chartId: string | null): SiderealChart {
-  const { status, rawContexts, profileKey } = usePredictiveStore.getState();
-  if (status !== 'ready' || !rawContexts) {
-    return chart;
-  }
-  const expectedKey = useProfilesStore.getState().activeProfileId ?? chartId ?? 'primary';
-  if (profileKey !== expectedKey) {
-    return chart;
-  }
-  return { ...chart, ...rawContexts };
+  return narrationInput(chart, chartId).chart;
 }
 
 /**
@@ -203,6 +273,9 @@ function describeError(err: unknown): string {
 export function useStreamingInterpretation(chartId?: string | null): UseStreamingInterpretationResult {
   // Subscribe to the store so the component re-renders as events land.
   const entry = useInterpretationStore((s) => (chartId ? s.byChart[chartId] : undefined));
+  // Context identity changes must immediately re-evaluate persisted prose even
+  // when the interpretation entry itself did not mutate.
+  usePredictiveStore((s) => s.requestKey);
   const startInterpretation = useInterpretationStore((s) => s.startInterpretation);
   const markSectionComplete = useInterpretationStore((s) => s.markSectionComplete);
   const markSectionFailed = useInterpretationStore((s) => s.markSectionFailed);
@@ -249,6 +322,7 @@ export function useStreamingInterpretation(chartId?: string | null): UseStreamin
 
       const controller = new AbortController();
       abortControllerRef.current = controller;
+      const input = narrationInput(chart, id);
 
       startInterpretation(id);
       try {
@@ -256,7 +330,7 @@ export function useStreamingInterpretation(chartId?: string | null): UseStreamin
           // Compose the persisted raw predictive contexts (when ready for this
           // profile) so the six section prompts carry the delimited engine
           // predictive block; absent contexts → natal-only, exactly as before.
-          chart: withRawPredictive(chart, id),
+          chart: input.chart,
           config,
           mode: options.view_mode === 'expert' ? 'expert' : 'layman',
           language,
@@ -282,6 +356,7 @@ export function useStreamingInterpretation(chartId?: string | null): UseStreamin
               event.interpretation,
               new Date().toISOString(),
               configProvenance(config),
+              input.provenance,
             );
           }
           // `section_start` is informational.
@@ -294,7 +369,10 @@ export function useStreamingInterpretation(chartId?: string | null): UseStreamin
     [language, markSectionComplete, markSectionFailed, setError, setInterpretation, startInterpretation]
   );
 
-  const status: InterpretationStatus = entry?.status ?? 'idle';
+  const inputIsCurrent = isInterpretationInputCurrent(entry?.inputProvenance, chartId ?? null);
+  const storedStatus: InterpretationStatus = entry?.status ?? 'idle';
+  const status: InterpretationStatus =
+    storedStatus === 'complete' && !inputIsCurrent ? 'idle' : storedStatus;
   const completed = entry?.sections ?? {};
   const failed = entry?.failedSections ?? {};
   const sections: readonly SectionProgress[] = INTERPRETATION_SECTIONS.map((key) => ({
@@ -305,7 +383,7 @@ export function useStreamingInterpretation(chartId?: string | null): UseStreamin
 
   return {
     streamInterpretation,
-    interpretation: entry?.interpretation,
+    interpretation: inputIsCurrent ? entry?.interpretation : undefined,
     status,
     sections,
     failedSections: sections.filter((s) => s.failed).map((s) => s.key),

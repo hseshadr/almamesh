@@ -4,6 +4,15 @@ import { promisify } from 'node:util';
 import { readFile, mkdir, writeFile } from 'node:fs/promises';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import type { SiderealChart } from '@almamesh/browser/types';
+import type { DivisionalChartId, VargaCtxFull } from '@almamesh/shared-types';
+import { FOUNDER_DASHAS } from '../src/test/dashaFixtures';
+import {
+  DOMAINS_CTX,
+  STRENGTH_CTX,
+  TRANSIT_CTX,
+  VARGA_CTX_FULL,
+} from '../src/test/predictiveFixtures';
 
 const execFileAsync = promisify(execFile);
 
@@ -38,6 +47,345 @@ const OUT_DIR = resolve(HERE, '../.report-out');
 const DOWNLOAD_PATH = resolve(OUT_DIR, 'e2e-download.pdf');
 const DASHBOARD_SHOT = resolve(OUT_DIR, 'e2e-dashboard.png');
 const REPORT_SHOT = resolve(OUT_DIR, 'e2e-report.png');
+const MAXIMAL_DOWNLOAD_PATH = resolve(OUT_DIR, 'e2e-maximal-download.pdf');
+
+const SYNTHETIC_PROFILE_ID = 'report-pdf-maximal-profile';
+const SYNTHETIC_CHART_ID = 'report-pdf-maximal-chart';
+const SYNTHETIC_EVENT_COUNT = 18;
+const ALL_VARGA_IDS = [
+  'D1',
+  'D2',
+  'D3',
+  'D4',
+  'D7',
+  'D9',
+  'D10',
+  'D12',
+  'D16',
+  'D20',
+  'D24',
+  'D27',
+  'D30',
+  'D40',
+  'D45',
+  'D60',
+] as const satisfies readonly DivisionalChartId[];
+const SYNTHETIC_BIRTH = {
+  name: 'Maximal Browser Native',
+  birth_datetime_utc: '1990-01-15T12:00:00Z',
+  birth_datetime_local: '1990-01-15T17:30:00',
+  birth_location_details: {
+    city: 'Delhi',
+    state: 'Delhi',
+    country: 'India',
+    latitude: 28.6139,
+    longitude: 77.209,
+    timezone: 'Asia/Kolkata',
+    location_name: 'Delhi, India',
+  },
+} as const;
+
+const BASE_SYNTHETIC_PLANET = {
+  longitude: 75.1,
+  latitude: 0,
+  distance: 9.5,
+  speed: 0.03,
+  is_retrograde: false,
+  sign: 'Gemini',
+  sign_degrees: 15.1,
+  sign_lord: 'mercury',
+  nakshatra: 'Ardra',
+  nakshatra_pada: 3,
+  nakshatra_lord: 'rahu',
+  house: 3,
+  dignity: 'neutral',
+  is_combust: false,
+  combustion_separation_deg: null,
+  houses_ruled: [10, 11],
+  is_yogakaraka: false,
+} as const;
+
+function syntheticPlanet(name: string, index: number, nakshatra: string) {
+  return {
+    ...BASE_SYNTHETIC_PLANET,
+    name,
+    longitude: index * 30 + 29.99,
+    sign_degrees: 29.99,
+    nakshatra,
+    house: index + 1,
+  };
+}
+
+const SYNTHETIC_PLANETS: SiderealChart['planets'] = {
+  sun: syntheticPlanet('sun', 0, 'Ashwini'),
+  moon: syntheticPlanet('moon', 1, 'Bharani'),
+  mars: syntheticPlanet('mars', 2, 'Krittika'),
+  mercury: syntheticPlanet('mercury', 3, 'Rohini'),
+  jupiter: syntheticPlanet('jupiter', 4, 'Mrigashira'),
+  venus: syntheticPlanet('venus', 5, 'Ardra'),
+  saturn: syntheticPlanet('saturn', 6, 'Punarvasu'),
+  rahu: syntheticPlanet('rahu', 7, 'Uttara Bhadrapada'),
+  ketu: syntheticPlanet('ketu', 8, 'Final Planet Sentinel'),
+};
+
+function syntheticYoga(index: number) {
+  const final = index === 8;
+  const name = final ? 'Final Yoga Sentinel' : `Synthetic Yoga ${index + 1}`;
+  return {
+    name,
+    display_name: name,
+    category: 'special',
+    description: final
+      ? 'The final yoga card survives browser PDF pagination.'
+      : `Synthetic yoga card ${index + 1} exercises pagination.`,
+    effects: 'Display-only synthetic evidence.',
+    grade: index % 2 === 0 ? ('strong' as const) : ('moderate' as const),
+    strength_factors: [
+      {
+        planet: 'saturn',
+        factor: 'synthetic',
+        value: 'present',
+        basis: 'browser PDF acceptance fixture',
+        mark: 1,
+      },
+    ],
+    planets_involved: ['saturn'],
+    houses_involved: [10],
+    planetary_signature: 'Saturn',
+    formation_rules: [
+      {
+        rule: 'synthetic_rule',
+        description: 'Synthetic formation for artifact testing.',
+        source: 'E2E fixture',
+        planets: ['saturn'],
+        houses: [10],
+      },
+    ],
+  };
+}
+
+const SYNTHETIC_SIDEREAL: SiderealChart = {
+  ayanamsa_value: 24.1,
+  lagna: {
+    longitude: 5.4,
+    sign: 'Aries',
+    sign_degrees: 5.4,
+    sign_lord: 'mars',
+    nakshatra: 'Ashwini',
+    nakshatra_pada: 2,
+    nakshatra_lord: 'ketu',
+  },
+  planets: SYNTHETIC_PLANETS,
+  houses: Object.fromEntries(
+    Array.from({ length: 12 }, (_, index) => [
+      String(index + 1),
+      { house: index + 1, longitude: index * 30, sign: 'Aries', sign_lord: 'mars' },
+    ]),
+  ) as SiderealChart['houses'],
+  dashas: FOUNDER_DASHAS,
+  yogas: Array.from({ length: 9 }, (_, index) => syntheticYoga(index)),
+  navamsa: {
+    name: 'D9',
+    lagna_sign: 'Leo',
+    lagna_sign_lord: 'sun',
+    planets: { saturn: { name: 'saturn', sign: 'Aquarius', sign_lord: 'saturn' } },
+  },
+};
+
+const SYNTHETIC_VARGA_CONTEXT: VargaCtxFull = {
+  ...VARGA_CTX_FULL,
+  charts: Object.fromEntries(
+    ALL_VARGA_IDS.map((id) => [
+      id,
+      {
+        ...VARGA_CTX_FULL.charts.D1,
+        chart: id,
+      },
+    ]),
+  ) as VargaCtxFull['charts'],
+};
+
+/** Seed only local persisted inputs; the page still builds and downloads the real report. */
+async function seedSyntheticMaximalReport(page: Page): Promise<void> {
+  // Establish the preview origin without booting the SPA. If the empty Zustand
+  // stores hydrate before this write, they can race and overwrite the fixture.
+  await page.goto('/robots.txt', { waitUntil: 'domcontentloaded' });
+  const referenceInstant = `${new Date().toISOString().slice(0, 10)}T00:00:00Z`;
+  const requestKey = JSON.stringify([
+    SYNTHETIC_PROFILE_ID,
+    SYNTHETIC_BIRTH.birth_datetime_utc,
+    SYNTHETIC_BIRTH.birth_location_details.latitude,
+    SYNTHETIC_BIRTH.birth_location_details.longitude,
+    referenceInstant,
+  ]);
+  const storedChart = {
+    chart_id: SYNTHETIC_CHART_ID,
+    profile_id: SYNTHETIC_PROFILE_ID,
+    person_name: SYNTHETIC_BIRTH.name,
+    is_primary: true,
+    birth_data: SYNTHETIC_BIRTH,
+    astronomical_calculations: {
+      sidereal_ctx: {
+        ayanamsa_value: SYNTHETIC_SIDEREAL.ayanamsa_value,
+        ayanamsa_type: 'lahiri',
+        house_system: 'whole_sign',
+        julian_day: 0,
+        sidereal_time: 0,
+        lagna: SYNTHETIC_SIDEREAL.lagna,
+        planets: SYNTHETIC_SIDEREAL.planets,
+      },
+      calculation_timestamp: '2026-01-01T00:00:00Z',
+      software_version: 'report-pdf-e2e',
+    },
+    sidereal_chart: SYNTHETIC_SIDEREAL,
+  };
+  const events = Array.from({ length: SYNTHETIC_EVENT_COUNT }, (_, index) => {
+    const final = index === SYNTHETIC_EVENT_COUNT - 1;
+    return {
+      id: `report-pdf-maximal-event-${index + 1}`,
+      description: final ? 'family_rupture' : 'career_change',
+      summary: final
+        ? 'Final paginated event sentinel'
+        : index === 0
+          ? 'Accepted the maximal browser sentinel role'
+          : `Synthetic supporting event ${index + 1}`,
+      date: `${2000 + index}-07-01`,
+      category: final ? 'family_rupture' : 'career_change',
+      precision: 'exact',
+      createdAt: `2026-01-${String(index + 1).padStart(2, '0')}T00:00:00Z`,
+    };
+  });
+  const supportingEvents = events.map((event, index) => ({
+    eventIndex: index,
+    category: event.category,
+    date: event.date,
+    signals:
+      index === events.length - 1
+        ? ['pd_lord_rules_h7#dignified_fit']
+        : ['md_lord_rules_h10'],
+    contribution: 1,
+  }));
+  const record = {
+    profileId: SYNTHETIC_PROFILE_ID,
+    confirmedAt: '2026-01-01T00:00:00Z',
+    mode: 'cusp',
+    band: 'leans',
+    margin: 0.72,
+    originalTime: '17:15',
+    originalSign: 'pisces',
+    rectifiedTime: '17:30',
+    rectifiedSign: 'aries',
+    supportingEventIds: events.map((event) => event.id),
+    resultSnapshot: {
+      mode: 'cusp',
+      margin: 0.72,
+      band: 'leans',
+      discriminatingEventCount: events.length,
+      confidencePct: 72,
+      recordedTimeSign: 'pisces',
+      honestyNoteKey: 'rectify.honesty.leans',
+      candidates: [
+        {
+          ascendantSign: 'aries',
+          representativeTimeLocal: '17:30',
+          lagnaLongitudeDeg: 5.4,
+          lagnaCuspDistanceDeg: 5.4,
+          isNearCusp: false,
+          fitScore: 18.2,
+          navamsaLagnaSign: 'leo',
+          positiveTotal: 18,
+          penaltyTotal: 0.15,
+          priorBonus: 0.35,
+          misses: ['miss_silent_family_rupture_h4'],
+          supportingEvents,
+        },
+        {
+          ascendantSign: 'pisces',
+          representativeTimeLocal: '08:15',
+          lagnaLongitudeDeg: 359.2,
+          lagnaCuspDistanceDeg: 0.8,
+          isNearCusp: true,
+          fitScore: 7.4,
+          navamsaLagnaSign: 'cancer',
+          positiveTotal: 7.4,
+          penaltyTotal: 0,
+          priorBonus: 0,
+          misses: [],
+          supportingEvents: [],
+        },
+      ],
+    },
+  };
+  const entries: ReadonlyArray<readonly [string, string]> = [
+    [
+      'almamesh-profiles',
+      JSON.stringify({
+        state: {
+          profiles: {
+            [SYNTHETIC_PROFILE_ID]: {
+              id: SYNTHETIC_PROFILE_ID,
+              name: SYNTHETIC_BIRTH.name,
+              createdAt: '2026-01-01T00:00:00Z',
+              avatarTint: '#C9A24B',
+            },
+          },
+          activeProfileId: SYNTHETIC_PROFILE_ID,
+        },
+        version: 1,
+      }),
+    ],
+    [
+      'almamesh-chart-library',
+      JSON.stringify({ state: { charts: { [SYNTHETIC_CHART_ID]: storedChart } }, version: 1 }),
+    ],
+    [
+      'almamesh-predictive',
+      JSON.stringify({
+        state: {
+          status: 'ready',
+          transitCtx: TRANSIT_CTX,
+          vargaCtxFull: SYNTHETIC_VARGA_CONTEXT,
+          strengthCtx: STRENGTH_CTX,
+          domainsCtx: DOMAINS_CTX,
+          profileKey: SYNTHETIC_PROFILE_ID,
+          requestKey,
+        },
+        version: 2,
+      }),
+    ],
+    [
+      'almamesh-life-events',
+      JSON.stringify({
+        state: { eventsByProfile: { [SYNTHETIC_PROFILE_ID]: events } },
+        version: 4,
+      }),
+    ],
+    [
+      'almamesh-rectification-records',
+      JSON.stringify({
+        state: { recordsByProfile: { [SYNTHETIC_PROFILE_ID]: record } },
+        version: 2,
+      }),
+    ],
+  ];
+
+  await page.evaluate(async (persistedEntries) => {
+    await new Promise<void>((resolvePromise, rejectPromise) => {
+      const open = indexedDB.open('keyval-store');
+      open.onupgradeneeded = () => open.result.createObjectStore('keyval');
+      open.onerror = () => rejectPromise(open.error);
+      open.onsuccess = () => {
+        const transaction = open.result.transaction('keyval', 'readwrite');
+        for (const [key, value] of persistedEntries) {
+          transaction.objectStore('keyval').put(value, key);
+        }
+        transaction.oncomplete = () => resolvePromise();
+        transaction.onerror = () => rejectPromise(transaction.error);
+      };
+    });
+    localStorage.setItem('almamesh-chart', '1');
+  }, entries);
+}
 
 // ---------------------------------------------------------------------------
 // Console hygiene: collect page errors + console.error for the clean-console
@@ -400,4 +748,56 @@ test('REAL onboarding -> rectify (persists) -> natal-only PDF is correct', async
 
   // Final clean-console gate across the whole journey.
   expect(errors, `console errors during the full journey:\n${errors.join('\n')}`).toEqual([]);
+});
+
+test('synthetic maximal state -> real browser download preserves every report family', async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  await mkdir(OUT_DIR, { recursive: true });
+  await seedSyntheticMaximalReport(page);
+  await page.goto('/report?mode=astrologer', { waitUntil: 'domcontentloaded' });
+
+  const downloadBtn = page.getByTestId('report-download-pdf');
+  await expect(downloadBtn).toBeVisible({ timeout: 30_000 });
+
+  const [download]: [Download, void] = await Promise.all([
+    page.waitForEvent('download', { timeout: 60_000 }),
+    downloadBtn.click(),
+  ]);
+  await download.saveAs(MAXIMAL_DOWNLOAD_PATH);
+
+  const pdfText = (await pdfToText(MAXIMAL_DOWNLOAD_PATH)).toLowerCase();
+  const pdfLines = pdfText.split('\n');
+  const finalPratyantarRow = pdfLines
+    .find((line) => line.includes('ketu') && line.includes('nov 2026') && line.includes('jan 2027'));
+  expect(finalPratyantarRow, 'the final pratyantar row must survive the real download').toBeTruthy();
+  const finalPlanetIndex = pdfLines.findIndex((line) => line.includes('final planet sentinel'));
+  const finalPlanetRow = pdfLines.slice(finalPlanetIndex, finalPlanetIndex + 2).join(' ');
+  expect(finalPlanetIndex, 'the final planet sentinel must survive the real download').toBeGreaterThanOrEqual(0);
+  expect(finalPlanetRow, 'the final planet sentinel must remain attached to Ketu').toContain('ketu');
+  const missLine = pdfLines.find(
+    (line) =>
+      line.includes('predicted a strong family rupture') &&
+      line.includes('window with nothing reported'),
+  );
+  expect(missLine, 'the final quiet-period miss must survive the real download').toBeTruthy();
+  for (const sentinel of [
+    'pratyantar',
+    'transits & timing',
+    'd10',
+    'd60',
+    '165.00',
+    '6.13',
+    'life domains',
+    'career',
+    'birth time authority',
+    'accepted the maximal browser sentinel role',
+    'final yoga sentinel',
+    'final paginated event sentinel',
+    '08:15',
+    'timed to the sub-sub-period',
+  ]) {
+    expect(pdfText, `downloaded maximal PDF is missing ${sentinel}`).toContain(sentinel);
+  }
 });

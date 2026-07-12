@@ -80,11 +80,15 @@ export interface ReportPdfDashaPeriod {
   readonly isCurrent: boolean;
 }
 
-/** One antar-daśā drill-down table: a (localized) heading + its nine periods. */
-export interface ReportPdfAntarTable {
-  /** Pre-localized heading, e.g. "Antar-daśās of the Saturn Mahā-daśā". */
+/** One dasha drill-down table: a (localized) heading + its periods. */
+export interface ReportPdfPeriodTable {
   readonly heading: string;
   readonly periods: ReadonlyArray<ReportPdfDashaPeriod>;
+}
+
+/** One antar-daśā table, optionally carrying the running antar's deeper table. */
+export interface ReportPdfAntarTable extends ReportPdfPeriodTable {
+  readonly pratyantarTable?: ReportPdfPeriodTable;
 }
 
 /** The dasha timeline slice: the maha sequence + the current focus line. */

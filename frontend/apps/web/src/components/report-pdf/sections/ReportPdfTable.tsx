@@ -29,6 +29,15 @@ const local = StyleSheet.create({
   headCell: {
     paddingRight: 6,
   },
+  denseHeadCell: {
+    fontSize: 6.5,
+    letterSpacing: 0.15,
+    paddingRight: 2,
+  },
+  denseCell: {
+    fontSize: 8,
+    paddingRight: 3,
+  },
   // Mirrors the theme's emphasized-row treatment (`tableRowLagna`): the
   // recessed paperDeep tint + a strong top rule — no hardcoded hex.
   rowEmphasis: {
@@ -42,6 +51,8 @@ interface ReportPdfTableProps {
   readonly table: ReportPdfTableData;
   /** Repeat the header when the table breaks across pages (default true). */
   readonly repeatHeader?: boolean;
+  /** Tight but legible typography for high-column-count reference tables. */
+  readonly dense?: boolean;
 }
 
 /** Flex weight for column `index` (equal columns unless widths are given). */
@@ -50,7 +61,11 @@ function flexOf(table: ReportPdfTableData, index: number): number {
 }
 
 /** A pre-formatted table in the report's engraved style. */
-export function ReportPdfTable({ table, repeatHeader = true }: ReportPdfTableProps): ReactElement {
+export function ReportPdfTable({
+  table,
+  repeatHeader = true,
+  dense = false,
+}: ReportPdfTableProps): ReactElement {
   const lastIndex = table.rows.length - 1;
   return (
     <View style={styles.table}>
@@ -58,7 +73,11 @@ export function ReportPdfTable({ table, repeatHeader = true }: ReportPdfTablePro
         {table.headers.map((header, index) => (
           <Text
             key={`${header}-${index}`}
-            style={[styles.tableHeadCell, local.headCell, { flex: flexOf(table, index) }]}
+            style={[
+              styles.tableHeadCell,
+              dense ? local.denseHeadCell : local.headCell,
+              { flex: flexOf(table, index) },
+            ]}
           >
             {header}
           </Text>
@@ -77,7 +96,11 @@ export function ReportPdfTable({ table, repeatHeader = true }: ReportPdfTablePro
           {row.cells.map((cell, cellIndex) => (
             <Text
               key={cellIndex}
-              style={[row.emphasis ? local.cellEmphasis : local.cell, { flex: flexOf(table, cellIndex) }]}
+              style={[
+                row.emphasis ? local.cellEmphasis : local.cell,
+                ...(dense ? [local.denseCell] : []),
+                { flex: flexOf(table, cellIndex) },
+              ]}
             >
               {cell}
             </Text>

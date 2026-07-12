@@ -58,9 +58,53 @@ describe("structureLifeEvents — happy path", () => {
       LOCAL_CFG,
     );
     expect(result).toEqual({ status: 'ok', events: [
-      { date: "2015-03-10", category: "marriage", precision: 'exact' },
-      { date: "2018-07-22", category: "childbirth", precision: 'exact' },
+      { date: "2015-03-10", category: "marriage", precision: 'approx' },
+      { date: "2018-07-22", category: "childbirth", precision: 'approx' },
     ] });
+  });
+
+  it("returns a distinct normalized event summary for each extracted row", async () => {
+    mockChat.mockResolvedValue(
+      JSON.stringify({
+        events: [
+          {
+            date: "2015-03-10",
+            category: "marriage",
+            precision: "month",
+            summary: "  Married my partner  ",
+          },
+          {
+            date: "2019-07-01",
+            category: "relocation",
+            precision: "year",
+            summary: "## Relocated\nfor a new role",
+          },
+        ],
+      }),
+    );
+
+    const result = await structureLifeEvents(
+      "I married in 2015, then relocated for work in 2019.",
+      LOCAL_CFG,
+    );
+
+    expect(result).toEqual({
+      status: "ok",
+      events: [
+        {
+          date: "2015-03-10",
+          category: "marriage",
+          precision: "month",
+          summary: "Married my partner",
+        },
+        {
+          date: "2019-07-01",
+          category: "relocation",
+          precision: "year",
+          summary: "Relocated for a new role",
+        },
+      ],
+    });
   });
 
   it("accepts all 17 valid categories without dropping any", async () => {
@@ -89,7 +133,7 @@ describe("structureLifeEvents — happy path", () => {
     const result = await structureLifeEvents("...", LOCAL_CFG);
     expect(result).toEqual({
       status: 'ok',
-      events: [{ date: "2018-11-01", category: "family_rupture", precision: 'exact' }],
+      events: [{ date: "2018-11-01", category: "family_rupture", precision: 'approx' }],
     });
     expect(lastSystemPrompt()).toContain("family_rupture");
   });
@@ -116,7 +160,7 @@ describe("structureLifeEvents — validation and filtering", () => {
       }),
     );
     const result = await structureLifeEvents("...", LOCAL_CFG);
-    expect(result).toEqual({ status: 'ok', events: [{ date: "2018-07-22", category: "marriage", precision: 'exact' }] });
+    expect(result).toEqual({ status: 'ok', events: [{ date: "2018-07-22", category: "marriage", precision: 'approx' }] });
   });
 
   it("drops an item with a year-only date like '2020'", async () => {
@@ -129,7 +173,7 @@ describe("structureLifeEvents — validation and filtering", () => {
       }),
     );
     const result = await structureLifeEvents("...", LOCAL_CFG);
-    expect(result).toEqual({ status: 'ok', events: [{ date: "2021-05-15", category: "promotion", precision: 'exact' }] });
+    expect(result).toEqual({ status: 'ok', events: [{ date: "2021-05-15", category: "promotion", precision: 'approx' }] });
   });
 
   it("drops an item with a natural-language date like 'tomorrow'", async () => {
@@ -150,7 +194,7 @@ describe("structureLifeEvents — validation and filtering", () => {
       }),
     );
     const result = await structureLifeEvents("...", LOCAL_CFG);
-    expect(result).toEqual({ status: 'ok', events: [{ date: "2022-03-14", category: "career_change", precision: 'exact' }] });
+    expect(result).toEqual({ status: 'ok', events: [{ date: "2022-03-14", category: "career_change", precision: 'approx' }] });
   });
 
   it("drops an item with an impossible calendar date like '2021-13-45' (month > 12, day > 31)", async () => {
@@ -164,7 +208,7 @@ describe("structureLifeEvents — validation and filtering", () => {
     );
     const result = await structureLifeEvents("...", LOCAL_CFG);
     // The impossible date must be dropped, only the valid one remains
-    expect(result).toEqual({ status: 'ok', events: [{ date: "2022-03-14", category: "career_change", precision: 'exact' }] });
+    expect(result).toEqual({ status: 'ok', events: [{ date: "2022-03-14", category: "career_change", precision: 'approx' }] });
   });
 
   it("drops items that are not objects", async () => {
@@ -172,7 +216,7 @@ describe("structureLifeEvents — validation and filtering", () => {
       JSON.stringify({ events: [null, 42, "string", { date: "2022-01-01", category: "surgery" }] }),
     );
     const result = await structureLifeEvents("...", LOCAL_CFG);
-    expect(result).toEqual({ status: 'ok', events: [{ date: "2022-01-01", category: "surgery", precision: 'exact' }] });
+    expect(result).toEqual({ status: 'ok', events: [{ date: "2022-01-01", category: "surgery", precision: 'approx' }] });
   });
 
   it("strips extra PII fields like name, place, notes — only date, category, precision survive", async () => {
@@ -195,23 +239,23 @@ describe("structureLifeEvents — validation and filtering", () => {
     if (result.status !== 'ok') return;
     expect(result.events).toHaveLength(1);
     expect(Object.keys(result.events[0]!)).toEqual(["date", "category", "precision"]);
-    expect(result.events[0]).toEqual({ date: "2020-01-01", category: "marriage", precision: 'exact' });
+    expect(result.events[0]).toEqual({ date: "2020-01-01", category: "marriage", precision: 'approx' });
   });
 
-  it("emits valid precision and defaults missing/invalid to exact", async () => {
+  it("emits valid precision and conservatively defaults missing/invalid to approx", async () => {
     mockChat.mockResolvedValue(
       JSON.stringify({
         events: [
           { date: "2010-06-01", category: "marriage", precision: "year" },
-          { date: "2018-03-15", category: "childbirth" },                         // missing precision → 'exact'
-          { date: "2020-09-20", category: "career_change", precision: "bogus" },  // invalid → 'exact'
+          { date: "2018-03-15", category: "childbirth" },                          // missing → conservative
+          { date: "2020-09-20", category: "career_change", precision: "bogus" },  // invalid → conservative
         ],
       }),
     );
     const res = await structureLifeEvents("...", LOCAL_CFG);
     expect(res.status).toBe('ok');
     if (res.status === 'ok') {
-      expect(res.events.map((e) => e.precision)).toEqual(['year', 'exact', 'exact']);
+      expect(res.events.map((e) => e.precision)).toEqual(['year', 'approx', 'approx']);
     }
   });
 });

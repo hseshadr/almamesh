@@ -37,6 +37,25 @@ interface ReportPdfRectificationProps {
   readonly data: ReportPdfData;
 }
 
+interface RectificationSubsectionHeadingProps {
+  readonly breakBefore?: boolean;
+  readonly heading?: string;
+}
+
+/** Keep a subsection label with enough following content for its table's first row. */
+function RectificationSubsectionHeading({
+  breakBefore = false,
+  heading,
+}: RectificationSubsectionHeadingProps): ReactElement {
+  return (
+    <View wrap={false} break={breakBefore}>
+      <Text style={styles.subLabel} minPresenceAhead={180}>
+        {heading}
+      </Text>
+    </View>
+  );
+}
+
 export function ReportPdfRectification({ data }: ReportPdfRectificationProps): ReactElement | null {
   const rectification = data.rectification;
   if (!rectification) {
@@ -62,7 +81,7 @@ export function ReportPdfRectification({ data }: ReportPdfRectificationProps): R
         ))}
       </View>
 
-      <Text style={styles.subLabel}>{rectification.eventsHeading}</Text>
+      <RectificationSubsectionHeading heading={rectification.eventsHeading} />
       {rectification.events.rows.length === 0 ? (
         <Text style={styles.detailNote}>{rectification.eventsEmpty}</Text>
       ) : (
@@ -72,19 +91,22 @@ export function ReportPdfRectification({ data }: ReportPdfRectificationProps): R
       {/* Phase 2 (Spec 062): the full evidence story from a v2 snapshot. */}
       {rectification.candidates !== undefined && (
         <>
-          <Text style={styles.subLabel}>{rectification.candidatesHeading}</Text>
+          <RectificationSubsectionHeading heading={rectification.candidatesHeading} />
           <ReportPdfTable table={rectification.candidates} />
         </>
       )}
       {rectification.evidence !== undefined && (
         <>
-          <Text style={styles.subLabel}>{rectification.evidenceHeading}</Text>
+          <RectificationSubsectionHeading
+            heading={rectification.evidenceHeading}
+            breakBefore
+          />
           <ReportPdfTable table={rectification.evidence} />
         </>
       )}
       {rectification.missNotes !== undefined && rectification.missNotes.length > 0 && (
         <>
-          <Text style={styles.subLabel}>{rectification.missesHeading}</Text>
+          <RectificationSubsectionHeading heading={rectification.missesHeading} />
           {rectification.missNotes.map((note) => (
             <Text key={note} style={styles.detailNote}>
               {note}

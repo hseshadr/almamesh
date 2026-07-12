@@ -26,6 +26,7 @@ import {
   useChartLibraryStore,
   useInterpretationStore,
   useLanguageStore,
+  usePredictiveStore,
   useProfilesStore,
   useRectificationRecordsStore,
 } from "@almamesh/store";
@@ -50,6 +51,7 @@ import { useContentModeStore } from "../stores/contentMode";
 import type { ViewMode } from "../lib/types";
 import {
   READING_MODEL_UNAVAILABLE,
+  currentInterpretationForChart,
   resolveInterpretationConfig,
   useStreamingInterpretation,
   withRawPredictive,
@@ -167,6 +169,7 @@ export default function DashboardPage() {
     error: streamingError,
     cancel: cancelStreaming,
   } = useStreamingInterpretation(chartId);
+  const predictiveRequestIdentity = usePredictiveStore((s) => s.requestKey);
 
   // The full persisted entry for the active chart: carries the reading's
   // provenance (which model wrote it) and updatedAt for the quiet caption
@@ -233,8 +236,7 @@ export default function DashboardPage() {
     // Reuse the already-generated natal reading (when complete) so a fast/small
     // chat model can lean on the frontier reading instead of re-deriving from raw
     // facts. Absent/incomplete → chat behaves exactly as before (facts only).
-    const interpEntry = chartId ? useInterpretationStore.getState().getEntry(chartId) : undefined;
-    const interp = interpEntry?.status === 'complete' ? interpEntry.interpretation : undefined;
+    const interp = currentInterpretationForChart(chartId);
     const interpretationText = interp
       ? serializeInterpretationForChat(interp, chatMode)
       : undefined;
@@ -355,6 +357,18 @@ export default function DashboardPage() {
 
   // Track if auto-generation has been triggered to prevent double-triggers
   const autoGenerationTriggeredRef = useRef(false);
+  const previousPredictiveRequestRef = useRef(predictiveRequestIdentity);
+  useEffect(() => {
+    if (previousPredictiveRequestRef.current === predictiveRequestIdentity) {
+      return;
+    }
+    previousPredictiveRequestRef.current = predictiveRequestIdentity;
+    // A different deterministic predictive input owns a fresh one-shot cycle.
+    // An old stream may still finish, but its provenance will be hidden; once
+    // that stream settles, this re-armed guard permits exactly one replacement.
+    autoGenerationTriggeredRef.current = false;
+    versionCheckRef.current = 'idle';
+  }, [predictiveRequestIdentity]);
   const astronomicalData = chartDetails || chartData?.chart_data?.astronomical_calculations;
 
   // Check if interpretation has actual content (not just placeholders).
@@ -391,11 +405,6 @@ export default function DashboardPage() {
       return;
     }
 
-    // Skip if already triggered auto-generation or currently checking versions.
-    if (autoGenerationTriggeredRef.current || versionCheckRef.current === 'checking') {
-      return;
-    }
-
     // If we already have a valid (complete) interpretation, keep it — UNLESS
     // the LLM config that produced it has changed (provenance mismatch; a
     // legacy pre-provenance reading counts as mismatched). With AI off the
@@ -407,12 +416,23 @@ export default function DashboardPage() {
       const configChanged =
         !storedProvenance || configFingerprint(storedProvenance) !== configFingerprint(config);
       if (!configChanged) {
+        // A successful, current reading completes the previous one-shot cycle.
+        // Reset only here (never on error) so a later predictive day/input can
+        // auto-regenerate once while a failed attempt still cannot spin.
+        autoGenerationTriggeredRef.current = false;
         versionCheckRef.current = 'done';
         return;
       }
       // Config changed: fall through to the single-shot trigger below. The refs
       // cap this at ONE auto-regeneration attempt per mount — a failed attempt
       // cannot retrigger.
+    }
+
+    // Skip if this input/config already consumed its one automatic attempt.
+    // This guard comes AFTER the successful-current branch above so completion
+    // can close that cycle and admit one attempt for a later predictive day.
+    if (autoGenerationTriggeredRef.current || versionCheckRef.current === 'checking') {
+      return;
     }
 
     // Local-first: there is no backend version store to consult — narration is

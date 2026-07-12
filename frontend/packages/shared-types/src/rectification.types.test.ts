@@ -1,14 +1,19 @@
 import { describe, it, expect, expectTypeOf } from 'vitest';
-import type { LifeEventCategory, EventDatePrecision, RectificationEventInput } from './index';
+import type {
+  CanonicalLifeEventDraft,
+  EventDatePrecision,
+  LifeEventCategory,
+  RectificationEventInput,
+} from './index';
 import { LIFE_EVENT_CATEGORIES } from './index';
 
 describe('rectification types', () => {
-  it('LIFE_EVENT_CATEGORIES contains all 16 life-event categories with correct exhaustiveness', () => {
+  it('LIFE_EVENT_CATEGORIES contains all 17 life-event categories with correct exhaustiveness', () => {
     // Value-guard: must be a readonly array of LifeEventCategory values
     const categories: readonly LifeEventCategory[] = LIFE_EVENT_CATEGORIES;
 
-    // Length check: exactly 16 categories
-    expect(categories).toHaveLength(16);
+    // Length check: exactly 17 categories
+    expect(categories).toHaveLength(17);
 
     // Verify the expected categories are present
     const expectedCategories: LifeEventCategory[] = [
@@ -28,6 +33,7 @@ describe('rectification types', () => {
       'surgery',
       'higher_studies',
       'litigation',
+      'family_rupture',
     ];
 
     expectedCategories.forEach((category) => {
@@ -43,5 +49,19 @@ describe('EventDatePrecision contract', () => {
   it('RectificationEventInput carries precision', () => {
     const ev: RectificationEventInput = { date: '2005-06-01', category: 'marriage', precision: 'year' };
     expectTypeOf(ev.precision).toEqualTypeOf<EventDatePrecision>();
+  });
+
+  it('separates local summaries from the engine input contract', () => {
+    const draft: CanonicalLifeEventDraft = {
+      date: '2005-06-01',
+      category: 'marriage',
+      precision: 'year',
+      summary: 'Married my partner',
+    };
+    expectTypeOf(draft.summary).toEqualTypeOf<string | undefined>();
+
+    // @ts-expect-error summaries are local/display data, never engine input
+    const wire: RectificationEventInput = { ...draft, summary: draft.summary };
+    expect(wire.date).toBe(draft.date);
   });
 });

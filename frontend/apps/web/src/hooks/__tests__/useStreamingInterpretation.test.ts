@@ -8,7 +8,7 @@
  * finished interpretation, the friendly fallback when no model is reachable, and
  * the fail-closed privacy surface.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 
 import {
@@ -44,7 +44,13 @@ import {
   LlmRequestError,
   type InterpretationEvent,
 } from '@almamesh/llm';
-import { useInterpretationStore, useLanguageStore } from '@almamesh/store';
+import {
+  predictiveRequestKey,
+  useInterpretationStore,
+  useLanguageStore,
+  usePredictiveStore,
+  useProfilesStore,
+} from '@almamesh/store';
 import type { VedicInterpretation } from '@almamesh/shared-types';
 
 const mockedStream = vi.mocked(streamStructuredInterpretation);
@@ -52,8 +58,21 @@ const mockedStream = vi.mocked(streamStructuredInterpretation);
 // A chart that carries the raw engine output the sanitizer needs.
 const CHART_WITH_RAW = {
   chart_id: 'chart-123',
+  profile_id: 'profile-123',
+  birth_data: {
+    birth_datetime_utc: '1990-03-30T06:45:00Z',
+    birth_location_details: { latitude: 12.97, longitude: 77.59 },
+  },
   sidereal_chart: { ayanamsa_value: 23.4, lagna: {}, planets: {}, houses: {}, yogas: [] },
 };
+
+const CURRENT_PREDICTIVE_KEY = predictiveRequestKey({
+  profileKey: 'profile-123',
+  datetimeUtc: '1990-03-30T06:45:00Z',
+  latitude: 12.97,
+  longitude: 77.59,
+  referenceInstant: '2026-07-12T00:00:00Z',
+});
 
 const SAMPLE_INTERPRETATION: VedicInterpretation = {
   summary: { layman: 'A grounded soul.', technical: 'A grounded soul.' },
@@ -89,6 +108,8 @@ function failingStream(error: Error): () => AsyncGenerator<InterpretationEvent> 
 
 describe('useStreamingInterpretation (structured, store-backed)', () => {
   beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date('2026-07-12T12:00:00Z'));
     vi.clearAllMocks();
     getChart.mockReturnValue(CHART_WITH_RAW);
     // Deterministic LLM settings: no browser-local overrides between tests.
@@ -97,6 +118,12 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
     useInterpretationStore.setState({ byChart: {} });
     // Reset the language preference to the English default for each test.
     useLanguageStore.setState({ language: 'en' });
+    useProfilesStore.setState({ activeProfileId: 'profile-123' });
+    usePredictiveStore.getState().reset();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('starts idle with no interpretation or error', () => {
@@ -431,6 +458,93 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
     expect(Object.keys(entry?.provenance ?? {}).sort()).toEqual(
       Object.keys(configProvenance(resolveInterpretationConfig())).sort(),
     );
+  });
+
+  it('records the exact predictive request key when predictive facts were narrated', async () => {
+    usePredictiveStore.setState({
+      status: 'ready',
+      profileKey: 'profile-123',
+      requestKey: CURRENT_PREDICTIVE_KEY,
+      rawContexts: {
+        transit_context: { instant: '2026-07-12T00:00:00Z' },
+        varga_context_full: { charts: {} },
+        strength_context: {},
+        domains_context: { forecasts: {} },
+      },
+    } as never);
+    mockedStream.mockImplementation(
+      eventStream([{ type: 'complete', interpretation: SAMPLE_INTERPRETATION }]),
+    );
+
+    const { result } = renderHook(() => useStreamingInterpretation('chart-123'));
+    await act(async () => {
+      await result.current.streamInterpretation('chart-123');
+    });
+
+    expect(useInterpretationStore.getState().getEntry('chart-123')?.inputProvenance).toEqual({
+      predictiveRequestKey: CURRENT_PREDICTIVE_KEY,
+    });
+  });
+
+  it('records explicit natal-only provenance when no matching predictive facts were narrated', async () => {
+    mockedStream.mockImplementation(
+      eventStream([{ type: 'complete', interpretation: SAMPLE_INTERPRETATION }]),
+    );
+
+    const { result } = renderHook(() => useStreamingInterpretation('chart-123'));
+    await act(async () => {
+      await result.current.streamInterpretation('chart-123');
+    });
+
+    expect(useInterpretationStore.getState().getEntry('chart-123')?.inputProvenance).toEqual({
+      predictiveRequestKey: null,
+    });
+  });
+
+  it('never exposes a predictive reading after its request key changes', () => {
+    useInterpretationStore.getState().setInterpretation(
+      'chart-123',
+      SAMPLE_INTERPRETATION,
+      '2026-07-11T00:00:00Z',
+      configProvenance(resolveInterpretationConfig()),
+      { predictiveRequestKey: '["profile-123","stale-birth","2026-07-11"]' },
+    );
+
+    const { result } = renderHook(() => useStreamingInterpretation('chart-123'));
+
+    expect(result.current.status).toBe('idle');
+    expect(result.current.interpretation).toBeUndefined();
+  });
+
+  it('never exposes a legacy reading whose predictive input is unknown', () => {
+    useInterpretationStore
+      .getState()
+      .setInterpretation(
+        'chart-123',
+        SAMPLE_INTERPRETATION,
+        '2026-07-11T00:00:00Z',
+        configProvenance(resolveInterpretationConfig()),
+      );
+
+    const { result } = renderHook(() => useStreamingInterpretation('chart-123'));
+
+    expect(result.current.status).toBe('idle');
+    expect(result.current.interpretation).toBeUndefined();
+  });
+
+  it('keeps an explicitly natal-only reading reusable across predictive day changes', () => {
+    useInterpretationStore.getState().setInterpretation(
+      'chart-123',
+      SAMPLE_INTERPRETATION,
+      '2026-07-11T00:00:00Z',
+      configProvenance(resolveInterpretationConfig()),
+      { predictiveRequestKey: null },
+    );
+
+    const { result } = renderHook(() => useStreamingInterpretation('chart-123'));
+
+    expect(result.current.status).toBe('complete');
+    expect(result.current.interpretation).toEqual(SAMPLE_INTERPRETATION);
   });
 
   it('keeps the previously completed reading when a regeneration fails', async () => {

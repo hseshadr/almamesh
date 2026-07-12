@@ -31,7 +31,7 @@ import {
   localizeSignal,
 } from '../../lib/rectifySignals';
 import { glyphSafe } from './glyphSafe';
-import type { ReportPdfRectification } from './types';
+import type { ReportPdfRectification, ReportPdfTable } from './types';
 
 /** The slice of a resolved life event the section prints (no ids, no PII keys). */
 export interface RectificationPdfEvent {
@@ -64,7 +64,7 @@ const EVENT_SUMMARY_MAX = 160;
  * already-concise summary passes through untouched.
  */
 function conciseSummary(raw: string): string {
-  const text = raw.replace(/\s+/g, ' ').trim();
+  const text = normalizedSummary(raw);
   if (text.length <= EVENT_SUMMARY_MAX) {
     return text;
   }
@@ -72,6 +72,78 @@ function conciseSummary(raw: string): string {
   const lastSpace = head.lastIndexOf(' ');
   const clipped = lastSpace > EVENT_SUMMARY_MAX * 0.6 ? head.slice(0, lastSpace) : head;
   return `${clipped.trimEnd()}…`;
+}
+
+function normalizedSummary(raw: string): string {
+  return raw.replace(/^\s*#{1,6}\s*/gm, '').replace(/\s+/g, ' ').trim();
+}
+
+function isLegacyFanOut(
+  raw: string,
+  events: ReadonlyArray<RectificationPdfEvent>,
+): boolean {
+  const listItems = raw.match(/(?:^|\n)\s*[-*•]\s+/g)?.length ?? 0;
+  if (listItems >= 2) return true;
+
+  const years = new Set(raw.match(/\b(?:19|20)\d{2}\b/g) ?? []);
+  const matchingEventYears = new Set(
+    events.map((event) => event.date.slice(0, 4)).filter((year) => years.has(year)),
+  );
+  return years.size >= 2 && matchingEventYears.size >= 2;
+}
+
+function repeatedLegacyFanOuts(
+  events: ReadonlyArray<RectificationPdfEvent>,
+): ReadonlySet<string> {
+  const groups = new Map<string, RectificationPdfEvent[]>();
+  for (const event of events) {
+    if (event.summary) {
+      const identity = normalizedSummary(event.summary);
+      groups.set(identity, [...(groups.get(identity) ?? []), event]);
+    }
+  }
+  return new Set(
+    [...groups]
+      .filter(([, matching]) => {
+        const raw = matching[0]?.summary;
+        return matching.length > 1 && raw !== undefined && isLegacyFanOut(raw, matching);
+      })
+      .map(([identity]) => identity),
+  );
+}
+
+function buildEventsTable(
+  events: ReadonlyArray<RectificationPdfEvent>,
+  t: TFunction,
+): ReportPdfTable {
+  const repeated = repeatedLegacyFanOuts(events);
+  const rows = events.map((event) => {
+    const summary = event.summary ? conciseSummary(event.summary) : undefined;
+    const identity = event.summary ? normalizedSummary(event.summary) : undefined;
+    return {
+      date: glyphSafe(event.date ? formatPredictiveDate(event.date) : '—'),
+      category: glyphSafe(event.category ? t(`rectify:categories.${event.category}`) : '—'),
+      summary: summary && identity && !repeated.has(identity) ? glyphSafe(summary) : undefined,
+    };
+  });
+  const hasSummary = rows.some((row) => row.summary !== undefined);
+  return hasSummary
+    ? {
+        headers: [
+          t('rectification.col_date'),
+          t('rectification.col_category'),
+          t('rectification.col_event'),
+        ].map((header) => glyphSafe(header)),
+        rows: rows.map((row) => ({ cells: [row.date, row.category, row.summary ?? '—'] })),
+        widths: [1, 1.4, 2.6],
+      }
+    : {
+        headers: [t('rectification.col_date'), t('rectification.col_event')].map((header) =>
+          glyphSafe(header),
+        ),
+        rows: rows.map((row) => ({ cells: [row.date, row.category] })),
+        widths: [1, 4],
+      };
 }
 
 /** "07:45 — Pisces rising", the honest "Not recorded", or the bare clock. */
@@ -232,21 +304,7 @@ export function buildRectificationPdf({
     },
     facts,
     eventsHeading: glyphSafe(t('rectification.events_heading')),
-    events: {
-      headers: [
-        t('rectification.col_date'),
-        t('rectification.col_category'),
-        t('rectification.col_event'),
-      ].map((header) => glyphSafe(header)),
-      rows: events.map((event) => ({
-        cells: [
-          glyphSafe(event.date ? formatPredictiveDate(event.date) : '—'),
-          glyphSafe(event.category ? t(`rectify:categories.${event.category}`) : '—'),
-          glyphSafe(event.summary ? conciseSummary(event.summary) : '—'),
-        ],
-      })),
-      widths: [1, 1.4, 2.6],
-    },
+    events: buildEventsTable(events, t),
     eventsEmpty: glyphSafe(t('rectification.events_empty')),
     caveat: glyphSafe(t('rectification.caveat')),
     ...buildSnapshotSlices(record, t),

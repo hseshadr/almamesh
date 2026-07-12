@@ -146,6 +146,11 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      # The maximal report-PDF unit gate renders real bytes, then uses Poppler
+      # bbox output to enforce A4 content bounds and pagination sentinels.
+      - name: Install Poppler PDF inspection tools
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends poppler-utils
+
       # THE frontend gate — the same single command a developer runs locally
       # (`make gate` fans out to it). Composition lives in ONE place,
       # frontend/package.json "gate": declarations build (composite project

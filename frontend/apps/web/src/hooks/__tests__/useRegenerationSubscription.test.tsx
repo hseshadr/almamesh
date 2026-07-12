@@ -23,7 +23,7 @@ vi.mock('../../providers/AlmaMeshRuntimeProvider', () => ({
   useChartEngine: () => engineValue,
 }));
 
-import { appEvents, type BirthInfoChanged } from '@almamesh/store';
+import { appEvents, usePredictiveStore, type BirthInfoChanged } from '@almamesh/store';
 import { useRegenerationSubscription } from '../useRegenerationSubscription';
 
 const fakeEngine = { generateChart: vi.fn() } as unknown as ChartEngine;
@@ -45,6 +45,7 @@ describe('useRegenerationSubscription — emit-before-subscribe race', () => {
   beforeEach(() => {
     regenerateSpy.mockClear();
     appEvents.all.clear();
+    usePredictiveStore.getState().reset();
   });
 
   afterEach(() => {
@@ -104,5 +105,48 @@ describe('useRegenerationSubscription — emit-before-subscribe race', () => {
     });
 
     expect(regenerateSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('invalidates predictive contexts after a birth change regenerates the chart', () => {
+    usePredictiveStore.setState({
+      status: 'ready',
+      profileKey: 'p1',
+      requestKey: 'old-natal-input',
+    });
+    engineValue = { engine: fakeEngine };
+    renderHook(() => useRegenerationSubscription(), { wrapper });
+
+    act(() => {
+      appEvents.emit('birth-info-changed', event);
+    });
+    const deps = regenerateSpy.mock.calls[0]?.[1] as { onRegenerated: () => void };
+    act(() => {
+      deps.onRegenerated();
+    });
+
+    expect(usePredictiveStore.getState().status).toBe('idle');
+    expect(usePredictiveStore.getState().requestKey).toBeUndefined();
+  });
+
+  it('preserves the active profile cache when another profile finishes regenerating', () => {
+    usePredictiveStore.setState({
+      status: 'ready',
+      profileKey: 'profile-b',
+      requestKey: 'profile-b-current-input',
+    });
+    engineValue = { engine: fakeEngine };
+    renderHook(() => useRegenerationSubscription(), { wrapper });
+
+    act(() => {
+      appEvents.emit('birth-info-changed', event);
+    });
+    const deps = regenerateSpy.mock.calls[0]?.[1] as { onRegenerated: () => void };
+    act(() => {
+      deps.onRegenerated();
+    });
+
+    expect(usePredictiveStore.getState().status).toBe('ready');
+    expect(usePredictiveStore.getState().profileKey).toBe('profile-b');
+    expect(usePredictiveStore.getState().requestKey).toBe('profile-b-current-input');
   });
 });
