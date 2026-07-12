@@ -886,6 +886,33 @@
   white-space: nowrap;
 }
 
+/* The calibrated Tier-M headline strength %: a numeric mark (NOT a fake badge in
+   place of the real number — see the text-by-design law above). Tabular figures
+   keep the percent aligned block-to-block; it reads a shade larger than the
+   letterpress band word beside it, because the % is now the headline. */
+.report-strength-pct {
+  font-variant-numeric: tabular-nums lining-nums;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--report-ink);
+}
+
+/* The two-axis ledger line (Śaḍbala % · Aṣṭakavarga %) under the headline — the
+   audit trail that shows WHY the headline is what it is. */
+.report-strength-ledger {
+  font-variant-numeric: tabular-nums lining-nums;
+  margin-bottom: 2px;
+}
+
+/* The epistemic-tier label ("model estimate — traditional weights"): quiet, small
+   caps, so every surfaced % visibly names that it is a model output, not a fact. */
+.report-strength-tier {
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--report-ink-faint, var(--report-ink-soft));
+}
+
 .report-domain-line {
   font-family: var(--report-sans);
   font-size: 0.78rem;

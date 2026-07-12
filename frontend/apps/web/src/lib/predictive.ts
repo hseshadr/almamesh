@@ -112,3 +112,13 @@ export function formatPredictiveDate(iso: string): string {
 export function formatRupas(value: number): string {
   return value.toFixed(2);
 }
+
+/**
+ * Display formatting for a calibrated strength percentage (0..100). The engine
+ * emits the full-precision, golden-locked value (e.g. 57.142857); the screen
+ * shows a whole-number mark (`57%`) — readable, and no false precision. Pure
+ * presentation — the exact engine value is untouched.
+ */
+export function formatPct(value: number): string {
+  return `${Math.round(value)}%`;
+}

@@ -27,7 +27,7 @@ import type {
 } from '@almamesh/shared-types';
 import { buildVargaGeometry } from '@almamesh/store';
 import { formatDegree } from '../../lib/reportData';
-import { formatPredictiveDate, formatRupas, toVargaChart } from '../../lib/predictive';
+import { formatPct, formatPredictiveDate, formatRupas, toVargaChart } from '../../lib/predictive';
 import {
   domainWindowLabel,
   grahaName,
@@ -408,9 +408,15 @@ export function buildDomainsSection(
     return {
       name: glyphSafe(tp(`domains.names.${domain}`)),
       band: glyphSafe(
-        `${tp('domains.band_label', { band: tp(`domains.band.${strength.band}`) })}${
+        `${formatPct(strength.strength_pct)} · ${tp(`domains.band.${strength.band}`)}${
           strength.approximated ? ' ≈' : ''
         }`,
+      ),
+      strengthAxes: glyphSafe(
+        `${tp('domains.strength_axes', {
+          shadbala: formatPct(strength.shadbala_pct),
+          sav: formatPct(strength.sav_pct),
+        })} · ${tp('domains.strength_tier_model')}`,
       ),
       strengthLine: glyphSafe(
         tp('domains.strength_line', {

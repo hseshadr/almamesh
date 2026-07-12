@@ -41,6 +41,13 @@ const local = StyleSheet.create({
     textTransform: 'uppercase',
     color: palette.brassDeep,
   },
+  axes: {
+    fontFamily: FONT_MONO,
+    fontSize: typeScale.micro,
+    color: palette.brassDeep,
+    lineHeight: 1.5,
+    marginBottom: 2,
+  },
   line: {
     fontSize: typeScale.caption,
     color: palette.ink,
@@ -70,6 +77,7 @@ function DomainCard({ block }: { block: ReportPdfDomainBlock }): ReactElement {
         <Text style={local.name}>{block.name}</Text>
         <Text style={local.band}>{block.band}</Text>
       </View>
+      <Text style={local.axes}>{block.strengthAxes}</Text>
       <Text style={local.line}>{block.strengthLine}</Text>
       <Text style={local.line}>{block.emphasisLine}</Text>
       <Text style={local.windowsLabel}>{block.windowsLabel}</Text>
