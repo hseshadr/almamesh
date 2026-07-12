@@ -50,7 +50,7 @@
   </head>
   <body class="font-sans antialiased bg-background-primary">
     <noscript>
-      <h1>AlmaMesh — free, local-first Vedic astrology that runs in your browser</h1>
+      <p><strong>AlmaMesh — free, local-first Vedic astrology that runs in your browser</strong></p>
       <p>
         AlmaMesh computes authentic Vedic (sidereal) astrology charts entirely on
         your device with transparent, open chart math (Skyfield / Pyodide). No
@@ -66,22 +66,11 @@
       </p>
     </noscript>
     <div id="root"></div>
-    <!-- Spec 064: dist/index.html carries the PRERENDERED LANDING markup, but
-         it is also the SPA fallback for every private deep link (_redirects
-         `/* /index.html 200` + the SW navigateFallback). Empty #root before
-         first paint on non-public paths so /dashboard etc. show the usual
-         boot spinner instead of a flash of the landing page. Runs inline +
-         synchronously on purpose; no CSP restriction applies (_headers). -->
-    <script>
-      (function () {
-        var path = location.pathname.replace(/\/+$/, '') || '/';
-        var publicPaths = ['/', '/welcome', '/privacy', '/terms', '/data-deletion'];
-        if (publicPaths.indexOf(path) === -1) {
-          var root = document.getElementById('root');
-          if (root) root.innerHTML = '';
-        }
-      })();
-    </script>
+    <!-- Registered private routes use dist/index.html as their app shell. Empty
+         the prerendered root synchronously so they show the normal boot state
+         instead of flashing the public landing page. The helper is external so
+         the enforced CSP does not need unsafe-inline executable scripts. -->
+    <script src="/app-shell-bootstrap.js"></script>
     <!--
       The PWA Service Worker (vite-plugin-pwa / Workbox) is registered from
       main.tsx with a prompt-driven update flow. Do NOT unregister it here:

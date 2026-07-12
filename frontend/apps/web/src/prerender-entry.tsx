@@ -4,7 +4,7 @@
  * marketing/legal shells to static HTML:
  *
  *   /              the landing (no-chart state — exactly what a crawler sees)
- *   /welcome       the same landing shell, stable/shareable
+ *   /welcome       the full explanatory landing, stable/shareable
  *   /privacy /terms /data-deletion   the legal pages
  *
  * It deliberately does NOT render `App.tsx` / `AppLayout` / the runtime
@@ -21,7 +21,7 @@
  * `src/prerender-entry.test.tsx` runs this same function under Vitest's plain
  * Node environment — the canary that keeps this graph SSR-safe.
  */
-import type { ComponentType } from 'react';
+import type { ComponentType, ReactElement } from 'react';
 // server.EDGE, not `react-dom/server`: under the client build's resolve
 // conditions Vite bundles react-dom-server.BROWSER, whose module scope creates
 // a `new MessageChannel()` — in Node that is a referenced libuv handle that
@@ -59,9 +59,17 @@ const engineStub: ChartEngineContextValue = {
   startBootstrap: () => {},
 };
 
+function HomeLanding(): ReactElement {
+  return <Landing variant="home" />;
+}
+
+function WelcomeLanding(): ReactElement {
+  return <Landing variant="welcome" />;
+}
+
 const PAGES: Readonly<Record<string, ComponentType>> = {
-  '/': Landing,
-  '/welcome': Landing,
+  '/': HomeLanding,
+  '/welcome': WelcomeLanding,
   '/privacy': PrivacyPolicy,
   '/terms': TermsOfService,
   '/data-deletion': DataDeletion,
@@ -92,10 +100,7 @@ export async function prerender(data: { url: string }): Promise<PrerenderResult>
   }
   await i18n.changeLanguage('en');
 
-  const requested = normalizePath(data.url);
-  // Unknown paths (the plugin should never ask, but be deterministic) fall
-  // back to the landing shell — the same thing the SPA fallback serves.
-  const path = PUBLIC_ROUTE_PATHS.includes(requested) ? requested : '/';
+  const path = normalizePath(data.url);
   const Page = PAGES[path];
   const head = getRouteHead(path);
   if (!Page || !head) {
