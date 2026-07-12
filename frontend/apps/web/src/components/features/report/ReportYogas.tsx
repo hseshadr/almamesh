@@ -14,8 +14,51 @@ import { useTranslation } from 'react-i18next';
 import type { YogaData } from '@almamesh/browser/types';
 import type { VedicInterpretation } from '@almamesh/shared-types';
 import { personaText, type ReportAudience } from '../../../lib/reportSelectors';
+import { hasStrength, signedMark, yogaStrength } from '../../../lib/yogaStrength';
 import { ReportProse } from './ReportProse';
 import { ReportSectionHeading } from './ReportSectionHeading';
+
+const capitalize = (word: string): string =>
+  word ? word.charAt(0).toUpperCase() + word.slice(1) : word;
+
+/**
+ * The calibrated STRUCTURAL strength mark: a "NN% · band" headline, a
+ * "structural estimate" tier label, and the signed factor ledger — all
+ * anchored to the engine's own marks (never a fabricated precision score).
+ * Renders nothing for bundles stored before the calibrated-strength upgrade.
+ */
+function YogaStrengthMark({ yoga }: { readonly yoga: YogaData }): ReactElement | null {
+  const { t } = useTranslation('report');
+  if (!hasStrength(yoga)) {
+    return null;
+  }
+  const strength = yogaStrength(yoga);
+  const band = t(`yogas.grade.${strength.band}`);
+  const summaryKey = strength.net >= 0 ? 'yogas.strength.summary_max' : 'yogas.strength.summary_min';
+  return (
+    <div className="report-yoga-strength" data-testid="report-yoga-strength">
+      <span
+        className="report-strength-pct"
+        aria-label={t('yogas.strength.aria', { pct: strength.pct, band })}
+      >
+        {strength.pct}%<span className="report-strength-band"> · {band}</span>
+      </span>
+      <span className="report-strength-tier">{t('yogas.strength.tier')}</span>
+      {strength.entries.length > 0 ? (
+        <p className="report-strength-ledger">
+          {strength.entries.map((entry, index) => (
+            <span key={`${entry.planet}-${entry.value}-${index}`}>
+              {index > 0 ? ' · ' : ''}
+              {capitalize(entry.planet)} {entry.value} {signedMark(entry.mark)}
+            </span>
+          ))}
+          {' → '}
+          {t(summaryKey, { net: signedMark(strength.net), bound: signedMark(strength.bound) })}
+        </p>
+      ) : null}
+    </div>
+  );
+}
 
 interface ReportYogasProps {
   readonly yogas: readonly YogaData[];
@@ -73,6 +116,7 @@ export function ReportYogas({ yogas, interpretation, audience }: ReportYogasProp
                     {t(`yogas.grade.${yoga.grade}`)}
                   </span>
                 </div>
+                <YogaStrengthMark yoga={yoga} />
                 {yoga.description ? (
                   <p className="report-yoga-desc">{yoga.description}</p>
                 ) : null}

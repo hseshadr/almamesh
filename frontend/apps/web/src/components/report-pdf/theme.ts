@@ -669,6 +669,23 @@ export const styles = StyleSheet.create({
     textTransform: 'uppercase',
     color: palette.brassDeep,
   },
+  /* Calibrated structural strength headline (NN% · band · structural estimate). */
+  yogaPct: {
+    marginBottom: 3,
+    fontFamily: FONT_MONO,
+    fontSize: type.micro,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+    color: palette.brassDeep,
+  },
+  /* The signed factor ledger, auditable to the %. */
+  yogaLedger: {
+    marginBottom: 3,
+    fontFamily: FONT_MONO,
+    fontSize: type.micro,
+    letterSpacing: 0.4,
+    color: palette.faint,
+  },
   yogaDesc: {
     fontSize: type.small,
     color: palette.ink,

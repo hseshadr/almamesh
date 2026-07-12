@@ -932,6 +932,11 @@ export interface YogaStrengthFactorData {
   planet: PlanetName;
   value: string;
   basis: string;
+  /**
+   * The signed ±1 this factor contributes to the yoga's net marks (0 = neutral).
+   * Additive; absent on bundles stored before the calibrated-strength upgrade.
+   */
+  mark?: number;
 }
 
 /** An explicit formation clause that fired, with its classical source. */
@@ -957,6 +962,17 @@ export interface YogaData {
   effects: string;
   grade: YogaGrade;
   strength_factors: YogaStrengthFactorData[];
+  /**
+   * Calibrated STRUCTURAL strength (rigor-upgrade §A.1, Tier S) — a Layer-2
+   * MODEL output over the ±1 mark lattice, never a measured fact. All additive;
+   * absent on bundles stored before the upgrade. `strength_pct` is anchored to
+   * this yoga's OWN max-favorable/max-unfavorable achievable range.
+   */
+  net_marks?: number;
+  max_favorable?: number;
+  max_unfavorable?: number;
+  strength_pct?: number;
+  strength_tier?: 'structural';
   planets_involved: PlanetName[];
   houses_involved: number[];
   planetary_signature: string;

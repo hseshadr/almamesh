@@ -334,7 +334,15 @@ function toYogaData(yoga: EngineYogaData): YogaData {
       planet: factor.planet as PlanetName,
       value: factor.value,
       basis: factor.basis,
+      mark: factor.mark,
     })),
+    // Calibrated structural strength — carried verbatim; the engine anchors and
+    // computes it (backend yogas/factors.favorability), the UI never re-derives.
+    net_marks: yoga.net_marks,
+    max_favorable: yoga.max_favorable,
+    max_unfavorable: yoga.max_unfavorable,
+    strength_pct: yoga.strength_pct,
+    strength_tier: yoga.strength_tier,
     planets_involved: yoga.planets_involved.map((p) => p as PlanetName),
     houses_involved: [...yoga.houses_involved],
     planetary_signature: yoga.planetary_signature,

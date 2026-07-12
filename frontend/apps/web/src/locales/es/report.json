@@ -104,7 +104,13 @@
       "moderate": "moderado",
       "weak": "débil"
     },
-    "grade_aria": "Grado del yoga: {{grade}}"
+    "grade_aria": "Grado del yoga: {{grade}}",
+    "strength": {
+      "tier": "estimación estructural",
+      "summary_max": "neto {{net}} de máx. {{bound}}",
+      "summary_min": "neto {{net}} de mín. {{bound}}",
+      "aria": "Estimación de fuerza estructural: {{pct}} por ciento, {{band}}"
+    }
   },
   "dasha": {
     "heading": "Daśā Vimshottari",

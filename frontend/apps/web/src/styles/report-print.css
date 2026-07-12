@@ -615,8 +615,9 @@
   color: var(--report-ink);
 }
 
-/* The engine's qualitative grade as a small-caps typographic mark — a
-   letterpress word (strong / moderate / weak), never a number or a web badge. */
+/* The engine's qualitative grade as a small-caps typographic mark. The calibrated
+   strength_pct renders as its own calibrated numeric mark (see .report-strength-pct);
+   this word remains a word — never a fake badge/number in place of the real %. */
 .report-yoga-grade {
   font-family: var(--report-sans);
   font-size: 0.66rem;
@@ -625,6 +626,54 @@
   text-transform: uppercase;
   color: var(--report-gold-deep);
   white-space: nowrap;
+}
+
+/* The calibrated STRUCTURAL strength (rigor-upgrade §A.1, Tier S): a real,
+   anchored, golden-locked %+band with its epistemic tier and signed factor
+   ledger — the opposite of the banned uncalibrated "77.9". Sits between the
+   grade word and the description. */
+.report-yoga-strength {
+  margin: 5px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.report-strength-pct {
+  font-family: var(--report-sans);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--report-gold-deep);
+  white-space: nowrap;
+}
+
+.report-strength-band {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+/* The epistemic tier — a quiet small-caps label so the % never over-claims. */
+.report-strength-tier {
+  font-family: var(--report-sans);
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--report-ink-faint, var(--report-ink-soft));
+  white-space: nowrap;
+}
+
+/* The signed factor ledger — engine marks, each auditable to the %. */
+.report-strength-ledger {
+  flex-basis: 100%;
+  margin: 3px 0 0;
+  max-width: var(--report-measure);
+  font-family: var(--report-mono, var(--report-sans));
+  font-size: 0.72rem;
+  color: var(--report-ink-soft);
 }
 
 .report-yoga-desc {
