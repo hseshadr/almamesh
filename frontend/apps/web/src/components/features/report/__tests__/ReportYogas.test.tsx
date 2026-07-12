@@ -1,18 +1,26 @@
 /**
- * ReportYogas — the calibrated STRUCTURAL strength slot (rigor-upgrade Stage 1).
+ * ReportYogas — the calibrated STRUCTURAL strength slot (rigor-upgrade Stage 1)
+ * AND the per-yoga birth-time stability chip (Stage-4 stable-vs-lagna).
  *
- * Drives the real component with the real i18n config (English), so the
- * assertions target the rendered report exactly as a reader sees it: the
- * "NN% · band" headline, the "structural estimate" tier label, and the signed
- * factor ledger. Bundles stored before the upgrade (no strength fields) must
- * render NO strength block — the presence guard, verified.
+ * Both suites drive the real component with the real i18n config (English), so
+ * the assertions target the rendered report exactly as a reader sees it.
+ *
+ * Stage 1: the "NN% · band" headline, the "structural estimate" tier label, and
+ * the signed factor ledger. Bundles stored before the upgrade (no strength
+ * fields) must render NO strength block — the presence guard, verified.
+ *
+ * Stage 4: when a per-claim stability marker is supplied, each yoga shows an
+ * honest "birth-time stable / sensitive" WORD (never a number). Absent a marker
+ * (older stored payloads), no chip renders and the grade still shows. Synthetic
+ * data only.
  */
 import '../../../../i18n/config';
 import { describe, expect, it } from 'vitest';
-import { render, within } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import type { YogaData, YogaStrengthFactor } from '@almamesh/browser/types';
 
 import { ReportYogas } from '../ReportYogas';
+import { reportStabilityMarkers, yogaClaimId } from '../../../../lib/stability';
 
 const factor = (
   factor_type: string,
@@ -88,5 +96,44 @@ describe('ReportYogas — calibrated structural strength', () => {
     const { getByTestId } = render(<ReportYogas yogas={[weak]} audience="you" />);
     const text = within(getByTestId('report-yoga-strength')).getByText(/net −2 of min −2/);
     expect(text).toBeTruthy();
+  });
+});
+
+const YOGA = {
+  name: 'gaja_kesari',
+  display_name: 'Gaja-Kesari',
+  category: 'raja',
+  description: 'A benefic Moon–Jupiter configuration.',
+  effects: 'Wisdom and standing.',
+  grade: 'strong',
+  strength_factors: [],
+  planets_involved: ['Jupiter', 'Moon'],
+  houses_involved: [1],
+  planetary_signature: 'gk-sig',
+  formation_rules: [{ rule: 'r', description: 'd', source: 'BPHS', planets: [], houses: [] }],
+} as unknown as YogaData;
+
+describe('ReportYogas — stability chip', () => {
+  it('marks a yoga birth-time STABLE when the lagna is clear of a cusp', () => {
+    const stability = reportStabilityMarkers([yogaClaimId('gaja_kesari')], false);
+    render(<ReportYogas yogas={[YOGA]} audience="you" stability={stability} />);
+    const chip = screen.getByTestId('report-stability-chip');
+    expect(chip.getAttribute('data-variant')).toBe('stable');
+    expect(chip.textContent).toContain('stable');
+  });
+
+  it('marks a yoga birth-time SENSITIVE when the lagna sits on a cusp', () => {
+    const stability = reportStabilityMarkers([yogaClaimId('gaja_kesari')], true);
+    render(<ReportYogas yogas={[YOGA]} audience="you" stability={stability} />);
+    const chip = screen.getByTestId('report-stability-chip');
+    expect(chip.getAttribute('data-variant')).toBe('sensitive');
+    expect(chip.textContent).toContain('sensitive');
+  });
+
+  it('renders no chip when no stability marker is supplied', () => {
+    render(<ReportYogas yogas={[YOGA]} audience="you" />);
+    expect(screen.queryByTestId('report-stability-chip')).toBeNull();
+    // the grade still renders
+    expect(screen.getByTestId('report-yogas').textContent).toContain('strong');
   });
 });

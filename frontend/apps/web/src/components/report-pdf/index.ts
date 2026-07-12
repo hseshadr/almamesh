@@ -13,6 +13,7 @@ export { buildRectificationPdf } from './buildRectificationPdf';
 export type { BuildRectificationPdfInput, RectificationPdfEvent } from './buildRectificationPdf';
 export type { ReportPdfTranslators } from './buildComprehensiveSections';
 export type {
+  ReportPdfAssumptions,
   ReportPdfData,
   ReportPdfDetail,
   ReportPdfLabels,

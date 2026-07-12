@@ -17,6 +17,7 @@ import type {
 } from '@almamesh/shared-types';
 import type {
   BirthDetailLabels,
+  ReportPdfAssumptions,
   ReportPdfLabels,
   ReportPdfRectification,
   ReportPdfTranslators,
@@ -74,6 +75,8 @@ export interface DownloadReportPdfInput {
   };
   /** Pre-localized Birth Time Authority slice (when a rectification exists). */
   readonly rectification?: ReportPdfRectification;
+  /** Pre-localized assumptions & provenance section (Section XIII). */
+  readonly assumptions?: ReportPdfAssumptions;
   /** The download file name (without extension). */
   readonly fileBaseName: string;
 }
@@ -106,6 +109,7 @@ export async function downloadReportPdf(input: DownloadReportPdfInput): Promise<
     chromeLabels: input.chrome.chromeLabels,
     comprehensive: input.comprehensive,
     rectification: input.rectification,
+    assumptions: input.assumptions,
   });
 
   const blob = await pdf(<ReportDocument data={data} />).toBlob();

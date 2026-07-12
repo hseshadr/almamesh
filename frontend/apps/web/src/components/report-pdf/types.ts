@@ -284,6 +284,16 @@ export interface ReportPdfRectification {
   readonly priorNote?: string;
 }
 
+/**
+ * Section XIII — Assumptions & Provenance. The four load-bearing choices every
+ * verdict rests on (ayanāṁśa, house system, birth time, ascendant cusp), each a
+ * finished label→value string. Assembled from existing provenance; invents nothing.
+ */
+export interface ReportPdfAssumptions {
+  readonly chrome: ReportPdfSectionChrome;
+  readonly rows: ReadonlyArray<ReportPdfLabeledValue>;
+}
+
 /** The cover + birth-details slice (the foundation; more sections follow). */
 export interface ReportPdfData {
   /** Document title / person name. */
@@ -340,6 +350,8 @@ export interface ReportPdfData {
   readonly strength?: ReportPdfStrength;
   readonly domains?: ReportPdfDomains;
   readonly rectification?: ReportPdfRectification;
+  /** Section XIII — assumptions & provenance (assembled; present when supplied). */
+  readonly assumptions?: ReportPdfAssumptions;
 
   /** Localized static labels the document needs (keeps i18n out of the PDF layer). */
   readonly labels: ReportPdfLabels;

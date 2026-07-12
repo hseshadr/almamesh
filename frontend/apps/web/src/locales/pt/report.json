@@ -229,5 +229,25 @@
   },
   "footer": {
     "provenance": "Calculado com o ayanamsa Lahiri · AlmaMesh"
+  },
+  "stability": {
+    "stable": "estável quanto à hora",
+    "stable_aria": "Este veredito não depende da sua hora exata de nascimento",
+    "sensitive": "sensível à hora",
+    "sensitive_aria": "Perto de um limite de signo — este veredito pode mudar com uma pequena correção da hora de nascimento"
+  },
+  "assumptions": {
+    "heading": "Pressupostos e proveniência",
+    "intro": "Cada veredito deste relatório assenta nestas quatro escolhas. São indicadas com clareza para que nada fique oculto.",
+    "ayanamsa_label": "Ayanāṁśa (ponto zero sideral)",
+    "ayanamsa_value": "Lahiri (Chitrapaksha) — a convenção sideral oficial",
+    "house_system_label": "Sistema de casas",
+    "house_system_value": "Casas de signo inteiro (cada casa é um signo inteiro a partir do ascendente)",
+    "time_label": "Hora de nascimento",
+    "time_recorded": "Usada como registrada (sem retificação)",
+    "time_rectified": "Inserida {{entered}} → mapa calculado para {{rectified}}",
+    "cusp_label": "Proximidade do ascendente à cúspide",
+    "cusp_near": "≈{{degrees}}° do limite de {{sign}} — as posições de casa são sensíveis à hora",
+    "cusp_clear": "Longe de qualquer limite de signo — o signo ascendente é inequívoco"
   }
 }

@@ -26,6 +26,7 @@ import {
 import type { ReportAudience } from '../../lib/reportSelectors';
 import { rectificationDelta, type RectificationDelta } from '../../lib/rectification';
 import type {
+  ReportPdfAssumptions,
   ReportPdfData,
   ReportPdfDetail,
   ReportPdfLabels,
@@ -115,6 +116,11 @@ export interface BuildReportPdfDataInput {
    * OPTIONAL: present only when a confirmed rectification record exists.
    */
   readonly rectification?: ReportPdfRectification;
+  /**
+   * The assumptions & provenance section (Section XIII), pre-localized in React.
+   * OPTIONAL — omitted entirely when not supplied, exactly like the other slices.
+   */
+  readonly assumptions?: ReportPdfAssumptions;
 }
 
 /**
@@ -153,6 +159,25 @@ function buildBirthDetails(input: BuildReportPdfDataInput): ReadonlyArray<Report
     { label: detailLabels.placeOfBirth, value: glyphSafe(place || '—') },
     { label: detailLabels.ascendant, value: ascendant, mono: true },
   ];
+}
+
+/** Glyph-safe the assumptions section (chrome + rows), or drop it when absent. */
+function buildAssumptions(input: BuildReportPdfDataInput): ReportPdfAssumptions | undefined {
+  const source = input.assumptions;
+  if (!source) {
+    return undefined;
+  }
+  return {
+    chrome: {
+      eyebrow: glyphSafe(source.chrome.eyebrow),
+      title: glyphSafe(source.chrome.title),
+      intro: source.chrome.intro ? glyphSafe(source.chrome.intro) : undefined,
+    },
+    rows: source.rows.map((row) => ({
+      label: glyphSafe(row.label),
+      value: glyphSafe(row.value),
+    })),
+  };
 }
 
 /** Glyph-safe every chrome label so the PDF layer renders verbatim strings. */
@@ -208,6 +233,7 @@ export function buildReportPdfData(input: BuildReportPdfDataInput): ReportPdfDat
         ? buildDomainsSection(comprehensive.domainsCtx, comprehensive.translators)
         : undefined,
     rectification: input.rectification,
+    assumptions: buildAssumptions(input),
     labels: safeLabels(input.chromeLabels),
   };
 }

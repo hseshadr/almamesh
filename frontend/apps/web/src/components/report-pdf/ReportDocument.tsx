@@ -36,6 +36,7 @@ import {
 import { ReportPdfStrength } from './sections/ReportPdfStrength';
 import { ReportPdfDomains } from './sections/ReportPdfDomains';
 import { ReportPdfRectification } from './sections/ReportPdfRectification';
+import { ReportPdfAssumptions } from './sections/ReportPdfAssumptions';
 
 interface ReportDocumentProps {
   readonly data: ReportPdfData;
@@ -151,6 +152,13 @@ export function ReportDocument({ data }: ReportDocumentProps): ReactElement {
       {data.rectification ? (
         <Page size="A4" style={styles.page}>
           <ReportPdfRectification data={data} />
+          {footer}
+        </Page>
+      ) : null}
+
+      {data.assumptions ? (
+        <Page size="A4" style={styles.page}>
+          <ReportPdfAssumptions data={data} />
           {footer}
         </Page>
       ) : null}
