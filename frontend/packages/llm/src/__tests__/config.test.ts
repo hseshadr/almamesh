@@ -15,8 +15,11 @@ describe("isLocalEndpoint — mirrors backend _is_local_endpoint/_is_private_ip"
     "http://10.0.0.5:1234/v1",
     "http://192.168.1.10/v1",
     "http://172.16.5.4/v1",
+    "http://172.31.255.255/v1", // upper bound of the 172.16/12 private block
     "http://my-box.local/v1",
     "http://[::1]:11434/v1",
+    "http://[fc00::1]:11434/v1", // IPv6 unique-local (fc00::/7)
+    "http://[fe80::1]/v1", // IPv6 link-local
   ])("treats %s as local", (url) => {
     expect(isLocalEndpoint(url)).toBe(true);
   });
@@ -28,6 +31,16 @@ describe("isLocalEndpoint — mirrors backend _is_local_endpoint/_is_private_ip"
     "http://172.32.0.1/v1", // just outside the 172.16/12 private block
     undefined,
     "not a url",
+    // Spoofed "local-looking" hosts that must NOT bypass the local_only gate:
+    // an unanchored IPv4 test or a hostname startsWith("fc"/"fd"/"fe80") would
+    // wrongly pass and leak the (redacted) chart to the attacker origin.
+    "http://127.0.0.1.evil.com/v1",
+    "http://10.0.0.1.attacker.com/v1",
+    "http://192.168.1.1.evil.com/v1",
+    "http://169.254.169.254.evil.com/v1", // cloud-metadata-shaped label spoof
+    "http://fc2.com/v1",
+    "http://fd-cdn.com/v1",
+    "http://fe80.example.com/v1",
   ])("treats %s as non-local", (url) => {
     expect(isLocalEndpoint(url)).toBe(false);
   });

@@ -96,11 +96,26 @@ function normalizeKnownBase(base: string | undefined): string | undefined {
 const PRIVATE_IPV4 =
   /^(127\.|10\.|192\.168\.|169\.254\.|172\.(1[6-9]|2\d|3[0-1])\.)/;
 
+// A syntactic IPv4 literal: exactly four dotted 0-255 octets. This gate is what
+// keeps the range checks from being fooled by a hostname that merely *starts*
+// with a private prefix — e.g. `127.0.0.1.evil.com` is NOT four octets, so it is
+// never treated as local (fail closed).
+function isIpv4Literal(host: string): boolean {
+  const octets = host.split(".");
+  return octets.length === 4 && octets.every((o) => /^\d{1,3}$/.test(o) && Number(o) <= 255);
+}
+
 function isPrivateIp(host: string): boolean {
-  if (PRIVATE_IPV4.test(host)) {
-    return true;
+  // RFC 1918 / loopback ranges apply ONLY to real IPv4 literals.
+  if (isIpv4Literal(host)) {
+    return PRIVATE_IPV4.test(host);
   }
-  // IPv6 loopback / unique-local / link-local.
+  // IPv6 loopback / unique-local / link-local — a real domain never contains
+  // ":", so only bracket-stripped IPv6 literals reach the prefix test (a plain
+  // `fc2.com` / `fe80.example.com` hostname is correctly rejected).
+  if (!host.includes(":")) {
+    return false;
+  }
   const h = host.toLowerCase();
   return h === "::1" || h.startsWith("fc") || h.startsWith("fd") || h.startsWith("fe80");
 }
