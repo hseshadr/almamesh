@@ -641,6 +641,13 @@ export interface StrengthSummaryData {
   key_graha_meets_minimum: boolean;
   sav_bindus: number;
   band: StrengthBand;
+  // Calibrated Tier-M strength %s (rigor spec §A.1/§A.2): two anchored, monotonic
+  // axes (Shadbala pass-line 60%, SAV midpoint 50%) + their min()-combiner
+  // headline. `strength_tier` is a Layer-2 model over exact BPHS inputs.
+  shadbala_pct: number;
+  sav_pct: number;
+  strength_pct: number;
+  strength_tier: 'model';
   approximated: boolean;
   note: string;
 }

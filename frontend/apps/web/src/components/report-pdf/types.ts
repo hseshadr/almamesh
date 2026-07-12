@@ -230,7 +230,8 @@ export interface ReportPdfStrength {
 /** One life-domain forecast block, fully pre-formatted. */
 export interface ReportPdfDomainBlock {
   readonly name: string;
-  readonly band: string;
+  readonly band: string; // calibrated headline "{pct} · {band word}" (rigor spec §A.1)
+  readonly strengthAxes: string; // two-axis ledger "Śaḍbala {pct} · Aṣṭakavarga {pct} — model estimate"
   readonly strengthLine: string;
   readonly emphasisLine: string;
   readonly windowsLabel: string;

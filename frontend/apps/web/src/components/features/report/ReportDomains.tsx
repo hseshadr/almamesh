@@ -8,7 +8,7 @@
 import type { ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { DomainsCtx, LifeDomainForecastData } from '@almamesh/shared-types';
-import { formatPredictiveDate, formatRupas } from '../../../lib/predictive';
+import { formatPct, formatPredictiveDate, formatRupas } from '../../../lib/predictive';
 import { domainWindowLabel, grahaName } from '../../../lib/predictiveEventCopy';
 import { DOMAIN_ORDER } from '../predictive/DomainsPanel';
 import { ReportSectionHeading } from './ReportSectionHeading';
@@ -23,10 +23,20 @@ function DomainBlock({ forecast }: { forecast: LifeDomainForecastData }): ReactE
       <div className="report-domain-head">
         <h3>{tp(`domains.names.${forecast.domain}`)}</h3>
         <span className="report-domain-band">
-          {tp('domains.band_label', { band: tp(`domains.band.${strength.band}`) })}
+          <span className="report-strength-pct">{formatPct(strength.strength_pct)}</span>
+          {' · '}
+          {tp(`domains.band.${strength.band}`)}
           {strength.approximated ? ' ≈' : ''}
         </span>
       </div>
+      <p className="report-domain-line report-strength-ledger">
+        {tp('domains.strength_axes', {
+          shadbala: formatPct(strength.shadbala_pct),
+          sav: formatPct(strength.sav_pct),
+        })}
+        {' · '}
+        <span className="report-strength-tier">{tp('domains.strength_tier_model')}</span>
+      </p>
       <p className="report-domain-line">
         {tp('domains.strength_line', {
           graha: grahaName(tp, strength.key_graha),

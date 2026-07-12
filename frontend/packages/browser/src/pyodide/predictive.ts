@@ -307,6 +307,13 @@ export interface StrengthSummary {
   readonly key_graha_meets_minimum: boolean;
   readonly sav_bindus: number;
   readonly band: StrengthBand;
+  // Calibrated Tier-M strength %s (rigor spec §A.1/§A.2): two anchored, monotonic
+  // axes + their min()-combiner headline. `strength_tier` is always "model" — a
+  // Layer-2 model over exact BPHS inputs, never a measured fact.
+  readonly shadbala_pct: number;
+  readonly sav_pct: number;
+  readonly strength_pct: number;
+  readonly strength_tier: 'model';
   readonly approximated: boolean;
   readonly note: string;
 }
