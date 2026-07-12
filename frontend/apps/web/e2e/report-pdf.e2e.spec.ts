@@ -320,6 +320,20 @@ test('REAL onboarding -> rectify (persists) -> natal-only PDF is correct', async
   const downloadBtn = page.getByTestId('report-download-pdf');
   await expect(downloadBtn).toBeVisible({ timeout: 30_000 });
   await expect(page.getByTestId('report-document')).toBeVisible({ timeout: 30_000 });
+
+  // Stage-4 stable-vs-lagna: the assumptions & provenance panel ALWAYS renders
+  // (ayanāṁśa, whole-sign, entered-vs-rectified, cusp proximity), and every yoga
+  // carries an honest birth-time stability chip (a word, never a number).
+  await expect(page.getByTestId('report-assumptions')).toBeVisible({ timeout: 30_000 });
+  expect(
+    (await page.getByTestId('report-assumptions-house-system').textContent())?.toLowerCase(),
+    'the assumptions panel must name the whole-sign house system',
+  ).toContain('whole-sign');
+  await expect(
+    page.getByTestId('report-stability-chip').first(),
+    'each yoga must carry a birth-time stability chip',
+  ).toBeVisible({ timeout: 30_000 });
+
   await page.screenshot({ path: REPORT_SHOT, fullPage: true });
 
   const [download]: [Download, void] = await Promise.all([
@@ -371,6 +385,13 @@ test('REAL onboarding -> rectify (persists) -> natal-only PDF is correct', async
   // The dasha section header renders as "Vimshottari Dasa" (engine spelling).
   expect(pdfText.toLowerCase(), 'PDF must include the Vimshottari dasa section').toMatch(/vimshottari|dasa/);
   expect(pdfText.toLowerCase(), 'PDF must include the yogas section').toContain('yoga');
+  // 5e. The PDF mirrors the Stage-4 assumptions & provenance section.
+  expect(pdfText.toLowerCase(), 'PDF must mirror the assumptions & provenance section').toContain(
+    'provenance',
+  );
+  expect(pdfText.toLowerCase(), 'the PDF assumptions must name the whole-sign house system').toContain(
+    'whole-sign',
+  );
 
   // Surface the load-bearing lines in the test log as evidence.
   console.log('[report-pdf] generated-on date :', JSON.stringify(dateLine || todayLong));

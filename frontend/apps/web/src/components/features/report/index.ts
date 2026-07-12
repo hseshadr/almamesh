@@ -20,4 +20,6 @@ export { ReportStrength } from './ReportStrength';
 export { ReportDomains } from './ReportDomains';
 export { ReportInterpretation } from './ReportInterpretation';
 export { ReportProse } from './ReportProse';
+export { ReportAssumptions } from './ReportAssumptions';
+export { StabilityChip } from './StabilityChip';
 export { ReportFooter } from './ReportFooter';

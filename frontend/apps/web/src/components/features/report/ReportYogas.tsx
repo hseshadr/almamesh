@@ -15,8 +15,10 @@ import type { YogaData } from '@almamesh/browser/types';
 import type { VedicInterpretation } from '@almamesh/shared-types';
 import { personaText, type ReportAudience } from '../../../lib/reportSelectors';
 import { hasStrength, signedMark, yogaStrength } from '../../../lib/yogaStrength';
+import { yogaClaimId, type StabilityMarker } from '../../../lib/stability';
 import { ReportProse } from './ReportProse';
 import { ReportSectionHeading } from './ReportSectionHeading';
+import { StabilityChip } from './StabilityChip';
 
 const capitalize = (word: string): string =>
   word ? word.charAt(0).toUpperCase() + word.slice(1) : word;
@@ -69,10 +71,21 @@ interface ReportYogasProps {
    */
   readonly interpretation?: VedicInterpretation;
   readonly audience: ReportAudience;
+  /**
+   * OPTIONAL per-claim birth-time-stability markers, keyed by `yoga:<name>`.
+   * When present, each yoga shows whether its grade survives both candidate
+   * ascendants (Stage-4 stable-vs-lagna). Absent for older stored payloads.
+   */
+  readonly stability?: ReadonlyMap<string, StabilityMarker>;
 }
 
 /** Yoga section: the narrative (if any) + the engine's formed-yoga registry. */
-export function ReportYogas({ yogas, interpretation, audience }: ReportYogasProps): ReactElement | null {
+export function ReportYogas({
+  yogas,
+  interpretation,
+  audience,
+  stability,
+}: ReportYogasProps): ReactElement | null {
   const { t } = useTranslation('report');
   const narrative = interpretation
     ? personaText(interpretation.integrated_yoga_narrative, audience)
@@ -107,13 +120,16 @@ export function ReportYogas({ yogas, interpretation, audience }: ReportYogasProp
               >
                 <div className="report-yoga-head">
                   <span className="report-yoga-name">{yoga.display_name || yoga.name}</span>
-                  <span
-                    className="report-yoga-grade"
-                    aria-label={t('yogas.grade_aria', {
-                      grade: t(`yogas.grade.${yoga.grade}`),
-                    })}
-                  >
-                    {t(`yogas.grade.${yoga.grade}`)}
+                  <span className="report-yoga-marks">
+                    <span
+                      className="report-yoga-grade"
+                      aria-label={t('yogas.grade_aria', {
+                        grade: t(`yogas.grade.${yoga.grade}`),
+                      })}
+                    >
+                      {t(`yogas.grade.${yoga.grade}`)}
+                    </span>
+                    <StabilityChip marker={stability?.get(yogaClaimId(yoga.name))} />
                   </span>
                 </div>
                 <YogaStrengthMark yoga={yoga} />
