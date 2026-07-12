@@ -36,7 +36,7 @@ from almamesh.schemas.astrology import (
     YogaData,
     YogaFormationRule,
 )
-from almamesh.yogas.factors import factors_for, grade_for
+from almamesh.yogas.factors import factors_for, favorability, grade_for
 from almamesh.yogas.lordship import (
     DUSTHANA_HOUSES,
     KENDRA_HOUSES,
@@ -125,6 +125,7 @@ def _make_yoga(
     ordered_houses = sorted(set(houses))
     positions = _positions(chart, ordered_planets)
     signature_houses = "_".join(f"h{h}" for h in ordered_houses)
+    net, max_favorable, max_unfavorable, strength_pct = favorability(positions)
     return YogaData(
         name=name,
         display_name=display_name,
@@ -133,6 +134,10 @@ def _make_yoga(
         effects=effects,
         grade=grade_for(positions),
         strength_factors=factors_for(positions),
+        net_marks=net,
+        max_favorable=max_favorable,
+        max_unfavorable=max_unfavorable,
+        strength_pct=strength_pct,
         planets_involved=ordered_planets,
         houses_involved=ordered_houses,
         planetary_signature="_".join(p.value for p in ordered_planets) + "_" + signature_houses,

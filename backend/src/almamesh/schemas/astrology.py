@@ -155,10 +155,16 @@ class VimshottariDashaData(BaseModel):
     convention: DashaYearConvention = DEFAULT_DASHA_YEAR_CONVENTION
 
 
-# Qualitative yoga grade. NO numeric strengths/percentages anywhere — the old
-# "effective_strength 77.9" headline multiplied a base score by a STUB shadbala
-# ratio (real Shadbala lives in the lazy strength context, never on the natal
-# path), which violated the calculation-integrity mandate.
+# Qualitative yoga grade + a CALIBRATED structural strength %. The banned thing
+# was never "a percentage" — it was the old "effective_strength 77.9": an
+# UN-calibrated, HIDDEN, false-precise number that multiplied a base score by a
+# STUB shadbala ratio (real Shadbala lives in the lazy strength context, never
+# on the natal path). What is now REQUIRED instead: strength_pct is anchored to
+# the yoga's own max-favorable/max-unfavorable mark lattice (yogas/factors.py),
+# monotonic, chart-invariant, golden-locked, and tagged strength_tier="structural"
+# so it never implies empirical validity (a Layer-2 MODEL output, not a measured
+# fact). STILL FORBIDDEN: any hidden or uncalibrated magnitude, and any per-signal
+# numeric that isn't auditable to its ledger.
 YogaGrade = Literal["strong", "moderate", "weak"]
 
 # The only factor kinds a yoga grade may cite: each is real, computable from
@@ -173,6 +179,10 @@ class YogaStrengthFactor(BaseModel):
     planet: PlanetName
     value: str  # the observed value, e.g. "exalted", "combust (3.2 deg from Sun)"
     basis: str  # human-readable classical basis for counting this factor
+    # The signed ±1 this factor contributes to the yoga's net marks (0 = neutral).
+    # Additive with a default so older stored payloads still validate; the marks
+    # across a yoga's factors sum EXACTLY to ``YogaData.net_marks``.
+    mark: int = 0
 
 
 class YogaFormationRule(BaseModel):
@@ -203,6 +213,20 @@ class YogaData(BaseModel):
     effects: str
     grade: YogaGrade
     strength_factors: list[YogaStrengthFactor] = Field(min_length=1)
+    # --- Calibrated structural strength (rigor-upgrade §A.1, Tier S). All
+    # additive with defaults so older stored payloads still validate. ``net_marks``
+    # is the signed favorable-minus-unfavorable count over the involved planets;
+    # ``max_favorable``/``max_unfavorable`` are the yoga's OWN achievable range
+    # (per-planet dignity/house/retrograde-or-combust where applicable), so the %
+    # is chart-invariant rather than yoga-size-dependent. ``strength_pct`` is the
+    # linear anchor 100·(net + max_unfavorable)/(max_favorable + max_unfavorable).
+    # ``strength_tier`` is always "structural": a Layer-2 MODEL output over the
+    # uniform ±1 mark lattice, NEVER an empirically-measured fact. ---
+    net_marks: int = 0
+    max_favorable: int = 0
+    max_unfavorable: int = 0
+    strength_pct: float = 0.0
+    strength_tier: Literal["structural"] = "structural"
     planets_involved: list[PlanetName] = Field(min_length=1)
     houses_involved: list[int] = Field(min_length=1)
     planetary_signature: str
