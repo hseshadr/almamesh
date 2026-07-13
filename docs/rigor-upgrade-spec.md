@@ -1,8 +1,10 @@
 # AlmaMesh Rigor Upgrade — Calibrated, Explainable, Honest Interpretation
 
-**Lifecycle:** SHIPPED
-**Status:** Stages 1–4 shipped in PR #56, PR #58, PR #57, and PR #59. This file preserves the
-historical design and acceptance rationale; Stage 5 remains an external markovflow handoff.
+**Lifecycle:** PARTIAL
+**Status:** Stages 1–3 shipped in PR #56, PR #58, and PR #57. Stage 4 is PARTIAL: the
+assumptions panel and conservative web cusp proxy are shipped in PR #59;
+exact dual-lagna production wiring and PDF stability markers remain roadmap. This file preserves
+the historical design and acceptance rationale; Stage 5 remains an external markovflow handoff.
 **Repo:** `~/dev/oss/almamesh` (public, live at almamesh.com, real client-side birth data).
 **Author's contract:** every factual claim below cites a `file:line` verified against the tree
 on 2026-07-11. Where the code contradicts the briefing, the code wins and the discrepancy is
@@ -19,8 +21,10 @@ not empirically validated life outcomes; only the event-fit rectification tier u
 is `near_tie / leans / consistent` — while adding an explicitly tiered **calibrated percentage**
 where an honest anchor exists. Under each percentage sits an **additive factor
 ledger** (`Mars exalted +1 · in kendra +1 · Jupiter debilitated −1`), the **opposing vector**
-(what argues against), a **stable-vs-lagna** marker, and an **assumptions panel**. Nothing is
-hidden: the result remains traceable to engine quantities and stated transforms.
+(what argues against), and an **assumptions panel**. The web report also shows a conservative
+cusp-based stability marker; exact dual-lagna production evaluation and PDF marker propagation
+remain Stage 4 roadmap. Nothing is hidden: the result remains traceable to engine quantities and
+stated transforms.
 
 **Why it works.** The honest numeric substrate already exists and is already deterministic and
 golden-locked: yoga marks (`yogas/factors.py:114`), Shadbala rupas + SAV bindus
@@ -29,11 +33,12 @@ golden-locked: yoga marks (`yogas/factors.py:114`), Shadbala rupas + SAV bindus
 quantity, anchored to a real classical quantity, property-tested for monotonicity, and validated
 against calibration fixtures spanning multiple charts.
 
-**Worked example.** A clean Raja-yoga (exalted Jupiter in the 1st, exalted Mars in the 10th) reads
-`Very strong — 92% (structural)` with a ledger `Jupiter exalted +1 · kendra +1 · Mars exalted +1 ·
-kendra +1 → net +4 of max +4`. A debilitated-combust-dusthana Sun reads `Weak — 8% (structural)`
-with `Sun debilitated −1 · combust −1 · in 6th (dusthana) −1 → net −3 of min −3`. Same transform,
-every chart.
+**Worked example.** A clean Raja-yoga with exalted Jupiter and Mars each in a kendra reads
+`Strong — 83.33% (structural)` with a ledger `Jupiter exalted +1 · kendra +1 · Mars exalted +1 ·
+kendra +1 → net +4 over the achievable range −6..+6`. A debilitated Sun in a dusthana reads
+`Weak — 0% (structural)` with `Sun debilitated −1 · in 6th (dusthana) −1 → net −2 over the
+achievable range −2..+2`; the Sun can neither combust nor retrograde, so those headroom marks do
+not exist. Same transform, every chart.
 
 **Core invariants (the honesty covenant, amended).** (1) No number is *uncalibrated, hidden, or
 false-precise* — the old sin, not the percent itself. (2) Every percent names its **epistemic
@@ -47,12 +52,12 @@ not *learned*.
 | Stage | Delivery | Executable evidence |
 |---|---|---|
 | Yoga structural percentage + factor ledger | PR #56 | `backend/tests/test_yoga_favorability.py`; `ReportYogas.test.tsx` |
-| Life-domain model percentage + two-axis ledger | PR #58 | `backend/tests/test_life_domains.py`; `ReportDomains.test.tsx` |
+| Life-domain model percentage + two-axis ledger | PR #58 | `backend/tests/test_domain_strength_pct.py`; `backend/tests/test_life_domains.py`; `ReportDomains.test.tsx` |
 | Event-fit rectification percentage + opposing vectors | PR #57 | `backend/tests/test_rectification_confidence.py`; `ReportRectification.test.tsx` |
-| Stable-vs-lagna markers + assumptions | PR #59 | `backend/tests/test_stability.py`; `ReportAssumptions.test.tsx` |
+| Stage 4 partial: assumptions + conservative web cusp proxy | PR #59 | `backend/tests/test_stability.py` covers exact helpers; `ReportAssumptions.test.tsx` covers the shipped panel; exact production wiring and PDF stability markers remain roadmap |
 
 The implementation paths and transforms below are retained as the historical delivery contract.
-They are useful audit evidence, not an open stages 1–4 roadmap.
+Stages 1–3 are audit evidence; Stage 4 explicitly separates shipped surfaces from remaining work.
 
 ---
 
@@ -143,12 +148,13 @@ near-term work:
   `predictive.py:46-56`); keep them that way so markovflow can replay (chart, events) evaluations
   offline.
 
-That is the entire north-star obligation on this spec. Near-term stages 1–4 are the whole priority.
+That is the entire north-star obligation on this spec. Finishing the remaining Stage 4 production
+wiring is the near-term rigor priority.
 
 ### 0.6 The sixth gate: no % may imply validity it lacks
 
 Added to the five-point scientific bar (§A.0): **each surfaced % states whether it is model-only or
-event-validated, and never over-claims.** A structural yoga % that reads "92%" without its tier
+event-validated, and never over-claims.** A structural yoga % that reads "83.33%" without its tier
 label is a covenant violation exactly as `77.9` was.
 
 ---
@@ -172,13 +178,20 @@ A percentage ships only if it is:
 
 ### A.1 Calibration table (one row per quantity)
 
-| Quantity (raw, file:line) | 0% / 100% anchor + classical citation | Transform (+ why) | %→band | Known-strong fixture → target | Known-weak fixture → target | Tier |
+For yoga and life domains, Percentage and qualitative band are parallel explainable outputs;
+neither is derived from the other. The percentage normalizes auditable evidence, while the existing
+qualitative rule retains its own engine contract.
+
+Yoga grade remains `net ≥ 2` strong · `net ≤ −1` weak · otherwise moderate.
+Domain band remains both signals strong → strong · both weak → weak · otherwise moderate.
+
+| Quantity (raw, file:line) | 0% / 100% anchor + classical citation | Transform (+ why) | Qualitative rule (parallel) | Known-strong fixture → target | Known-weak fixture → target | Tier |
 |---|---|---|---|---|---|---|
-| **Yoga strength** — `net = Σ _net_marks(pos)` over involved planets, `_net_marks` ∈ per-planet [−3,+3] (`yogas/factors.py:114-121`); grade buckets net≥2 / ≤−1 (`factors.py:124-131`) | **0%** = the yoga's own **max *unfavorable* marks** `M⁻`; **100%** = its **max *favorable* marks** `M⁺`, both computed per involved-planet set (dignity 1 + kendra/trikona 1 + retrograde 1 where the planet *can* retrograde; combust 1 where it *can* combust). Anchor = the mark lattice itself (BPHS graha-svarūpa / kendra-trikona / asta / vakra doctrines, each cited at `factors.py:43-49`). | **Linear** over the bounded integer lattice: `pct = 100·(net + M⁻)/(M⁺ + M⁻)`. Linear is correct because the lattice is small, bounded, and the model *defines* every mark as equal — there is no diminishing-returns structure to honor. NOT log. | ≥75% strong · 40–75% moderate · <40% weak (bucketed to preserve today's net≥2/≤−1 story) | Gaja-Kesari with exalted Jupiter (Cancer) in 1st + Moon in kendra: net +3 / M⁺ 3 → **~90%** | Debilitated + combust Sun in 6th (dusthana): net −3 / M⁻ 3 → **~8%** | **S** |
-| **Life-domain strength — Shadbala axis** — `key_graha_rupas` (float) vs `required_rupas`, `meets_minimum` bool (`schemas/strength.py:154-156`; summary at `strength_summary.py:41,46-47`) | **0%** = 0 rupas; **anchor line** = `required_rupas` (the classical per-graha minimum, BPHS/Śrīpati iṣṭa-bala; `strength.py:140-141`) mapped to **60%** (the "meets the classical bar" line); **100%** = `2 × required_rupas` (a *documented, contestable* strong-ceiling — see §E-1). | **Piecewise-linear**, two segments: `[0, required]→[0%,60%]` and `[required, 2·required]→[60%,100%]`, clamped. Piecewise (not log) because there is a *classically meaningful pivot* (the required-rupa pass line) that must land at a fixed %, and rupa dynamic range is narrow (~0–3× required). | ≥80% strong · 50–80% moderate · <50% weak | 10th-house Saturn at 2.1× required rupas (career): **~95%** | 4th-lord Moon at 0.4× required: **~24%** | **M** |
-| **Life-domain strength — Ashtakavarga axis** — `sav_bindus` summed over domain houses (int); per-house avg vs 28/25 (`strength_summary.py:24-25,43,49`) | **0%** = 0 bindus/house; **100%** = 56 bindus/house (classical hard max: 8 max BAV × 7 contributing grahas, `strength.py:9`); **50% pivot** = **28**, the śāstric average (Sarva total 337 / 12 ≈ 28.08). | **Linear** `pct = 100·avg/56`, with 28 landing at 50% by construction. Linear because bindus are a uniform count with a clean natural midpoint; the classical reading is already linear ("above/below 28"). | shares the domain band with the Shadbala axis (combined below) | 11th house at 34 bindus: **~61%** | 8th house at 19 bindus: **~34%** | **M** |
-| **Life-domain strength — combined headline** — `_band(meets_minimum, avg_bindus)` (`strength_summary.py:28-34`) | headline = **min(Shadbala%, SAV%)** (a domain is only as strong as its weaker classical signal — matches today's conjunctive band: both must be strong for STRONG). | **min()** of the two anchored axes. Documented; the two axes stay visible in the ledger so the reader sees *why*. | ≥80% strong · 50–80% moderate · <50% weak | Saturn-career 95% ∧ SAV 61% → **61%, moderate–strong** | Moon-home 24% ∧ SAV 34% → **24%, weak** | **M** |
-| **Rectification confidence** — normalized `margin = (top−runner_up)/(top+runner_up+EPS)` ∈ [0,1) (`scorer.py:709-714`); bands `NEAR_TIE_MARGIN 0.15`, `CONSISTENT_MARGIN 0.40` (`scorer.py:162-163`); min-evidence gate `MIN_DISCRIMINATING_EVENTS 3` (`scorer.py:156,719`) | **0%** = margin 0 (candidates tie); **100%** = margin→1 (winner infinitely dominant). Anchor = the **event-fit separation itself** — the empirical §0.3 quantity. **Gate:** below `MIN_DISCRIMINATING_EVENTS` show **no %**, render "not enough evidence." | **Direct** `pct = 100·margin`, band-annotated at the existing 0.15/0.40 cuts. No re-curving: margin is *already* a calibrated, event-derived ratio; distorting it would break the honest under-claiming bias baked in at `scorer.py:158-163`. | <15% near-tie(→no headline %) · 15–40% leans · ≥40% consistent | 5 independent dated events, top fit 2.3× runner-up (margin 0.42): **43%, consistent** | 2 events (below gate): **no % — "inconclusive"** | **E** |
+| **Yoga strength** — `net = Σ _net_marks(pos)` over involved planets, `_net_marks` ∈ per-planet [−3,+3] (`yogas/factors.py:114-121`); grade buckets net≥2 / ≤−1 (`factors.py:124-131`) | **0%** = the yoga's own **max *unfavorable* marks** `M⁻`; **100%** = its **max *favorable* marks** `M⁺`, both computed per involved-planet set (dignity 1 + kendra/trikona 1 + retrograde 1 where the planet *can* retrograde; combust 1 where it *can* combust). Anchor = the mark lattice itself (BPHS graha-svarūpa / kendra-trikona / asta / vakra doctrines, each cited at `factors.py:43-49`). | **Linear** over the bounded integer lattice: `pct = 100·(net + M⁻)/(M⁺ + M⁻)`. Linear is correct because the lattice is small, bounded, and the model *defines* every mark as equal — there is no diminishing-returns structure to honor. NOT log. | `net ≥ 2` strong · `net ≤ −1` weak · otherwise moderate. Because achievable headroom varies by planet set, there is no universal percentage threshold; a two-planet yoga with net +2 and range −6..+6 is strong at 66.67%. | Exalted Jupiter in a kendra: net +2 / range −3..+3 → **83.33%** | Debilitated Sun in a dusthana: net −2 / range −2..+2 → **0%** | **S** |
+| **Life-domain strength — Shadbala axis** — `key_graha_rupas` (float) vs `required_rupas`, `meets_minimum` bool (`schemas/strength.py:154-156`; summary at `strength_summary.py:41,46-47`) | **0%** = 0 rupas; **anchor line** = `required_rupas` (the classical per-graha minimum, BPHS/Śrīpati iṣṭa-bala; `strength.py:140-141`) mapped to **60%** (the "meets the classical bar" line); **100%** = `2 × required_rupas` (a *documented, contestable* strong-ceiling — see §E-1). | **Piecewise-linear**, two segments: `[0, required]→[0%,60%]` and `[required, 2·required]→[60%,100%]`, clamped. Piecewise (not log) because there is a *classically meaningful pivot* (the required-rupa pass line) that must land at a fixed %, and rupa dynamic range is narrow (~0–3× required). | This axis supplies `meets_minimum` to the separate domain-band rule; its percentage does not assign the band. | 10th-house Saturn at 2.1× required rupas (career): **~95%** | 4th-lord Moon at 0.4× required: **~24%** | **M** |
+| **Life-domain strength — Ashtakavarga axis** — `sav_bindus` summed over domain houses (int); per-house avg vs 28/25 (`strength_summary.py:24-25,43,49`) | **0%** = 0 bindus/house; **100%** = 56 bindus/house (classical hard max: 8 max BAV × 7 contributing grahas, `strength.py:9`); **50% pivot** = **28**, the śāstric average (Sarva total 337 / 12 ≈ 28.08). | **Linear** `pct = 100·avg/56`, with 28 landing at 50% by construction. Linear because bindus are a uniform count with a clean natural midpoint; the classical reading is already linear ("above/below 28"). | The separate band rule uses raw average: ≥28 is its strong signal and <25 its weak signal; the axis percentage does not assign the band. | 11th house at 34 bindus: **~61%** | 8th house at 19 bindus: **~34%** | **M** |
+| **Life-domain strength — combined headline** — `_band(meets_minimum, avg_bindus)` (`strength_summary.py:28-34`) plus `_headline_pct(shadbala_pct, sav_pct)` | Headline percentage = **min(Shadbala%, SAV%)**; both calibrated axes remain visible. | **min()** of the two anchored percentage axes. Documented; the ledger shows *why*. | Both `meets_minimum` and avg≥28 → strong; both below-minimum and avg<25 → weak; every mixed case → moderate. This rule runs in parallel with the percentage. | Saturn-career 95% ∧ SAV 61% → **61%, strong** | Moon-home 24% ∧ SAV 34% → **24%, weak** | **M** |
+| **Rectification confidence** — normalized `margin = (top−runner_up)/(top+runner_up+EPS)` ∈ [0,1) (`scorer.py:709-714`); bands `NEAR_TIE_MARGIN 0.15`, `CONSISTENT_MARGIN 0.40` (`scorer.py:162-163`); min-evidence gate `MIN_DISCRIMINATING_EVENTS 3` (`scorer.py:156,719`) | **0%** = margin 0 (candidates tie); **100%** = margin→1 (winner infinitely dominant). Anchor = the **event-fit separation itself** — the empirical §0.3 quantity. **Gate:** below `MIN_DISCRIMINATING_EVENTS` show **no %**, render "not enough evidence." | **Direct** `pct = 100·margin`, band-annotated at the existing 0.15/0.40 cuts. No re-curving: margin is *already* a calibrated, event-derived ratio; distorting it would break the honest under-claiming bias baked in at `scorer.py:158-163`. | <15% near-tie(→no headline %) · 15–40% leans · ≥40% consistent | 5 independent dated events, top fit 2.3× runner-up (margin 0.42): **42%, consistent** | 2 events (below gate): **no % — "inconclusive"** | **E** |
 | **Transit / prediction confidence** — `score_fusion → net_weight ∈ [−1,1]` (`transits/fusion.py:66-78`); `TransitSeverity` supportive/neutral/challenging (`fusion.py:57-63`) | **NO HONEST ANCHOR EXISTS.** The magnitudes `_HOUSE_BONUS 0.3`, `_PER_BENEFIC 0.25`, `_PER_MALEFIC −0.25` (`fusion.py:40-43`) are pure AlmaMesh heuristics — not classical quantities, not event-validated. Manufacturing 0%/100% here would be a `77.9` in disguise. | **NONE — do not compute a %.** Show the **raw ledger**: `reinforcing[]` benefics vs `afflicting[]` malefics (already in scope, `fusion.py:68-69,104-105`) + the three-way severity word. | supportive / neutral / challenging (unchanged words) | Jupiter+Venus reinforcing, none afflicting → "supportive · +2 reinforcing / 0 afflicting" | Saturn+Mars afflicting → "challenging · 0 / −2" | **R** |
 
 **Reading the table:** the epistemic tier *descends* left-to-right down the rows — rectification (E)
@@ -196,7 +209,9 @@ honor that (house contributes at most +1). The anchor `M⁺/M⁻` is *computed f
 planet set* (not a global constant), because a two-planet yoga simply cannot reach the same raw net
 as a four-planet one — normalizing by the achievable range is what makes the % chart-invariant
 rather than yoga-size-dependent. Because the mark lattice is the *model structure* (§0.2), this %
-is Tier **S** and must be labelled "structural estimate," never "measured."
+is Tier **S** and must be labelled "structural estimate," never "measured." The qualitative grade
+still comes directly from `net` (`≥2` strong, `≤−1` weak, otherwise moderate); it is not bucketed
+from the normalized percentage, whose achievable range changes with the involved planet set.
 
 **Life-domain strength (Tier M).** Two independent classical signals, kept independent in the
 ledger and combined only at the headline. The Shadbala axis anchors on `required_rupas` — a *real*
@@ -204,15 +219,16 @@ per-graha classical minimum already in the schema (`strength.py:155`) — which 
 principled 60% "pass line" instead of a hand-picked midpoint. The SAV axis has the cleanest anchor
 in the whole design: **28 is not invented**, it is arithmetically the Sarva average (337/12), so
 28→50% falls out of the math. The `min()` combiner preserves today's conjunctive semantics
-(`strength_summary.py:30-33`: STRONG needs *both* meets_minimum *and* avg≥28). The one soft spot is
-the `2×required` ceiling (§E-1).
+as a percentage combiner, but does not assign the qualitative band. `_band()` independently uses
+the raw signals: STRONG needs *both* `meets_minimum` and avg≥28; WEAK needs below-minimum and avg<25;
+mixed cases are MODERATE. The one soft spot is the `2×required` ceiling (§E-1).
 
 **Rectification confidence (Tier E).** This is the only quantity we should feel *scientific* pride
 in, and we barely touch it: `margin` is already normalized to [0,1), already event-derived, already
 gated to under-claim. We surface `margin×100` and keep the existing band words as annotations. The
 crucial honesty move is the **gate**: below three discriminating events the engine already returns
 `NEAR_TIE` regardless of raw margin (`scorer.py:719-720`), so the UI must render **"inconclusive,"
-not a small percent** — a 43% built on two coincidences is exactly the false precision we forbid.
+not a small percent** — a 42% built on two coincidences is exactly the false precision we forbid.
 Note the semantics precisely: this % is "how much better your best-fitting birth time explains your
 events than the runner-up," *not* "probability the time is correct." The label says so.
 
@@ -303,21 +319,21 @@ Any new numeric field must be threaded through all six layers or it silently die
 - **Golden broken:** `rectification_golden.json` (only if `confidence_pct` field added).
 - **Tier:** E.
 
-### B.4 Stage 4 — Stable-vs-lagna dual pass + assumptions panel
+### B.4 Stage 4 — Stable-vs-lagna dual pass + assumptions panel — **PARTIAL**
 
-- **No engine schema change.** Use the existing purity: call `calculate_sidereal_context`
-  (`calculations.py:678`) once per candidate *time* (lagna derives from time+lat+lon), passing the
-  shared `astronomy=` instance (L685-698) to avoid reloading DE421, and diff `.yogas` /
-  `.forecasts` between the two candidate lagnas.
-- **New typed claim object (frontend or a thin pure Python helper):** `StabilityMarker { claim_id,
-  holds_under_both: bool }` — "stable truth" if the yoga/domain verdict is identical under both
-  candidate lagnas, "lagna-specific" otherwise.
-- **Assumptions panel** reads existing provenance: ayanamsa (`ReportFooter.tsx` already names it),
-  house system (whole-sign, constant), entered-vs-rectified time + cusp proximity (`ReportCover.tsx`
-  `CuspCallout` L107-129 already renders cusp nearness). This stage *assembles* them into one panel.
-- **Golden broken:** none (pure re-use of existing outputs) — but add a parity/e2e assertion.
-- **Tier:** the stability marker is Layer-1 (deterministic) — it's a *fact* about whether the verdict
-  depends on the rectification hypothesis, so it is honestly certain.
+- **Shipped support:** pure Python and TypeScript diff helpers implement the exact two-verdict
+  comparison, and `backend/tests/test_stability.py` proves the Python dual pass can share one
+  ephemeris load. These helpers are not wired into the production report path.
+- **Shipped surfaces:** the assumptions panel reaches both web and PDF. The web yoga/domain chips
+  currently use `reportStabilityMarkers`, a conservative cusp-based proxy over the one rendered
+  lagna; the PDF does not carry stability markers.
+- **Remaining roadmap:** production must evaluate the actual alternate candidate lagna, feed the
+  exact diff into the web report, and propagate those exact markers into PDF. Only then can Stage 4
+  claim exact stable-vs-lagna delivery end to end.
+- **No engine schema change is expected:** the exact production path can reuse
+  `calculate_sidereal_context` with a shared `astronomy=` instance and the existing typed marker.
+- **Tier:** an exact two-lagna diff is Layer-1 deterministic. The current cusp proxy must remain
+  identified as a proxy, not presented in engineering evidence as proof that the dual pass shipped.
 
 ---
 
@@ -390,17 +406,19 @@ fresh-interpreter guard keeps passing untouched. **This is the bright line:** an
 
 ---
 
-## §D. Historical staged delivery plan (stages 1–4 complete)
+## §D. Historical staged delivery plan (stages 1–3 complete; Stage 4 partial)
 
-The following is the TDD-first plan used to deliver stages 1–4, ordered cheapest-highest-value.
-Each stage was additive and touched no stored-data schema, signing, PWA-cache, or storage path.
+The following is the TDD-first plan used for stages 1–4, ordered cheapest-highest-value. Stages 1–3
+are complete; Stage 4 records both the shipped support and the remaining production work. Each
+stage is additive and touches no stored-data schema, signing, PWA-cache, or storage path.
 
 ### Stage 1 — Yoga strength % + ledger — **CHEAP**
 *Self-contained, one golden, the mark integers already exist.*
 - **Red tests first:** (unit) `favorability()` returns net/M⁺/M⁻/pct for hand-built positions;
-  (calibration) exalted-Jupiter Gaja-Kesari → ≥85%, debil-combust-dusthana Sun → ≤15%, across ≥3
-  distinct charts; (property) monotonicity — adding a favorable factor never lowers pct, removing one
-  never raises it; (parity) regenerate `chart_golden_de421.json`, `parity.mjs` green; (e2e touch)
+  (calibration) exalted-Jupiter Gaja-Kesari → ≥85%, combust debilitated dusthana Mars and
+  non-combust debilitated dusthana Sun → ≤15%, across ≥3 distinct charts; (property) monotonicity —
+  adding a favorable factor never lowers pct, removing one never raises it; (parity) regenerate
+  `chart_golden_de421.json`, `parity.mjs` green; (e2e touch)
   Playwright report renders `.report-strength-pct` with the tier label next to the grade word.
 - **Render slots:** web `ReportYogas.tsx:66-74` (add pct + ledger after the grade span, before
   `.report-yoga-desc`); PDF `ReportPdfYogas.tsx:18-28` `YogaCard` (add pct line under `yogaChip`).
@@ -422,7 +440,7 @@ Each stage was additive and touched no stored-data schema, signing, PWA-cache, o
 ### Stage 3 — Rectification confidence % + opposing vectors — **CHEAP (render-heavy, numbers already threaded)**
 *The margin/fit_score/totals already reach TS; this is surfacing + the min-evidence gate.*
 - **Red tests first:** (unit) `confidence_pct` is `None`/inconclusive below `MIN_DISCRIMINATING_EVENTS`
-  and `margin*100` at/above it; (calibration) 5-event margin-0.42 case → "43%, consistent",
+  and `margin*100` at/above it; (calibration) 5-event margin-0.42 case → "42%, consistent",
   2-event case → "inconclusive"; (property) pct monotonic in margin; (parity) `rectification_golden`
   if the field is added; (e2e) report Section XI shows the % (or "inconclusive") + the
   supporting-vs-opposing totals.
@@ -432,18 +450,17 @@ Each stage was additive and touched no stored-data schema, signing, PWA-cache, o
 - **Re-blesses:** `rectification_golden.json` (only if `confidence_pct` added; else none).
 - **Tier:** E — the highest-status number in the product; label it "confirmed by your events."
 
-### Stage 4 — Stable-vs-lagna dual pass + assumptions panel — **MODERATE**
-*No new engine number; a second pure engine call + an assembly panel.*
-- **Red tests first:** (unit) `StabilityMarker` is true iff the verdict is identical under both
-  candidate lagnas (build two `SiderealContext`s from two times, diff `.yogas`/`.forecasts`);
-  (unit) the dual pass reuses one `astronomy=` instance (assert DE421 loaded once); (parity) no
-  golden change, but assert dual-pass determinism; (e2e) report shows a "stable under both lagnas /
-  depends on birth time" marker on each claim + a single assumptions panel (ayanamsa, whole-sign,
-  entered-vs-rectified, cusp proximity).
-- **Render slots:** web new stability chip on yoga/domain blocks; assumptions panel assembled from
-  `ReportFooter.tsx` (ayanamsa) + `ReportCover.tsx:107-129` (cusp callout); PDF mirrors.
-- **Re-blesses:** none (pure reuse) — add an e2e + a determinism unit test instead.
-- **Tier:** Layer-1 stability marker is deterministic/certain.
+### Stage 4 — Stable-vs-lagna dual pass + assumptions panel — **PARTIAL**
+*No new engine number; exact helpers and assumptions shipped, production dual-pass wiring remains.*
+- **Shipped:** exact pure diff helpers and dual-pass tests; the assumptions panel on web and PDF;
+  conservative cusp-proxy stability chips on the web report.
+- **Remaining:** call the dual pass from the production report flow, pass its exact yoga/domain
+  verdict diffs to the web chips, and add the same markers to PDF.
+- **Acceptance tests still required:** production integration proves the alternate candidate is
+  evaluated exactly once with a shared ephemeris; web and PDF both render the resulting exact
+  marker; the proxy is no longer the source for a rectified two-lagna report.
+- **Re-blesses:** none expected (pure reuse); add integration/e2e coverage for both renderers.
+- **Tier:** only the completed exact two-lagna diff is deterministic Layer-1 evidence.
 
 ### Stage 5 — hand off to **markovflow** (north-star, external, deferred) — out of scope
 *The probabilistic-convergence layer is markovflow's job (§0.5), not this repo's.* This spec's only
@@ -476,12 +493,13 @@ spec'd elsewhere and consumes these typed claims when it lands.
    matters (Sun never; nodes debatable). The anchor must encode this per-planet or a Sun-yoga's %
    scale is wrong. Implementation detail with a doctrinal edge.
 6. **Rectification % semantics.** The margin is *separation between two candidate times*, not
-   *probability the time is right*. If users read "43%" as "43% chance my time is correct," that is a
+   *probability the time is right*. If users read "42%" as "42% chance my time is correct," that is a
    miscommunication risk even though the number is honest — the label wording is load-bearing.
-7. **Combining two independent axes with `min()`** (domains) is conservative and matches today's
-   conjunctive band, but discards information (a 95%/61% domain and a 61%/61% domain read identically).
-   A documented weighted blend is the alternative; `min()` chosen for honesty (weakest-link) over
-   resolution.
+7. **Combining two independent percentage axes with `min()`** (domains) is conservative but discards
+   information (a 95%/61% domain and a 61%/61% domain read identically). The qualitative band is a
+   separate parallel output over `meets_minimum` and raw SAV averages; it must never be inferred from
+   the headline percentage. A documented weighted blend is the percentage alternative; `min()` was
+   chosen for honesty (weakest-link) over resolution.
 
 ---
 

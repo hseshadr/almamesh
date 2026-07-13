@@ -19,10 +19,12 @@ manually-run live gate (same pattern as `verify-*.mjs`), not wired to CI.
 A `/rectify` wizard. The user enters **dated, categorized** life events. The **Python engine** scores
 candidate rising signs against them using the ascendant-dependent signals that actually discriminate
 (dasha-lord ↔ house-lordship match + transit-to-house at the event date). The result is an **honest
-qualitative ranking with per-event evidence and a margin — never a single percentage**. The human
-confirms; the chosen time becomes the working authority through the existing Phase-1 regenerate
-pipeline. Two modes in one wizard: **cusp** (2 candidate signs) and **window / unknown-time** (rank the
-plausible rising signs).
+ranking whose primary evidence is the candidate comparison, qualitative band, margin, and per-event
+ledger**. A calibrated aggregate percentage may summarize the margin once the evidence gate is met,
+but it must carry provenance and its supporting ledger and must never be framed as the probability
+that a birth time is correct. The human confirms; the chosen time becomes the working authority
+through the existing Phase-1 regenerate pipeline. Two modes in one wizard: **cusp** (2 candidate
+signs) and **window / unknown-time** (rank the plausible rising signs).
 
 ## Context & trigger
 
@@ -42,8 +44,9 @@ confidence must be shown honestly** — a near-tie is a labeled hypothesis, neve
   **unknown / rough time** case (today a dead-end that silently defaults to 12:00).
 - Make the rectified time the **working authority** on human confirmation, with **both times always
   shown** (reuse the Phase-1 pipeline).
-- Be **structurally honest**: qualitative bands, per-event evidence, a margin, an explicit
-  "uncalibrated heuristic; a near-tie is settled only by a recorded time" note. Never a headline %.
+- Be **structurally honest**: qualitative bands, per-event evidence, a margin, and an explicit
+  epistemic note. The evidence vector stays primary; an evidence-gated calibrated aggregate
+  percentage may summarize top-vs-runner-up separation, never the probability a time is correct.
 
 ## Non-goals
 
@@ -58,9 +61,11 @@ confidence must be shown honestly** — a near-tie is a labeled hypothesis, neve
 
 1. **Sign, not minute.** Output is "your rising sign is most consistent with X" + a *representative*
    time. The UI states minute-level precision is not resolvable from events.
-2. **No headline %.** Result = ranked candidates + qualitative band
+2. **Evidence vector before summary.** Result = ranked candidates + qualitative band
    (`near_tie` / `leans` / `consistent`) + the margin between the top two + a per-event evidence table
-   + the honesty line.
+   + the honesty line. A calibrated aggregate percentage is allowed only above the min-evidence gate,
+   with its event-validated provenance and supporting/opposing ledger visible; opaque false precision
+   and probability language remain forbidden.
 3. **Min-evidence gate.** Below a threshold of *discriminating* events, the wizard refuses to rank and
    says so, rather than fabricating confidence.
 4. **Engine computes; LLM only optionally structures.** The privacy boundary is the structured form —

@@ -5,8 +5,8 @@
  * optional transits / vargas (all 16 plates, 4-per-page chunking) / strength
  * (BAV matrix + six-component Ṣaḍbala) / domains slices — built ONLY when the
  * predictive contexts + translators are supplied (the PDF mirrors the web
- * report); the Birth Time Authority slice (qualitative only — the numeric
- * margin must NEVER reach the data); and a full-document render smoke test.
+ * report); the Birth Time Authority slice (raw margins stay hidden, while an
+ * evidence-gated aggregate percentage may render); and a full-document smoke test.
  *
  * Localization runs through the REAL i18n catalogs (the same `t` the page
  * passes), so PDF copy is asserted against the shipped strings.
@@ -406,8 +406,8 @@ describe('buildReportPdfData — comprehensive slices mirror the web report', ()
   });
 });
 
-describe('buildRectificationPdf — Birth Time Authority (qualitative only)', () => {
-  it('carries entered/working clocks, mode, band and confirm date — never the margin', () => {
+describe('buildRectificationPdf — legacy record without aggregate confidence', () => {
+  it('carries entered/working clocks, mode, band and confirm date without exposing raw margin', () => {
     const slice = buildRectificationPdf({
       record: { ...RECORD, originalTime: '07:30', originalSign: 'aquarius' },
       events: [{ date: '2015-06-20', category: 'marriage', summary: 'Married in Bengaluru' }],
@@ -425,7 +425,8 @@ describe('buildRectificationPdf — Birth Time Authority (qualitative only)', ()
     expect(slice.events.rows[0].cells[0]).toBe('06/20/2015');
     expect(slice.events.rows[0].cells[1]).toBe('Marriage');
     expect(slice.events.rows[0].cells[2]).toBe('Married in Bengaluru');
-    // ANTI-SCAM HARD LINE: no margin, no percentage anywhere in the slice.
+    // Raw margin stays hidden; this legacy fixture has no confidencePct, so the
+    // builder must not invent an aggregate percentage.
     const serialized = JSON.stringify(slice);
     expect(serialized).not.toContain('0.8125');
     expect(serialized).not.toContain('%');

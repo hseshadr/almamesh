@@ -100,17 +100,62 @@ describe('repository truth', () => {
     ]) expect(ledger).toContain(evidence);
   });
 
-  it('records rigor stages 1-4 as shipped without overstating empirical validity', () => {
+  it('records rigor stages 1-3 as shipped and Stage 4 as partial without overstating validity', () => {
     const rigor = readRoot('docs/rigor-upgrade-spec.md');
     for (const evidence of [
-      'Stages 1–4 shipped',
+      '**Lifecycle:** PARTIAL',
+      'Stages 1–3 shipped',
+      'Stage 4 is PARTIAL',
+      'assumptions panel and conservative web cusp proxy are shipped',
+      'exact dual-lagna production wiring and PDF stability markers remain roadmap',
       'PR #56',
       'PR #58',
       'PR #57',
       'PR #59',
       'historical design and acceptance rationale',
       'not empirically validated life outcomes',
+      'backend/tests/test_domain_strength_pct.py',
+      'Exalted Jupiter in a kendra: net +2 / range −3..+3 → **83.33%**',
+      'Debilitated Sun in a dusthana: net −2 / range −2..+2 → **0%**',
+      'margin 0.42): **42%, consistent**',
+      'Percentage and qualitative band are parallel explainable outputs',
+      'Yoga grade remains `net ≥ 2` strong · `net ≤ −1` weak · otherwise moderate',
+      'Domain band remains both signals strong → strong · both weak → weak · otherwise moderate',
+      'Saturn-career 95% ∧ SAV 61% → **61%, strong**',
+      'combust debilitated dusthana Mars',
+      'non-combust debilitated dusthana Sun',
     ]) expect(rigor).toContain(evidence);
+    for (const impossibleOrStaleClaim of [
+      'Stages 1–4 shipped',
+      'stages 1–4 complete',
+      'Very strong — 92%',
+      'net +4 of max +4',
+      'Weak — 8%',
+      'margin 0.42): **43%, consistent**',
+      'margin-0.42 case → "43%, consistent"',
+      '| %→band |',
+      '≥75% strong · 40–75% moderate · <40% weak',
+      '≥80% strong · 50–80% moderate · <50% weak',
+      '**61%, moderate–strong**',
+      'debil-combust-dusthana Sun',
+    ]) expect(rigor).not.toContain(impossibleOrStaleClaim);
+    for (const path of [
+      'backend/tests/test_domain_strength_pct.py',
+      'backend/tests/test_stability.py',
+      'frontend/apps/web/src/components/features/report/__tests__/ReportAssumptions.test.tsx',
+    ]) expect(existsSync(resolve(root, path))).toBe(true);
+
+    const reportView = readRoot('frontend/apps/web/src/pages/ReportView.tsx');
+    expect(reportView).toContain('reportStabilityMarkers(claimIds, nearCusp)');
+    expect(reportView).not.toContain('diffMarkers(');
+
+    const rectificationPdfTypes = readRoot(
+      'frontend/apps/web/src/components/report-pdf/types.ts',
+    );
+    expect(rectificationPdfTypes).toContain('aggregate calibrated event-fit confidence percentage');
+    expect(rectificationPdfTypes).toContain('Per-event evidence');
+    expect(rectificationPdfTypes).not.toContain('QUALITATIVE ONLY by contract');
+    expect(rectificationPdfTypes).not.toContain('never a percentage, margin number, or fit score');
 
     const yogaFactors = readRoot('backend/src/almamesh/yogas/factors.py');
     expect(yogaFactors).toContain('calibrated structural percentages');
@@ -125,6 +170,29 @@ describe('repository truth', () => {
     expect(rectificationPdf).not.toContain('carries NO percentage');
   });
 
+  it('allows only the gated aggregate rectification percentage across shipped truth surfaces', () => {
+    const rectificationTruthSurfaces = [
+      'docs/specs/059-event-based-rectification.md',
+      'docs/specs/060-conversational-rectification-elicitation.md',
+      'frontend/apps/web/src/components/features/report/__tests__/ReportRectification.test.tsx',
+      'frontend/apps/web/src/pages/__tests__/ReportView.test.tsx',
+      'frontend/apps/web/src/components/report-pdf/__tests__/comprehensiveSections.test.ts',
+    ].map(readRoot).join('\n');
+    for (const staleAbsolute of [
+      'never a single percentage',
+      'Never a headline %',
+      '"no headline %" all continue to hold',
+      'evidence and a margin — never a percentage',
+      'No headline confidence %, ever',
+      'no headline % appears anywhere',
+      'ANTI-SCAM HARD LINE: no percentage',
+      'NEVER a number or percentage',
+      'no margin, no percentage anywhere in the slice',
+    ]) expect(rectificationTruthSurfaces).not.toContain(staleAbsolute);
+    expect(rectificationTruthSurfaces).toContain('calibrated aggregate percentage');
+    expect(rectificationTruthSurfaces).toContain('provenance and its supporting ledger');
+  });
+
   it.each([
     ['docs/specs/054-karma-action-classification.md', 'ROADMAP'],
     ['docs/specs/057-karma-gamification-ui.md', 'ROADMAP'],
@@ -137,7 +205,7 @@ describe('repository truth', () => {
     ['docs/specs/063-ai-tiers-ondevice-optin.md', 'SUPERSEDED'],
     ['docs/specs/064-seo-prerender-public-routes.md', 'SHIPPED'],
     ['docs/specs/SPEC-COMPLETION-TRACKING.md', 'SUPERSEDED'],
-    ['docs/rigor-upgrade-spec.md', 'SHIPPED'],
+    ['docs/rigor-upgrade-spec.md', 'PARTIAL'],
   ])('%s has an explicit lifecycle', (path, lifecycle) => {
     const [title, separator, banner] = readRoot(path).split('\n');
     expect(title).toMatch(/^# /);

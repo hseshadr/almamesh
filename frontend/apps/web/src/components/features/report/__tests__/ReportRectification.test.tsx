@@ -1,11 +1,10 @@
 /**
  * ReportRectification — Section "Birth Time Authority".
  *
- * Contract: entered vs working time + rising sign, mode, the QUALITATIVE band
- * label (reused from the rectify namespace), confirm date, the resolved
- * supporting events (date + category + summary) and the honest caveat.
- * ANTI-SCAM HARD LINE: no percentage, no margin number, no fit score may ever
- * render — the band is a convention, never a verdict.
+ * Contract: entered vs working time + rising sign, mode, qualitative band,
+ * confirm date, resolved events, and the honest caveat. A min-evidence-gated
+ * aggregate confidence percentage may accompany the band with its provenance
+ * and ledger; raw margins, fit scores, and per-event numbers never render.
  *
  * All data is SYNTHETIC (a "Reference Native") — never real birth data.
  */
@@ -57,7 +56,7 @@ describe('ReportRectification — Birth Time Authority', () => {
     expect(facts.textContent).toContain('Pisces');
   });
 
-  it('renders the qualitative band label and NEVER a number or percentage', () => {
+  it('renders the legacy qualitative-only band when aggregate confidence is absent', () => {
     render(<ReportRectification record={RECORD} events={EVENTS} />);
     const section = screen.getByTestId('report-rectification');
     expect(screen.getByTestId('report-rectification-band').textContent).toBe('Leans Toward');

@@ -19,7 +19,9 @@ precision. Two invariants are sacred and unchanged from 059:
    `{date, precision, category, note?}`. The **engine** does 100% of the astrology and weighting.
 2. **Honesty** — a vague memory yields a *weaker signal by construction* (never a hand-tuned fudge,
    never false precision); the existing margin→band, de-correlation cap, `MIN_DISCRIMINATING_EVENTS`
-   gate, and "no headline %" all continue to hold.
+   gate, and evidence-first presentation all continue to hold. Above the gate, a calibrated aggregate
+   percentage may summarize the margin with provenance and its supporting ledger; it is not a
+   probability that the time is correct.
 
 Rectification becomes a **living** surface: it is easy to start during onboarding **and** easy to come
 back to and update when the user later remembers an important event — a one-tap path that re-runs the
@@ -29,9 +31,10 @@ fit and refreshes the rectified-time authority.
 
 Spec 059 shipped the `/rectify` wizard: the user enters dated, categorized life events; the Python
 engine scores candidate rising signs against ascendant-dependent signals (dasha-lord ↔ house-lordship
-match + transit-to-house at the event date); the result is an honest qualitative ranking with per-event
-evidence and a margin — never a percentage; the human confirms and the chosen time becomes the working
-authority. Two real-world friction points remain:
+match + transit-to-house at the event date); the result is an honest evidence vector with per-event
+support/opposition, a qualitative band, and a margin. An evidence-gated calibrated aggregate
+percentage may summarize that margin, with its provenance and ledger visible; the human confirms and
+the chosen time becomes the working authority. Two real-world friction points remain:
 
 - **The event form is cold and high-effort.** A grid of empty date/category rows is intimidating and
   gives no help recalling or dating events. The existing `StoryAccelerator` ("Paste Your Story") softens
@@ -54,7 +57,8 @@ authority. Two real-world friction points remain:
 
 - No change to the core ranking signals (dasha-lordship + transit) or the honest-band math beyond adding
   precision-aware weighting. No new astrology.
-- No headline confidence %, ever. No "the AI found your time" framing — the LLM never fits or ranks.
+- No opaque, free-floating confidence number. The shipped calibrated aggregate percentage remains
+  evidence-gated and ledger-backed; no "the AI found your time" framing — the LLM never fits or ranks.
 - No local-only gate on the interview. It rides the **existing** PII-scrub→configured-endpoint pipeline,
   exactly like interpretation and chat (usually remote OpenRouter). See "Privacy posture".
 - No separate event "span" field in the contract (YAGNI) — `approx` uses a fixed marginalization window.
@@ -230,7 +234,8 @@ shipped; an unmistakable "review these before continuing" affordance; never a de
    059's existing fixtures still pass (default `exact` back-compat).
 4. Rectification is updatable post-onboarding in **one tap** from the dashboard/profile, and re-running
    refreshes the rectified-time authority via the existing regenerate pipeline.
-5. The LLM never fits, ranks, or declares a time; no headline % appears anywhere; PII is dropped at the
+5. The LLM never fits, ranks, or declares a time; any calibrated aggregate percentage comes only from
+   the deterministic scorer after the evidence gate and carries its ledger; PII is dropped at the
    typed-output boundary.
 6. All quality gates green: backend pytest/ruff/mypy, frontend typecheck/lint/Vitest, parity, i18n parity.
 

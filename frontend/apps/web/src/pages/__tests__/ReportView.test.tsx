@@ -291,7 +291,7 @@ describe('ReportView', () => {
     expect(screen.getByTestId('report-footer')).toBeTruthy();
   });
 
-  it('renders every formed yoga with its grade word and classical citation — no percentages', () => {
+  it('renders legacy yogas without percentages when the fixture omits strength_pct', () => {
     seed();
     renderReport('astrologer');
     const yogas = screen.getByTestId('report-yogas');
@@ -302,8 +302,8 @@ describe('ReportView', () => {
     expect(
       within(yogas).getByText('Vipareeta Raja Yoga (Harsha: the 6th lord in the 8th)'),
     ).toBeTruthy();
-    // The grade is a typographic word from the engine's closed vocabulary —
-    // the old fake percentage badge is gone.
+    // This legacy fixture predates the calibrated field, so the grade remains
+    // useful on its own and no percentage is invented by the renderer.
     expect(within(yogas).getByText('moderate')).toBeTruthy();
     expect(within(yogas).getByText('weak')).toBeTruthy();
     expect(yogas.textContent ?? '').not.toMatch(/%/);

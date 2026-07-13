@@ -223,6 +223,24 @@ export function isInterpretationInputCurrent(
   return provenance.predictiveRequestKey === expectedPredictiveKey(chartId);
 }
 
+/**
+ * Whether persisted prose is honest to keep on screen while fresher narration
+ * is attempted. Natal-only prose remains valid natal interpretation; an exact
+ * predictive reading is display-safe only for its own current request key.
+ */
+export function isInterpretationInputSafeToDisplay(
+  provenance: InterpretationInputProvenance | undefined,
+  chartId: string | null,
+): boolean {
+  if (!provenance) {
+    return false;
+  }
+  return (
+    provenance.predictiveRequestKey === null ||
+    provenance.predictiveRequestKey === expectedPredictiveKey(chartId)
+  );
+}
+
 /** Read a complete interpretation only when its deterministic inputs are current. */
 export function currentInterpretationForChart(
   chartId: string | null,
@@ -405,7 +423,12 @@ export function useStreamingInterpretation(chartId?: string | null): UseStreamin
     [language, markSectionComplete, markSectionFailed, setError, setInterpretation, startInterpretation]
   );
 
-  const inputIsCurrent = isInterpretationInputCurrent(entry?.inputProvenance, chartId ?? null);
+  const resolvedChartId = chartId ?? null;
+  const inputIsCurrent = isInterpretationInputCurrent(entry?.inputProvenance, resolvedChartId);
+  const inputIsSafeToDisplay = isInterpretationInputSafeToDisplay(
+    entry?.inputProvenance,
+    resolvedChartId,
+  );
   const storedStatus: InterpretationStatus = entry?.status ?? 'idle';
   const status: InterpretationStatus =
     storedStatus === 'complete' && !inputIsCurrent ? 'idle' : storedStatus;
@@ -419,7 +442,7 @@ export function useStreamingInterpretation(chartId?: string | null): UseStreamin
 
   return {
     streamInterpretation,
-    interpretation: inputIsCurrent ? entry?.interpretation : undefined,
+    interpretation: inputIsSafeToDisplay ? entry?.interpretation : undefined,
     status,
     sections,
     failedSections: sections.filter((s) => s.failed).map((s) => s.key),

@@ -579,9 +579,9 @@ describe('Dashboard — regenerate reading', () => {
     expect(mockedStream.mock.calls[0]?.[0].chart).toMatchObject({
       transit_context: { instant: '2026-07-13T00:00:00Z' },
     });
-    // Once current predictive facts exist, retained natal-only prose is stale;
-    // it must not masquerade as the current reading while replacement runs.
-    expect(screen.queryByTestId('reading-section')).toBeNull();
+    // Natal-only prose is still honest to display while the richer,
+    // current-predictive replacement runs.
+    expect(screen.getByTestId('reading-section').textContent ?? '').toContain(LAYMAN_SUMMARY);
     act(() => currentNarration.release());
     await waitFor(() =>
       expect(useInterpretationStore.getState().getEntry('chart-1')?.inputProvenance).toEqual({
@@ -652,6 +652,73 @@ describe('Dashboard — regenerate reading', () => {
     );
     await settle();
     expect(mockedStream).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps retained natal-only prose visible when its one current-predictive refresh fails', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date('2026-07-13T12:00:00Z'));
+    configureCloudAi();
+    seedCompleteReading(currentProvenance());
+    const requestKey = (day: string) =>
+      predictiveRequestKey({
+        profileKey: 'profile-1',
+        datetimeUtc: '1990-03-30T06:30:00Z',
+        latitude: 12.97,
+        longitude: 77.59,
+        referenceInstant: `${day}T00:00:00Z`,
+      });
+    const currentRawContexts = {
+      transit_context: { instant: '2026-07-13T00:00:00Z' },
+      varga_context_full: { charts: {} },
+      strength_context: {},
+      domains_context: { forecasts: {} },
+    } as never;
+    usePredictiveStore.setState({
+      status: 'ready',
+      profileKey: 'profile-1',
+      requestKey: requestKey('2026-07-12'),
+      rawContexts: currentRawContexts,
+    });
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    mockedStream.mockImplementation(failingStream(new Error('synthetic current refresh failure')));
+    renderDashboard();
+
+    expect((await screen.findByTestId('reading-section')).textContent ?? '').toContain(
+      LAYMAN_SUMMARY,
+    );
+    act(() => {
+      usePredictiveStore.setState({
+        status: 'loading',
+        profileKey: 'profile-1',
+        requestKey: requestKey('2026-07-13'),
+        rawContexts: undefined,
+      });
+    });
+    await settle();
+    expect(mockedStream).not.toHaveBeenCalled();
+
+    act(() => {
+      usePredictiveStore.setState({
+        status: 'ready',
+        profileKey: 'profile-1',
+        requestKey: requestKey('2026-07-13'),
+        rawContexts: currentRawContexts,
+      });
+    });
+
+    await waitFor(() => expect(mockedStream).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(useInterpretationStore.getState().getEntry('chart-1')?.status).toBe('error'),
+    );
+    expect(screen.getByTestId('reading-section').textContent ?? '').toContain(LAYMAN_SUMMARY);
+    expect(screen.getByTestId('reading-regen-error')).toBeTruthy();
+    await settle();
+    expect(mockedStream).toHaveBeenCalledTimes(1);
+    expect(errorSpy).toHaveBeenCalledWith(
+      '[interpretation] reading stream failed:',
+      expect.any(Error),
+    );
+    errorSpy.mockRestore();
   });
 
   it('replaces a late prior-day completion exactly once with the current predictive day', async () => {
