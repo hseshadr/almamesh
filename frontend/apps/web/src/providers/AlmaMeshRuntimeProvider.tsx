@@ -211,16 +211,9 @@ export function AlmaMeshRuntimeProvider({ children, runtime }: ProviderProps) {
   // the router (see main.tsx), so we read the initial path from window.location.
   // Intent on the landing CTA (and entry to engine routes) calls startBootstrap.
   useEffect(() => {
-    const initialPath = window.location.pathname
-    const isFreshLanding = initialPath === '/' && !hasLocalChart()
-    if (isFreshLanding) {
-      return
-    }
+    if (window.location.pathname === '/' && !hasLocalChart()) return
     startBootstrap()
-    // startBootstrap is stable (deps: runBootstrap → onStage, all stable) — run
-    // once on mount; the path/chart decision is intentionally a mount-time read.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [startBootstrap])
 
   const value = useMemo(
     () => ({ engine, stage, error, meta, reboot, whenReady, startBootstrap }),

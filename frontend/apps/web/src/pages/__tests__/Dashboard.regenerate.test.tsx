@@ -224,17 +224,18 @@ function seedCompleteReading(provenance?: ReadingProvenance): void {
     );
 }
 
-function renderDashboard(): ReturnType<typeof render> {
+function renderDashboard() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
-  return render(
+  const ui = (
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={['/dashboard']}>
         <DashboardPage />
       </MemoryRouter>
-    </QueryClientProvider>,
+    </QueryClientProvider>
   );
+  return { ui, view: render(ui) };
 }
 
 /** Let any pending auto-generate effect settle, then assert on stream calls. */
@@ -372,6 +373,20 @@ describe('Dashboard — regenerate reading', () => {
 
     await waitFor(() => expect(mockedStream).toHaveBeenCalledTimes(1));
     await settle();
+    expect(mockedStream).toHaveBeenCalledTimes(1);
+  });
+
+  it('auto-generates at most once when the dashboard rerenders', async () => {
+    configureCloudAi();
+    useInterpretationStore.setState({ byChart: {} });
+    mockedStream.mockImplementation(failingStream(new Error('synthetic failure')));
+    const { ui, view } = renderDashboard();
+
+    await waitFor(() => expect(mockedStream).toHaveBeenCalledTimes(1));
+    await settle();
+    view.rerender(ui);
+    await settle();
+
     expect(mockedStream).toHaveBeenCalledTimes(1);
   });
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useCallback, useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -311,7 +311,7 @@ export default function DashboardPage() {
     };
   };
 
-  const handleGenerateSeparatedInterpretation = async () => {
+  const handleGenerateSeparatedInterpretation = useCallback(async () => {
     if (!chartId) return;
     // A fresh attempt re-arms the regeneration-failure strip (it was for the
     // PREVIOUS failure; a new one must be visible again).
@@ -333,7 +333,7 @@ export default function DashboardPage() {
     } catch (err) {
       console.error('[Dashboard] Error generating interpretation:', err);
     }
-  };
+  }, [cancelStreaming, chartId, streamInterpretation, viewMode]);
 
   // Recover from a dead/typo'd cloud model: re-point settings at the recommended
   // OpenRouter model (keeping the user's saved key), then re-run generation.
@@ -441,8 +441,15 @@ export default function DashboardPage() {
     versionCheckRef.current = 'done';
     autoGenerationTriggeredRef.current = true;
     handleGenerateSeparatedInterpretation();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- Intentionally controlled via refs
-  }, [chartId, aiConfigured, hasValidInterpretation, interpretationStatus, isLoading, isStreamingInterpretation]);
+  }, [
+    aiConfigured,
+    chartId,
+    handleGenerateSeparatedInterpretation,
+    hasValidInterpretation,
+    interpretationStatus,
+    isLoading,
+    isStreamingInterpretation,
+  ]);
 
   // Extract sidereal context data for the identity strip + chart panels.
   const siderealCtx = astronomicalData?.sidereal_ctx;

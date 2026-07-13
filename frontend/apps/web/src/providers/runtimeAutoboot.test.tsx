@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
+import { StrictMode } from 'react'
 
 import type { BootStage, ChartEngine, OnStage, RuntimeConfig } from '@almamesh/browser'
 import { AlmaMeshRuntimeProvider } from './AlmaMeshRuntimeProvider'
@@ -64,6 +65,17 @@ function setPath(pathname: string) {
   window.history.pushState({}, '', pathname)
 }
 
+function renderRuntimeProvider(runtime = makeFakeRuntime()) {
+  const ui = (
+    <StrictMode>
+      <AlmaMeshRuntimeProvider runtime={runtime}>
+        <Probe />
+      </AlmaMeshRuntimeProvider>
+    </StrictMode>
+  )
+  return { runtime, ui, view: render(ui) }
+}
+
 describe('AlmaMeshRuntimeProvider — auto-boot gating', () => {
   beforeEach(() => {
     vi.mocked(hasLocalChart).mockReturnValue(false)
@@ -104,6 +116,16 @@ describe('AlmaMeshRuntimeProvider — auto-boot gating', () => {
     )
 
     await waitFor(() => expect(runtime.bootstrapCalls).toBe(1))
+  })
+
+  it('boots once when callback identities change after mount', async () => {
+    setPath('/onboarding')
+    const { runtime, ui, view } = renderRuntimeProvider()
+
+    await waitFor(() => expect(runtime.bootstrapCalls).toBe(1))
+    view.rerender(ui)
+
+    expect(runtime.bootstrapCalls).toBe(1)
   })
 
   it('DOES auto-boot on "/" when a chart already exists (returning visitor)', async () => {
