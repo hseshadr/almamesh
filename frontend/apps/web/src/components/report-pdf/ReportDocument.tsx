@@ -24,7 +24,11 @@ import { ReportPdfBirthDetails } from './sections/ReportPdfBirthDetails';
 import { ReportPdfPlanets } from './sections/ReportPdfPlanets';
 import { ReportPdfHouses } from './sections/ReportPdfHouses';
 import { ReportPdfCharts } from './sections/ReportPdfCharts';
-import { ReportPdfDasha } from './sections/ReportPdfDasha';
+import {
+  planDashaTablePages,
+  ReportPdfDashaOverview,
+  ReportPdfDashaTables,
+} from './sections/ReportPdfDasha';
 import { ReportPdfYogas } from './sections/ReportPdfYogas';
 import { ReportPdfNarrative } from './sections/ReportPdfNarrative';
 import { ReportPdfTransits } from './sections/ReportPdfTransits';
@@ -63,6 +67,7 @@ function PageFooter({ note }: { note: string }): ReactElement {
 export function ReportDocument({ data }: ReportDocumentProps): ReactElement {
   const footer = (): ReactElement => <PageFooter note={data.labels.footerNote} />;
   const vargas = data.vargas;
+  const dashaTablePages = planDashaTablePages(data.dasha.antarTables);
   return (
     <Document
       title={`AlmaMesh — ${data.personName}`}
@@ -96,9 +101,16 @@ export function ReportDocument({ data }: ReportDocumentProps): ReactElement {
       </Page>
 
       <Page size="A4" style={styles.page}>
-        <ReportPdfDasha data={data} />
+        <ReportPdfDashaOverview data={data} />
         {footer()}
       </Page>
+
+      {dashaTablePages.map((tables, pageIndex) => (
+        <Page key={`dasha-${pageIndex}`} size="A4" style={styles.page}>
+          <ReportPdfDashaTables tables={tables} />
+          {footer()}
+        </Page>
+      ))}
 
       <Page size="A4" style={styles.page}>
         <ReportPdfYogas data={data} />

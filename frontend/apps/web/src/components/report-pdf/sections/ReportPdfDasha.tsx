@@ -3,17 +3,52 @@
  * card (Maha · Antar · Pratyantar), the nine maha-daśā rows with dated spans, and
  * the antar-daśā drill-down of EVERY mahā (the definitive reference tables; the
  * running antar stays brass-marked inside its mahā). All dates/spans arrive
- * pre-formatted (epoch-safe) on `ReportPdfDasha` — no recomputation here.
+ * pre-formatted (epoch-safe) on `ReportPdfData` — no recomputation here.
  */
 
 import type { ReactElement } from 'react';
 import { Text, View } from '@react-pdf/renderer';
 import { styles } from '../theme';
-import type { ReportPdfData, ReportPdfDashaPeriod } from '../types';
+import type {
+  ReportPdfAntarTable,
+  ReportPdfData,
+  ReportPdfDashaPeriod,
+} from '../types';
 import { ReportPdfHeading } from './ReportPdfHeading';
 
 interface ReportPdfDashaProps {
   readonly data: ReportPdfData;
+}
+
+interface ReportPdfDashaTablesProps {
+  readonly tables: readonly ReportPdfAntarTable[];
+}
+
+const TABLE_UNITS_PER_PAGE = 2;
+
+function tableUnits(table: ReportPdfAntarTable): number {
+  return table.pratyantarTable ? 2 : 1;
+}
+
+export function planDashaTablePages(
+  tables: readonly ReportPdfAntarTable[],
+): readonly (readonly ReportPdfAntarTable[])[] {
+  const pages: ReportPdfAntarTable[][] = [];
+  let page: ReportPdfAntarTable[] = [];
+  let units = 0;
+
+  for (const table of tables) {
+    const nextUnits = tableUnits(table);
+    if (page.length > 0 && units + nextUnits > TABLE_UNITS_PER_PAGE) {
+      pages.push(page);
+      page = [];
+      units = 0;
+    }
+    page.push(table);
+    units += nextUnits;
+  }
+  if (page.length > 0) pages.push(page);
+  return pages;
 }
 
 function PeriodRow({ period }: { period: ReportPdfDashaPeriod }): ReactElement {
@@ -52,7 +87,7 @@ function PeriodTable({
   );
 }
 
-export function ReportPdfDasha({ data }: ReportPdfDashaProps): ReactElement {
+export function ReportPdfDashaOverview({ data }: ReportPdfDashaProps): ReactElement {
   const { dasha, labels } = data;
   return (
     <View>
@@ -75,10 +110,15 @@ export function ReportPdfDasha({ data }: ReportPdfDashaProps): ReactElement {
           <PeriodRow key={`${period.lord}-${period.start}`} period={period} />
         ))}
       </View>
+    </View>
+  );
+}
 
-      {/* Antar-daśās of every mahā, in mahā order (empty on older payloads). */}
-      {dasha.antarTables.map((table) => (
-        <View key={table.heading}>
+export function ReportPdfDashaTables({ tables }: ReportPdfDashaTablesProps): ReactElement {
+  return (
+    <View wrap={false}>
+      {tables.map((table) => (
+        <View key={table.heading} wrap={false}>
           <PeriodTable heading={table.heading} periods={table.periods} />
           {table.pratyantarTable ? (
             <PeriodTable

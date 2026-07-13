@@ -4,8 +4,9 @@ import { renderToBuffer } from '@react-pdf/renderer';
 import { act } from 'react';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { ReportDocument } from '../ReportDocument';
+import { planDashaTablePages } from '../sections/ReportPdfDasha';
 import { registerReportFonts } from '../theme';
-import type { ReportPdfData } from '../types';
+import type { ReportPdfAntarTable, ReportPdfData } from '../types';
 import {
   ALL_VARGA_IDS,
   buildMaximalReportPdfData,
@@ -108,6 +109,38 @@ describe('maximal report PDF acceptance', () => {
     expect(data.rectification?.candidates?.rows.length).toBeGreaterThan(0);
     expect(data.rectification?.evidence?.rows.length).toBeGreaterThan(0);
     expect(data.rectification?.missNotes?.length).toBeGreaterThan(0);
+  });
+
+  it('plans bounded dasha continuation pages instead of trusting renderer auto-wrap', () => {
+    const pratyantar = data.dasha.antarTables.find((table) => table.pratyantarTable)
+      ?.pratyantarTable;
+    expect(pratyantar).toBeDefined();
+    if (!pratyantar) throw new Error('The maximal fixture must include a pratyantar table');
+
+    const plainTables = data.dasha.antarTables.map(({ pratyantarTable: _, ...table }) => table);
+    expect(planDashaTablePages([])).toEqual([]);
+    expect(planDashaTablePages(plainTables.slice(0, 1))).toEqual([plainTables.slice(0, 1)]);
+
+    plainTables.forEach((_, pratyantarIndex) => {
+      const positioned: readonly ReportPdfAntarTable[] = plainTables.map((table, index) =>
+        index === pratyantarIndex ? { ...table, pratyantarTable: pratyantar } : table,
+      );
+      const pages = planDashaTablePages(positioned);
+      const units = pages.map((page) =>
+        page.reduce((total, table) => total + (table.pratyantarTable ? 2 : 1), 0),
+      );
+
+      expect([5, 6]).toContain(pages.length);
+      expect(units.every((pageUnits) => pageUnits <= 2)).toBe(true);
+      expect(pages.flat()).toEqual(positioned);
+      expect(
+        pages.some(
+          (page) =>
+            page.includes(positioned[pratyantarIndex]!) &&
+            positioned[pratyantarIndex]?.pratyantarTable === pratyantar,
+        ),
+      ).toBe(true);
+    });
   });
 
   it('preserves every chart/table sentinel and removes the repeated legacy narrative', () => {

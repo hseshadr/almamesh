@@ -131,6 +131,8 @@ describe('Cloudflare Pages route delivery', () => {
 describe('Cloudflare Pages security headers', () => {
   const headers = readFileSync(path.join(publicDir, '_headers'), 'utf-8');
 
+  const catchAllBlock = headers.match(/^\/\*\r?\n((?:[ \t]+.*(?:\r?\n|$))+)/m)?.[1] ?? '';
+
   it('enforces a Pyodide, worker, Turnstile, and BYO-endpoint compatible CSP', () => {
     expect(headers).toContain('Content-Security-Policy:');
     expect(headers).toContain("script-src 'self' 'wasm-unsafe-eval' https://challenges.cloudflare.com");
@@ -149,6 +151,11 @@ describe('Cloudflare Pages security headers', () => {
     for (const capability of ['camera=()', 'geolocation=()', 'microphone=()', 'payment=()']) {
       expect(headers, capability).toContain(capability);
     }
+  });
+
+  it('prevents edge transforms from injecting third-party scripts into app HTML', () => {
+    expect(catchAllBlock).not.toBe('');
+    expect(catchAllBlock).toContain('Cache-Control: public, no-cache, no-transform');
   });
 });
 

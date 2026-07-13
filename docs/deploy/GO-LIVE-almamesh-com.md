@@ -64,11 +64,15 @@ live `https://almamesh.com` origin (fresh OPFS): the ~38 MB engine boots, a char
 renders on `/dashboard`, console is clean, and there are **zero cross-origin requests
 on the chart path** (zero-egress holds). The retryable warming/recovery card works.
 
-> ⚠️ Two non-blocking follow-ups surfaced in that validation: (a) Cloudflare
-> **Web Analytics** auto-injects a `static.cloudflareinsights.com` beacon at the edge
-> — disable it (Web Analytics → automatic setup off) to keep the zero-egress promise
-> literally true; (b) **cold first-load is slow** (400–600 tiny bundle chunks; ~85 s
-> cold vs ~2 s warm) — future P-fix (HTTP/2 multiplexing / fewer-larger objects).
+> ⚠️ Cold first-load remains slow (400–600 tiny bundle chunks; ~85 s cold vs ~2 s
+> warm) — future P-fix (HTTP/2 multiplexing / fewer-larger objects). On 2026-07-13,
+> the Web Analytics dashboard toggle was turned off, but the existing production
+> response still contained Cloudflare's injected beacon while that state propagated.
+> The next app shell therefore sends `Cache-Control: public, no-cache, no-transform`
+> as the deterministic enforcement boundary. After every deploy, the release
+> operator must verify the live origin has this header, contains no injected beacon,
+> makes no third-party requests, and produces no unexpected console errors. Do not
+> record zero-egress as proven until those live checks pass.
 
 The rest of this file is the full reference for re-running or auditing the pipeline.
 
