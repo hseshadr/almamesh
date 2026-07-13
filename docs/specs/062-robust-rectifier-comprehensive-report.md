@@ -1,6 +1,7 @@
 # Spec 062 — Robust Rectifier + Comprehensive Report
 
-**Status:** Draft (frontend sections pending explorer reports)
+**Lifecycle:** SHIPPED
+**Status:** Shipped in v0.4.0
 **Owner surfaces:** `backend/src/almamesh/rectification/`, `edge/chart_runtime.py`,
 `@almamesh/browser`, `@almamesh/store`, `@almamesh/shared-types`, `apps/web` (`/rectify`, `/report`)
 
@@ -14,10 +15,10 @@ Alongside: the exported report becomes fully comprehensive (every calculated tab
 the rectification evidence story), and the `/rectify` journey gets an experience-quality
 pass. No headline percentages, ever.
 
-## Why (the critique, verified against the code)
+## Why (pre-implementation critique, verified against the code)
 
 A cusp birth with a soft time (±10–15 min plausible) cannot be saved by the birth
-record. The current engine (verified 2026-07-01):
+record. Before Spec 062 shipped, the engine state verified on 2026-07-01:
 
 - Scores maha+antar+pratyantar lords **pooled into one set** (`scorer.py:137`
   `_active_lords_at` → `_house_signals`), so depth is invisible: a pratyantar hit

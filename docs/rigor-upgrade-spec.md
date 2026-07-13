@@ -1,5 +1,6 @@
 # AlmaMesh Rigor Upgrade — Calibrated, Explainable, Honest Interpretation
 
+**Lifecycle:** ROADMAP
 **Status:** Implementation spec (design only — zero product-code changes in this doc).
 **Repo:** `~/dev/oss/almamesh` (public, live at almamesh.com, real client-side birth data).
 **Author's contract:** every factual claim below cites a `file:line` verified against the tree

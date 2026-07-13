@@ -1,5 +1,6 @@
 # Spec 058: Dasha Modifier YAML Configuration
 
+**Lifecycle:** ROADMAP
 **Status:** Draft
 **Created:** 2025-01-22
 **Priority:** P2 MEDIUM

@@ -1,5 +1,6 @@
 # Spec 057: Karma Gamification UI
 
+**Lifecycle:** ROADMAP
 **Status:** Draft
 **Created:** 2025-01-22
 **Priority:** P2 MEDIUM

@@ -28,9 +28,9 @@ PWA and it works offline after the first load.
   Every relationship is computed on *your* device from two finished charts;
   neither chart is ever changed by the other.
 - **Status:** **shipped and tested.** The in-browser engine, the North/South
-  charts, the **D9 Navamsa** divisional chart, the 3D force-field, the offline
-  client-side geocoder, named profiles (create / rename / delete), gated
-  **PDF export**, optional AI interpretation + chat, the **mesh** (relationship
+  charts, the **D9 Navamsa** divisional chart, the 3D force-field, online-primary
+  birthplace search with a bundled offline fallback, named profiles (create /
+  rename / delete), deterministic **PDF export**, optional AI interpretation + chat, the **mesh** (relationship
   readings between people) and the **Sky & Timing** predictive layer, and
   PWA/offline delivery all work today — see [Status](#status). There is **no
   backend**: the Python side is a build-time bundle publisher plus the engine.
@@ -91,10 +91,11 @@ PWA and it works offline after the first load.
   can be renamed and deleted (deleting one cascade-removes its charts).
 - **Birth-time rectification** — set a rectified birth time and a confidence
   level per profile in Settings; the rectified instant recomputes the chart.
-- **PDF export** — once an AI interpretation finishes, an **Export PDF** button
-  prints a branded report (cover page, birth details, D1 + D9, and the full
-  interpretation). It stays disabled until a real interpretation has completed,
-  so the report is never empty.
+- **PDF export** — once a chart exists, the deterministic report is available without AI:
+  open `/report` directly to export the branded chart, kundli, daśā, predictive,
+  strength, and rectification sections. The dashboard shortcut remains tied to a
+  completed reading; optional AI-written sections appear only when the stored
+  interpretation provenance matches the current chart and predictive cache identity.
 - **Languages (English / Spanish / Portuguese)** — the whole UI is
   internationalized with [react-i18next](https://react.i18next.com/). Switch language in **Settings →
   Preferences → Language**; the choice is persisted and `<html lang>` follows it.
@@ -114,6 +115,9 @@ PWA and it works offline after the first load.
 > configure (OpenRouter, or a local Ollama-style endpoint that stays on your
 > machine). The AI prompt is PII-redacted, and `local_only` fail-closes against a
 > cloud host.
+
+That is an online-primary birthplace search with a bundled offline fallback;
+chart computation remains local and deterministic.
 
 ## Building from source — prerequisites
 
@@ -170,10 +174,10 @@ bun run preview            # prints a local URL, e.g. http://localhost:4173
 
 </details>
 
-Open the previewed URL, enter a birth date/time/place (the location box is an
-**offline** geocoder — no network), and generate a chart. Watch the network tab:
-after the first bundle sync there are **zero** cross-origin requests, and the app
-keeps working with the network disabled. That's the whole product.
+Open the previewed URL, enter a birth date/time/place (birthplace search tries
+Open-Meteo first and falls back to the bundled city list), and generate a chart.
+After the location is resolved, chart calculation and rendering stay on-device;
+the app keeps working with the network disabled.
 
 > **Dev-server caveat:** `bun run dev` (`vite dev`) is fine for editing UI, but
 > the dev server's ESM module Workers fail to resolve the `pyodide` import in
@@ -220,31 +224,34 @@ OPFS → Pyodide flow, with the d2 diagram) and
 ```
 Browser (the product) ─ installable PWA, offline after first load
 │
-├─ apps/web                      React + Vite + Tailwind UI
-│    └─ offline geocoder         birth location with zero network (bundled cities)
+├─ frontend/apps/web             React + Vite + Tailwind UI
+│    └─ birthplace search        Open-Meteo first, bundled city fallback
 │
-├─ @almamesh/browser             the in-browser engine
+├─ frontend/packages/browser     the in-browser engine
 │    ├─ edge-proc bundle sync ──▶ verifies ed25519 + sha256, materializes into OPFS
 │    └─ Pyodide Web Worker  ────▶ boots the UNCHANGED almamesh wheel, computes the chart
 │         │  emits SiderealChart (TS mirror of the Python SiderealContext)
 │         ▼
-├─ @almamesh/store               pure adapters (reshape only, no astrology):
+├─ frontend/packages/store       pure adapters (reshape only, no astrology):
 │    ├─ SiderealChart -> ChartData          (the UI contract)
 │    ├─ buildChartGeometry(SiderealChart)   (N/S kundli geometry)
 │    ├─ buildEnergyFrame(SiderealChart, t)  (3D force-field frame)
 │    ├─ profiles + members                  (named, password-less people; typed relationships)
 │    └─ mesh                                (MeshEdgeContext per pair → the /mesh edge view)
-├─ @almamesh/llm                 optional interpretation + chat, NO AI by default;
+├─ frontend/packages/llm         optional interpretation + chat, NO AI by default;
 │                                opt-in, BYO OpenAI-compatible endpoint (one-click
 │                                OpenRouter preset or a local Ollama); save runs a
 │                                connectivity test; PII-redacted, fail-closed
 │                                local_only; mesh narration is role-anonymized
 │                                (no names leave the device)
-└─ @almamesh/{shared-types,constants}   constants = single design-token source
+├─ frontend/packages/shared-types      UI-facing TypeScript contracts
+├─ frontend/packages/constants         single design-token source
+├─ frontend/packages/memory            local semantic chat memory
+└─ frontend/packages/edgeproc-browser  signed-bundle sync and verification
 
 Build-time (Python, no server)
 │
-└─ backend/src/almamesh/
+└─ backend/src/almamesh
      ├─ calculations.py          sidereal astronomy (Skyfield + DE421; Lahiri default,
      │                           True-Chitra ayanamsa + True-node selectable)
      ├─ dasha/  yogas/           Vimshottari dasha + yoga detection
@@ -278,6 +285,12 @@ cd backend && uv run pytest tests/validation/test_ground_truth.py tests/test_tra
 See [`frontend/README.md`](frontend/README.md) for the monorepo layout and the
 full set of dev/build/test commands.
 
+## Versioning
+
+**v0.4.0 is the application release tag.** Backend and frontend workspace package
+versions describe independently versioned implementation layers and need not equal
+the app tag.
+
 ## Status
 
 | Capability | What | State |
@@ -295,10 +308,10 @@ full set of dev/build/test commands.
 | The mesh (relational astrology) | Per-pair relationship read of two whole charts: Ashtakoota Guna Milan + Mangal screening (cited classical tables, partner edges only), chart overlay, daśā synchrony, significators; role-anonymized AI narration, read-only by construction; `/mesh` constellation + `/mesh/:memberId` edge view | ✅ shipped |
 | Members | People you add to your mesh, with typed relationships (spouse/partner/family/friend/…), each owning a full chart; persisted with a versioned migration; managed in Settings → People | ✅ shipped |
 | AI interpretation + chat | Off by default (pure calculation); opt-in BYO OpenAI-compatible endpoint (one-click OpenRouter preset or a local Ollama); saving runs a connectivity test so a bad key/model is reported immediately; PII-redacted, fail-closed | ✅ shipped |
-| PDF export | Branded print report (cover + D1/D9 + interpretation + predictive sections VIII–XI + Birth Time Authority §XII); the written interpretation is gated on a completed reading, the chart/kundli/daśā render without it | ✅ shipped |
+| PDF export | Deterministic report available after a chart exists (cover + D1/D9 + daśā + predictive sections VIII–XI + Birth Time Authority §XII); AI-written sections require current, provenance-matched interpretation | ✅ shipped |
 | Birth-time rectification | Per-profile rectified time + confidence in Settings; recomputes the chart | ✅ shipped |
 | Named profiles | Multiple password-less people per device, each owning its charts; rename + delete (chart cascade) | ✅ shipped |
-| Offline geocoder | Client-side birth-location lookup, zero network | ✅ shipped |
+| Birthplace search | Online-primary Open-Meteo lookup with a bundled offline fallback; only the city query leaves the device | ✅ shipped |
 | Internationalization | English / Spanish / Portuguese; react-i18next, offline bundled catalogs (zero-egress), persisted language + `<html lang>` sync, AI answers in-language; en authoritative, es/pt machine-translated | ✅ shipped |
 | PWA delivery | Service worker + offline reboot + provenance footer | ✅ shipped |
 

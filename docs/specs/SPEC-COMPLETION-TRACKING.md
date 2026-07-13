@@ -1,5 +1,8 @@
 # Spec Completion Tracking
 
+**Lifecycle:** SUPERSEDED
+**Historical record:** This January-era queue is retained for provenance and is
+not the current repository roadmap.
 **Last Updated:** 2026-01-23
 **Architecture Reference:** Spec 046 (completed/ - Radical Simplification)
 
@@ -9,7 +12,7 @@
 
 **Spec 046 (Radical Simplification)** completed the migration from 161K → ~6K LOC. Now serves as architectural reference in `completed/`. All decisions should follow its principles: minimal code, high cohesion, library-first.
 
-**Current Focus:** Spec 061 (Backend Stability - P0 Critical), then Karma System (Specs 054-058)
+**Historical focus (2026-01-23):** Spec 061 (Backend Stability - P0 Critical), then Karma System (Specs 054-058)
 
 ---
 

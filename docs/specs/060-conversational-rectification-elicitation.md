@@ -1,6 +1,7 @@
 # Conversational rectification elicitation + approximate-date engine support — design spec
 
-**Status:** approved design (2026-06-28). Phase 3 of rectification-as-authority.
+**Lifecycle:** SHIPPED
+**Status:** Shipped in v0.4.0. Approved design dated 2026-06-28; phase 3 of rectification-as-authority.
 Builds directly on Spec 059 (event-based rectification, shipped 2026-06-27, PR #1).
 **Priority:** P1 HIGH (rectification is THE accuracy gate; the manual event form is the friction point).
 **Dependencies:** Spec 059 (`/rectify` wizard, `RectificationEventInput`, `structureLifeEvents`,

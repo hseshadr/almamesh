@@ -1,5 +1,8 @@
 # Spec 064 — SEO: prerender the public routes at build time
 
+**Lifecycle:** SHIPPED
+**Status:** Shipped in v0.4.0
+
 **TL;DR:** Google indexes almamesh.com as an empty JS shell (`<div id="root">`),
 and `/welcome` + the legal pages are unknown to it. Fix: prerender the five
 PUBLIC routes into real per-route HTML files at `vite build` time with
@@ -13,10 +16,10 @@ PWA — nothing about the engine, the SW, or private routes changes.
 | Route | Status | Prerendered file |
 |---|---|---|
 | `/` | public (landing when no chart; client redirects to `/dashboard` when one exists) | `dist/index.html` |
-| `/welcome` | public (stable shareable splash) | `dist/welcome/index.html` |
-| `/privacy` | public | `dist/privacy/index.html` |
-| `/terms` | public | `dist/terms/index.html` |
-| `/data-deletion` | public | `dist/data-deletion/index.html` |
+| `/welcome` | public (stable shareable splash) | `dist/welcome.html` |
+| `/privacy` | public | `dist/privacy.html` |
+| `/terms` | public | `dist/terms.html` |
+| `/data-deletion` | public | `dist/data-deletion.html` |
 | `/dashboard /onboarding /predictive /report /mesh* /rectify/* /settings/* /life/*` | private — client-rendered only, `robots.txt` Disallow, NOT in sitemap | — (served via the SPA fallback) |
 
 ## Shipped path: `vite-prerender-plugin` (Node renderToString) — not the snapshot fallback
@@ -141,7 +144,7 @@ one-time GSC actions below).
   forms, and precaching under a redirecting key left an empty precache + a
   wedged session. `scripts/verify-precache-redirect.mjs` gates this in CI.
 - Crawlers never run the SW: a no-JS fetch of `/welcome` is Cloudflare Pages
-  serving `welcome/index.html` directly.
+  serving `welcome.html` directly.
 
 ## Validation performed (see PR/report for evidence)
 

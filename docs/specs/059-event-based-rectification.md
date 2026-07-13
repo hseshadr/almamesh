@@ -1,6 +1,8 @@
 # Event-based birth-time rectification — design spec
 
-**Status:** approved design (2026-06-26). Branch `feat/rectification-authority`. Phase 2 of
+**Lifecycle:** SHIPPED
+**Status:** Shipped 2026-06-27. Approved design dated 2026-06-26; branch
+`feat/rectification-authority`. Phase 2 of
 rectification-as-authority. Phase 1 (engine cusp fields + honest as-recorded/rectified UX) already
 shipped at `0fdc3d9`.
 

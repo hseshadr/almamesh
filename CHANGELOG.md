@@ -6,6 +6,14 @@ All notable changes to AlmaMesh are documented here. Format follows
 
 ## [Unreleased]
 
+### Added
+- **Complete deterministic report artifacts (PR #62).** Exported daśā tables now
+  cover **maha, antar, and pratyantar**; generation is keyed to the current
+  **predictive cache identity**; AI-written sections require matching
+  **interpretation provenance**; free-text event input uses
+  **conservative life-event structuring**; and **semantic, geometric, and browser PDF gates**
+  verify that the downloaded artifact is complete and readable.
+
 ### Changed
 - **Re-vendored the three vendored packages to their latest upstream releases**
   (provenance + recorded adaptations in each `VENDORED.md`; no storage-format,
