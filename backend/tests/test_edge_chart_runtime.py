@@ -4,9 +4,10 @@ ChartRuntime accepts a LOCAL_ONLY, DETERMINISTIC task carrying birth data and
 returns the full sidereal chart — the calc core runs entirely on-device.
 """
 
+import pytest
 from edgeproc import CapabilityVerdict, PrivacyMode, Task, TaskKind
 
-from almamesh.edge import build_chart_engine
+from almamesh.edge import build_chart_engine, chart_runtime
 from almamesh.edge.chart_runtime import ChartRuntime
 
 _BIRTH = {
@@ -22,6 +23,25 @@ def _chart_task(payload: dict | None = None) -> Task:
         payload=payload if payload is not None else dict(_BIRTH),
         privacy_mode=PrivacyMode.LOCAL_ONLY,
     )
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [(1, 1.0), (1.5, 1.5), ("2.5", 2.5)],
+)
+def test_should_parse_supported_payload_numbers(raw: object, expected: float) -> None:
+    # Given / When
+    result = chart_runtime._parse_payload_number(raw, field="latitude")
+
+    # Then
+    assert result == expected
+
+
+@pytest.mark.parametrize("raw", [None, True, "not-a-number"])
+def test_should_reject_invalid_payload_numbers(raw: object) -> None:
+    # Given / When / Then
+    with pytest.raises(ValueError, match="latitude"):
+        chart_runtime._parse_payload_number(raw, field="latitude")
 
 
 def test_accepts_local_deterministic() -> None:

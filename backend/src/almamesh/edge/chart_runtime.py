@@ -39,6 +39,16 @@ from almamesh.schemas.mesh import MatchRole, Relationship
 _RUNTIME_VERSION = "almamesh-chart/0.1.0"
 
 
+def _parse_payload_number(value: object, *, field: str) -> float:
+    """Parse one supported wire number without accepting booleans or nulls."""
+    if isinstance(value, bool) or not isinstance(value, str | int | float):
+        raise ValueError(f"invalid numeric field: {field}")
+    try:
+        return float(value)
+    except ValueError as error:
+        raise ValueError(f"invalid numeric field: {field}") from error
+
+
 def _compute_chart(payload: Mapping[str, object]) -> dict[str, JsonValue]:
     """Run the deterministic calc core over birth data from a task payload.
 
@@ -47,8 +57,8 @@ def _compute_chart(payload: Mapping[str, object]) -> dict[str, JsonValue]:
     reproducible (required for byte-parity and content-addressed bundles).
     """
     dt = datetime.fromisoformat(str(payload["datetime_utc"]))
-    latitude = float(payload["latitude"])  # type: ignore[arg-type]
-    longitude = float(payload["longitude"])  # type: ignore[arg-type]
+    latitude = _parse_payload_number(payload["latitude"], field="latitude")
+    longitude = _parse_payload_number(payload["longitude"], field="longitude")
     raw_reference = payload.get("reference_date")
     reference_date = datetime.fromisoformat(str(raw_reference)) if raw_reference else None
     return calculate_sidereal_context(
@@ -66,8 +76,8 @@ def compute_predictive(payload: Mapping[str, object]) -> dict[str, JsonValue]:
     """
     contexts = compute_predictive_contexts(
         datetime.fromisoformat(str(payload["datetime_utc"])),
-        float(payload["latitude"]),  # type: ignore[arg-type]
-        float(payload["longitude"]),  # type: ignore[arg-type]
+        _parse_payload_number(payload["latitude"], field="latitude"),
+        _parse_payload_number(payload["longitude"], field="longitude"),
         datetime.fromisoformat(str(payload["reference_instant"])),
     )
     return contexts.model_dump(mode="json")
@@ -84,8 +94,8 @@ def _natal_for_mesh(birth: Mapping[str, object], reference_instant: datetime) ->
     """One read-only natal context for the mesh, with its dasha clock pinned."""
     return calculate_sidereal_context(
         datetime.fromisoformat(str(birth["datetime_utc"])),
-        float(birth["latitude"]),  # type: ignore[arg-type]
-        float(birth["longitude"]),  # type: ignore[arg-type]
+        _parse_payload_number(birth["latitude"], field="latitude"),
+        _parse_payload_number(birth["longitude"], field="longitude"),
         reference_date=reference_instant,
     )
 
@@ -151,8 +161,8 @@ def compute_rectification(payload: Mapping[str, object]) -> dict[str, JsonValue]
     anchor_confidence = AnchorConfidence(str(raw_anchor)) if raw_anchor is not None else None
     result = compute_rectification_result(
         dt_utc=dt_utc,
-        latitude=float(payload["latitude"]),  # type: ignore[arg-type]
-        longitude=float(payload["longitude"]),  # type: ignore[arg-type]
+        latitude=_parse_payload_number(payload["latitude"], field="latitude"),
+        longitude=_parse_payload_number(payload["longitude"], field="longitude"),
         utc_offset_minutes=int(str(payload["utc_offset_minutes"])),
         events=_parse_rect_events(payload["events"]),
         mode=RectificationMode(str(payload["mode"])),

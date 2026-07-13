@@ -71,6 +71,28 @@ describe('repository truth', () => {
     expect(config).not.toContain('esbuildOptions:');
   });
 
+  it('publishes the categorized cleverness-debt ledger', () => {
+    const path = 'docs/CLEVERNESS-DEBT.md';
+    expect(existsSync(resolve(root, path))).toBe(true);
+    const ledger = readRoot(path);
+    for (const heading of [
+      '## Remove now',
+      '## Redesign only with a named consumer',
+      '## Accepted boundary',
+    ]) expect(ledger).toContain(heading);
+    for (const boundary of [
+      'Skyfield type edge',
+      'PEP 562 lazy import',
+      'Shadbala classical-argument shape',
+      'JSON metadata',
+      'worker singletons',
+      'lazy-load cache',
+      'chat cache',
+      'geocoder cache',
+      'mutable store counters',
+    ]) expect(ledger).toContain(boundary);
+  });
+
   it.each([
     ['docs/specs/054-karma-action-classification.md', 'ROADMAP'],
     ['docs/specs/057-karma-gamification-ui.md', 'ROADMAP'],
