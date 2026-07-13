@@ -1,6 +1,6 @@
 /**
  * AlmaMesh Shared Types
- * TypeScript interfaces matching backend API contracts
+ * Browser computation, persisted store, and UI boundary contracts
  *
  * @packageDocumentation
  */
@@ -46,34 +46,6 @@ export type {
 
 // (Energy exports are defined above; avoid duplicate re-exports.)
 
-// Spec 031: Chart/Interpretation separation types (prefixed with Sep*)
-export type {
-  SepAyanamsaType,
-  SepHouseSystem,
-  SepViewMode,
-  SepInterpretationSection,
-  SepFocusArea,
-  SepChartCalculationRequest,
-  SepChartCalculationResponse,
-  SepInterpretationRequest,
-  SepInterpretationResponse,
-  SepStreamingInterpretationRequest,
-  SepReinterpretationRequest,
-  SepInterpretationVersionSummary,
-  SepInterpretationVersionsResponse,
-  SepInterpretationVersion,
-  SepInterpretationStreamEvent,
-  SepInterpretationStreamStart,
-  SepInterpretationSectionStart,
-  SepInterpretationToken,
-  SepInterpretationSectionComplete,
-  SepInterpretationStreamComplete,
-  SepInterpretationStreamUsage,
-  SepInterpretationStreamError,
-  SepChartCalculationError,
-  SepInterpretationError,
-} from './separated-charts';
-
 // ============================================================================
 // Base Types
 // ============================================================================
@@ -83,45 +55,9 @@ export interface BaseResponse {
   message: string;
 }
 
-export interface ErrorResponse extends BaseResponse {
-  success: false;
-  error_type:
-    | 'validation_error'
-    | 'not_found'
-    | 'authentication_error'
-    | 'authorization_error'
-    | 'rate_limit_exceeded'
-    | 'internal_error'
-    | 'service_unavailable';
-  error_details?: {
-    field?: string;
-    value?: unknown;
-    constraint?: string;
-  };
-  timestamp: string;
-}
-
 // ============================================================================
-// Auth Types
+// Birth and Location Types
 // ============================================================================
-
-/**
- * Birth data input for registration
- * Matches backend BirthDataInput class
- * Note: state and country are required in backend
- */
-export interface BirthDataInput {
-  name: string;
-  date: string;           // YYYY-MM-DD
-  time: string;           // HH:MM or HH:MM AM/PM
-  city: string;
-  state: string;          // Required in backend
-  country: string;        // Required in backend
-  email?: string | null;
-  transit_city?: string | null;
-  transit_state?: string | null;
-  transit_country?: string | null;
-}
 
 /**
  * Location details from geocoding
@@ -159,61 +95,6 @@ export interface ProcessedBirthData {
   birth_time_original?: string;
   /** Confidence in the birth time (a `TIME_CONFIDENCE` key from @almamesh/constants). */
   birth_time_confidence?: string;
-}
-
-/**
- * User response from API
- * Matches backend UserResponse class
- */
-export interface UserResponse {
-  id: string;
-  email: string;
-  name: string;
-  role: string;
-  status: string;
-  avatar_url?: string | null;
-  auth_providers?: string[];
-  created_at: string;
-  updated_at: string;
-  birth_data?: ProcessedBirthData | null;
-  preferences?: Record<string, unknown>;
-}
-
-/**
- * Request model for updating user profile
- * Matches backend UserUpdateRequest class
- */
-export interface UserUpdateRequest {
-  name?: string;
-  birth_data?: BirthDataInput;
-  preferences?: Record<string, unknown>;
-}
-
-// ============================================================================
-// OAuth Types
-// ============================================================================
-
-/**
- * OAuth token response from backend
- */
-export interface OAuthTokenResponse extends BaseResponse {
-  user: UserResponse;
-  access_token: string;
-  refresh_token: string;
-  token_type: 'bearer';
-  expires_in: number;
-  is_new_user: boolean;
-}
-
-export interface TokenRefreshRequest {
-  refresh_token: string;
-}
-
-export interface TokenRefreshResponse extends BaseResponse {
-  access_token: string;
-  refresh_token: string;
-  token_type: 'bearer';
-  expires_in: number;
 }
 
 // ============================================================================
@@ -1109,21 +990,6 @@ export interface VedicInterpretation {
 }
 
 // ============================================================================
-// Chart Generation (Flow 1)
-// ============================================================================
-
-export interface BirthChartGenerationRequest {
-  name: string;
-  date: string;           // YYYY-MM-DD
-  time: string;           // HH:MM
-  latitude: number;       // -90 to 90
-  longitude: number;      // -180 to 180
-  location_name?: string; // Display name for the location
-  timezone?: string;      // Default: UTC
-  is_primary?: boolean;   // Mark as user's primary chart
-}
-
-// ============================================================================
 // Astronomical Calculation Types (from chart_data)
 // ============================================================================
 
@@ -1240,51 +1106,6 @@ export interface BirthChartGenerationResponse extends BaseResponse {
   processing_time_seconds?: number | null;
   generated_at: string;
   llm_metadata?: Record<string, unknown> | null;
-  /** Token usage summary for real-time UI updates (populated when user is authenticated) */
-  token_usage?: TokenUsageSummary | null;
-}
-
-// ============================================================================
-// Question Answering (Flow 2)
-// ============================================================================
-
-export interface AstrologicalQuestionRequest {
-  person_name: string;
-  question: string;
-  include_timing_analysis?: boolean;
-  include_remedies?: boolean;
-}
-
-/**
- * Dasha information for question responses
- * Matches backend dict[str, Any] structure with typical fields
- */
-export interface DashaInfo {
-  system?: string;
-  current_mahadasha?: string;
-  current_antardasha?: string;
-  mahadasha?: string;
-  antardasha?: string;
-  pratyantar?: string;
-  maha_until?: string;
-  antar_until?: string;
-  [key: string]: unknown; // Allow additional fields from backend
-}
-
-/**
- * Astrological question response
- * Matches backend AstrologicalQuestionResponse class
- */
-export interface AstrologicalQuestionResponse extends BaseResponse {
-  person_name: string;
-  question: string;
-  answer?: string | null;
-  current_dasha_info?: DashaInfo | null;
-  timing_guidance?: string | null;
-  remedies?: string[] | null;
-  chart_found: boolean;
-  response_time_seconds?: number | null;
-  answered_at: string;
   /** Token usage summary for real-time UI updates (populated when user is authenticated) */
   token_usage?: TokenUsageSummary | null;
 }
@@ -1514,13 +1335,6 @@ export interface RectificationRecord {
   readonly eventSummaries?: readonly RectificationRecordEventSummary[];
 }
 
-export type LifeEventType =
-  | 'marriage' | 'child_birth' | 'parent_death'
-  | 'career_start' | 'career_promotion' | 'business_start'
-  | 'education_start' | 'graduation'
-  | 'property_acquisition' | 'relocation'
-  | 'major_surgery' | 'accident' | 'relationship_end';
-
 // ============================================================================
 // Token Usage Types
 // ============================================================================
@@ -1543,255 +1357,4 @@ export interface TokenUsageSummary {
   limit: number;
   /** Estimated cost in USD for this operation */
   estimated_cost_usd: number;
-}
-
-/**
- * Recent LLM call record
- * Matches backend RecentCallResponse
- */
-export interface RecentCall {
-  call_type: string;
-  model: string;
-  input_tokens: number;
-  output_tokens: number;
-  cost_usd: number;
-  created_at: string;
-}
-
-/**
- * Usage breakdown by call type
- * Matches backend CallTypeBreakdownResponse
- */
-export interface CallTypeBreakdown {
-  count: number;
-  tokens: number;
-  cost_usd: number;
-}
-
-/**
- * Current month usage summary
- * Matches backend MonthlyUsageResponse
- */
-export interface MonthlyUsage {
-  input_tokens: number;
-  output_tokens: number;
-  total_tokens: number;
-  estimated_cost_usd: number;
-  budget_usd: number;
-  budget_remaining_usd: number;
-  budget_used_percent: number;
-}
-
-/**
- * Complete usage response
- * Matches backend UsageResponse
- */
-export interface UsageResponse {
-  current_month: MonthlyUsage;
-  by_call_type: Record<string, CallTypeBreakdown>;
-  recent_calls: RecentCall[];
-}
-
-/**
- * Life event type labels for display
- */
-export const LIFE_EVENT_TYPE_LABELS: Record<LifeEventType, string> = {
-  marriage: 'Marriage',
-  child_birth: 'Child Birth',
-  parent_death: 'Parent Death',
-  career_start: 'Career Start',
-  career_promotion: 'Career Promotion',
-  business_start: 'Business Start',
-  education_start: 'Education Start',
-  graduation: 'Graduation',
-  property_acquisition: 'Property Purchase',
-  relocation: 'Relocation',
-  major_surgery: 'Major Surgery',
-  accident: 'Accident',
-  relationship_end: 'Relationship End',
-};
-
-// ============================================================================
-// Workflow Types
-// ============================================================================
-
-/**
- * Workflow status enum
- * Matches backend WorkflowStatus enum values (lowercase)
- * Note: Backend Python enum uses UPPERCASE names but lowercase VALUES
- * e.g., WorkflowStatus.COMPLETED = "completed"
- */
-export type WorkflowStatus =
-  | 'pending'
-  | 'running'
-  | 'completed'
-  | 'failed'
-  | 'cancelled'
-  | 'timed_out'
-  | 'terminated';
-
-/**
- * Workflow progress information
- * Matches backend WorkflowProgress model
- */
-export interface WorkflowProgress {
-  current_step: string;
-  percent_complete: number;
-  steps_completed: string[];
-}
-
-/**
- * Response from starting an onboarding workflow
- * Matches backend WorkflowStartResponse model
- */
-export interface WorkflowStartResponse {
-  success: boolean;
-  workflow_id: string;
-  run_id: string;
-  status: WorkflowStatus;
-  message: string;
-  task_queue: string;
-}
-
-/**
- * Response from checking workflow status
- * Matches backend WorkflowStatusResponse model
- */
-export interface WorkflowStatusResponse {
-  success: boolean;
-  workflow_id: string;
-  status: WorkflowStatus;
-  progress?: WorkflowProgress;
-  result?: BirthChartGenerationResponse;
-  error?: string;
-}
-
-/**
- * Response from getting workflow result
- * Matches backend WorkflowResultResponse model
- */
-export interface WorkflowResultResponse {
-  success: boolean;
-  workflow_id: string;
-  run_id?: string;
-  status: WorkflowStatus;
-  result?: BirthChartGenerationResponse;
-  progress?: WorkflowProgress;
-  error?: string;
-}
-
-/**
- * Request to start an onboarding workflow
- * Matches backend StartOnboardingRequest model
- */
-export interface StartOnboardingRequest {
-  name: string;
-  date: string;           // YYYY-MM-DD
-  time: string;           // HH:MM
-  city: string;
-  state?: string;
-  country?: string;
-  email?: string;
-  options?: {
-    generate_interpretation?: boolean;
-  };
-}
-
-// ============================================================================
-// Life Events CRUD Types
-// ============================================================================
-
-/**
- * Life event stored in user preferences (CRUD model)
- * Matches backend life event structure for CRUD operations
- */
-export interface StoredLifeEvent {
-  id: string;
-  event_type: LifeEventType;
-  description: string;
-  date: string;                    // YYYY-MM-DD format
-  time_known: boolean;
-  time?: string | null;            // HH:MM format if known
-  created_at: string;              // ISO datetime
-  updated_at?: string | null;      // ISO datetime
-}
-
-/**
- * Input for creating a new life event
- */
-export interface LifeEventCreateInput {
-  event_type: LifeEventType;
-  description: string;
-  date: string;                    // YYYY-MM-DD format
-  time_known?: boolean;
-  time?: string | null;            // HH:MM format if known
-}
-
-/**
- * Input for updating an existing life event
- */
-export interface LifeEventUpdateInput {
-  event_type?: LifeEventType;
-  description?: string;
-  date?: string;                   // YYYY-MM-DD format
-  time_known?: boolean;
-  time?: string | null;            // HH:MM format if known
-}
-
-/**
- * Response from GET /users/life-events
- */
-export interface LifeEventsResponse {
-  events: StoredLifeEvent[];
-  count: number;
-}
-
-/**
- * Response from DELETE /users/life-events/:id
- */
-export interface LifeEventDeleteResponse {
-  success: boolean;
-  message?: string;
-}
-
-// ============================================================================
-// Token Budget Types
-// ============================================================================
-
-/**
- * User subscription tier for token budgets
- * Matches backend UserTier enum
- */
-export type UserTier = 'free' | 'basic' | 'premium' | 'enterprise';
-
-/**
- * User's current token budget status
- * Matches backend TokenBudgetStatus model
- */
-export interface TokenBudgetStatus {
-  /** User's unique identifier */
-  user_id: string;
-  /** Total monthly token allocation */
-  monthly_budget: number;
-  /** Tokens consumed this billing period */
-  tokens_used: number;
-  /** Tokens still available (0 if exceeded) */
-  tokens_remaining: number;
-  /** Percentage of budget consumed (0-100) */
-  usage_percentage: number;
-  /** Date when the budget was last reset (YYYY-MM-DD format) */
-  reset_date?: string | null;
-  /** True if user has exceeded budget */
-  is_exceeded: boolean;
-  /** User's subscription tier */
-  tier: UserTier;
-}
-
-/**
- * Error response for token budget operations
- * Matches backend TokenBudgetError model
- */
-export interface TokenBudgetError {
-  /** Error message describing the issue */
-  error: string;
 }

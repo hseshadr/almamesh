@@ -41,7 +41,6 @@ import {
 } from '@almamesh/store';
 import type { SiderealChart } from '@almamesh/browser/types';
 import type { ProcessedBirthData, VedicInterpretation } from '@almamesh/shared-types';
-import type { SepViewMode } from '@almamesh/shared-types';
 
 import i18n from '../i18n/config';
 import { isInsufficientCreditsMessage, isModelUnavailableMessage } from '../lib/errors';
@@ -64,8 +63,10 @@ export interface SectionProgress {
   readonly failed: boolean;
 }
 
+type StreamingInterpretationViewMode = 'layman' | 'expert';
+
 export interface StreamInterpretationOptions {
-  view_mode?: SepViewMode;
+  view_mode?: StreamingInterpretationViewMode;
 }
 
 export interface UseStreamingInterpretationResult {
