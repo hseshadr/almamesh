@@ -13,6 +13,12 @@ import {
   TRANSIT_CTX,
   VARGA_CTX_FULL,
 } from '../src/test/predictiveFixtures';
+import {
+  a4ContentBoundViolations,
+  footerGeometryViolations,
+  horizontalWordOverlapViolations,
+  inspectPdfWithPoppler,
+} from '../src/components/report-pdf/__tests__/pdfPoppler';
 
 const execFileAsync = promisify(execFile);
 
@@ -29,9 +35,9 @@ const execFileAsync = promisify(execFile);
  *   1. rectifies the birth time on /settings/profile (06:44 -> 06:14) and saves,
  *   2. reloads and asserts the rectified time PERSISTS (entered 06:44, effective
  *      06:14, lagna flips Leo -> Cancer),
- *   3. opens /report, clicks "Download PDF" (natal-only graceful path, no LLM),
- *   4. parses the downloaded PDF and asserts the cover / birth-time / lagna /
- *      "Generated on <today>" (no 1969/1970 epoch) are correct.
+ *   3. hard-reloads the dashboard offline and proves the saved Cancer chart survives,
+ *   4. computes fixed-date predictive transits and checks houses from Cancer,
+ *   5. downloads the keyless report and verifies the same transit/lagna/date facts.
  *
  * The proof case is the reference native: Bengaluru, India, 08 Aug 1988, 06:44 IST.
  * The lagna sits on the Cancer / Leo cusp:
@@ -52,6 +58,12 @@ const MAXIMAL_DOWNLOAD_PATH = resolve(OUT_DIR, 'e2e-maximal-download.pdf');
 const SYNTHETIC_PROFILE_ID = 'report-pdf-maximal-profile';
 const SYNTHETIC_CHART_ID = 'report-pdf-maximal-chart';
 const SYNTHETIC_EVENT_COUNT = 18;
+const TRANSIT_REFERENCE_TIME = '2026-07-11T12:00:00Z';
+const RECTIFIED_TRANSIT_ROWS = [
+  { graha: 'Saturn', sign: 'Pisces', cancerHouse: 9, aquariusHouse: 2 },
+  { graha: 'Sun', sign: 'Gemini', cancerHouse: 12, aquariusHouse: 5 },
+  { graha: 'Rahu', sign: 'Aquarius', cancerHouse: 8, aquariusHouse: 1 },
+] as const;
 const ALL_VARGA_IDS = [
   'D1',
   'D2',
@@ -70,6 +82,18 @@ const ALL_VARGA_IDS = [
   'D45',
   'D60',
 ] as const satisfies readonly DivisionalChartId[];
+
+test('report-PDF acceptance permanently disables hooks and stale-server reuse', async () => {
+  const config = await readFile(resolve(HERE, '../playwright.report-pdf.config.ts'), 'utf8');
+  expect(config).toMatch(
+    /command:\s*`VITE_API_URL=\s+VITE_EXIT_GATE_HOOKS=\s+bun run build/,
+  );
+  expect(config).toMatch(
+    /&&\s+VITE_API_URL=\s+VITE_EXIT_GATE_HOOKS=\s+bun run preview/,
+  );
+  expect(config).toContain('reuseExistingServer: false');
+});
+
 const SYNTHETIC_BIRTH = {
   name: 'Maximal Browser Native',
   birth_datetime_utc: '1990-01-15T12:00:00Z',
@@ -493,6 +517,21 @@ async function advanceStep(page: Page, nextStepLocator: () => ReturnType<Page['l
 async function driveRealOnboarding(page: Page): Promise<void> {
   await page.goto('/onboarding', { waitUntil: 'domcontentloaded' });
 
+  const hookGlobals = await page.evaluate(() => {
+    const gateWindow = window as typeof window & {
+      readonly __almameshGenerate?: unknown;
+      readonly __ALMAMESH_STAGE__?: unknown;
+    };
+    return {
+      generate: typeof gateWindow.__almameshGenerate,
+      stage: typeof gateWindow.__ALMAMESH_STAGE__,
+    };
+  });
+  expect(hookGlobals, 'the real-visitor acceptance build must not expose exit-gate hooks').toEqual({
+    generate: 'undefined',
+    stage: 'undefined',
+  });
+
   // Step 1 — name.
   await page.getByTestId('name-input').waitFor({ state: 'visible', timeout: 30_000 });
   await page.getByTestId('name-input').fill('Reference Native');
@@ -569,6 +608,21 @@ async function readDashboardLagna(page: Page): Promise<string> {
   return (await lagnaFact.innerText()).trim().toLowerCase();
 }
 
+async function expectReportTransitRow(
+  page: Page,
+  expected: (typeof RECTIFIED_TRANSIT_ROWS)[number],
+): Promise<void> {
+  const table = page.getByTestId('report-gochara-table');
+  const row = table.getByRole('row').filter({
+    has: page.getByRole('cell', { name: expected.graha, exact: true }),
+  });
+  await expect(row).toHaveCount(1);
+  const cells = row.getByRole('cell');
+  await expect(cells.nth(1)).toHaveText(expected.sign);
+  await expect(cells.nth(4)).toHaveText(String(expected.cancerHouse));
+  await expect(cells.nth(4)).not.toHaveText(String(expected.aquariusHouse));
+}
+
 /** Extract the text of the downloaded PDF via the system `pdftotext`. */
 async function pdfToText(pdfPath: string): Promise<string> {
   const txtPath = pdfPath.replace(/\.pdf$/, '.txt');
@@ -581,8 +635,82 @@ function pdfAscendantLine(pdfText: string): string {
   return (pdfText.split('\n').find((l) => /ascendant\s*\(lagna\)/i.test(l)) ?? '').trim();
 }
 
-test('REAL onboarding -> rectify (persists) -> natal-only PDF is correct', async ({ page }) => {
-  test.setTimeout(360_000);
+function pdfTransitColumns(pdfText: string, graha: string): readonly string[] {
+  const normalized = pdfText.toLocaleLowerCase('en');
+  const start = normalized.indexOf('transits & timing');
+  expect(start).toBeGreaterThanOrEqual(0);
+
+  const line = pdfText
+    .slice(start)
+    .split('\n')
+    .find((candidate) => new RegExp(`^\\s*${graha}\\s+`, 'i').test(candidate));
+  expect(line, `${graha} must appear in the PDF gochara table`).toBeDefined();
+  const columns = line?.trim().split(/\s{2,}/) ?? [];
+  expect(columns).toHaveLength(6);
+  return columns;
+}
+
+const DASHA_ROW_PATTERN =
+  /^(Sun|Moon|Mars|Rahu|Jupiter|Saturn|Mercury|Ketu|Venus)\s+([A-Z][a-z]{2} \d{4})\s+—\s+([A-Z][a-z]{2} \d{4})\s+\d+(?:\.\d+)? yr$/;
+
+function titleCaseDashaLord(lord: string): string {
+  return `${lord.charAt(0).toUpperCase()}${lord.slice(1)}`;
+}
+
+function dashaMonthYear(iso: string): string {
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(new Date(`${iso}T00:00:00Z`));
+}
+
+function dashaRowTuple(period: {
+  readonly lord: string;
+  readonly start_date: string;
+  readonly end_date: string;
+}): string {
+  return [
+    titleCaseDashaLord(period.lord),
+    dashaMonthYear(period.start_date),
+    dashaMonthYear(period.end_date),
+  ].join('|');
+}
+
+function downloadedDashaRowTuples(
+  pdf: Awaited<ReturnType<typeof inspectPdfWithPoppler>>,
+): readonly string[] {
+  return pdf.pages
+    .filter(
+      (pdfPage) =>
+        pdfPage.text.includes('MAHA-DASA SEQUENCE') || /\bANTAR-DASAS\b/i.test(pdfPage.text),
+    )
+    .flatMap((pdfPage) => {
+      const bands: Array<{
+        center: number;
+        words: Array<(typeof pdfPage.words)[number]>;
+      }> = [];
+      for (const word of [...pdfPage.words].sort((left, right) => left.yMin - right.yMin)) {
+        const center = (word.yMin + word.yMax) / 2;
+        const band = bands.find((candidate) => Math.abs(candidate.center - center) <= 1.5);
+        if (band) band.words.push(word);
+        else bands.push({ center, words: [word] });
+      }
+      return bands.map((band) =>
+        band.words
+          .sort((left, right) => left.xMin - right.xMin)
+          .map((word) => word.text)
+          .join(' '),
+      );
+    })
+    .flatMap((line) => {
+      const match = DASHA_ROW_PATTERN.exec(line);
+      return match ? [`${match[1]}|${match[2]}|${match[3]}`] : [];
+    });
+}
+
+test('REAL onboarding -> rectify -> offline reload -> predictive PDF is correct', async ({ page }) => {
+  test.setTimeout(480_000);
   const { errors } = collectConsole(page);
   await mkdir(OUT_DIR, { recursive: true });
 
@@ -663,8 +791,79 @@ test('REAL onboarding -> rectify (persists) -> natal-only PDF is correct', async
   console.log('[report-pdf] dashboard lagna after reload =', JSON.stringify(lagnaAfterReload));
   expect(lagnaAfterReload, 'after reload the lagna must NOT revert to Leo').not.toContain('leo');
 
-  // ---- 4. /report -> Download PDF (natal-only graceful path, no LLM) ----
+  // ---- 4. HARD-OFFLINE RELOAD: SW shell + saved rectified chart ----
+  await expect
+    .poll(
+      () =>
+        page.evaluate(async () => {
+          const registration = await navigator.serviceWorker.getRegistration();
+          return (
+            registration?.active?.state === 'activated' &&
+            navigator.serviceWorker.controller !== null
+          );
+        }),
+      {
+        timeout: 30_000,
+        message: 'the dashboard must be controlled by an activated service worker',
+      },
+    )
+    .toBe(true);
+
+  const offlineConsoleStart = errors.length;
+  try {
+    await page.context().setOffline(true);
+    await page.reload({ waitUntil: 'domcontentloaded', timeout: 60_000 });
+
+    expect(new URL(page.url()).pathname).toBe('/dashboard');
+    expect(
+      await page.evaluate(() => navigator.serviceWorker.controller !== null),
+      'the offline document must be served under service-worker control',
+    ).toBe(true);
+    await expect(page.locator('#root')).toBeAttached();
+    await waitForDashboardChart(page);
+
+    const offlineLagna = await readDashboardLagna(page);
+    expect(offlineLagna, 'the saved rectified chart must survive a hard-offline reload').toContain(
+      'cancer',
+    );
+    expect(offlineLagna, 'offline reload must not revert to the entered-time Leo chart').not.toContain(
+      'leo',
+    );
+    const rectificationNote = page.getByTestId('identity-rectification');
+    await expect(rectificationNote).toContainText('6:44 AM');
+    await expect(rectificationNote).toContainText('6:14 AM');
+  } finally {
+    await page.context().setOffline(false);
+  }
+
+  const offlineErrors = errors.splice(offlineConsoleStart);
+  const unexpectedOfflineErrors = offlineErrors.filter(
+    (message) =>
+      !/^\[console\.error\] Failed to load resource: net::ERR_INTERNET_DISCONNECTED$/.test(
+        message,
+      ),
+  );
+  expect(
+    unexpectedOfflineErrors,
+    `unexpected console errors during hard-offline reload:\n${unexpectedOfflineErrors.join('\n')}`,
+  ).toEqual([]);
+
+  // ---- 5. Fixed-date predictive computation from the persisted Cancer lagna ----
+  const realNow = new Date();
+  const generatedOn = new Date(TRANSIT_REFERENCE_TIME);
+  await page.clock.setFixedTime(generatedOn);
   await spaNavigate(page, '/report');
+  const computePredictive = page.getByTestId('report-predictive-compute');
+  await expect(computePredictive).toBeVisible({ timeout: 60_000 });
+  await computePredictive.click();
+  const gocharaTable = page.getByTestId('report-gochara-table');
+  await expect(gocharaTable).toBeVisible({ timeout: 150_000 });
+  await expect(gocharaTable.getByRole('columnheader').nth(4)).toHaveText('From Lagna');
+  for (const expected of RECTIFIED_TRANSIT_ROWS) {
+    await expectReportTransitRow(page, expected);
+  }
+
+  // ---- 6. /report -> Download PDF (deterministic, no LLM key) ----
   const downloadBtn = page.getByTestId('report-download-pdf');
   await expect(downloadBtn).toBeVisible({ timeout: 30_000 });
   await expect(page.getByTestId('report-document')).toBeVisible({ timeout: 30_000 });
@@ -690,33 +889,46 @@ test('REAL onboarding -> rectify (persists) -> natal-only PDF is correct', async
   ]);
   await download.saveAs(DOWNLOAD_PATH);
 
-  // ---- 5. Parse the PDF text and ASSERT correctness ----
+  // ---- 7. Parse the PDF text and ASSERT correctness ----
   const pdfText = await pdfToText(DOWNLOAD_PATH);
   await writeFile(resolve(OUT_DIR, 'e2e-download.assertions.txt'), pdfText, 'utf8');
 
-  // 5a. The "generated on" date is TODAY (epoch-safe — the `new Date(0)` bug
+  for (const expected of RECTIFIED_TRANSIT_ROWS) {
+    const columns = pdfTransitColumns(pdfText, expected.graha);
+    expect(columns[1]).toBe(expected.sign);
+    expect(columns[4]).toBe(String(expected.cancerHouse));
+    expect(columns[4]).not.toBe(String(expected.aquariusHouse));
+  }
+  await page.clock.setFixedTime(realNow);
+
+  // 7a. The "generated on" date matches the fixed reference day (the
+  // `new Date(0)` bug
   // would print 1969/1970). The cover renders the locale-formatted date
-  // ("June 20, 2026"); assert today's exact long-form date is present and that
+  // ("July 11, 2026"); assert the exact long-form date is present and that
   // no Unix-epoch year leaks anywhere in the document.
-  const today = new Date();
-  const todayLong = today.toLocaleDateString('en-US', {
+  const generatedOnLong = generatedOn.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
   });
-  const dateLine = (pdfText.split('\n').find((l) => l.includes(todayLong)) ?? '').trim();
-  expect(pdfText, `the PDF must carry today's generated-on date ("${todayLong}")`).toContain(todayLong);
+  const dateLine = (
+    pdfText.split('\n').find((line) => line.includes(generatedOnLong)) ?? ''
+  ).trim();
+  expect(
+    pdfText,
+    `the PDF must carry the reference generated-on date ("${generatedOnLong}")`,
+  ).toContain(generatedOnLong);
   expect(pdfText, 'the PDF must NOT show the Unix-epoch year 1969').not.toMatch(/\b1969\b/);
   expect(pdfText, 'the PDF must NOT show the Unix-epoch year 1970').not.toMatch(/\b1970\b/);
 
-  // 5b. Birth time shows the rectified 6:14 AM (not the original 6:44 AM). The
+  // 7b. Birth time shows the rectified 6:14 AM (not the original 6:44 AM). The
   // cover renders a 12-hour clock ("6:14 AM (Asia/Kolkata)").
   const timeOfBirthLine = (pdfText.split('\n').find((l) => /time of birth/i.test(l)) ?? '').trim();
   expect(timeOfBirthLine, 'the PDF must carry a "Time of Birth" line').toMatch(/time of birth/i);
   expect(timeOfBirthLine, 'the PDF birth-time must be the rectified 6:14 AM').toContain('6:14 AM');
   expect(timeOfBirthLine, 'the PDF birth-time must NOT be the original 6:44 AM').not.toContain('6:44');
 
-  // 5c. Lagna / ascendant is Cancer (the rectified result), not Leo. SCOPE
+  // 7c. Lagna / ascendant is Cancer (the rectified result), not Leo. SCOPE
   // to the "ASCENDANT (LAGNA)" birth-detail line — the PDF body may legitimately
   // name Leo elsewhere (planets occupy many signs regardless of the rising sign).
   const ascLine = pdfAscendantLine(pdfText).toLowerCase();
@@ -724,7 +936,7 @@ test('REAL onboarding -> rectify (persists) -> natal-only PDF is correct', async
   expect(ascLine, 'the PDF ascendant must be Cancer (the rectified result)').toContain('cancer');
   expect(ascLine, 'the PDF ascendant must NOT be the original Leo').not.toContain('leo');
 
-  // 5d. The natal sections are present (multi-page deterministic report).
+  // 7d. The natal sections are present (multi-page deterministic report).
   expect(pdfText, 'PDF must include the person name').toContain('Reference Native');
   expect(pdfText.toLowerCase(), 'PDF must include the birth place').toContain('bengaluru');
   // Multi-page: the report carries the deterministic natal sections. Assert a
@@ -733,7 +945,7 @@ test('REAL onboarding -> rectify (persists) -> natal-only PDF is correct', async
   // The dasha section header renders as "Vimshottari Dasa" (engine spelling).
   expect(pdfText.toLowerCase(), 'PDF must include the Vimshottari dasa section').toMatch(/vimshottari|dasa/);
   expect(pdfText.toLowerCase(), 'PDF must include the yogas section').toContain('yoga');
-  // 5e. The PDF mirrors the Stage-4 assumptions & provenance section.
+  // 7e. The PDF mirrors the Stage-4 assumptions & provenance section.
   expect(pdfText.toLowerCase(), 'PDF must mirror the assumptions & provenance section').toContain(
     'provenance',
   );
@@ -742,7 +954,7 @@ test('REAL onboarding -> rectify (persists) -> natal-only PDF is correct', async
   );
 
   // Surface the load-bearing lines in the test log as evidence.
-  console.log('[report-pdf] generated-on date :', JSON.stringify(dateLine || todayLong));
+  console.log('[report-pdf] generated-on date :', JSON.stringify(dateLine || generatedOnLong));
   console.log('[report-pdf] time-of-birth line:', JSON.stringify(timeOfBirthLine));
   console.log('[report-pdf] ascendant line    :', JSON.stringify(pdfAscendantLine(pdfText)));
 
@@ -766,6 +978,36 @@ test('synthetic maximal state -> real browser download preserves every report fa
     downloadBtn.click(),
   ]);
   await download.saveAs(MAXIMAL_DOWNLOAD_PATH);
+
+  const maximalBytes = new Uint8Array(await readFile(MAXIMAL_DOWNLOAD_PATH));
+  const inspectedPdf = await inspectPdfWithPoppler(maximalBytes);
+  const footerNote = 'AlmaMesh · Vedic Birth-Chart Report';
+  expect(a4ContentBoundViolations(inspectedPdf, { footerNote })).toEqual([]);
+  expect(footerGeometryViolations(inspectedPdf, { footerNote })).toEqual([]);
+  expect(horizontalWordOverlapViolations(inspectedPdf, 'SADBALA')).toEqual([]);
+  expect(horizontalWordOverlapViolations(inspectedPdf, 'ANTAR-DASAS')).toEqual([]);
+
+  const expectedMahaRows = FOUNDER_DASHAS.maha_dasha_sequence.map(dashaRowTuple);
+  const expectedAntarRows = FOUNDER_DASHAS.maha_dasha_sequence.flatMap((maha) =>
+    (maha.antar_sequence ?? []).map(dashaRowTuple),
+  );
+  const expectedPratyantarRows = (FOUNDER_DASHAS.pratyantar_sequence ?? []).map(dashaRowTuple);
+  const expectedDashaRows = [
+    ...expectedMahaRows,
+    ...expectedAntarRows,
+    ...expectedPratyantarRows,
+  ];
+  const downloadedDashaRows = downloadedDashaRowTuples(inspectedPdf);
+  expect(expectedMahaRows).toHaveLength(9);
+  expect(expectedAntarRows).toHaveLength(81);
+  expect(expectedPratyantarRows).toHaveLength(9);
+  expect(new Set(expectedDashaRows).size, 'every expected dasha tuple must be unique').toBe(99);
+  expect(downloadedDashaRows, 'the browser PDF must contain exactly 99 dasha rows').toHaveLength(99);
+  expect(
+    new Set(downloadedDashaRows).size,
+    'the browser PDF must not duplicate any dasha row',
+  ).toBe(99);
+  expect([...downloadedDashaRows].sort()).toEqual([...expectedDashaRows].sort());
 
   const pdfText = (await pdfToText(MAXIMAL_DOWNLOAD_PATH)).toLowerCase();
   const pdfLines = pdfText.split('\n');

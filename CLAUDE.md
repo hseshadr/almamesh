@@ -319,8 +319,12 @@ All changes must pass before completion:
 - Human-consumed PDFs pass the maximal-report artifact gate: Poppler text extraction proves
   every supported section and final row; Poppler bounding boxes prove A4 content/footer
   bounds, footer separation, page counters, and heading+first-row cohesion; representative
-  rendered pages are visually inspected after layout/renderer/font changes. Non-empty bytes
-  are not evidence of a correct report.
+  rendered pages are visually inspected after layout/renderer/font changes. Run those checks
+  against both the Node render and the actual Playwright-downloaded browser PDF: browser font
+  metrics can paginate differently. Dense, variable-length sections use an explicit page planner
+  with bounded unbreakable groups; never trust nested renderer auto-wrap to protect the footer.
+  Non-empty bytes are not evidence of a correct report. (Scar 2026-07-13: the Node maximal PDF
+  was clean while the browser download stacked Vimshottari rows through the page-6 footer.)
 - `node scripts/verify-precache-redirect.mjs` (after a build) green — serves `dist` through a Cloudflare-like `.html`→canonical **308** server and asserts every SW precache URL resolves 200 with no redirect (the gate that reproduces the prod-only wedge `vite preview` can't; wired into CI in `.github/workflows/test.yml`)
 - The app **builds and previews** (`bun run build && bun run preview`) — remember module Workers do NOT run under `vite dev`
 - **Validate end-to-end live** (the global non-negotiable): drive the built+previewed app and observe every touched journey (reachable + correct on screen + clean console). AlmaMesh specifics: module Workers need a **production build**; the `MCP_DOCKER` browser **cannot boot the engine** — use the project's Playwright Chromium / the live exit gate; browser-in-Docker reaches the host as `http://host.docker.internal:<port>`. Run the live exit gate after backend/bundle/chunk changes. (Two scars that shipped CI-green: an OpenRouter selector with no reachable UI, and a timezone bug in the print header — hence "reachable + correct on the actual screen," not just a green unit test.)

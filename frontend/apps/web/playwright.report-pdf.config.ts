@@ -14,12 +14,14 @@ const __dirname = resolve(__filename, '..');
  * `VITE_EXIT_GATE_HOOKS` — there is NO window.__almameshGenerate seed hook and NO
  * __ALMAMESH_STAGE__ observability. The spec drives the ACTUAL onboarding ->
  * engine-bootstrap -> Generate -> dashboard journey a real visitor walks, then
- * rectifies + downloads the natal-only PDF. This is the project's hardest gate:
- * the hooked exit-gate has shipped a broken real onboarding CI-green before.
+ * rectifies, computes predictive transits, and downloads the deterministic PDF.
+ * This is the project's hardest gate: the hooked exit-gate has shipped a broken
+ * real onboarding CI-green before.
  *
  * WHY build+preview (not `vite dev`): the Pyodide chart Worker only resolves in a
  * production build. `VITE_API_URL=` keeps the app in zero-backend mode. No LLM
- * key is needed — the report's natal-only path renders without an interpretation.
+ * key is needed — deterministic natal and predictive sections render without an
+ * interpretation.
  *
  * Run:  bun run test:e2e:report:pdf   (from apps/web)
  */
@@ -55,9 +57,9 @@ export default defineConfig({
   ],
   // Build with hooks OFF (the real visitor build), then serve the bundle.
   webServer: {
-    command: `VITE_API_URL= bun run build && VITE_API_URL= bun run preview --port ${PORT} --strictPort`,
+    command: `VITE_API_URL= VITE_EXIT_GATE_HOOKS= bun run build && VITE_API_URL= VITE_EXIT_GATE_HOOKS= bun run preview --port ${PORT} --strictPort`,
     url: BASE_URL,
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: false,
     timeout: 360_000,
     cwd: __dirname,
   },

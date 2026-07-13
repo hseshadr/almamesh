@@ -366,7 +366,8 @@ const CHROME_LABELS = {
   chartsIntro: 'Chart sentinel',
   dashaEyebrow: 'Section V',
   dashaTitle: 'Dasha',
-  dashaIntro: 'Dasha table sentinel',
+  dashaIntro:
+    'The 120-year planetary period system keyed to the Moon\'s nakshatra at birth. Each maha-dasa colours a long chapter of life; the current period is marked in brass.',
   dashaCurrentLabel: 'Current',
   dashaSequenceLabel: 'Sequence',
   yogasEyebrow: 'Section VI',

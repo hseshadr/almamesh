@@ -28,7 +28,7 @@ import i18n from '../../../i18n/config';
 import { buildReportPdfData, type BuildReportPdfDataInput } from '../buildReportPdfData';
 import { buildRectificationPdf } from '../buildRectificationPdf';
 import { chunkVargaPlates, VARGA_PLATES_PER_PAGE } from '../sections/ReportPdfVargas';
-import { ReportPdfDasha } from '../sections/ReportPdfDasha';
+import { ReportPdfDashaTables } from '../sections/ReportPdfDasha';
 import { ReportDocument } from '../ReportDocument';
 import type { ReportPdfLabels } from '../types';
 import {
@@ -339,7 +339,7 @@ describe('buildReportPdfData — all-mahā antar tables', () => {
 
   it("renders the running antar's localized pratyantar table", () => {
     const data = buildReportPdfData(baseInput());
-    const text = collectText(ReportPdfDasha({ data }));
+    const text = collectText(ReportPdfDashaTables({ tables: data.dasha.antarTables }));
 
     expect(text).toContain('Pratyantar-dasas of the Sun Antar-dasa');
     expect(text).toContain('Venus');
