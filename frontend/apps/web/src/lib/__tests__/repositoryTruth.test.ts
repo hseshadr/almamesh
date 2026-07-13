@@ -100,6 +100,31 @@ describe('repository truth', () => {
     ]) expect(ledger).toContain(evidence);
   });
 
+  it('records rigor stages 1-4 as shipped without overstating empirical validity', () => {
+    const rigor = readRoot('docs/rigor-upgrade-spec.md');
+    for (const evidence of [
+      'Stages 1–4 shipped',
+      'PR #56',
+      'PR #58',
+      'PR #57',
+      'PR #59',
+      'historical design and acceptance rationale',
+      'not empirically validated life outcomes',
+    ]) expect(rigor).toContain(evidence);
+
+    const yogaFactors = readRoot('backend/src/almamesh/yogas/factors.py');
+    expect(yogaFactors).toContain('calibrated structural percentages');
+    expect(yogaFactors).toContain('not empirically validated life outcomes');
+    expect(yogaFactors).not.toContain('real factors, no percentages');
+
+    const rectificationPdf = readRoot(
+      'frontend/apps/web/src/components/report-pdf/sections/ReportPdfRectification.tsx',
+    );
+    expect(rectificationPdf).toContain('aggregate calibrated confidence percentage');
+    expect(rectificationPdf).toContain('not a probability that the time is correct');
+    expect(rectificationPdf).not.toContain('carries NO percentage');
+  });
+
   it.each([
     ['docs/specs/054-karma-action-classification.md', 'ROADMAP'],
     ['docs/specs/057-karma-gamification-ui.md', 'ROADMAP'],
@@ -112,7 +137,7 @@ describe('repository truth', () => {
     ['docs/specs/063-ai-tiers-ondevice-optin.md', 'SUPERSEDED'],
     ['docs/specs/064-seo-prerender-public-routes.md', 'SHIPPED'],
     ['docs/specs/SPEC-COMPLETION-TRACKING.md', 'SUPERSEDED'],
-    ['docs/rigor-upgrade-spec.md', 'ROADMAP'],
+    ['docs/rigor-upgrade-spec.md', 'SHIPPED'],
   ])('%s has an explicit lifecycle', (path, lifecycle) => {
     const [title, separator, banner] = readRoot(path).split('\n');
     expect(title).toMatch(/^# /);

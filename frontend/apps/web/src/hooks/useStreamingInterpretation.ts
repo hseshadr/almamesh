@@ -39,7 +39,7 @@ import {
   type InterpretationInputProvenance,
   type InterpretationStatus,
 } from '@almamesh/store';
-import type { SiderealChart } from '@almamesh/browser/types';
+import type { PredictiveContexts, SiderealChart } from '@almamesh/browser/types';
 import type { ProcessedBirthData, VedicInterpretation } from '@almamesh/shared-types';
 
 import i18n from '../i18n/config';
@@ -135,6 +135,11 @@ interface NarrationInput {
   readonly provenance: InterpretationInputProvenance;
 }
 
+interface CurrentPredictiveFacts {
+  readonly rawContexts: PredictiveContexts;
+  readonly requestKey: string;
+}
+
 /** The requested chart owns its profile identity, independent of active-UI races. */
 function predictiveProfileKey(chartId: string | null): string {
   const stored = chartId ? useChartLibraryStore.getState().getChart(chartId) : undefined;
@@ -174,23 +179,30 @@ export function isAutomaticNarrationInputSettled(chartId: string | null): boolea
   return status !== 'loading';
 }
 
+/** Return predictive facts only when every identity and readiness guard agrees. */
+function currentPredictiveFacts(chartId: string | null): CurrentPredictiveFacts | null {
+  const { status, rawContexts, profileKey, requestKey } = usePredictiveStore.getState();
+  if (
+    status !== 'ready' ||
+    rawContexts === undefined ||
+    profileKey !== predictiveProfileKey(chartId) ||
+    requestKey === undefined ||
+    requestKey !== expectedPredictiveKey(chartId)
+  ) {
+    return null;
+  }
+  return { rawContexts, requestKey };
+}
+
 /** Compose only exact-key predictive facts and record what the LLM received. */
 function narrationInput(chart: SiderealChart, chartId: string | null): NarrationInput {
-  const { status, rawContexts, profileKey, requestKey } = usePredictiveStore.getState();
-  const expectedProfile = predictiveProfileKey(chartId);
-  const expectedRequest = expectedPredictiveKey(chartId);
-  const predictiveIsCurrent =
-    status === 'ready' &&
-    rawContexts !== undefined &&
-    profileKey === expectedProfile &&
-    requestKey !== undefined &&
-    requestKey === expectedRequest;
-  if (!predictiveIsCurrent) {
+  const predictive = currentPredictiveFacts(chartId);
+  if (predictive === null) {
     return { chart, provenance: { predictiveRequestKey: null } };
   }
   return {
-    chart: { ...chart, ...rawContexts },
-    provenance: { predictiveRequestKey: requestKey },
+    chart: { ...chart, ...predictive.rawContexts },
+    provenance: { predictiveRequestKey: predictive.requestKey },
   };
 }
 
@@ -205,10 +217,10 @@ export function isInterpretationInputCurrent(
   if (!provenance) {
     return false;
   }
-  return (
-    provenance.predictiveRequestKey === null ||
-    provenance.predictiveRequestKey === expectedPredictiveKey(chartId)
-  );
+  if (provenance.predictiveRequestKey === null) {
+    return currentPredictiveFacts(chartId) === null;
+  }
+  return provenance.predictiveRequestKey === expectedPredictiveKey(chartId);
 }
 
 /** Read a complete interpretation only when its deterministic inputs are current. */

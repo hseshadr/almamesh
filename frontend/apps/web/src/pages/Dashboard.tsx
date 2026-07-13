@@ -196,6 +196,9 @@ export default function DashboardPage() {
   // in the reading section (keep-old-until-success keeps the reading itself).
   // Dismissed locally; a new generation attempt re-arms it.
   const [regenErrorDismissed, setRegenErrorDismissed] = useState(false);
+  // A manual regenerate requested while today's predictive facts are still
+  // computing is queued, never downgraded to natal-only narration.
+  const [regenerationQueued, setRegenerationQueued] = useState(false);
 
   // Dead/retired/typo'd model → the switch-model prompt. The hook stores the
   // stable sentinel for this case; the raw-message sniff keeps recognizing
@@ -315,6 +318,11 @@ export default function DashboardPage() {
 
   const handleGenerateSeparatedInterpretation = useCallback(async () => {
     if (!chartId) return;
+    if (!isAutomaticNarrationInputSettled(chartId)) {
+      setRegenerationQueued(true);
+      return;
+    }
+    setRegenerationQueued(false);
     // A fresh attempt re-arms the regeneration-failure strip (it was for the
     // PREVIOUS failure; a new one must be visible again).
     setRegenErrorDismissed(false);
@@ -413,6 +421,17 @@ export default function DashboardPage() {
       return;
     }
 
+    // Preserve a manual click made while predictive computation was loading.
+    // Consume it once after that request settles; the generation helper reads
+    // the now-current predictive contexts (or intentionally falls back to natal
+    // facts after a settled predictive error).
+    if (regenerationQueued) {
+      versionCheckRef.current = 'done';
+      autoGenerationTriggeredRef.current = true;
+      handleGenerateSeparatedInterpretation();
+      return;
+    }
+
     // If we already have a valid (complete) interpretation, keep it — UNLESS
     // the LLM config that produced it has changed (provenance mismatch; a
     // legacy pre-provenance reading counts as mismatched). With AI off the
@@ -459,6 +478,7 @@ export default function DashboardPage() {
     isStreamingInterpretation,
     predictiveRequestIdentity,
     predictiveStatus,
+    regenerationQueued,
   ]);
 
   // Extract sidereal context data for the identity strip + chart panels.
@@ -600,14 +620,16 @@ export default function DashboardPage() {
                   header slot) and is gated on an existing `interpretation` — so
                   it stays present as a recovery affordance even when a completed
                   reading came back with an empty summary (the prose section
-                  below unmounts, but this button does not). Disabled while a run
-                  is in flight or when no AI is configured (never a silent
-                  no-op). */}
+                  below unmounts, but this button does not). A click made while
+                  predictive facts load is queued once; the button stays disabled
+                  until that current-key narration starts. */}
               {interpretation && (
                 <button
                   type="button"
                   onClick={handleRegenerateReading}
-                  disabled={isStreamingInterpretation || !canRegenerateReading}
+                  disabled={
+                    isStreamingInterpretation || regenerationQueued || !canRegenerateReading
+                  }
                   data-testid="regenerate-reading"
                   title={
                     !canRegenerateReading
@@ -616,7 +638,7 @@ export default function DashboardPage() {
                   }
                   className="inline-flex items-center gap-1.5 rounded-md border border-ui-border px-3 py-1.5 text-sm text-text-secondary transition-colors hover:border-accent-gold/40 hover:text-text-primary disabled:cursor-not-allowed disabled:border-ui-border/60 disabled:text-text-tertiary disabled:hover:border-ui-border/60"
                 >
-                  {isStreamingInterpretation ? (
+                  {isStreamingInterpretation || regenerationQueued ? (
                     <Spinner size="sm" />
                   ) : (
                     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">

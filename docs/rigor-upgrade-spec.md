@@ -1,23 +1,26 @@
 # AlmaMesh Rigor Upgrade — Calibrated, Explainable, Honest Interpretation
 
-**Lifecycle:** ROADMAP
-**Status:** Implementation spec (design only — zero product-code changes in this doc).
+**Lifecycle:** SHIPPED
+**Status:** Stages 1–4 shipped in PR #56, PR #58, PR #57, and PR #59. This file preserves the
+historical design and acceptance rationale; Stage 5 remains an external markovflow handoff.
 **Repo:** `~/dev/oss/almamesh` (public, live at almamesh.com, real client-side birth data).
 **Author's contract:** every factual claim below cites a `file:line` verified against the tree
 on 2026-07-11. Where the code contradicts the briefing, the code wins and the discrepancy is
 flagged inline as **[DISCREPANCY]**.
+**Evidence contract:** these calibrated structural/classical scores are reproducible model outputs,
+not empirically validated life outcomes; only the event-fit rectification tier uses personal events.
 
 ---
 
 ## TL;DR (read this first)
 
-**What we are building.** Today every verdict AlmaMesh shows is a word — a yoga is
-`strong / moderate / weak`, a life domain is `STRONG / MODERATE / WEAK`, a rectification result
-is `near_tie / leans / consistent`. We replace the *headline* with a **calibrated percentage** the
-reader can trust, and demote the words to bands. Under each percentage sits an **additive factor
+**What shipped.** AlmaMesh retains the qualitative bands — a yoga is
+`strong / moderate / weak`, a life domain is `STRONG / MODERATE / WEAK`, and a rectification result
+is `near_tie / leans / consistent` — while adding an explicitly tiered **calibrated percentage**
+where an honest anchor exists. Under each percentage sits an **additive factor
 ledger** (`Mars exalted +1 · in kendra +1 · Jupiter debilitated −1`), the **opposing vector**
 (what argues against), a **stable-vs-lagna** marker, and an **assumptions panel**. Nothing is
-invented: ~70% of this is *surfacing numbers the engine already computes and then throws away*.
+hidden: the result remains traceable to engine quantities and stated transforms.
 
 **Why it works.** The honest numeric substrate already exists and is already deterministic and
 golden-locked: yoga marks (`yogas/factors.py:114`), Shadbala rupas + SAV bindus
@@ -38,6 +41,18 @@ tier** (event-validated vs model vs structural) and never implies validity it la
 rectification contributions stay **words/polarity-only**; only the aggregate margin becomes a %.
 (4) The quarantined sigmoid (`dasha/scoring.py`) stays quarantined — our numbers are *anchored*,
 not *learned*.
+
+## Shipped evidence
+
+| Stage | Delivery | Executable evidence |
+|---|---|---|
+| Yoga structural percentage + factor ledger | PR #56 | `backend/tests/test_yoga_favorability.py`; `ReportYogas.test.tsx` |
+| Life-domain model percentage + two-axis ledger | PR #58 | `backend/tests/test_life_domains.py`; `ReportDomains.test.tsx` |
+| Event-fit rectification percentage + opposing vectors | PR #57 | `backend/tests/test_rectification_confidence.py`; `ReportRectification.test.tsx` |
+| Stable-vs-lagna markers + assumptions | PR #59 | `backend/tests/test_stability.py`; `ReportAssumptions.test.tsx` |
+
+The implementation paths and transforms below are retained as the historical delivery contract.
+They are useful audit evidence, not an open stages 1–4 roadmap.
 
 ---
 
@@ -375,10 +390,10 @@ fresh-interpreter guard keeps passing untouched. **This is the bright line:** an
 
 ---
 
-## §D. Staged, independently-shippable, TDD-first plan
+## §D. Historical staged delivery plan (stages 1–4 complete)
 
-Ordered cheapest-highest-value first. Each stage is additive, revertable, and touches **no** stored-
-data schema / signing / PWA-cache / storage path (covenant-safe).
+The following is the TDD-first plan used to deliver stages 1–4, ordered cheapest-highest-value.
+Each stage was additive and touched no stored-data schema, signing, PWA-cache, or storage path.
 
 ### Stage 1 — Yoga strength % + ledger — **CHEAP**
 *Self-contained, one golden, the mark integers already exist.*

@@ -1,13 +1,15 @@
 /**
  * ReportPdfRectification — Section XII: Birth Time Authority. Entered vs
- * working time + rising sign, the fit mode, the QUALITATIVE confidence band
- * and the confirm date, the supporting life events, and the honest caveat
+ * working time + rising sign, the fit mode, the qualitative confidence band,
+ * the aggregate calibrated confidence percentage when its evidence gate passes,
+ * and the confirm date, supporting life events, and honest caveat
  * ("resolves the sign, not the minute"). Phase 2 (Spec 062): when the slice
  * carries the optional snapshot tables (v2 records), the candidate
  * comparison, per-event evidence, quiet-period misses and prior note print
  * too — v1 slices render the classic section unchanged. All values arrive
- * pre-localized on `ReportPdfRectification`; by contract the slice carries NO
- * percentage, margin number, or fit score. Pure presentation.
+ * pre-localized on `ReportPdfRectification`. The percentage describes event-fit
+ * separation and is not a probability that the time is correct; raw margins,
+ * fit scores, and per-signal numeric contributions stay out. Pure presentation.
  */
 
 import type { ReactElement } from 'react';

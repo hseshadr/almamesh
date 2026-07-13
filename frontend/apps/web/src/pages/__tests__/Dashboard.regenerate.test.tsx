@@ -523,6 +523,137 @@ describe('Dashboard — regenerate reading', () => {
     expect(mockedStream).toHaveBeenCalledTimes(1);
   });
 
+  it('queues a manual regenerate during current-key loading and replaces retained natal-only prose once ready', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date('2026-07-13T12:00:00Z'));
+    configureCloudAi();
+    seedCompleteReading(currentProvenance());
+    const requestKey = (day: string) =>
+      predictiveRequestKey({
+        profileKey: 'profile-1',
+        datetimeUtc: '1990-03-30T06:30:00Z',
+        latitude: 12.97,
+        longitude: 77.59,
+        referenceInstant: `${day}T00:00:00Z`,
+      });
+    const currentRawContexts = {
+      transit_context: { instant: '2026-07-13T00:00:00Z' },
+      varga_context_full: { charts: {} },
+      strength_context: {},
+      domains_context: { forecasts: {} },
+    } as never;
+    usePredictiveStore.setState({
+      status: 'ready',
+      profileKey: 'profile-1',
+      requestKey: requestKey('2026-07-12'),
+      rawContexts: currentRawContexts,
+    });
+    const currentNarration = deferredCompletion(INTERPRETATION);
+    mockedStream.mockImplementation(currentNarration.stream);
+    renderDashboard();
+
+    const regenerate = await screen.findByTestId('regenerate-reading');
+    act(() => {
+      usePredictiveStore.setState({
+        status: 'loading',
+        profileKey: 'profile-1',
+        requestKey: requestKey('2026-07-13'),
+        rawContexts: undefined,
+      });
+    });
+    fireEvent.click(regenerate);
+
+    await settle();
+    expect(mockedStream).not.toHaveBeenCalled();
+
+    act(() => {
+      usePredictiveStore.setState({
+        status: 'ready',
+        profileKey: 'profile-1',
+        requestKey: requestKey('2026-07-13'),
+        rawContexts: currentRawContexts,
+      });
+    });
+
+    await waitFor(() => expect(mockedStream).toHaveBeenCalledTimes(1));
+    expect(mockedStream.mock.calls[0]?.[0].chart).toMatchObject({
+      transit_context: { instant: '2026-07-13T00:00:00Z' },
+    });
+    // Once current predictive facts exist, retained natal-only prose is stale;
+    // it must not masquerade as the current reading while replacement runs.
+    expect(screen.queryByTestId('reading-section')).toBeNull();
+    act(() => currentNarration.release());
+    await waitFor(() =>
+      expect(useInterpretationStore.getState().getEntry('chart-1')?.inputProvenance).toEqual({
+        predictiveRequestKey: requestKey('2026-07-13'),
+      }),
+    );
+    await settle();
+    expect(mockedStream).toHaveBeenCalledTimes(1);
+  });
+
+  it('automatically replaces retained natal-only prose once current predictive facts become ready', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date('2026-07-13T12:00:00Z'));
+    configureCloudAi();
+    seedCompleteReading(currentProvenance());
+    const requestKey = (day: string) =>
+      predictiveRequestKey({
+        profileKey: 'profile-1',
+        datetimeUtc: '1990-03-30T06:30:00Z',
+        latitude: 12.97,
+        longitude: 77.59,
+        referenceInstant: `${day}T00:00:00Z`,
+      });
+    const currentRawContexts = {
+      transit_context: { instant: '2026-07-13T00:00:00Z' },
+      varga_context_full: { charts: {} },
+      strength_context: {},
+      domains_context: { forecasts: {} },
+    } as never;
+    usePredictiveStore.setState({
+      status: 'ready',
+      profileKey: 'profile-1',
+      requestKey: requestKey('2026-07-12'),
+      rawContexts: currentRawContexts,
+    });
+    mockedStream.mockImplementation(completingStream(INTERPRETATION));
+    renderDashboard();
+
+    await screen.findByTestId('reading-section');
+    await settle();
+    expect(mockedStream).not.toHaveBeenCalled();
+
+    act(() => {
+      usePredictiveStore.setState({
+        status: 'loading',
+        profileKey: 'profile-1',
+        requestKey: requestKey('2026-07-13'),
+        rawContexts: undefined,
+      });
+    });
+    await settle();
+    expect(mockedStream).not.toHaveBeenCalled();
+
+    act(() => {
+      usePredictiveStore.setState({
+        status: 'ready',
+        profileKey: 'profile-1',
+        requestKey: requestKey('2026-07-13'),
+        rawContexts: currentRawContexts,
+      });
+    });
+
+    await waitFor(() => expect(mockedStream).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(useInterpretationStore.getState().getEntry('chart-1')?.inputProvenance).toEqual({
+        predictiveRequestKey: requestKey('2026-07-13'),
+      }),
+    );
+    await settle();
+    expect(mockedStream).toHaveBeenCalledTimes(1);
+  });
+
   it('replaces a late prior-day completion exactly once with the current predictive day', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     vi.setSystemTime(new Date('2026-07-12T23:59:00Z'));

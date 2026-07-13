@@ -1,8 +1,9 @@
-"""Honest qualitative yoga strength: real factors, no percentages.
+"""Honest yoga strength: qualitative grades plus calibrated structural percentages.
 
 A yoga's grade ("strong" | "moderate" | "weak") is a deterministic, documented
 count of real, computable, classically grounded conditions on the planets that
-FORM the yoga — never a pseudo-precise number:
+FORM the yoga. Its percentage is a reproducible normalization over that same
+bounded mark lattice, not a probability and not empirically validated life outcomes:
 
 - dignity      exaltation/own-sign doctrine (BPHS graha svarupa); the engine's
                natal ``Dignity`` (exalted/own/neutral/debilitated, plus the
