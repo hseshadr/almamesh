@@ -6,10 +6,16 @@ import { describe, expect, it } from 'vitest';
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, '../../../../../..');
 const readRoot = (path: string): string => readFileSync(resolve(root, path), 'utf8');
+const readSection = (document: string, heading: string): string => {
+  const start = document.indexOf(heading);
+  if (start < 0) throw new Error(`Missing section: ${heading}`);
+  const end = document.indexOf('\n## ', start + heading.length);
+  return document.slice(start, end < 0 ? undefined : end);
+};
 
 describe('repository truth', () => {
   it('prints architecture paths that exist exactly as written', () => {
-    const readme = readRoot('README.md');
+    const architecture = readSection(readRoot('README.md'), '## Architecture');
     const paths = [
       'frontend/apps/web',
       'frontend/packages/browser',
@@ -22,7 +28,7 @@ describe('repository truth', () => {
       'backend/src/almamesh',
     ];
     for (const path of paths) {
-      expect(readme).toContain(path);
+      expect(architecture).toContain(path);
       expect(existsSync(resolve(root, path))).toBe(true);
     }
   });
@@ -37,14 +43,32 @@ describe('repository truth', () => {
   });
 
   it('records the complete PR 62 artifact and provenance behavior', () => {
-    const changelog = readRoot('CHANGELOG.md');
+    const unreleased = readSection(readRoot('CHANGELOG.md'), '## [Unreleased]');
     for (const claim of [
       'maha, antar, and pratyantar',
       'predictive cache identity',
       'interpretation provenance',
       'conservative life-event structuring',
       'semantic, geometric, and browser PDF gates',
-    ]) expect(changelog).toContain(claim);
+    ]) expect(unreleased).toContain(claim);
+  });
+
+  it('dates the report baseline to v0.4.0 and all-table completion to PR 62', () => {
+    const spec = readRoot('docs/specs/062-robust-rectifier-comprehensive-report.md');
+    expect(spec).toContain(
+      '**Status:** The v0.4.0 baseline is shipped; complete all-table report export is Unreleased in PR #62.',
+    );
+    expect(spec).not.toContain('**Status:** Shipped in v0.4.0');
+  });
+
+  it('uses the Vite 8 JSX config without deprecated transform keys', () => {
+    const config = readRoot('frontend/apps/web/vitest.config.ts');
+    expect(config).toContain('oxc:');
+    expect(config).toContain('rolldownOptions:');
+    expect(config).not.toContain("import react from '@vitejs/plugin-react'");
+    expect(config).not.toContain('react()');
+    expect(config).not.toContain('esbuild:');
+    expect(config).not.toContain('esbuildOptions:');
   });
 
   it.each([
@@ -61,6 +85,9 @@ describe('repository truth', () => {
     ['docs/specs/SPEC-COMPLETION-TRACKING.md', 'SUPERSEDED'],
     ['docs/rigor-upgrade-spec.md', 'ROADMAP'],
   ])('%s has an explicit lifecycle', (path, lifecycle) => {
-    expect(readRoot(path).slice(0, 500)).toContain(`**Lifecycle:** ${lifecycle}`);
+    const [title, separator, banner] = readRoot(path).split('\n');
+    expect(title).toMatch(/^# /);
+    expect(separator).toBe('');
+    expect(banner).toBe(`**Lifecycle:** ${lifecycle}`);
   });
 });

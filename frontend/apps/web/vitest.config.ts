@@ -1,9 +1,17 @@
 import { defineConfig } from 'vitest/config';
-import react from '@vitejs/plugin-react';
 import path from 'path';
 
 export default defineConfig({
-  plugins: [react()],
+  // Vitest 4 runs on Vite 8: configure its Oxc/Rolldown JSX transforms directly.
+  // The production Vite 6 build keeps @vitejs/plugin-react in vite.config.ts.
+  oxc: {
+    jsx: { runtime: 'automatic' },
+  },
+  optimizeDeps: {
+    rolldownOptions: {
+      transform: { jsx: { runtime: 'automatic' } },
+    },
+  },
   test: {
     globals: true,
     // Use happy-dom instead of jsdom to avoid ESM compatibility issues.
