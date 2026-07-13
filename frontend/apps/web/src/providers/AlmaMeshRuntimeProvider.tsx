@@ -23,7 +23,12 @@ import { AlmaMeshRuntime } from '@almamesh/browser'
 import type { BootStage, BundleMeta, ChartEngine, OnStage, RuntimeConfig } from '@almamesh/browser'
 import { ChartEngineContext } from './chartEngineContext'
 import { hasLocalChart } from '../lib/localChart'
-import { publishRuntimeError, publishRuntimeStage } from '../lib/runtimeObservability'
+import {
+  clearRuntimeGenerator,
+  publishRuntimeError,
+  publishRuntimeGenerator,
+  publishRuntimeStage,
+} from '../lib/runtimeObservability'
 
 // The context + hooks live in `./chartEngineContext` (type-only imports) so
 // consumers never pull the runtime/sync graph; re-exported here so existing
@@ -140,6 +145,9 @@ export function AlmaMeshRuntimeProvider({ children, runtime }: ProviderProps) {
     if (runtimeInstance === null) {
       return Promise.reject(new Error('AlmaMesh runtime unavailable'))
     }
+    if (EXIT_GATE_HOOKS) {
+      clearRuntimeGenerator()
+    }
     const promise = runtimeInstance
       .bootstrap(readRuntimeConfig(), onStage)
       .then((ready) => {
@@ -149,12 +157,7 @@ export function AlmaMeshRuntimeProvider({ children, runtime }: ProviderProps) {
         // Dev-only test hook: drive the booted engine directly, bypassing the
         // geocode-dependent onboarding UI. Returns the raw SiderealChart.
         if (EXIT_GATE_HOOKS) {
-          ;(
-            window as unknown as {
-              __almameshGenerate?: (birth: unknown) => Promise<unknown>
-            }
-          ).__almameshGenerate = (birth) =>
-            ready.generateChart(birth as Parameters<typeof ready.generateChart>[0])
+          publishRuntimeGenerator((birth) => ready.generateChart(birth))
         }
         return ready
       })
@@ -162,6 +165,7 @@ export function AlmaMeshRuntimeProvider({ children, runtime }: ProviderProps) {
         const e = err instanceof Error ? err : new Error(String(err))
         setError(e)
         if (EXIT_GATE_HOOKS) {
+          clearRuntimeGenerator()
           publishRuntimeError(e.message)
         }
         throw e

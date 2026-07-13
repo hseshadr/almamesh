@@ -52,6 +52,7 @@ import type { ViewMode } from "../lib/types";
 import {
   READING_MODEL_UNAVAILABLE,
   currentInterpretationForChart,
+  isAutomaticNarrationInputSettled,
   resolveInterpretationConfig,
   useStreamingInterpretation,
   withRawPredictive,
@@ -170,6 +171,7 @@ export default function DashboardPage() {
     cancel: cancelStreaming,
   } = useStreamingInterpretation(chartId);
   const predictiveRequestIdentity = usePredictiveStore((s) => s.requestKey);
+  const predictiveStatus = usePredictiveStore((s) => s.status);
 
   // The full persisted entry for the active chart: carries the reading's
   // provenance (which model wrote it) and updatedAt for the quiet caption
@@ -401,7 +403,13 @@ export default function DashboardPage() {
   useEffect(() => {
     // Skip if conditions not met (no chart, still loading, no AI model, or a
     // generation is already in flight).
-    if (!chartId || isLoading || !aiConfigured || isStreamingInterpretation) {
+    if (
+      !chartId ||
+      isLoading ||
+      !aiConfigured ||
+      isStreamingInterpretation ||
+      !isAutomaticNarrationInputSettled(chartId)
+    ) {
       return;
     }
 
@@ -449,6 +457,8 @@ export default function DashboardPage() {
     interpretationStatus,
     isLoading,
     isStreamingInterpretation,
+    predictiveRequestIdentity,
+    predictiveStatus,
   ]);
 
   // Extract sidereal context data for the identity strip + chart panels.

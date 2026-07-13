@@ -152,6 +152,28 @@ function expectedPredictiveKey(chartId: string | null): string | null {
   return input ? predictiveRequestKey(input) : null;
 }
 
+/**
+ * Whether automatic narration may take its one shot for the current chart.
+ *
+ * An unpublished predictive request preserves the historical natal-only path.
+ * Once a request identity exists, however, a stale key or an in-flight current
+ * key must settle before auto-generation: otherwise narration can snapshot
+ * natal-only provenance between `loading` and `ready` and never retry when only
+ * the status changes. A settled error still permits the explicit fail-open
+ * natal-only behavior.
+ */
+export function isAutomaticNarrationInputSettled(chartId: string | null): boolean {
+  const expectedRequest = expectedPredictiveKey(chartId);
+  const { requestKey, status } = usePredictiveStore.getState();
+  if (expectedRequest === null || requestKey === undefined) {
+    return true;
+  }
+  if (requestKey !== expectedRequest) {
+    return false;
+  }
+  return status !== 'loading';
+}
+
 /** Compose only exact-key predictive facts and record what the LLM received. */
 function narrationInput(chart: SiderealChart, chartId: string | null): NarrationInput {
   const { status, rawContexts, profileKey, requestKey } = usePredictiveStore.getState();
@@ -277,6 +299,7 @@ export function useStreamingInterpretation(chartId?: string | null): UseStreamin
   // Context identity changes must immediately re-evaluate persisted prose even
   // when the interpretation entry itself did not mutate.
   usePredictiveStore((s) => s.requestKey);
+  usePredictiveStore((s) => s.status);
   const startInterpretation = useInterpretationStore((s) => s.startInterpretation);
   const markSectionComplete = useInterpretationStore((s) => s.markSectionComplete);
   const markSectionFailed = useInterpretationStore((s) => s.markSectionFailed);
