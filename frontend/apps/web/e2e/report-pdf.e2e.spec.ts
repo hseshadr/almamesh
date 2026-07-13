@@ -728,6 +728,13 @@ test('REAL onboarding -> rectify -> offline reload -> predictive PDF is correct'
   console.log('[report-pdf] dashboard lagna @06:44 =', JSON.stringify(lagna0644));
   expect(lagna0644, 'at 06:44 the dashboard lagna should be Leo (pre-rectification)').toContain('leo');
 
+  // Deliberately let the Dashboard's heavy predictive computation start on the
+  // same serial Pyodide worker. This reproduces the slow-run scheduling case
+  // that previously let Save race ahead of the queued lagna previews.
+  await expect(page.getByTestId('life-atlas-gate')).toContainText('Computing on this device', {
+    timeout: 15_000,
+  });
+
   // ---- 2. Rectify 06:44 -> 06:14 on /settings/profile, save, regenerate ----
   await spaNavigate(page, '/settings/profile');
   const rectifyInput = page
@@ -739,6 +746,17 @@ test('REAL onboarding -> rectify -> offline reload -> predictive PDF is correct'
   await rectifyInput.fill('06:14');
   await rectifyInput.blur();
 
+  // The product deliberately keeps Save disabled until BOTH engine previews
+  // resolve, so the sign-flip acknowledgement can never be bypassed by a slow
+  // worker. Prove the user-visible comparison before opening the modal.
+  const comparison = page.getByTestId('birth-time-comparison');
+  await expect(comparison).toContainText('06:14', { timeout: 180_000 });
+  await expect(comparison).toContainText('06:44');
+  await expect(comparison).toContainText('As recorded');
+  await expect(comparison).toContainText('Rectified');
+  await expect(comparison).toContainText('Leo');
+  await expect(comparison).toContainText('Cancer');
+
   // Save Changes -> the regeneration modal. Because 06:44 -> 06:14 crosses the
   // Leo/Cancer sign boundary, the modal raises its MANDATORY rising-sign-flip
   // acknowledgement: "Confirm & Regenerate" stays DISABLED until the user ticks
@@ -748,7 +766,9 @@ test('REAL onboarding -> rectify -> offline reload -> predictive PDF is correct'
   // resolve on the shared Pyodide thread and disagree), so wait for it before
   // ticking; that same wait removes the pre-fix race where the click could land
   // on the button in its brief still-enabled window before the flip was detected.
-  await page.getByRole('button', { name: 'Save Changes' }).click();
+  const saveChanges = page.getByRole('button', { name: 'Save Changes' });
+  await expect(saveChanges).toBeEnabled({ timeout: 180_000 });
+  await saveChanges.click();
   const flipAck = page.getByTestId('regen-flip-ack').locator('input[type="checkbox"]');
   await flipAck.waitFor({ state: 'visible', timeout: 60_000 });
   await flipAck.check();
