@@ -56,4 +56,49 @@ describe('useLagnaPreview', () => {
 
     expect(generateChart).toHaveBeenCalledTimes(1);
   });
+
+  it('never exposes a ready result from the previous input key', async () => {
+    const { engine, generateChart } = makeEngine();
+    const initialInput = validInput();
+    const renderedStatuses: string[] = [];
+    const { result, rerender } = renderHook(
+      ({ input }: { input: LocalBirthInput }) => {
+        const preview = useLagnaPreview(engine, null, input);
+        renderedStatuses.push(preview.status);
+        return preview;
+      },
+      { initialProps: { input: initialInput } },
+    );
+
+    act(() => vi.advanceTimersByTime(300));
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+
+    generateChart.mockImplementationOnce(() => new Promise(() => undefined));
+    renderedStatuses.length = 0;
+    rerender({ input: { ...initialInput, rectifiedTime: '12:15' } });
+
+    expect(renderedStatuses[0]).toBe('loading');
+    expect(renderedStatuses).not.toContain('ready');
+    expect(result.current.status).toBe('loading');
+  });
+
+  it('retries the same input when the retry attempt changes', async () => {
+    const { engine, generateChart } = makeEngine();
+    generateChart.mockRejectedValueOnce(new Error('preview failed'));
+    const input = validInput();
+    const { result, rerender } = renderHook(
+      ({ retryAttempt }: { retryAttempt: number }) =>
+        useLagnaPreview(engine, null, input, retryAttempt),
+      { initialProps: { retryAttempt: 0 } },
+    );
+
+    act(() => vi.advanceTimersByTime(300));
+    await waitFor(() => expect(result.current.status).toBe('error'));
+
+    rerender({ retryAttempt: 1 });
+    expect(result.current.status).toBe('loading');
+    act(() => vi.advanceTimersByTime(300));
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+    expect(generateChart).toHaveBeenCalledTimes(2);
+  });
 });

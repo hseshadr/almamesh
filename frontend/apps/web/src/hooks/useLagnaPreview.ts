@@ -34,12 +34,19 @@ export type LagnaPreviewState =
 const DEBOUNCE_MS = 300;
 
 /** Stable key over the inputs that change the lagna; re-runs only when it moves. */
-function previewKey(input: LocalBirthInput | null): string {
+function previewKey(input: LocalBirthInput | null, retryAttempt: number): string {
   if (input === null) {
     return '';
   }
   const clock = input.rectifiedTime ?? input.time;
-  return `${input.date}T${clock}|${input.timezone}|${input.latitude}|${input.longitude}`;
+  return `${input.date}T${clock}|${input.timezone}|${input.latitude}|${input.longitude}|${retryAttempt}`;
+}
+
+interface KeyedPreviewState {
+  readonly key: string;
+  readonly engine: ChartEngine | null;
+  readonly engineError: Error | null;
+  readonly value: LagnaPreviewState;
 }
 
 /**
@@ -51,27 +58,45 @@ export function useLagnaPreview(
   engine: ChartEngine | null,
   engineError: Error | null,
   input: LocalBirthInput | null,
+  retryAttempt = 0,
 ): LagnaPreviewState {
-  const [state, setState] = useState<LagnaPreviewState>({ status: 'idle' });
-  const key = previewKey(input);
+  const [result, setResult] = useState<KeyedPreviewState>({
+    key: '',
+    engine: null,
+    engineError: null,
+    value: { status: 'idle' },
+  });
+  const key = previewKey(input, retryAttempt);
   const keyedInputRef = useRef({ key, input });
   if (keyedInputRef.current.key !== key) {
     keyedInputRef.current = { key, input };
   }
   const keyedInput = keyedInputRef.current.input;
+  const resultIsCurrent =
+    result.key === key && result.engine === engine && result.engineError === engineError;
+  const state: LagnaPreviewState = resultIsCurrent
+    ? result.value
+    : key === ''
+      ? { status: 'idle' }
+      : engineError !== null || engine === null
+        ? { status: 'unavailable' }
+        : { status: 'loading' };
 
   useEffect(() => {
+    const setCurrent = (value: LagnaPreviewState) => {
+      setResult({ key, engine, engineError, value });
+    };
     if (keyedInput === null || key === '') {
-      setState({ status: 'idle' });
+      setCurrent({ status: 'idle' });
       return;
     }
     if (engineError !== null || engine === null) {
-      setState({ status: 'unavailable' });
+      setCurrent({ status: 'unavailable' });
       return;
     }
 
     let cancelled = false;
-    setState({ status: 'loading' });
+    setCurrent({ status: 'loading' });
     const timer = setTimeout(() => {
       void (async () => {
         try {
@@ -79,7 +104,7 @@ export function useLagnaPreview(
           if (cancelled) {
             return;
           }
-          setState({
+          setCurrent({
             status: 'ready',
             lagna: {
               sign: chart.lagna.sign,
@@ -89,7 +114,7 @@ export function useLagnaPreview(
           });
         } catch {
           if (!cancelled) {
-            setState({ status: 'error' });
+            setCurrent({ status: 'error' });
           }
         }
       })();
