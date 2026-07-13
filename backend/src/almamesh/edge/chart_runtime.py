@@ -8,6 +8,7 @@ raised — so the router always gets a clean verdict.
 
 from __future__ import annotations
 
+import math
 import time
 from collections.abc import Mapping, Sequence
 from datetime import UTC, date, datetime
@@ -44,9 +45,12 @@ def _parse_payload_number(value: object, *, field: str) -> float:
     if isinstance(value, bool) or not isinstance(value, str | int | float):
         raise ValueError(f"invalid numeric field: {field}")
     try:
-        return float(value)
+        number = float(value)
     except ValueError as error:
         raise ValueError(f"invalid numeric field: {field}") from error
+    if not math.isfinite(number):
+        raise ValueError(f"invalid numeric field: {field}")
+    return number
 
 
 def _compute_chart(payload: Mapping[str, object]) -> dict[str, JsonValue]:

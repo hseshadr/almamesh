@@ -44,6 +44,23 @@ def test_should_reject_invalid_payload_numbers(raw: object) -> None:
         chart_runtime._parse_payload_number(raw, field="latitude")
 
 
+@pytest.mark.parametrize(
+    "raw",
+    ["NaN", "inf", "-inf", float("nan"), float("inf"), float("-inf")],
+)
+async def test_should_reject_non_finite_payload_numbers(raw: object) -> None:
+    # Given
+    payload = dict(_BIRTH, latitude=raw)
+
+    # When
+    result = await ChartRuntime().execute(_chart_task(payload))
+
+    # Then
+    assert not result.success
+    assert result.payload == {}
+    assert result.error == "invalid numeric field: latitude"
+
+
 def test_accepts_local_deterministic() -> None:
     assert ChartRuntime().can_handle(_chart_task()) == CapabilityVerdict.ACCEPT
 

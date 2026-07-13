@@ -85,12 +85,19 @@ describe('repository truth', () => {
       'PEP 562 lazy import',
       'Shadbala classical-argument shape',
       'JSON metadata',
+      'Downstream raw Skyfield position mappings',
       'worker singletons',
       'lazy-load cache',
       'chat cache',
       'geocoder cache',
       'mutable store counters',
     ]) expect(ledger).toContain(boundary);
+    for (const evidence of [
+      'transits/positions.py',
+      'transits/aspects.py',
+      'transits/gochara.py',
+      'Before adding another consumer of `get_planetary_positions()`',
+    ]) expect(ledger).toContain(evidence);
   });
 
   it.each([
