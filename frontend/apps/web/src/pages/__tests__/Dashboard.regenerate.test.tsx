@@ -224,18 +224,23 @@ function seedCompleteReading(provenance?: ReadingProvenance): void {
     );
 }
 
+function dashboardUi(queryClient: QueryClient, revision = 'initial') {
+  return (
+    <div data-testid="dashboard-render-revision" data-revision={revision}>
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/dashboard']}>
+          <DashboardPage />
+        </MemoryRouter>
+      </QueryClientProvider>
+    </div>
+  );
+}
+
 function renderDashboard() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
-  const ui = (
-    <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={['/dashboard']}>
-        <DashboardPage />
-      </MemoryRouter>
-    </QueryClientProvider>
-  );
-  return { ui, view: render(ui) };
+  return { queryClient, view: render(dashboardUi(queryClient)) };
 }
 
 /** Let any pending auto-generate effect settle, then assert on stream calls. */
@@ -380,13 +385,18 @@ describe('Dashboard — regenerate reading', () => {
     configureCloudAi();
     useInterpretationStore.setState({ byChart: {} });
     mockedStream.mockImplementation(failingStream(new Error('synthetic failure')));
-    const { ui, view } = renderDashboard();
+    const { queryClient, view } = renderDashboard();
 
     await waitFor(() => expect(mockedStream).toHaveBeenCalledTimes(1));
     await settle();
-    view.rerender(ui);
+    act(() => useContentModeStore.setState({ contentMode: 'technical' }));
+    view.rerender(dashboardUi(queryClient, 'after-content-mode-change'));
     await settle();
 
+    expect(screen.getByTestId('dashboard-render-revision').getAttribute('data-revision')).toBe(
+      'after-content-mode-change',
+    );
+    expect(useContentModeStore.getState().contentMode).toBe('technical');
     expect(mockedStream).toHaveBeenCalledTimes(1);
   });
 
