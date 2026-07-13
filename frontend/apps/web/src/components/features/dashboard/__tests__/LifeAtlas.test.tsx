@@ -7,6 +7,7 @@ import {
   useLanguageStore,
   usePredictiveStore,
   useProfilesStore,
+  predictiveRequestKey,
   type EnsurePredictiveInput,
   type PredictiveRuntime,
   type StoredChart,
@@ -24,6 +25,7 @@ import { DOMAINS_CTX } from '../../../../test/predictiveFixtures';
 function storedChart(): StoredChart {
   return {
     chart_id: 'chart-1',
+    profile_id: 'chart-1',
     person_name: 'Asha Rao',
     is_primary: true,
     birth_data: {
@@ -37,6 +39,16 @@ function storedChart(): StoredChart {
       },
     },
   } as StoredChart;
+}
+
+function currentRequestKey(): string {
+  return predictiveRequestKey({
+    profileKey: 'chart-1',
+    datetimeUtc: '1990-03-30T06:30:00Z',
+    latitude: 12.97,
+    longitude: 77.59,
+    referenceInstant: `${new Date().toISOString().slice(0, 10)}T00:00:00Z`,
+  });
 }
 
 /** A booted-engine context value; the engine object itself is never invoked. */
@@ -105,11 +117,16 @@ describe('LifeAtlas', () => {
     try {
       const ensure = vi.fn(
         (_runtime: PredictiveRuntime, input: EnsurePredictiveInput): Promise<void> => {
-          usePredictiveStore.setState({ status: 'loading', profileKey: input.profileKey });
+          usePredictiveStore.setState({
+            status: 'loading',
+            profileKey: input.profileKey,
+            requestKey: predictiveRequestKey(input),
+          });
           usePredictiveStore.setState({
             status: 'ready',
             domainsCtx: DOMAINS_CTX,
             profileKey: input.profileKey,
+            requestKey: predictiveRequestKey(input),
           });
           return Promise.resolve();
         },
@@ -125,7 +142,7 @@ describe('LifeAtlas', () => {
       // Once the deferred kickoff elapses, the linked cards populate with NO
       // user interaction.
       await act(async () => {
-        vi.runAllTimers();
+        vi.advanceTimersByTime(2_500);
       });
       expect(screen.getByTestId('life-atlas-card-career').getAttribute('href')).toBe('/life/career');
       // Idempotency: compute fired exactly once.
@@ -133,19 +150,28 @@ describe('LifeAtlas', () => {
       // No manual affordance was ever shown.
       expect(screen.queryByTestId('life-atlas-compute')).toBeNull();
     } finally {
-      vi.runOnlyPendingTimers();
+      vi.clearAllTimers();
       vi.useRealTimers();
     }
   });
 
   it('shows honest elapsed copy while computing', () => {
-    usePredictiveStore.setState({ status: 'loading' });
+    usePredictiveStore.setState({
+      status: 'loading',
+      profileKey: 'chart-1',
+      requestKey: currentRequestKey(),
+    });
     renderAtlas();
     expect(screen.getByTestId('life-atlas-gate').textContent).toContain('elapsed');
   });
 
   it('renders seven linked domain cards with band, emphasis and next window when ready', () => {
-    usePredictiveStore.setState({ status: 'ready', domainsCtx: DOMAINS_CTX, profileKey: 'chart-1' });
+    usePredictiveStore.setState({
+      status: 'ready',
+      domainsCtx: DOMAINS_CTX,
+      profileKey: 'chart-1',
+      requestKey: currentRequestKey(),
+    });
     renderAtlas();
     for (const domain of LIFE_DOMAINS) {
       const card = screen.getByTestId(`life-atlas-card-${domain}`);
@@ -164,7 +190,13 @@ describe('LifeAtlas', () => {
 
   it('offers in-app recovery on error and does NOT auto-loop (retry calls compute)', () => {
     const ensure = vi.fn((): Promise<void> => Promise.resolve());
-    usePredictiveStore.setState({ status: 'error', error: 'boom', ensurePredictive: ensure });
+    usePredictiveStore.setState({
+      status: 'error',
+      error: 'boom',
+      profileKey: 'chart-1',
+      requestKey: currentRequestKey(),
+      ensurePredictive: ensure,
+    });
     renderAtlas(engineCtx());
     expect(screen.getByTestId('life-atlas-gate').textContent).toContain('boom');
     const retry = screen.getByTestId('life-atlas-retry');

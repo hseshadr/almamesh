@@ -1,5 +1,6 @@
 # Spec 054: Karma Action Classification via LLM
 
+**Lifecycle:** ROADMAP
 **Status:** Draft
 **Created:** 2025-01-22
 **Priority:** P2 MEDIUM

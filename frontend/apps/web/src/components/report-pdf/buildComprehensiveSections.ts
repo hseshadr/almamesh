@@ -347,7 +347,7 @@ export function buildStrengthSection(
         planet.meets_minimum ? tr('strength.meets') : tr('strength.below'),
       ]),
     ),
-    widths: [1.4, 1, 1, 1, 1, 1.2, 1, 1, 1, 1.6],
+    widths: [1.6, 1.05, 0.8, 1.05, 1.05, 1.4, 0.85, 1, 1.25, 1.5],
   };
 
   return {

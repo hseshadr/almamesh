@@ -96,6 +96,8 @@ export interface BuildReportPdfDataInput {
    * antar table is headed by the title-cased lord alone.
    */
   readonly formatAntarHeading?: (lord: string) => string;
+  /** Binds `report:dasha.pratyantar_heading` for the running antar's table. */
+  readonly formatPratyantarHeading?: (lord: string) => string;
   readonly detailLabels: BirthDetailLabels;
   readonly chromeLabels: ReportPdfLabels;
   /**
@@ -209,7 +211,11 @@ export function buildReportPdfData(input: BuildReportPdfDataInput): ReportPdfDat
     planets: buildPlanetRows(d1Geometry),
     houses: buildHouses(input.sidereal),
     charts: buildCharts(input.sidereal, d1Geometry, input.chartCaptions),
-    dasha: buildDasha(input.sidereal, input.formatAntarHeading),
+    dasha: buildDasha(
+      input.sidereal,
+      input.formatAntarHeading,
+      input.formatPratyantarHeading,
+    ),
     yogas: buildYogas(input.sidereal),
     narrative: input.interpretation
       ? buildNarrative(input.interpretation, input.audience)

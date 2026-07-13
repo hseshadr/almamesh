@@ -222,10 +222,12 @@ incl. `family_rupture`) + optional `spanMinutes` (bounded ±window) + `AnchorCon
 and `window` (bounded ±window via `spanMinutes`, or whole-day when the time is unknown;
 warm-astronomy reuse, ~0.6s). Ascendant-dependent signals: dasha-lord↔house-lordship
 match + transit-to-house at event dates + D9 lagna signals. Candidates carry a labeled
-score anatomy — `navamsaLagnaSign`, `positiveTotal`/`penaltyTotal` split, `priorBonus`
+score anatomy — `fitScore`, `navamsaLagnaSign`, `positiveTotal`/`penaltyTotal` split, `priorBonus`
 (the weak anchor prior, never hidden in the score), `misses` (form-1 unexplained +
 form-2 silent-activation). Honest confidence: margin→band, min-evidence gate forces
-`near_tie`, de-correlation caps stacked same-category events; no headline %. Engine
+`near_tie`, de-correlation caps stacked same-category events; the optional aggregate
+`confidencePct` is a calibrated best-vs-runner-up fit margin, never the probability that
+a birth time is correct. Engine
 computes; the LLM only optionally structures. It flows through `@almamesh/browser`
 (pyodide/rectification.ts, `ChartEngine.computeRectification`) -> `@almamesh/store`
 (adapters/rectification.ts reshape + transient `useRectificationStore`; extended
@@ -236,11 +238,16 @@ the evidence story survives revisits) -> shared-types (`RectificationResult`/
 `RectificationBand`/`AnchorConfidence`) -> the `/rectify/:profileId` wizard (3 entry
 CTAs: onboarding unknown-time, ProfileSettings panel, dashboard cusp callout) and the
 report: the comprehensive PDF + web report render Section XII "Birth Time Authority"
-(`buildRectificationPdf` — facts, candidate table, per-event evidence; qualitative
-only). Confirm routes through the existing birth-info-changed→regenerate pipeline so
-the rectified time becomes the working authority. LLM grounding (all optional, all
-PII-safe): `structureLifeEvents` + `RECTIFICATION_FENCE` (structure-only, typed
-`{date, category}` output = privacy boundary; LLM never sees event narrative); the
+(`buildRectificationPdf` — facts, candidate table, per-event evidence). Confirm routes
+through the existing birth-info-changed→regenerate pipeline so the rectified time becomes
+the working authority. LLM grounding is optional and consented: `structureLifeEvents` +
+`RECTIFICATION_FENCE` produce an untrusted `CanonicalLifeEventDraft` with date, category,
+precision, and an optional concise summary. The summary is potentially identifying and
+local/display-only; the engine receives the narrower `RectificationEventInput` projection
+with no summary. The configured structurer necessarily sees the user's source narrative
+after the existing egress/privacy gate; do not call that path PII-free. Every onboarding
+entry path still needs the same explicit draft-confirm gate before the full
+draft→canonical pattern can be claimed complete. The
 interview (`streamRectificationInterview`) carries a gathered-state block of
 `{date, category, precision}` rows only, and `gatherEventsFromTurn` returns a
 discriminated ok/error result so a failed extraction is never silently dropped; chart
@@ -309,6 +316,11 @@ All changes must pass before completion:
 - `uv run ruff check .` + `uv run ruff format --check .` — clean, formatted
 - `bun run --filter '*' typecheck` — frontend types clean
 - `bun run test:unit` (Vitest) green; the Pyodide==CPython `test:parity` gate green
+- Human-consumed PDFs pass the maximal-report artifact gate: Poppler text extraction proves
+  every supported section and final row; Poppler bounding boxes prove A4 content/footer
+  bounds, footer separation, page counters, and heading+first-row cohesion; representative
+  rendered pages are visually inspected after layout/renderer/font changes. Non-empty bytes
+  are not evidence of a correct report.
 - `node scripts/verify-precache-redirect.mjs` (after a build) green — serves `dist` through a Cloudflare-like `.html`→canonical **308** server and asserts every SW precache URL resolves 200 with no redirect (the gate that reproduces the prod-only wedge `vite preview` can't; wired into CI in `.github/workflows/test.yml`)
 - The app **builds and previews** (`bun run build && bun run preview`) — remember module Workers do NOT run under `vite dev`
 - **Validate end-to-end live** (the global non-negotiable): drive the built+previewed app and observe every touched journey (reachable + correct on screen + clean console). AlmaMesh specifics: module Workers need a **production build**; the `MCP_DOCKER` browser **cannot boot the engine** — use the project's Playwright Chromium / the live exit gate; browser-in-Docker reaches the host as `http://host.docker.internal:<port>`. Run the live exit gate after backend/bundle/chunk changes. (Two scars that shipped CI-green: an OpenRouter selector with no reachable UI, and a timezone bug in the print header — hence "reachable + correct on the actual screen," not just a green unit test.)

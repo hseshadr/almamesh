@@ -2,7 +2,7 @@
   "name": "@almamesh/store",
   "version": "0.0.1",
   "license": "MIT",
-  "description": "Zustand stores for AlmaMesh state management",
+  "description": "Browser-local persisted state and UI stores for AlmaMesh",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",

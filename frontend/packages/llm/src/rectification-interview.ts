@@ -16,9 +16,9 @@
 
 import {
   LIFE_EVENT_CATEGORIES,
+  type CanonicalLifeEventDraft,
   type EventDatePrecision,
   type LifeEventCategory,
-  type RectificationEventInput,
 } from "@almamesh/shared-types";
 
 import type { ChatTurn } from "./budget";
@@ -190,7 +190,7 @@ export async function* streamRectificationInterview(params: {
  * silently dropping it.
  */
 export type GatherEventsResult =
-  | { readonly status: "ok"; readonly events: RectificationEventInput[] }
+  | { readonly status: "ok"; readonly events: CanonicalLifeEventDraft[] }
   | { readonly status: "error" };
 
 /**
@@ -201,12 +201,10 @@ export type GatherEventsResult =
  * `{ status: 'error' }`, while a well-formed turn with nothing datable
  * resolves to `{ status: 'ok', events: [] }`.
  *
- * Each extracted event is annotated with a `summary` set to the user's OWN turn
- * text, so the gathered list is human-readable and events with the same
- * date+category stay distinguishable. This adds ZERO new egress: `userText` was
- * already supplied to this function (and already sent to the endpoint by
- * `structureLifeEvents`); we only copy it into the returned rows. The
- * `structureLifeEvents` output itself remains strictly PII-free.
+ * The structurer's distinct event summaries pass through unchanged. For one
+ * legacy event whose structurer omitted a summary, the user's trimmed turn is a
+ * backward-compatible local fallback. A multi-event turn is never fanned out
+ * as every row's summary.
  */
 export async function gatherEventsFromTurn(
   userText: string,
@@ -221,7 +219,10 @@ export async function gatherEventsFromTurn(
     const summary = userText.trim();
     return {
       status: "ok",
-      events: summary ? res.events.map((e) => ({ ...e, summary })) : res.events,
+      events:
+        res.events.length === 1 && summary && !res.events[0]?.summary
+          ? [{ ...res.events[0], summary }]
+          : res.events,
     };
   } catch {
     return { status: "error" };

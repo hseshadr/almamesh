@@ -9,7 +9,7 @@
  * a user can SEE that a few minutes flips their rising sign before committing.
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import type { ChartEngine } from '@almamesh/browser';
 import { type LocalBirthInput, toBirthInput } from '@almamesh/store';
@@ -54,9 +54,14 @@ export function useLagnaPreview(
 ): LagnaPreviewState {
   const [state, setState] = useState<LagnaPreviewState>({ status: 'idle' });
   const key = previewKey(input);
+  const keyedInputRef = useRef({ key, input });
+  if (keyedInputRef.current.key !== key) {
+    keyedInputRef.current = { key, input };
+  }
+  const keyedInput = keyedInputRef.current.input;
 
   useEffect(() => {
-    if (input === null || key === '') {
+    if (keyedInput === null || key === '') {
       setState({ status: 'idle' });
       return;
     }
@@ -70,7 +75,7 @@ export function useLagnaPreview(
     const timer = setTimeout(() => {
       void (async () => {
         try {
-          const chart = await engine.generateChart(toBirthInput(input));
+          const chart = await engine.generateChart(toBirthInput(keyedInput));
           if (cancelled) {
             return;
           }
@@ -94,11 +99,7 @@ export function useLagnaPreview(
       cancelled = true;
       clearTimeout(timer);
     };
-    // `key` collapses the lagna-affecting inputs into one dependency; `input`
-    // is read inside but intentionally excluded so a new object identity with
-    // the same values does not re-run the engine.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [engine, engineError, key]);
+  }, [engine, engineError, key, keyedInput]);
 
   return state;
 }

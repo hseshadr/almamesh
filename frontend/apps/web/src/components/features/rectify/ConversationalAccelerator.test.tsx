@@ -14,7 +14,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { useLifeEventsStore, useLanguageStore } from '@almamesh/store';
 import type { LlmStatus } from '@almamesh/llm';
-import type { RectificationEventInput } from '@almamesh/shared-types';
+import type { CanonicalLifeEventDraft } from '@almamesh/shared-types';
 
 // ── Mock @almamesh/llm for cloud-gate resolution (describeLlmStatus) ─────────
 // streamRectificationInterview / gatherEventsFromTurn are injected via props;
@@ -58,7 +58,7 @@ function makeStubStream(
 
 /** Build a stub gatherFn that succeeds with the given events. */
 function makeStubGather(
-  events: RectificationEventInput[],
+  events: CanonicalLifeEventDraft[],
 ): NonNullable<ConversationalAcceleratorProps['gatherFn']> {
   return async (_userText, _config, _language) => ({ status: 'ok', events });
 }
@@ -146,7 +146,7 @@ describe('ConversationalAccelerator', () => {
     });
 
     it('streams assistant reply and flushes the extracted event into the store', async () => {
-      const extracted: RectificationEventInput[] = [
+      const extracted: CanonicalLifeEventDraft[] = [
         { date: '2004-04-15', category: 'marriage', precision: 'month' },
       ];
 
@@ -174,7 +174,7 @@ describe('ConversationalAccelerator', () => {
     });
 
     it('flushes multiple extracted events with correct category and precision', async () => {
-      const extracted: RectificationEventInput[] = [
+      const extracted: CanonicalLifeEventDraft[] = [
         { date: '2004-04-15', category: 'marriage', precision: 'month' },
         { date: '2010-01-01', category: 'career_change', precision: 'year' },
       ];
@@ -203,8 +203,35 @@ describe('ConversationalAccelerator', () => {
       expect(events[1]?.precision).toBe('year');
     });
 
+    it('never copies one raw multi-event turn into every stored summary', async () => {
+      const extracted: CanonicalLifeEventDraft[] = [
+        { date: '2004-04-15', category: 'marriage', precision: 'month' },
+        { date: '2010-01-01', category: 'career_change', precision: 'year' },
+      ];
+      render(
+        <ConversationalAccelerator
+          profileId={PROFILE_ID}
+          streamFn={makeStubStream(['Got it!'])}
+          gatherFn={makeStubGather(extracted)}
+        />,
+      );
+
+      fireEvent.change(screen.getByRole('textbox'), {
+        target: { value: 'Married in 2004, then changed careers in 2010' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: /send/i }));
+
+      await waitFor(() => {
+        expect(useLifeEventsStore.getState().getEvents(PROFILE_ID)).toHaveLength(2);
+      });
+
+      expect(
+        useLifeEventsStore.getState().getEvents(PROFILE_ID).map((event) => event.summary),
+      ).toEqual([undefined, undefined]);
+    });
+
     it("stores the user's own typed text as each flushed event's summary (fallback when extractor omits it)", async () => {
-      const extracted: RectificationEventInput[] = [
+      const extracted: CanonicalLifeEventDraft[] = [
         { date: '2004-04-15', category: 'marriage', precision: 'month' },
       ];
       render(
@@ -230,7 +257,7 @@ describe('ConversationalAccelerator', () => {
     });
 
     it('prefers a summary returned by the extractor over the raw input text', async () => {
-      const extracted: RectificationEventInput[] = [
+      const extracted: CanonicalLifeEventDraft[] = [
         { date: '2004-04-15', category: 'marriage', precision: 'month', summary: 'Married Priya' },
       ];
       render(

@@ -10,14 +10,16 @@
  *
  * All chart/interpretation data below is SYNTHETIC.
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   useChartLibraryStore,
   useInterpretationStore,
   useContentModeStore,
+  predictiveRequestKey,
+  usePredictiveStore,
   type StoredChart,
 } from '@almamesh/store';
 import type { BirthChartGenerationResponse, VedicInterpretation } from '@almamesh/shared-types';
@@ -97,6 +99,7 @@ const INTERPRETATION: VedicInterpretation = {
 function storedChart(): StoredChart {
   return {
     chart_id: 'chart-1',
+    profile_id: 'profile-1',
     person_name: 'Asha Rao',
     is_primary: true,
     birth_data: {
@@ -165,6 +168,23 @@ function completingStream(
   };
 }
 
+function deferredCompletion(interpretation: VedicInterpretation): {
+  readonly stream: () => AsyncGenerator<InterpretationEvent>;
+  readonly release: () => void;
+} {
+  let release = () => {};
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  return {
+    release,
+    stream: async function* () {
+      await gate;
+      yield { type: 'complete', interpretation } as InterpretationEvent;
+    },
+  };
+}
+
 /** A generator that fails outright before yielding any event. */
 function failingStream(error: Error): () => AsyncGenerator<InterpretationEvent> {
   return async function* () {
@@ -189,25 +209,38 @@ const STALE_PROVENANCE: ReadingProvenance = {
   model: 'legacy-org/retired-model',
   baseUrl: 'https://example.invalid/v1',
 };
+const NATAL_ONLY_INPUT = { predictiveRequestKey: null } as const;
 
 function seedCompleteReading(provenance?: ReadingProvenance): void {
   useInterpretationStore.setState({ byChart: {} });
   useInterpretationStore
     .getState()
-    .setInterpretation('chart-1', INTERPRETATION, '2026-06-20T00:00:00Z', provenance);
+    .setInterpretation(
+      'chart-1',
+      INTERPRETATION,
+      '2026-06-20T00:00:00Z',
+      provenance,
+      NATAL_ONLY_INPUT,
+    );
 }
 
-function renderDashboard(): ReturnType<typeof render> {
+function dashboardUi(queryClient: QueryClient, revision = 'initial') {
+  return (
+    <div data-testid="dashboard-render-revision" data-revision={revision}>
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/dashboard']}>
+          <DashboardPage />
+        </MemoryRouter>
+      </QueryClientProvider>
+    </div>
+  );
+}
+
+function renderDashboard() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
-  return render(
-    <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={['/dashboard']}>
-        <DashboardPage />
-      </MemoryRouter>
-    </QueryClientProvider>,
-  );
+  return { queryClient, view: render(dashboardUi(queryClient)) };
 }
 
 /** Let any pending auto-generate effect settle, then assert on stream calls. */
@@ -222,6 +255,11 @@ describe('Dashboard — regenerate reading', () => {
     vi.mocked(readLocalPrimaryChart).mockResolvedValue(primaryChartResponse());
     useChartLibraryStore.setState({ charts: { 'chart-1': storedChart() }, hydrated: true });
     useContentModeStore.setState({ contentMode: 'layman' });
+    usePredictiveStore.getState().reset();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('shows an enabled "Regenerate reading" button in the top actions row when AI is configured', async () => {
@@ -250,7 +288,13 @@ describe('Dashboard — regenerate reading', () => {
     useInterpretationStore.setState({ byChart: {} });
     useInterpretationStore
       .getState()
-      .setInterpretation('chart-1', emptySummaryReading, '2026-06-20T00:00:00Z', currentProvenance());
+      .setInterpretation(
+        'chart-1',
+        emptySummaryReading,
+        '2026-06-20T00:00:00Z',
+        currentProvenance(),
+        NATAL_ONLY_INPUT,
+      );
     // Nothing should auto-fire (provenance matches); pin the stream just in case.
     mockedStream.mockImplementation(pendingStream());
     renderDashboard();
@@ -337,6 +381,25 @@ describe('Dashboard — regenerate reading', () => {
     expect(mockedStream).toHaveBeenCalledTimes(1);
   });
 
+  it('auto-generates at most once when the dashboard rerenders', async () => {
+    configureCloudAi();
+    useInterpretationStore.setState({ byChart: {} });
+    mockedStream.mockImplementation(failingStream(new Error('synthetic failure')));
+    const { queryClient, view } = renderDashboard();
+
+    await waitFor(() => expect(mockedStream).toHaveBeenCalledTimes(1));
+    await settle();
+    act(() => useContentModeStore.setState({ contentMode: 'technical' }));
+    view.rerender(dashboardUi(queryClient, 'after-content-mode-change'));
+    await settle();
+
+    expect(screen.getByTestId('dashboard-render-revision').getAttribute('data-revision')).toBe(
+      'after-content-mode-change',
+    );
+    expect(useContentModeStore.getState().contentMode).toBe('technical');
+    expect(mockedStream).toHaveBeenCalledTimes(1);
+  });
+
   it('treats a legacy reading with NO provenance as a mismatch (regenerates once)', async () => {
     configureCloudAi();
     seedCompleteReading(undefined);
@@ -344,6 +407,373 @@ describe('Dashboard — regenerate reading', () => {
     renderDashboard();
 
     await waitFor(() => expect(mockedStream).toHaveBeenCalledTimes(1));
+  });
+
+  it('auto-regenerates once for a new predictive day after an earlier auto-generation completed', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date('2026-07-12T12:00:00Z'));
+    configureCloudAi();
+    useInterpretationStore.setState({ byChart: {} });
+    const requestKey = (day: string) =>
+      predictiveRequestKey({
+        profileKey: 'profile-1',
+        datetimeUtc: '1990-03-30T06:30:00Z',
+        latitude: 12.97,
+        longitude: 77.59,
+        referenceInstant: `${day}T00:00:00Z`,
+      });
+    const rawContexts = {
+      transit_context: { instant: '2026-07-12T00:00:00Z' },
+      varga_context_full: { charts: {} },
+      strength_context: {},
+      domains_context: { forecasts: {} },
+    } as never;
+    usePredictiveStore.setState({
+      status: 'ready',
+      profileKey: 'profile-1',
+      requestKey: requestKey('2026-07-12'),
+      rawContexts,
+    });
+    mockedStream.mockImplementation(completingStream(INTERPRETATION));
+    renderDashboard();
+
+    await waitFor(() => expect(mockedStream).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(useInterpretationStore.getState().getEntry('chart-1')?.status).toBe('complete'),
+    );
+    await screen.findByTestId('reading-section');
+    await settle();
+
+    act(() => {
+      vi.setSystemTime(new Date('2026-07-13T00:00:01Z'));
+      usePredictiveStore.setState({
+        status: 'ready',
+        profileKey: 'profile-1',
+        requestKey: requestKey('2026-07-13'),
+        rawContexts,
+      });
+    });
+
+    await waitFor(() => expect(mockedStream).toHaveBeenCalledTimes(2));
+    await settle();
+    expect(mockedStream).toHaveBeenCalledTimes(2);
+  });
+
+  it('waits through ready-old then loading-current and narrates exactly once when that current key is ready', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date('2026-07-13T12:00:00Z'));
+    configureCloudAi();
+    useInterpretationStore.setState({ byChart: {} });
+    const requestKey = (day: string) =>
+      predictiveRequestKey({
+        profileKey: 'profile-1',
+        datetimeUtc: '1990-03-30T06:30:00Z',
+        latitude: 12.97,
+        longitude: 77.59,
+        referenceInstant: `${day}T00:00:00Z`,
+      });
+    const currentRawContexts = {
+      transit_context: { instant: '2026-07-13T00:00:00Z' },
+      varga_context_full: { charts: {} },
+      strength_context: {},
+      domains_context: { forecasts: {} },
+    } as never;
+    usePredictiveStore.setState({
+      status: 'ready',
+      profileKey: 'profile-1',
+      requestKey: requestKey('2026-07-12'),
+      rawContexts: currentRawContexts,
+    });
+    mockedStream.mockImplementation(completingStream(INTERPRETATION));
+    renderDashboard();
+
+    await settle();
+    expect(mockedStream).not.toHaveBeenCalled();
+
+    act(() => {
+      usePredictiveStore.setState({
+        status: 'loading',
+        profileKey: 'profile-1',
+        requestKey: requestKey('2026-07-13'),
+        rawContexts: undefined,
+      });
+    });
+    await settle();
+    expect(mockedStream).not.toHaveBeenCalled();
+
+    act(() => {
+      usePredictiveStore.setState({
+        status: 'ready',
+        profileKey: 'profile-1',
+        requestKey: requestKey('2026-07-13'),
+        rawContexts: currentRawContexts,
+      });
+    });
+
+    await waitFor(() => expect(mockedStream).toHaveBeenCalledTimes(1));
+    expect(mockedStream.mock.calls[0]?.[0].chart).toMatchObject({
+      transit_context: { instant: '2026-07-13T00:00:00Z' },
+    });
+    await waitFor(() =>
+      expect(useInterpretationStore.getState().getEntry('chart-1')?.inputProvenance).toEqual({
+        predictiveRequestKey: requestKey('2026-07-13'),
+      }),
+    );
+    await settle();
+    expect(mockedStream).toHaveBeenCalledTimes(1);
+  });
+
+  it('queues a manual regenerate during current-key loading and replaces retained natal-only prose once ready', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date('2026-07-13T12:00:00Z'));
+    configureCloudAi();
+    seedCompleteReading(currentProvenance());
+    const requestKey = (day: string) =>
+      predictiveRequestKey({
+        profileKey: 'profile-1',
+        datetimeUtc: '1990-03-30T06:30:00Z',
+        latitude: 12.97,
+        longitude: 77.59,
+        referenceInstant: `${day}T00:00:00Z`,
+      });
+    const currentRawContexts = {
+      transit_context: { instant: '2026-07-13T00:00:00Z' },
+      varga_context_full: { charts: {} },
+      strength_context: {},
+      domains_context: { forecasts: {} },
+    } as never;
+    usePredictiveStore.setState({
+      status: 'ready',
+      profileKey: 'profile-1',
+      requestKey: requestKey('2026-07-12'),
+      rawContexts: currentRawContexts,
+    });
+    const currentNarration = deferredCompletion(INTERPRETATION);
+    mockedStream.mockImplementation(currentNarration.stream);
+    renderDashboard();
+
+    const regenerate = await screen.findByTestId('regenerate-reading');
+    act(() => {
+      usePredictiveStore.setState({
+        status: 'loading',
+        profileKey: 'profile-1',
+        requestKey: requestKey('2026-07-13'),
+        rawContexts: undefined,
+      });
+    });
+    fireEvent.click(regenerate);
+
+    await settle();
+    expect(mockedStream).not.toHaveBeenCalled();
+
+    act(() => {
+      usePredictiveStore.setState({
+        status: 'ready',
+        profileKey: 'profile-1',
+        requestKey: requestKey('2026-07-13'),
+        rawContexts: currentRawContexts,
+      });
+    });
+
+    await waitFor(() => expect(mockedStream).toHaveBeenCalledTimes(1));
+    expect(mockedStream.mock.calls[0]?.[0].chart).toMatchObject({
+      transit_context: { instant: '2026-07-13T00:00:00Z' },
+    });
+    // Natal-only prose is still honest to display while the richer,
+    // current-predictive replacement runs.
+    expect(screen.getByTestId('reading-section').textContent ?? '').toContain(LAYMAN_SUMMARY);
+    act(() => currentNarration.release());
+    await waitFor(() =>
+      expect(useInterpretationStore.getState().getEntry('chart-1')?.inputProvenance).toEqual({
+        predictiveRequestKey: requestKey('2026-07-13'),
+      }),
+    );
+    await settle();
+    expect(mockedStream).toHaveBeenCalledTimes(1);
+  });
+
+  it('automatically replaces retained natal-only prose once current predictive facts become ready', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date('2026-07-13T12:00:00Z'));
+    configureCloudAi();
+    seedCompleteReading(currentProvenance());
+    const requestKey = (day: string) =>
+      predictiveRequestKey({
+        profileKey: 'profile-1',
+        datetimeUtc: '1990-03-30T06:30:00Z',
+        latitude: 12.97,
+        longitude: 77.59,
+        referenceInstant: `${day}T00:00:00Z`,
+      });
+    const currentRawContexts = {
+      transit_context: { instant: '2026-07-13T00:00:00Z' },
+      varga_context_full: { charts: {} },
+      strength_context: {},
+      domains_context: { forecasts: {} },
+    } as never;
+    usePredictiveStore.setState({
+      status: 'ready',
+      profileKey: 'profile-1',
+      requestKey: requestKey('2026-07-12'),
+      rawContexts: currentRawContexts,
+    });
+    mockedStream.mockImplementation(completingStream(INTERPRETATION));
+    renderDashboard();
+
+    await screen.findByTestId('reading-section');
+    await settle();
+    expect(mockedStream).not.toHaveBeenCalled();
+
+    act(() => {
+      usePredictiveStore.setState({
+        status: 'loading',
+        profileKey: 'profile-1',
+        requestKey: requestKey('2026-07-13'),
+        rawContexts: undefined,
+      });
+    });
+    await settle();
+    expect(mockedStream).not.toHaveBeenCalled();
+
+    act(() => {
+      usePredictiveStore.setState({
+        status: 'ready',
+        profileKey: 'profile-1',
+        requestKey: requestKey('2026-07-13'),
+        rawContexts: currentRawContexts,
+      });
+    });
+
+    await waitFor(() => expect(mockedStream).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(useInterpretationStore.getState().getEntry('chart-1')?.inputProvenance).toEqual({
+        predictiveRequestKey: requestKey('2026-07-13'),
+      }),
+    );
+    await settle();
+    expect(mockedStream).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps retained natal-only prose visible when its one current-predictive refresh fails', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date('2026-07-13T12:00:00Z'));
+    configureCloudAi();
+    seedCompleteReading(currentProvenance());
+    const requestKey = (day: string) =>
+      predictiveRequestKey({
+        profileKey: 'profile-1',
+        datetimeUtc: '1990-03-30T06:30:00Z',
+        latitude: 12.97,
+        longitude: 77.59,
+        referenceInstant: `${day}T00:00:00Z`,
+      });
+    const currentRawContexts = {
+      transit_context: { instant: '2026-07-13T00:00:00Z' },
+      varga_context_full: { charts: {} },
+      strength_context: {},
+      domains_context: { forecasts: {} },
+    } as never;
+    usePredictiveStore.setState({
+      status: 'ready',
+      profileKey: 'profile-1',
+      requestKey: requestKey('2026-07-12'),
+      rawContexts: currentRawContexts,
+    });
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    mockedStream.mockImplementation(failingStream(new Error('synthetic current refresh failure')));
+    renderDashboard();
+
+    expect((await screen.findByTestId('reading-section')).textContent ?? '').toContain(
+      LAYMAN_SUMMARY,
+    );
+    act(() => {
+      usePredictiveStore.setState({
+        status: 'loading',
+        profileKey: 'profile-1',
+        requestKey: requestKey('2026-07-13'),
+        rawContexts: undefined,
+      });
+    });
+    await settle();
+    expect(mockedStream).not.toHaveBeenCalled();
+
+    act(() => {
+      usePredictiveStore.setState({
+        status: 'ready',
+        profileKey: 'profile-1',
+        requestKey: requestKey('2026-07-13'),
+        rawContexts: currentRawContexts,
+      });
+    });
+
+    await waitFor(() => expect(mockedStream).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(useInterpretationStore.getState().getEntry('chart-1')?.status).toBe('error'),
+    );
+    expect(screen.getByTestId('reading-section').textContent ?? '').toContain(LAYMAN_SUMMARY);
+    expect(screen.getByTestId('reading-regen-error')).toBeTruthy();
+    await settle();
+    expect(mockedStream).toHaveBeenCalledTimes(1);
+    expect(errorSpy).toHaveBeenCalledWith(
+      '[interpretation] reading stream failed:',
+      expect.any(Error),
+    );
+    errorSpy.mockRestore();
+  });
+
+  it('replaces a late prior-day completion exactly once with the current predictive day', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date('2026-07-12T23:59:00Z'));
+    configureCloudAi();
+    useInterpretationStore.setState({ byChart: {} });
+    const requestKey = (day: string) =>
+      predictiveRequestKey({
+        profileKey: 'profile-1',
+        datetimeUtc: '1990-03-30T06:30:00Z',
+        latitude: 12.97,
+        longitude: 77.59,
+        referenceInstant: `${day}T00:00:00Z`,
+      });
+    const rawContexts = {
+      transit_context: { instant: '2026-07-12T23:59:00Z' },
+      varga_context_full: { charts: {} },
+      strength_context: {},
+      domains_context: { forecasts: {} },
+    } as never;
+    usePredictiveStore.setState({
+      status: 'ready',
+      profileKey: 'profile-1',
+      requestKey: requestKey('2026-07-12'),
+      rawContexts,
+    });
+    const priorDay = deferredCompletion(INTERPRETATION);
+    mockedStream
+      .mockImplementationOnce(priorDay.stream)
+      .mockImplementation(completingStream(INTERPRETATION));
+    renderDashboard();
+
+    await waitFor(() => expect(mockedStream).toHaveBeenCalledTimes(1));
+    act(() => {
+      vi.setSystemTime(new Date('2026-07-13T00:00:01Z'));
+      usePredictiveStore.setState({
+        status: 'ready',
+        profileKey: 'profile-1',
+        requestKey: requestKey('2026-07-13'),
+        rawContexts,
+      });
+    });
+    expect(mockedStream).toHaveBeenCalledTimes(1);
+
+    act(() => priorDay.release());
+
+    await waitFor(() => expect(mockedStream).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(
+        useInterpretationStore.getState().getEntry('chart-1')?.inputProvenance,
+      ).toEqual({ predictiveRequestKey: requestKey('2026-07-13') }),
+    );
+    await settle();
+    expect(mockedStream).toHaveBeenCalledTimes(2);
   });
 
   it('a FAILED auto-regeneration does not retrigger and keeps the old reading on screen', async () => {

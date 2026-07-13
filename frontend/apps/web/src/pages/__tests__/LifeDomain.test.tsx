@@ -6,6 +6,8 @@ import {
   useInterpretationStore,
   useLanguageStore,
   usePredictiveStore,
+  useProfilesStore,
+  predictiveRequestKey,
   type StoredChart,
 } from '@almamesh/store';
 import type { VedicInterpretation } from '@almamesh/shared-types';
@@ -17,6 +19,7 @@ import { DOMAINS_CTX } from '../../test/predictiveFixtures';
 function storedChart(): StoredChart {
   return {
     chart_id: 'chart-1',
+    profile_id: 'chart-1',
     person_name: 'Asha Rao',
     is_primary: true,
     birth_data: {
@@ -59,12 +62,20 @@ function seedReady(): void {
     status: 'ready',
     domainsCtx: DOMAINS_CTX,
     profileKey: 'chart-1',
+    requestKey: predictiveRequestKey({
+      profileKey: 'chart-1',
+      datetimeUtc: '1990-03-30T06:30:00Z',
+      latitude: 12.97,
+      longitude: 77.59,
+      referenceInstant: `${new Date().toISOString().slice(0, 10)}T00:00:00Z`,
+    }),
   });
 }
 
 describe('LifeDomainPage', () => {
   beforeEach(() => {
     useLanguageStore.setState({ language: 'en' });
+    useProfilesStore.setState({ activeProfileId: 'chart-1' });
     useChartLibraryStore.setState({ charts: { 'chart-1': storedChart() }, hydrated: true });
     usePredictiveStore.getState().reset();
     useInterpretationStore.setState({ byChart: {} });
@@ -109,13 +120,33 @@ describe('LifeDomainPage', () => {
     seedReady();
     useInterpretationStore.setState({
       byChart: {
-        'chart-1': { status: 'complete', interpretation: INTERPRETATION, sections: {} },
+        'chart-1': {
+          status: 'complete',
+          interpretation: INTERPRETATION,
+          sections: {},
+          inputProvenance: { predictiveRequestKey: null },
+        },
       },
     });
     renderAt('/life/career');
     const ai = screen.getByTestId('life-domain-ai');
     expect(ai.textContent).toContain('Steady, structured careers suit you.');
     expect(ai.textContent).toContain('AI narration');
+  });
+
+  it('does not show a legacy or stale interpretation beside current predictive facts', () => {
+    seedReady();
+    useInterpretationStore.setState({
+      byChart: {
+        'chart-1': { status: 'complete', interpretation: INTERPRETATION, sections: {} },
+      },
+    });
+
+    renderAt('/life/career');
+
+    expect(screen.getByTestId('life-domain-ai').textContent).not.toContain(
+      'Steady, structured careers suit you.',
+    );
   });
 
   it('says honestly when no AI section exists for the domain', () => {
@@ -130,7 +161,12 @@ describe('LifeDomainPage', () => {
     seedReady();
     useInterpretationStore.setState({
       byChart: {
-        'chart-1': { status: 'complete', interpretation: INTERPRETATION, sections: {} },
+        'chart-1': {
+          status: 'complete',
+          interpretation: INTERPRETATION,
+          sections: {},
+          inputProvenance: { predictiveRequestKey: null },
+        },
       },
     });
     renderAt('/life/family');

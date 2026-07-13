@@ -1,13 +1,15 @@
 /**
  * ReportPdfRectification — Section XII: Birth Time Authority. Entered vs
- * working time + rising sign, the fit mode, the QUALITATIVE confidence band
- * and the confirm date, the supporting life events, and the honest caveat
+ * working time + rising sign, the fit mode, the qualitative confidence band,
+ * the aggregate calibrated confidence percentage when its evidence gate passes,
+ * and the confirm date, supporting life events, and honest caveat
  * ("resolves the sign, not the minute"). Phase 2 (Spec 062): when the slice
  * carries the optional snapshot tables (v2 records), the candidate
  * comparison, per-event evidence, quiet-period misses and prior note print
  * too — v1 slices render the classic section unchanged. All values arrive
- * pre-localized on `ReportPdfRectification`; by contract the slice carries NO
- * percentage, margin number, or fit score. Pure presentation.
+ * pre-localized on `ReportPdfRectification`. The percentage describes event-fit
+ * separation and is not a probability that the time is correct; raw margins,
+ * fit scores, and per-signal numeric contributions stay out. Pure presentation.
  */
 
 import type { ReactElement } from 'react';
@@ -37,6 +39,25 @@ interface ReportPdfRectificationProps {
   readonly data: ReportPdfData;
 }
 
+interface RectificationSubsectionHeadingProps {
+  readonly breakBefore?: boolean;
+  readonly heading?: string;
+}
+
+/** Keep a subsection label with enough following content for its table's first row. */
+function RectificationSubsectionHeading({
+  breakBefore = false,
+  heading,
+}: RectificationSubsectionHeadingProps): ReactElement {
+  return (
+    <View wrap={false} break={breakBefore}>
+      <Text style={styles.subLabel} minPresenceAhead={180}>
+        {heading}
+      </Text>
+    </View>
+  );
+}
+
 export function ReportPdfRectification({ data }: ReportPdfRectificationProps): ReactElement | null {
   const rectification = data.rectification;
   if (!rectification) {
@@ -62,7 +83,7 @@ export function ReportPdfRectification({ data }: ReportPdfRectificationProps): R
         ))}
       </View>
 
-      <Text style={styles.subLabel}>{rectification.eventsHeading}</Text>
+      <RectificationSubsectionHeading heading={rectification.eventsHeading} />
       {rectification.events.rows.length === 0 ? (
         <Text style={styles.detailNote}>{rectification.eventsEmpty}</Text>
       ) : (
@@ -72,19 +93,22 @@ export function ReportPdfRectification({ data }: ReportPdfRectificationProps): R
       {/* Phase 2 (Spec 062): the full evidence story from a v2 snapshot. */}
       {rectification.candidates !== undefined && (
         <>
-          <Text style={styles.subLabel}>{rectification.candidatesHeading}</Text>
+          <RectificationSubsectionHeading heading={rectification.candidatesHeading} />
           <ReportPdfTable table={rectification.candidates} />
         </>
       )}
       {rectification.evidence !== undefined && (
         <>
-          <Text style={styles.subLabel}>{rectification.evidenceHeading}</Text>
+          <RectificationSubsectionHeading
+            heading={rectification.evidenceHeading}
+            breakBefore
+          />
           <ReportPdfTable table={rectification.evidence} />
         </>
       )}
       {rectification.missNotes !== undefined && rectification.missNotes.length > 0 && (
         <>
-          <Text style={styles.subLabel}>{rectification.missesHeading}</Text>
+          <RectificationSubsectionHeading heading={rectification.missesHeading} />
           {rectification.missNotes.map((note) => (
             <Text key={note} style={styles.detailNote}>
               {note}

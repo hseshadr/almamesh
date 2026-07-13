@@ -69,6 +69,8 @@ shared-libs-python = { path = "vendor/shared-libs-python", editable = true }
 # addopts below so every `pytest` run (local or CI) enforces it identically.
 [tool.poe.tasks]
 lint = { shell = "ruff check . && ruff format --check . && mypy src/ && xenon --max-absolute C --max-modules C --max-average A src/" }
+typecheck = "mypy src/"
+complexity = "xenon --max-absolute C --max-modules C --max-average A src/"
 test = "pytest -q"
 # The vendored edge-proc substrate ships its own pinned suite (private .venv
 # under vendor/edge-proc) — run it so a re-vendor or local patch can never

@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import type { BootStage, ChartEngine, OnStage, RuntimeConfig } from '@almamesh/browser';
 import { AlmaMeshRuntimeProvider } from '../AlmaMeshRuntimeProvider';
 import { useChartEngine } from '../chartEngineContext';
+import { clearRuntimeGenerator } from '../../lib/runtimeObservability';
 
 // The provider gates its mount auto-boot off the marketing landing route
 // (path "/" with no saved chart). These tests assert the auto-boot / recovery
@@ -12,8 +13,10 @@ import { useChartEngine } from '../chartEngineContext';
 // (correctly) skips the mount boot. Pin a non-landing path for every test here.
 beforeEach(() => {
   window.history.pushState({}, '', '/onboarding');
+  clearRuntimeGenerator();
 });
 afterEach(() => {
+  clearRuntimeGenerator();
   window.history.pushState({}, '', '/');
 });
 
@@ -110,6 +113,39 @@ describe('AlmaMeshRuntimeProvider — retryable bootstrap', () => {
 
     await waitFor(() => expect(screen.getByTestId('engine').textContent).toBe('engine-ready'));
     expect(runtime.bootstrapCalls).toBe(1);
+  });
+
+  it('publishes the ready engine generator and clears it before a failed reboot', async () => {
+    const ready = makeFakeEngine('generator');
+    const chart = { ayanamsa_value: 23.86 } as Awaited<ReturnType<ChartEngine['generateChart']>>;
+    vi.mocked(ready.generateChart).mockResolvedValue(chart);
+    const runtime = makeFakeRuntime([
+      () => Promise.resolve(ready),
+      () => Promise.reject(new Error('fresh boot failed')),
+    ]);
+    let captured: ReturnType<typeof useChartEngine> | null = null;
+
+    render(
+      <AlmaMeshRuntimeProvider runtime={runtime}>
+        <Probe capture={(value) => {
+          captured = value;
+        }} />
+      </AlmaMeshRuntimeProvider>,
+    );
+
+    await waitFor(() => expect(window.__almameshGenerate).toBeTypeOf('function'));
+    const birth = {
+      datetimeUtc: '1990-03-30T06:30:00Z',
+      latitude: 12.97,
+      longitude: 77.59,
+    };
+    await expect(window.__almameshGenerate?.(birth)).resolves.toBe(chart);
+    expect(ready.generateChart).toHaveBeenCalledWith(birth);
+
+    await act(async () => {
+      await expect(captured!.reboot()).rejects.toThrow('fresh boot failed');
+    });
+    expect(window.__almameshGenerate).toBeUndefined();
   });
 
   it('whenReady() resolves with the in-flight bootstrap result (shared, no extra bootstrap)', async () => {

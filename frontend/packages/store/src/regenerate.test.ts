@@ -24,15 +24,19 @@ const baseBirth: BirthMeta = {
 };
 
 /** An in-memory chart library satisfying `RegenerateDeps['library']`. */
-function makeFakeLibrary(seed: StoredChart) {
-  const charts = new Map<string, StoredChart>([[seed.chart_id, seed]]);
+function makeFakeLibrary(seed: StoredChart | readonly StoredChart[]) {
+  const seeded = Array.isArray(seed) ? seed : [seed];
+  const charts = new Map<string, StoredChart>(seeded.map((chart) => [chart.chart_id, chart]));
   return {
     charts,
     getPrimaryChart: () => [...charts.values()].find((c) => c.is_primary),
+    listAllCharts: () => [...charts.values()],
     getChart: (id: string) => charts.get(id),
     saveChart: (chart: StoredChart) => {
       for (const [id, c] of charts) {
-        if (c.is_primary) charts.set(id, { ...c, is_primary: false });
+        if (c.is_primary && c.profile_id === chart.profile_id) {
+          charts.set(id, { ...c, is_primary: false });
+        }
       }
       charts.set(chart.chart_id, chart);
     },
@@ -84,5 +88,25 @@ describe('regenerateOnBirthChange', () => {
     expect(lib.primaryFor('p1')?.profile_id).toBe('p1');
     expect(lib.primaryFor('p1')?.chart_id).toBe(newId);
     expect(onRegenerated).toHaveBeenCalledOnce();
+  });
+
+  it('replaces only the event profile chart when another profile is active', async () => {
+    const profileA = seededPrimary(baseBirth, 'profile-a');
+    const profileBBirth: BirthMeta = { ...baseBirth, name: 'Mumbai Native', time: '09:15' };
+    const profileB = seededPrimary(profileBBirth, 'profile-b');
+    const lib = makeFakeLibrary([profileB, profileA]);
+    const changedBirth: BirthMeta = { ...baseBirth, time: '18:00' };
+    const engine = { generateChart: vi.fn().mockResolvedValue(fakeSiderealChart) };
+    const onRegenerated = vi.fn();
+
+    await regenerateOnBirthChange(
+      { birth: changedBirth, profileId: 'profile-a' },
+      { engine, library: lib, onRegenerated },
+    );
+
+    expect(lib.getChart(profileB.chart_id)).toEqual(profileB);
+    expect(lib.getChart(profileA.chart_id)).toBeUndefined();
+    expect(lib.primaryFor('profile-a')?.chart_id).toBe(chartId(changedBirth));
+    expect(lib.primaryFor('profile-b')).toEqual(profileB);
   });
 });

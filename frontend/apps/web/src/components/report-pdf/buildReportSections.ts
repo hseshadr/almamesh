@@ -213,6 +213,7 @@ function spanLabel(years: number): string {
 export function buildDasha(
   chart: SiderealChart,
   formatAntarHeading?: (lord: string) => string,
+  formatPratyantarHeading?: (lord: string) => string,
 ): ReportPdfDasha {
   const { dashas } = chart;
   const currentLord = dashas.current_maha?.lord ?? null;
@@ -234,6 +235,7 @@ export function buildDasha(
   const currentFocus = glyphSafe(focusParts.join(' · '));
 
   const currentAntar = dashas.current_antar ?? null;
+  const currentPratyantar = dashas.current_pratyantar ?? null;
   const antarTables: ReadonlyArray<ReportPdfAntarTable> = dashas.maha_dasha_sequence.flatMap(
     (maha) => {
       const antars = maha.antar_sequence ?? [];
@@ -243,6 +245,7 @@ export function buildDasha(
       // A running antar can only live inside the running mahā.
       const isRunningMaha = maha.lord === currentLord && maha.start_date === currentStart;
       const lord = titleCase(maha.lord);
+      const pratyantars = isRunningMaha ? (dashas.pratyantar_sequence ?? []) : [];
       return [
         {
           heading: glyphSafe(formatAntarHeading ? formatAntarHeading(lord) : lord),
@@ -257,6 +260,27 @@ export function buildDasha(
               period.lord === currentAntar.lord &&
               period.start_date === currentAntar.start_date,
           })),
+          ...(currentAntar !== null && pratyantars.length > 0
+            ? {
+                pratyantarTable: {
+                  heading: glyphSafe(
+                    formatPratyantarHeading
+                      ? formatPratyantarHeading(titleCase(currentAntar.lord))
+                      : titleCase(currentAntar.lord),
+                  ),
+                  periods: pratyantars.map((period) => ({
+                    lord: titleCase(period.lord),
+                    start: shortMonthYear(period.start_date),
+                    end: shortMonthYear(period.end_date),
+                    span: spanLabel(period.duration_years),
+                    isCurrent:
+                      currentPratyantar !== null &&
+                      period.lord === currentPratyantar.lord &&
+                      period.start_date === currentPratyantar.start_date,
+                  })),
+                },
+              }
+            : {}),
         },
       ];
     },

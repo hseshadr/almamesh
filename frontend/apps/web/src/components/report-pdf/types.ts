@@ -80,11 +80,15 @@ export interface ReportPdfDashaPeriod {
   readonly isCurrent: boolean;
 }
 
-/** One antar-daśā drill-down table: a (localized) heading + its nine periods. */
-export interface ReportPdfAntarTable {
-  /** Pre-localized heading, e.g. "Antar-daśās of the Saturn Mahā-daśā". */
+/** One dasha drill-down table: a (localized) heading + its periods. */
+export interface ReportPdfPeriodTable {
   readonly heading: string;
   readonly periods: ReadonlyArray<ReportPdfDashaPeriod>;
+}
+
+/** One antar-daśā table, optionally carrying the running antar's deeper table. */
+export interface ReportPdfAntarTable extends ReportPdfPeriodTable {
+  readonly pratyantarTable?: ReportPdfPeriodTable;
 }
 
 /** The dasha timeline slice: the maha sequence + the current focus line. */
@@ -257,9 +261,10 @@ export interface ReportPdfDomains {
 }
 
 /**
- * Section XII — Birth Time Authority. QUALITATIVE ONLY by contract: the facts
- * carry the entered/working clocks + signs, mode, band and confirm date —
- * never a percentage, margin number, or fit score.
+ * Section XII — Birth Time Authority. The facts carry the entered/working
+ * clocks + signs, mode, band, confirm date, and (when the evidence gate is met)
+ * the aggregate calibrated event-fit confidence percentage. Raw margins, fit
+ * scores, and per-event numeric contributions remain intentionally hidden.
  */
 export interface ReportPdfRectification {
   readonly chrome: ReportPdfSectionChrome;
@@ -273,7 +278,9 @@ export interface ReportPdfRectification {
    * Phase 2 (Spec 062, v2 records with a resultSnapshot): the full evidence
    * story — candidate comparison, per-event evidence with depth/polarity
    * labels, quiet-period misses, and the prior note. All optional so v1
-   * records keep rendering the classic section unchanged. Qualitative only.
+   * records keep rendering the classic section unchanged. Per-event evidence
+   * remains qualitative/polarity-only; only the aggregate gated confidence is
+   * formatted as a percentage in the facts above.
    */
   readonly candidatesHeading?: string;
   readonly candidates?: ReportPdfTable;

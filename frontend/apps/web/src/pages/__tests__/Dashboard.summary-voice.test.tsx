@@ -114,7 +114,13 @@ describe('Dashboard — dual-voice summary toggle', () => {
     useInterpretationStore.setState({ byChart: {} });
     useInterpretationStore
       .getState()
-      .setInterpretation('chart-1', INTERPRETATION, '2026-06-20T00:00:00Z');
+      .setInterpretation(
+        'chart-1',
+        INTERPRETATION,
+        '2026-06-20T00:00:00Z',
+        undefined,
+        { predictiveRequestKey: null },
+      );
     useContentModeStore.setState({ contentMode: 'layman' });
   });
 

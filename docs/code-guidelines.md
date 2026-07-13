@@ -65,6 +65,50 @@ reproducibility.
 - No `any` types without justification
 - Run `tsc` and `eslint` before commits
 
+### 4. Model-Assisted Structuring Boundary
+
+Model output is an untrusted draft, never canonical data. For free-form life events, the
+required flow is:
+
+`raw narrative → CanonicalLifeEventDraft → deterministic validation → user review/edit/confirm → canonical local record → purpose-specific projection`
+
+- `CanonicalLifeEventDraft.summary` is potentially identifying and stays local/display-only.
+- The rectification engine receives `RectificationEventInput` (`date`, `category`,
+  `precision`) with the summary projected out. Chat/interpretation get separately defined
+  minimum projections, never the draft object by convenience.
+- Missing or invalid precision defaults conservatively to `approx`; no boundary may
+  silently increase certainty.
+- Extraction failure and a valid empty result are distinct. A manual path remains.
+- Do not silently migrate legacy prose into canonical rows. Require review.
+
+Current limitation: every onboarding entry path still needs the same explicit draft-confirm
+gate before this pattern is fully complete product-wide.
+
+### 5. Explainable Scores
+
+Qualitative labels are derived presentation, not the score contract. Any user-facing score
+must name the question it answers, scale, direction, baseline, components/weights,
+thresholds, evidence coverage, missing-data behavior, and uncertainty. Keep raw fit score,
+ranking margin, calibrated confidence, and probability distinct. If the evidence cannot
+support a defensible number, render **inconclusive + why**.
+
+Rectification exposes positive evidence, penalties, prior, total fit, ranking margin, and a
+minimum-evidence-gated aggregate confidence. It must never describe that confidence as the
+probability that a birth time is correct.
+
+### 6. Generated Artifact Parity
+
+PDFs are product interfaces. Their gate combines:
+
+- a maximal canonical fixture with semantic sentinels for every section and final row;
+- independent text extraction plus bounding-box assertions for page bounds, overflow,
+  footer geometry, widow/orphan control, and heading+first-row cohesion;
+- representative rendered-page visual review after template/font/renderer changes;
+- production-equivalent renderer dependencies in CI; and
+- a real browser download parsed for the same semantic sentinels.
+
+Opening the file or checking its byte count is never sufficient.
+
 ---
 
 ## Development Commands

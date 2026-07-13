@@ -27,7 +27,6 @@ import {
   useProfilesStore,
   useRectificationRecordsStore,
   type LifeEvent,
-  type StoredChart,
 } from '@almamesh/store';
 import type { LagnaData } from '@almamesh/browser/types';
 import type { ProcessedBirthData, RectificationRecord } from '@almamesh/shared-types';
@@ -36,6 +35,7 @@ import { usePredictiveLayer, type PredictiveLayer } from '../hooks/usePredictive
 import { useElapsedSeconds, formatElapsed } from '../hooks/useElapsedSeconds';
 import { useContentModeStore } from '../stores/contentMode';
 import { resolveReportAudience } from '../lib/reportSelectors';
+import { selectPrimaryStoredChart } from '../lib/predictive';
 import { cuspInfo } from '../lib/lagnaCusp';
 import { rectificationDelta } from '../lib/rectification';
 import { domainClaimId, reportStabilityMarkers, yogaClaimId } from '../lib/stability';
@@ -143,18 +143,6 @@ function ReportPredictivePending({ layer }: { layer: PredictiveLayer }): ReactEl
   );
 }
 
-/**
- * Resolve the active profile's primary stored chart from the `charts` map.
- * Mirrors the store's own `getPrimaryChart` rule (the explicit primary, else the
- * first chart) but derives it purely from the subscribed `charts` value so the
- * component re-renders the moment IndexedDB rehydrates on a cold load — no
- * imperative `getState()` read needed.
- */
-function selectPrimaryChart(charts: Readonly<Record<string, StoredChart>>): StoredChart | undefined {
-  const all = Object.values(charts);
-  return all.find((chart) => chart.is_primary) ?? all[0];
-}
-
 /** The print-first report page. */
 export default function ReportView(): ReactElement {
   const navigate = useNavigate();
@@ -164,8 +152,9 @@ export default function ReportView(): ReactElement {
   const { contentMode } = useContentModeStore();
 
   // Subscribe to the chart map so the page re-renders once IndexedDB rehydrates.
+  const activeProfileId = useProfilesStore((s) => s.activeProfileId);
   const charts = useChartLibraryStore((s) => s.charts);
-  const storedChart = selectPrimaryChart(charts);
+  const storedChart = selectPrimaryStoredChart(charts, activeProfileId);
   const chartId = storedChart?.chart_id ?? null;
   const { interpretation, status } = useStreamingInterpretation(chartId);
 
@@ -177,7 +166,6 @@ export default function ReportView(): ReactElement {
   // Birth Time Authority (Section XII): the profile's CONFIRMED rectification
   // record + its supporting life events, resolved in record order (read-only
   // store usage; ids that no longer resolve are simply dropped).
-  const activeProfileId = useProfilesStore((s) => s.activeProfileId);
   const profileId = activeProfileId ?? storedChart?.profile_id ?? null;
   const rectificationRecord: RectificationRecord | undefined = useRectificationRecordsStore(
     (s) => (profileId ? s.recordsByProfile[profileId] : undefined),
@@ -257,6 +245,7 @@ export default function ReportView(): ReactElement {
           minutes: Math.abs(delta.deltaMinutes),
         }),
       formatAntarHeading: (lord) => t('dasha.antar_heading', { lord }),
+      formatPratyantarHeading: (lord) => t('dasha.pratyantar_heading', { lord }),
       chartCaptions: {
         rasi: t('charts.rasi_caption'),
         navamsa: t('charts.navamsa_caption'),

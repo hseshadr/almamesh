@@ -1,6 +1,7 @@
 # Spec 061: Backup & Restore (Export / Import your data)
 
-**Status:** Draft
+**Lifecycle:** SHIPPED
+**Status:** Shipped in v0.4.0
 **Created:** 2026-07-01
 **Priority:** P1 HIGH
 **Dependencies:** none (independent of the in-flight feedback PRs #8/#9)
@@ -16,12 +17,12 @@ widget ("export the data and import it to another browser").
 
 ---
 
-## Current State
+## Pre-implementation state (historical)
 
-All user state lives in the browser across three tiers and is **siloed per
-browser** — there is no way to move it. Today the only "reset" paths are
+Before Spec 061 shipped, all user state lived in the browser across three tiers and was
+**siloed per browser** — there was no way to move it. The only "reset" paths were
 `resetEverything.ts` (wipe user data, keep engine) and `resetAppData.ts` (nuclear).
-Nothing exports.
+Nothing exported.
 
 The persistence surface (authoritative inventory):
 

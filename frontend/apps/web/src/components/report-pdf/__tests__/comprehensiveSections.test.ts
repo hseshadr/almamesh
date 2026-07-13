@@ -5,8 +5,8 @@
  * optional transits / vargas (all 16 plates, 4-per-page chunking) / strength
  * (BAV matrix + six-component Ṣaḍbala) / domains slices — built ONLY when the
  * predictive contexts + translators are supplied (the PDF mirrors the web
- * report); the Birth Time Authority slice (qualitative only — the numeric
- * margin must NEVER reach the data); and a full-document render smoke test.
+ * report); the Birth Time Authority slice (raw margins stay hidden, while an
+ * evidence-gated aggregate percentage may render); and a full-document smoke test.
  *
  * Localization runs through the REAL i18n catalogs (the same `t` the page
  * passes), so PDF copy is asserted against the shipped strings.
@@ -14,6 +14,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
+import { Children, isValidElement, type ReactNode } from 'react';
 import type { SiderealChart } from '@almamesh/browser/types';
 import type {
   DivisionalChartId,
@@ -27,6 +28,7 @@ import i18n from '../../../i18n/config';
 import { buildReportPdfData, type BuildReportPdfDataInput } from '../buildReportPdfData';
 import { buildRectificationPdf } from '../buildRectificationPdf';
 import { chunkVargaPlates, VARGA_PLATES_PER_PAGE } from '../sections/ReportPdfVargas';
+import { ReportPdfDasha } from '../sections/ReportPdfDasha';
 import { ReportDocument } from '../ReportDocument';
 import type { ReportPdfLabels } from '../types';
 import {
@@ -35,6 +37,21 @@ import {
   TRANSIT_CTX,
   VARGA_CTX_FULL,
 } from '../../../test/predictiveFixtures';
+
+function collectText(node: ReactNode): readonly string[] {
+  if (typeof node === 'string' || typeof node === 'number') {
+    return [String(node)];
+  }
+  if (!isValidElement<{ readonly children?: ReactNode }>(node)) {
+    return [];
+  }
+  const props = node.props;
+  if (typeof node.type === 'function') {
+    const Component = node.type as (value: typeof props) => ReactNode;
+    return collectText(Component(props));
+  }
+  return Children.toArray(props.children).flatMap((child) => collectText(child));
+}
 
 /* ── translators: the REAL i18n catalogs, exactly what ReportView passes ── */
 const TRANSLATORS = {
@@ -123,7 +140,23 @@ const CHART: SiderealChart = {
       end_date: '1989-05-01',
       duration_years: 1,
     },
-    current_pratyantar: null,
+    current_pratyantar: {
+      lord: 'jupiter',
+      start_date: '1988-11-01',
+      end_date: '1989-01-01',
+      duration_years: 0.17,
+    },
+    pratyantar_sequence: [
+      { lord: 'sun', start_date: '1988-05-01', end_date: '1988-06-01', duration_years: 0.08 },
+      { lord: 'moon', start_date: '1988-06-01', end_date: '1988-07-15', duration_years: 0.12 },
+      { lord: 'mars', start_date: '1988-07-15', end_date: '1988-08-15', duration_years: 0.08 },
+      { lord: 'rahu', start_date: '1988-08-15', end_date: '1988-10-01', duration_years: 0.13 },
+      { lord: 'jupiter', start_date: '1988-11-01', end_date: '1989-01-01', duration_years: 0.17 },
+      { lord: 'saturn', start_date: '1989-01-01', end_date: '1989-02-15', duration_years: 0.12 },
+      { lord: 'mercury', start_date: '1989-02-15', end_date: '1989-03-15', duration_years: 0.08 },
+      { lord: 'ketu', start_date: '1989-03-15', end_date: '1989-04-01', duration_years: 0.05 },
+      { lord: 'venus', start_date: '1989-04-01', end_date: '1989-05-01', duration_years: 0.08 },
+    ],
   },
   yogas: [],
   navamsa: null,
@@ -196,6 +229,7 @@ function baseInput(): BuildReportPdfDataInput {
     audience: 'you',
     chartCaptions: { rasi: 'Rasi', navamsa: 'Navamsa' },
     formatAntarHeading: (lord) => `Antar-dasas of the ${lord} Maha-dasa`,
+    formatPratyantarHeading: (lord) => `Pratyantar-dasas of the ${lord} Antar-dasa`,
     detailLabels: {
       dateOfBirth: 'Date of Birth',
       timeOfBirth: 'Time of Birth',
@@ -281,6 +315,36 @@ describe('buildReportPdfData — all-mahā antar tables', () => {
     // must NOT be marked (different mahā).
     expect(data.dasha.antarTables[1].periods.every((p) => !p.isCurrent)).toBe(true);
   });
+
+  it("exports every pratyantar period for the running antar", () => {
+    const data = buildReportPdfData(baseInput());
+
+    expect(data.dasha.antarTables[0]).toMatchObject({
+      pratyantarTable: {
+        heading: 'Pratyantar-dasas of the Sun Antar-dasa',
+        periods: [
+          { lord: 'Sun', isCurrent: false },
+          { lord: 'Moon', isCurrent: false },
+          { lord: 'Mars', isCurrent: false },
+          { lord: 'Rahu', isCurrent: false },
+          { lord: 'Jupiter', isCurrent: true },
+          { lord: 'Saturn', isCurrent: false },
+          { lord: 'Mercury', isCurrent: false },
+          { lord: 'Ketu', isCurrent: false },
+          { lord: 'Venus', isCurrent: false },
+        ],
+      },
+    });
+  });
+
+  it("renders the running antar's localized pratyantar table", () => {
+    const data = buildReportPdfData(baseInput());
+    const text = collectText(ReportPdfDasha({ data }));
+
+    expect(text).toContain('Pratyantar-dasas of the Sun Antar-dasa');
+    expect(text).toContain('Venus');
+    expect(text).toContain('May 1989');
+  });
 });
 
 describe('buildReportPdfData — comprehensive slices mirror the web report', () => {
@@ -342,8 +406,8 @@ describe('buildReportPdfData — comprehensive slices mirror the web report', ()
   });
 });
 
-describe('buildRectificationPdf — Birth Time Authority (qualitative only)', () => {
-  it('carries entered/working clocks, mode, band and confirm date — never the margin', () => {
+describe('buildRectificationPdf — legacy record without aggregate confidence', () => {
+  it('carries entered/working clocks, mode, band and confirm date without exposing raw margin', () => {
     const slice = buildRectificationPdf({
       record: { ...RECORD, originalTime: '07:30', originalSign: 'aquarius' },
       events: [{ date: '2015-06-20', category: 'marriage', summary: 'Married in Bengaluru' }],
@@ -361,7 +425,8 @@ describe('buildRectificationPdf — Birth Time Authority (qualitative only)', ()
     expect(slice.events.rows[0].cells[0]).toBe('06/20/2015');
     expect(slice.events.rows[0].cells[1]).toBe('Marriage');
     expect(slice.events.rows[0].cells[2]).toBe('Married in Bengaluru');
-    // ANTI-SCAM HARD LINE: no margin, no percentage anywhere in the slice.
+    // Raw margin stays hidden; this legacy fixture has no confidencePct, so the
+    // builder must not invent an aggregate percentage.
     const serialized = JSON.stringify(slice);
     expect(serialized).not.toContain('0.8125');
     expect(serialized).not.toContain('%');

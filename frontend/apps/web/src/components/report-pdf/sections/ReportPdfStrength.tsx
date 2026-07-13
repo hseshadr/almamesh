@@ -80,7 +80,7 @@ export function ReportPdfStrength({ data }: ReportPdfStrengthProps): ReactElemen
       <ReportPdfTable table={strength.bav} />
 
       <Text style={styles.subLabel}>{strength.shadbalaHeading}</Text>
-      <ReportPdfTable table={strength.shadbala} />
+      <ReportPdfTable table={strength.shadbala} dense />
       <Text style={styles.detailNote}>{strength.componentsNote}</Text>
       {strength.approxNote ? <Text style={styles.detailNote}>{strength.approxNote}</Text> : null}
       <Text style={styles.detailNote}>{strength.sunriseNote}</Text>

@@ -51,9 +51,11 @@ export function buildEnsurePredictiveInput(
  */
 export function selectPrimaryStoredChart(
   charts: Readonly<Record<string, StoredChart>>,
+  profileId?: string | null,
 ): StoredChart | undefined {
   const all = Object.values(charts);
-  return all.find((chart) => chart.is_primary) ?? all[0];
+  const scoped = profileId ? all.filter((chart) => chart.profile_id === profileId) : all;
+  return scoped.find((chart) => chart.is_primary) ?? scoped[0];
 }
 
 /** "aries" → "Aries", "saturn" → "Saturn" (pure casing, no vocabulary). */

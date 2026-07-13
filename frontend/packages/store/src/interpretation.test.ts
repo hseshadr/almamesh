@@ -221,6 +221,8 @@ describe('interpretationStore — provenance + keep-old-until-success', () => {
     model: 'model-b',
     baseUrl: 'http://localhost:11434/v1',
   } as const;
+  const PREDICTIVE_A = { predictiveRequestKey: '["profile-1","birth-a","day-a"]' } as const;
+  const NATAL_ONLY = { predictiveRequestKey: null } as const;
 
   it('setInterpretation records the structured provenance when given', () => {
     const store = newStore();
@@ -234,6 +236,36 @@ describe('interpretationStore — provenance + keep-old-until-success', () => {
     });
   });
 
+  it('records the exact predictive request used to produce the reading', () => {
+    const store = newStore();
+    store
+      .getState()
+      .setInterpretation(
+        'c1',
+        makeInterpretation(),
+        '2026-07-01T00:00:00Z',
+        PROV_A,
+        PREDICTIVE_A,
+      );
+
+    expect(store.getState().getEntry('c1')?.inputProvenance).toEqual(PREDICTIVE_A);
+  });
+
+  it('records an explicit natal-only input instead of conflating it with legacy unknown input', () => {
+    const store = newStore();
+    store
+      .getState()
+      .setInterpretation(
+        'c1',
+        makeInterpretation(),
+        '2026-07-01T00:00:00Z',
+        PROV_A,
+        NATAL_ONLY,
+      );
+
+    expect(store.getState().getEntry('c1')?.inputProvenance).toEqual(NATAL_ONLY);
+  });
+
   it('setInterpretation without a provenance leaves it undefined (back-compat callers)', () => {
     const store = newStore();
     store.getState().setInterpretation('c1', makeInterpretation(), '2026-07-01T00:00:00Z');
@@ -243,7 +275,9 @@ describe('interpretationStore — provenance + keep-old-until-success', () => {
   it('a regeneration does NOT destroy the previously completed reading', () => {
     const store = newStore();
     const original = makeInterpretation('The first reading.');
-    store.getState().setInterpretation('c1', original, '2026-07-01T00:00:00Z', PROV_A);
+    store
+      .getState()
+      .setInterpretation('c1', original, '2026-07-01T00:00:00Z', PROV_A, PREDICTIVE_A);
 
     // Regeneration begins: status flips to generating, progress resets, but the
     // prior reading (and its provenance) stays available for the UI to render.
@@ -253,6 +287,7 @@ describe('interpretationStore — provenance + keep-old-until-success', () => {
     expect(entry?.sections).toEqual({});
     expect(entry?.interpretation).toBe(original);
     expect(entry?.provenance).toBe(PROV_A);
+    expect(entry?.inputProvenance).toBe(PREDICTIVE_A);
     expect(entry?.updatedAt).toBe('2026-07-01T00:00:00Z');
   });
 
@@ -305,9 +340,9 @@ describe('interpretationStore — provenance + keep-old-until-success', () => {
   });
 });
 
-describe('persist v3 migration (provenance)', () => {
-  it('the persist version is bumped to 3', () => {
-    expect(INTERPRETATION_PERSIST_VERSION).toBe(3);
+describe('persist v4 migration (input provenance)', () => {
+  it('the persist version is bumped to 4', () => {
+    expect(INTERPRETATION_PERSIST_VERSION).toBe(4);
   });
 
   it('a v2 entry (no provenance) hydrates unchanged and still renders', () => {
@@ -336,6 +371,10 @@ describe('persist v3 migration (provenance)', () => {
     // Legacy readings have no fingerprint — the dashboard treats that as a
     // mismatch and regenerates once when the config can produce a reading.
     expect(entry?.provenance).toBeUndefined();
+    // Missing input provenance is intentionally distinguishable from a new
+    // reading explicitly generated natal-only. Consumers fail closed because
+    // this legacy reading may have included a now-stale predictive day/chart.
+    expect(entry?.inputProvenance).toBeUndefined();
   });
 });
 

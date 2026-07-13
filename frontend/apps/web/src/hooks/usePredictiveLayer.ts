@@ -15,11 +15,12 @@
  * button.
  */
 
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   useChartLibraryStore,
   usePredictiveStore,
   useProfilesStore,
+  predictiveRequestKey,
   type PredictiveStatus,
 } from '@almamesh/store';
 import type {
@@ -75,6 +76,26 @@ function cancelKickoff(handle: ScheduledKickoff): void {
   clearTimeout(handle.id);
 }
 
+/** Milliseconds until the next UTC day boundary. */
+function untilNextUtcDay(now: number): number {
+  const next = new Date(now);
+  next.setUTCHours(24, 0, 0, 0);
+  return next.getTime() - now;
+}
+
+/** A UTC-midnight reference that updates even when the page otherwise stays idle. */
+function useDailyReferenceInstant(): string {
+  const [reference, setReference] = useState(() => predictiveReferenceInstant());
+  useEffect(() => {
+    const timer = setTimeout(
+      () => setReference(predictiveReferenceInstant()),
+      untilNextUtcDay(Date.now()) + 1,
+    );
+    return () => clearTimeout(timer);
+  }, [reference]);
+  return reference;
+}
+
 export interface PredictiveLayer {
   readonly status: PredictiveStatus;
   readonly error?: string;
@@ -114,20 +135,29 @@ export function usePredictiveLayer({ auto = false }: UsePredictiveLayerOptions =
   const strengthCtx = usePredictiveStore((s) => s.strengthCtx);
   const domainsCtx = usePredictiveStore((s) => s.domainsCtx);
   const loadedProfileKey = usePredictiveStore((s) => s.profileKey);
+  const loadedRequestKey = usePredictiveStore((s) => s.requestKey);
   const ensurePredictive = usePredictiveStore((s) => s.ensurePredictive);
 
   const activeProfileId = useProfilesStore((s) => s.activeProfileId);
   const charts = useChartLibraryStore((s) => s.charts);
-  const storedChart = selectPrimaryStoredChart(charts);
+  const storedChart = selectPrimaryStoredChart(charts, activeProfileId);
   const birth = storedChart?.birth_data as ProcessedBirthData | undefined;
   const profileKey = activeProfileId ?? storedChart?.chart_id ?? 'primary';
 
   // The reference instant is pinned per day (UTC midnight) so the store's
   // idempotency key stays stable across re-renders and navigations.
+  const referenceInstant = useDailyReferenceInstant();
   const input = useMemo(
-    () => buildEnsurePredictiveInput(profileKey, birth, predictiveReferenceInstant()),
-    [profileKey, birth],
+    () => buildEnsurePredictiveInput(profileKey, birth, referenceInstant),
+    [profileKey, birth, referenceInstant],
   );
+  const expectedRequestKey = input ? predictiveRequestKey(input) : undefined;
+  const cacheMatchesInput =
+    expectedRequestKey !== undefined && loadedRequestKey === expectedRequestKey;
+  // Never pair one natal chart with another chart's predictive superset. A
+  // stale ready/error payload is presented as absent until this exact birth
+  // input + reference instant has been computed.
+  const visibleStatus: PredictiveStatus = cacheMatchesInput ? status : 'idle';
 
   const compute = useCallback(() => {
     if (engine && input) {
@@ -152,8 +182,8 @@ export function usePredictiveLayer({ auto = false }: UsePredictiveLayerOptions =
     if (!auto || !engine || !input || rectGateActive) {
       return;
     }
-    const staleProfile = status === 'ready' && loadedProfileKey !== profileKey;
-    if (status !== 'idle' && !staleProfile) {
+    const staleInput = loadedProfileKey !== profileKey || !cacheMatchesInput;
+    if (status !== 'idle' && !staleInput) {
       return;
     }
     // Clear any prior pending handle before re-scheduling so we never stack
@@ -171,15 +201,25 @@ export function usePredictiveLayer({ auto = false }: UsePredictiveLayerOptions =
         pendingKickoff.current = null;
       }
     };
-  }, [auto, engine, input, rectGateActive, status, loadedProfileKey, profileKey, compute]);
+  }, [
+    auto,
+    engine,
+    input,
+    rectGateActive,
+    status,
+    loadedProfileKey,
+    profileKey,
+    cacheMatchesInput,
+    compute,
+  ]);
 
   return {
-    status,
-    error,
-    transitCtx,
-    vargaCtxFull,
-    strengthCtx,
-    domainsCtx,
+    status: visibleStatus,
+    error: cacheMatchesInput ? error : undefined,
+    transitCtx: cacheMatchesInput ? transitCtx : undefined,
+    vargaCtxFull: cacheMatchesInput ? vargaCtxFull : undefined,
+    strengthCtx: cacheMatchesInput ? strengthCtx : undefined,
+    domainsCtx: cacheMatchesInput ? domainsCtx : undefined,
     engineReady: engine !== null,
     hasBirthData: input !== null,
     canCompute: engine !== null && input !== null,

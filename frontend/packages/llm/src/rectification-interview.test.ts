@@ -311,18 +311,48 @@ describe("gatherEventsFromTurn", () => {
     });
   });
 
-  it("attaches the SAME user text as summary to every event from a multi-event turn", async () => {
+  it("preserves distinct event summaries instead of copying the multi-event turn", async () => {
     const events = [
-      { date: "2004-06-15", category: "marriage" as const, precision: "month" as const },
-      { date: "2008-03-01", category: "relocation" as const, precision: "year" as const },
+      {
+        date: "2004-06-15",
+        category: "marriage" as const,
+        precision: "month" as const,
+        summary: "Married my partner",
+      },
+      {
+        date: "2008-03-01",
+        category: "relocation" as const,
+        precision: "year" as const,
+        summary: "Relocated for work",
+      },
     ];
     mockStructure.mockResolvedValue({ status: "ok", events });
     const userText = "Married in June 2004, then moved cities in 2008";
     const result = await gatherEventsFromTurn(userText, HTTP_CFG);
     expect(result.status).toBe("ok");
     expect(result.status === "ok" && result.events.map((e) => e.summary)).toEqual([
-      userText,
-      userText,
+      "Married my partner",
+      "Relocated for work",
+    ]);
+  });
+
+  it("does not fan one raw multi-event turn out as every missing summary", async () => {
+    mockStructure.mockResolvedValue({
+      status: "ok",
+      events: [
+        { date: "2004-06-15", category: "marriage", precision: "month" },
+        { date: "2008-03-01", category: "relocation", precision: "year" },
+      ],
+    });
+
+    const result = await gatherEventsFromTurn(
+      "Married in June 2004, then moved cities in 2008",
+      HTTP_CFG,
+    );
+
+    expect(result.status === "ok" && result.events.map((event) => event.summary)).toEqual([
+      undefined,
+      undefined,
     ]);
   });
 

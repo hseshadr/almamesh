@@ -4,13 +4,19 @@
 // in plain prose — it must NEVER compute astrology, rectify birth times, or invent
 // dates. The RECTIFICATION_FENCE makes this contract explicit in the system prompt.
 //
-// Privacy boundary: the output is typed { date, category, precision } only — no
-// names, no places, no PII can survive the validation filter even if the model emits them.
+// Privacy boundary: the output is rebuilt from an allowlisted typed shape. The
+// concise summary stays local/display-only and is treated as potentially
+// identifying; engine/chat projections must omit it.
 //
 // Safe-default contract: real failures (network/LLM/JSON-parse) return { status: 'error' };
 // a well-formed but empty or filtered response returns { status: 'ok', events: [] }. Never throws.
 
-import { LIFE_EVENT_CATEGORIES, type EventDatePrecision, type LifeEventCategory, type RectificationEventInput } from "@almamesh/shared-types";
+import {
+  LIFE_EVENT_CATEGORIES,
+  type CanonicalLifeEventDraft,
+  type EventDatePrecision,
+  type LifeEventCategory,
+} from "@almamesh/shared-types";
 
 import type { ProviderConfig } from "./config";
 import { withLanguage, type PromptLanguage } from "./language";
@@ -24,7 +30,7 @@ import { routeCompletionJson } from "./route";
 const STRUCTURER_SYSTEM_PROMPT = [
   "You are a text structurer. Your sole task is to read the user's free-text description",
   "of life events and return ONE JSON object with this exact shape:",
-  '{ "events": [ { "date": "YYYY-MM-DD", "category": "<category>", "precision": "exact|month|year|approx" } ] }',
+  '{ "events": [ { "date": "YYYY-MM-DD", "category": "<category>", "precision": "exact|month|year|approx", "summary": "<short event-only clause>" } ] }',
   "",
   `The ${LIFE_EVENT_CATEGORIES.length} valid categories are (use EXACTLY these strings, no others):`,
   LIFE_EVENT_CATEGORIES.join(", "),
@@ -33,6 +39,9 @@ const STRUCTURER_SYSTEM_PROMPT = [
   "- Include ONLY events the user explicitly stated with a date you can express as YYYY-MM-DD.",
   "- OMIT any event you cannot date to a full YYYY-MM-DD, or whose category is not in the list.",
   '- Set "precision" to "exact" when the user gave a full date; use "year", "month", or "approx" when they were vague (e.g. "around 2010" → year, "early 2010" → month, "sometime in my 30s" → approx).',
+  '- Give EACH event its own concise "summary" (120 characters maximum). Describe only that event.',
+  '- The summary must not contain names, places, employers, institutions, contact details, URLs, or other exact identifiers.',
+  '- Do not copy the full user message into multiple summaries and do not invent details.',
   "- Output ONLY the JSON object — no explanation, no commentary, no markdown fences.",
   "- Do NOT compute astrology, rectify birth times, or interpret any chart.",
   "- Do NOT echo names, places, or any identifying information in your output.",
@@ -45,6 +54,7 @@ const STRUCTURER_SYSTEM_PROMPT = [
 // =============================================================================
 
 const YYYY_MM_DD = /^(\d{4})-(\d{2})-(\d{2})$/;
+const SUMMARY_MAX = 120;
 
 function isValidYMD(date: string): boolean {
   const match = YYYY_MM_DD.exec(date);
@@ -78,12 +88,28 @@ function isValidPrecision(value: unknown): value is EventDatePrecision {
   return value === 'exact' || value === 'month' || value === 'year' || value === 'approx';
 }
 
+function normalizeSummary(value: unknown): string | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+  const text = value.replace(/^\s*#{1,6}\s*/gm, "").replace(/\s+/g, " ").trim();
+  if (!text) {
+    return undefined;
+  }
+  if (text.length <= SUMMARY_MAX) {
+    return text;
+  }
+  const head = text.slice(0, SUMMARY_MAX);
+  const boundary = head.lastIndexOf(" ");
+  return `${(boundary > SUMMARY_MAX * 0.6 ? head.slice(0, boundary) : head).trimEnd()}…`;
+}
+
 // =============================================================================
 // Public API
 // =============================================================================
 
 export type StructureLifeEventsResult =
-  | { status: 'ok'; events: RectificationEventInput[] }
+  | { status: 'ok'; events: CanonicalLifeEventDraft[] }
   | { status: 'error' };
 
 /**
@@ -95,7 +121,8 @@ export type StructureLifeEventsResult =
  * - On a real call/parse failure (network error, LLM rejection, malformed JSON) returns
  *   `{ status: 'error' }`. On a genuine empty or filtered response returns
  *   `{ status: 'ok', events: [] }`. Never throws.
- * - The output carries only `{ date, category }` — PII cannot pass through.
+ * - The output carries allowlisted fields only. `summary` is local/display-only
+ *   and remains potentially identifying even after normalization.
  */
 export async function structureLifeEvents(
   text: string,
@@ -123,13 +150,22 @@ export async function structureLifeEvents(
 
     return {
       status: 'ok',
-      events: events.flatMap((item: unknown): RectificationEventInput[] => {
+      events: events.flatMap((item: unknown): CanonicalLifeEventDraft[] => {
         if (!item || typeof item !== "object" || Array.isArray(item)) return [];
         const row = item as Record<string, unknown>;
         const { date, category, precision } = row;
         if (typeof date !== "string" || !isValidYMD(date)) return [];
         if (!isValidCategory(category)) return [];
-        return [{ date, category, precision: isValidPrecision(precision) ? precision : 'exact' }];
+        const summary = normalizeSummary(row.summary);
+        return [
+          {
+            date,
+            category,
+            // Missing/invalid model metadata may never increase certainty.
+            precision: isValidPrecision(precision) ? precision : 'approx',
+            ...(summary ? { summary } : {}),
+          },
+        ];
       }),
     };
   } catch {
