@@ -23,6 +23,7 @@ import { AlmaMeshRuntime } from '@almamesh/browser'
 import type { BootStage, BundleMeta, ChartEngine, OnStage, RuntimeConfig } from '@almamesh/browser'
 import { ChartEngineContext } from './chartEngineContext'
 import { hasLocalChart } from '../lib/localChart'
+import { publishRuntimeError, publishRuntimeStage } from '../lib/runtimeObservability'
 
 // The context + hooks live in `./chartEngineContext` (type-only imports) so
 // consumers never pull the runtime/sync graph; re-exported here so existing
@@ -128,7 +129,7 @@ export function AlmaMeshRuntimeProvider({ children, runtime }: ProviderProps) {
     // Dev-only observability hook: expose the latest boot stage on window so a
     // Playwright harness can poll readiness without UI scraping.
     if (EXIT_GATE_HOOKS) {
-      ;(window as unknown as { __ALMAMESH_STAGE__?: string }).__ALMAMESH_STAGE__ = next.kind
+      publishRuntimeStage(next.kind)
     }
   }, [])
 
@@ -161,7 +162,7 @@ export function AlmaMeshRuntimeProvider({ children, runtime }: ProviderProps) {
         const e = err instanceof Error ? err : new Error(String(err))
         setError(e)
         if (EXIT_GATE_HOOKS) {
-          ;(window as unknown as { __ALMAMESH_ERROR__?: string }).__ALMAMESH_ERROR__ = e.message
+          publishRuntimeError(e.message)
         }
         throw e
       })
