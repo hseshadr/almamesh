@@ -13,6 +13,7 @@
  * exactly like the React surfaces, so error text is localized offline too.
  */
 
+import { type Catalog, defineErrors, httpStatusOf, starterPack } from '@edgeproc/errors';
 import i18n from '../i18n/config';
 
 /**
@@ -125,52 +126,121 @@ export type ConnectionErrorKind =
   | 'unknown';
 
 /**
+ * How a raw failure's searchable message is derived — the thrown `Error`'s
+ * `.message`, or the stringified value for a non-Error. Kept identical to the
+ * pre-@edgeproc/errors logic so classification stays byte-for-byte unchanged.
+ */
+function messageOf(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
+/**
+ * A raw failure's `.name`, but only when it is a real `Error`. A plain object
+ * carrying `{ name: 'PrivacyViolationError' }` deliberately does NOT count —
+ * matching the previous `err instanceof Error ? err.name : ''` guard.
+ */
+function nameOf(err: unknown): string {
+  return err instanceof Error ? err.name : '';
+}
+
+/**
+ * The no-HTTP-status network signals: a `fetch` TypeError carries "Failed to
+ * fetch" (Chrome) / "Load failed" (Safari) / "NetworkError" (Firefox). Matched
+ * on the message — NOT the bare `TypeError` name — so a non-network code-bug
+ * TypeError stays `unknown` (and visible in the logs) instead of masquerading as
+ * unreachable. Mirrors the interpretation path's NETWORK_FAILURE_PATTERN.
+ */
+const NETWORK_MESSAGE_PATTERN = /failed to fetch|load failed|networkerror|network error|unreachable/i;
+
+/**
+ * AlmaMesh's AI connection-error catalog, expressed in the shared
+ * `@edgeproc/errors` vocabulary (the portfolio canonical-errors standard, vendored
+ * at `packages/edgeproc-errors`). Each code is REUSED from the library's
+ * `starterPack`; on top of the starter data we attach the exact `match` predicate
+ * the app has always used, so `registry.classify()` reproduces the previous
+ * hand-written if-chain byte-for-byte.
+ *
+ * Registration ORDER is the precedence — `classify` returns the first code whose
+ * `match` fires — so it mirrors the old order exactly: billing (402) is checked
+ * before auth, and auth before model, because a 402 body can also mention the
+ * model and a rejected key must not read as "bad model". Rate limiting (429) and
+ * provider outages (any 5xx) come next — both transient and out of the user's
+ * control — then a no-status fetch failure as `net.unreachable`.
+ */
+const AI_ERROR_CATALOG = {
+  'ai.privacy.violation': {
+    ...starterPack['ai.privacy.violation'],
+    match: (raw: unknown) => nameOf(raw) === 'PrivacyViolationError',
+  },
+  'ai.provider.out_of_credits': {
+    ...starterPack['ai.provider.out_of_credits'],
+    match: (raw: unknown) => httpStatusOf(raw) === 402 || isInsufficientCreditsMessage(messageOf(raw)),
+  },
+  'ai.provider.unauthorized': {
+    ...starterPack['ai.provider.unauthorized'],
+    match: (raw: unknown) => isAuthError(httpStatusOf(raw)),
+  },
+  'ai.model.unavailable': {
+    ...starterPack['ai.model.unavailable'],
+    match: (raw: unknown) => httpStatusOf(raw) === 404 || isModelUnavailableMessage(messageOf(raw)),
+  },
+  'ai.provider.rate_limited': {
+    ...starterPack['ai.provider.rate_limited'],
+    match: (raw: unknown) => httpStatusOf(raw) === 429,
+  },
+  'ai.provider.server_error': {
+    ...starterPack['ai.provider.server_error'],
+    match: (raw: unknown) => {
+      const status = httpStatusOf(raw);
+      return status !== undefined && status >= 500;
+    },
+  },
+  'net.unreachable': {
+    ...starterPack['net.unreachable'],
+    match: (raw: unknown) => httpStatusOf(raw) === undefined && NETWORK_MESSAGE_PATTERN.test(messageOf(raw)),
+  },
+  'internal.unknown': starterPack['internal.unknown'],
+} satisfies Catalog;
+
+/**
+ * The AlmaMesh AI error registry — the single place raw LLM/transport failures
+ * are classified into canonical codes, built with the shared `@edgeproc/errors`
+ * library. Exported so the classification is inspectable and testable as the
+ * library's own `Registry` (and so a server surface can later reuse the same
+ * codes for RFC 9457 Problem Details without re-deriving them).
+ */
+export const aiErrorRegistry = defineErrors(AI_ERROR_CATALOG);
+
+/**
+ * Map a canonical `@edgeproc/errors` code to the local `ConnectionErrorKind` the
+ * settings / chat / reading call sites already switch on. Keeping
+ * `ConnectionErrorKind` as the public type at those call sites makes this
+ * adoption a zero-churn internal swap: the registry replaces the if-chain, the
+ * call sites are untouched.
+ */
+const CODE_TO_KIND: Readonly<Record<string, ConnectionErrorKind>> = {
+  'ai.privacy.violation': 'privacy',
+  'ai.provider.out_of_credits': 'credits',
+  'ai.provider.unauthorized': 'auth',
+  'ai.model.unavailable': 'model',
+  'ai.provider.rate_limited': 'rate_limited',
+  'ai.provider.server_error': 'server',
+  'net.unreachable': 'network',
+  'internal.unknown': 'unknown',
+};
+
+/**
  * Classify a caught connectivity-test error (from `testProviderConnection`) into
  * one actionable kind, so the settings UI can show a specific fix instead of a
- * raw error body. Duck-typed (reads `.status` / `.name` / `.message`) so it works
- * across the @almamesh/llm module boundary without `instanceof` coupling. Order
- * matters: billing (402) is checked before auth, and auth before model, because a
- * 402 body can also mention the model and a rejected key must not read as "bad
- * model". Rate limiting (429) and provider outages (5xx) are checked next — both
- * are transient and out of the user's control, so they must not fall into the
- * useless "check your settings" `unknown` bucket. A `fetch` failure has no HTTP
- * status → `network`.
+ * raw error body. Delegates to the shared `@edgeproc/errors` registry
+ * (`aiErrorRegistry`) — the same coded behavior as before, now expressed in the
+ * portfolio's canonical-errors vocabulary — then maps the canonical code back to
+ * the local `ConnectionErrorKind`. Duck-typed end-to-end (the registry reads
+ * `.status` / `.name` / `.message`), so it still works across the @almamesh/llm
+ * module boundary without `instanceof` coupling.
  */
 export function classifyConnectionError(err: unknown): ConnectionErrorKind {
-  const message = err instanceof Error ? err.message : String(err);
-  const name = err instanceof Error ? err.name : '';
-  const rawStatus = (err as { status?: unknown } | null)?.status;
-  const status = typeof rawStatus === 'number' ? rawStatus : undefined;
-
-  if (name === 'PrivacyViolationError') {
-    return 'privacy';
-  }
-  if (status === 402 || isInsufficientCreditsMessage(message)) {
-    return 'credits';
-  }
-  if (isAuthError(status)) {
-    return 'auth';
-  }
-  if (status === 404 || isModelUnavailableMessage(message)) {
-    return 'model';
-  }
-  if (status === 429) {
-    return 'rate_limited';
-  }
-  if (status !== undefined && status >= 500) {
-    return 'server';
-  }
-  // No HTTP status = the request never reached the endpoint (DNS, connection
-  // refused, CORS, offline). Match on the message `fetch`'s TypeError carries —
-  // "Failed to fetch" (Chrome) / "Load failed" (Safari) / "NetworkError"
-  // (Firefox) — NOT the bare `TypeError` name, so a non-network code-bug
-  // TypeError falls through to `unknown` (and stays visible in the logs) instead
-  // of masquerading as unreachable. Mirrors the interpretation path's
-  // NETWORK_FAILURE_PATTERN.
-  if (status === undefined && /failed to fetch|load failed|networkerror|network error|unreachable/i.test(message)) {
-    return 'network';
-  }
-  return 'unknown';
+  return CODE_TO_KIND[aiErrorRegistry.classify(err)] ?? 'unknown';
 }
 
 /**
@@ -185,9 +255,10 @@ export function classifyConnectionError(err: unknown): ConnectionErrorKind {
  * retrying could never fix. Duck-typed via `classifyConnectionError`, so it
  * works across the @almamesh/llm boundary without `instanceof` coupling.
  *
- * (Forward-compatible with the shared @edgeproc/errors library: this local
- * mapper is the seam that will later delegate to it — the coded behavior is the
- * contract, fixed here now.)
+ * Built on the shared @edgeproc/errors library: `classifyConnectionError` now
+ * classifies through the `aiErrorRegistry` (canonical codes), and this mapper
+ * renders each resulting kind to the app's existing `chat:errors.*` i18n string
+ * — the coded behavior is unchanged, only its vocabulary is now the shared one.
  */
 export function chatErrorMessage(error: unknown): string {
   switch (classifyConnectionError(error)) {

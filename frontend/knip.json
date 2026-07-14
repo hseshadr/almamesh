@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
-  "ignoreWorkspaces": ["packages/edgeproc-browser"],
+  "ignoreWorkspaces": ["packages/edgeproc-browser", "packages/edgeproc-errors"],
   "workspaces": {
     ".": {
       "entry": ["scripts/*.mjs"],
