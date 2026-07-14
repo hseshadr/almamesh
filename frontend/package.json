@@ -13,7 +13,7 @@
     "typecheck": "bun run --filter '*' typecheck",
     "lint": "bun run --filter '*' lint",
     "knip": "bunx knip@6.26.0 --no-progress",
-    "gate": "bunx tsc -b packages/shared-types packages/constants packages/store packages/llm --force && bun run --filter '*' typecheck && bun run --filter @almamesh/web lint && bun run knip && EDGE_RECO_SKIP_EMBEDDING_PARITY=1 bun run --filter @edgeproc/browser test && bun run --filter @almamesh/browser test && bun run --filter @almamesh/store test && bun run --filter @almamesh/llm test && bun run --filter @almamesh/web test:unit && bun run --filter @almamesh/web build",
+    "gate": "bunx tsc -b packages/shared-types packages/constants packages/store packages/llm --force && bun run --filter '*' typecheck && bun run --filter @almamesh/web lint && bun run knip && EDGE_RECO_SKIP_EMBEDDING_PARITY=1 bun run --filter @edgeproc/browser test && bun run --filter @edgeproc/errors test && bun run --filter @almamesh/browser test && bun run --filter @almamesh/store test && bun run --filter @almamesh/llm test && bun run --filter @almamesh/web test:unit && bun run --filter @almamesh/web build",
     "clean": "bun run --filter '*' clean && rm -rf node_modules",
     "prepare": "cd .. && husky frontend/.husky"
   },
