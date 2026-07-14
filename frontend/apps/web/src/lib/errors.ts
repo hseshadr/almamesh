@@ -173,6 +173,47 @@ export function classifyConnectionError(err: unknown): ConnectionErrorKind {
   return 'unknown';
 }
 
+/**
+ * Map a failed LLM request to the actionable, localized copy shown in the chat
+ * bubble and the dashboard reading card. This is the SINGLE coded-message mapper
+ * both AI surfaces share, so they say exactly what the Settings "Save & test
+ * connection" path already says: a 402 is a billing problem (add credits), a
+ * 401/403 is a bad key, a 404/bad-slug is a dead model, a 429 is rate limiting,
+ * a 5xx is a provider outage, and no-status is an unreachable endpoint. The old
+ * behavior collapsed 402/401/429/5xx into the generic "request failed — check
+ * your model and endpoint" dead-end, which sent users in circles on problems
+ * retrying could never fix. Duck-typed via `classifyConnectionError`, so it
+ * works across the @almamesh/llm boundary without `instanceof` coupling.
+ *
+ * (Forward-compatible with the shared @edgeproc/errors library: this local
+ * mapper is the seam that will later delegate to it — the coded behavior is the
+ * contract, fixed here now.)
+ */
+export function chatErrorMessage(error: unknown): string {
+  switch (classifyConnectionError(error)) {
+    case 'credits':
+      return i18n.t('chat:errors.insufficient_credits');
+    case 'auth':
+      return i18n.t('chat:errors.auth_failed');
+    case 'model':
+      return i18n.t('chat:errors.model_unavailable');
+    case 'rate_limited':
+      return i18n.t('chat:errors.rate_limited');
+    case 'server':
+      return i18n.t('chat:errors.server_error');
+    case 'network':
+      return i18n.t('chat:errors.endpoint_unreachable');
+    case 'privacy':
+      // The fail-closed privacy fence writes its own specific, user-facing
+      // message (which endpoint was refused and why); surface it verbatim. Both
+      // call sites short-circuit privacy before reaching here — this is the
+      // defensive fallback so the mapper is correct even if called directly.
+      return error instanceof Error ? error.message : i18n.t('chat:errors.request_failed');
+    default:
+      return i18n.t('chat:errors.request_failed');
+  }
+}
+
 /** Cap the surfaced connection-error detail so a huge body can't flood the UI. */
 const MAX_DETAIL_CHARS = 200;
 

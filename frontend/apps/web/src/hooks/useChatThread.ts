@@ -23,7 +23,7 @@ import type { ChatTurn, LlmRequestError } from '@almamesh/llm';
 
 import i18n from '../i18n/config';
 import { indexChatMessage, retrieveContext } from '../lib/chatMemory';
-import { getChatErrorMessage, isModelUnavailableMessage } from '../lib/errors';
+import { chatErrorMessage, getChatErrorMessage } from '../lib/errors';
 
 /** Input the caller's stream fn receives; it wires `streamChartChat` with these. */
 export interface ChatStreamInput {
@@ -81,17 +81,10 @@ export const CHAT_STREAM_ERROR_COPY: Readonly<
   // The fail-closed privacy fence writes a specific, user-facing message
   // (which endpoint was refused and why): show it verbatim, never a code.
   PrivacyViolationError: (error) => error.message,
-  // A dead/retired/typo'd model → "pick a different model"; any other non-2xx
-  // → retry/settings guidance.
-  LlmRequestError: (error) => {
-    if (
-      error.status === 404 ||
-      isModelUnavailableMessage(`${error.message} ${error.body ?? ''}`)
-    ) {
-      return i18n.t('chat:errors.model_unavailable');
-    }
-    return i18n.t('chat:errors.request_failed');
-  },
+  // Any non-2xx maps to its specific, actionable copy via the shared coded-
+  // message mapper: 402 → billing, 401/403 → bad key, 404/bad-slug → dead model,
+  // 429 → rate limited, 5xx → provider outage, else → retry/settings guidance.
+  LlmRequestError: (error) => chatErrorMessage(error),
   // `fetch` throws a TypeError when the endpoint is unreachable — a mapped,
   // actionable cause even though it carries no custom class.
   TypeError: () => i18n.t('chat:errors.endpoint_unreachable'),
