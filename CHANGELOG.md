@@ -13,6 +13,9 @@ All notable changes to AlmaMesh are documented here. Format follows
   **interpretation provenance**; free-text event input uses
   **conservative life-event structuring**; and **semantic, geometric, and browser PDF gates**
   verify that the downloaded artifact is complete and readable.
+- **Frontend dead-code gate (PR #65).** `knip` is wired into the single frontend
+  gate, so the unused-export / dead-code axis auto-verifies on every `bun run
+  gate` run — locally and in CI.
 
 ### Changed
 - **Re-vendored the three vendored packages to their latest upstream releases**
@@ -34,6 +37,41 @@ All notable changes to AlmaMesh are documented here. Format follows
     `VENDORED.md`: the biome lint script/devDep drop, and the root-absolute
     `/public.key` resolution (+ `runtimeConfig.test.ts` regression test) that
     keeps deep-link loads verifying against the app origin's pinned key.
+- **SEO, crawler delivery, and browser hardening (PR #61).** Split `/` into a
+  brand-first shell (the full explainer stays at `/welcome`); stop assigning root
+  content/canonicals to unknown routes and ship a branded static `404.html` with
+  client-side `noindex`; replace blanket Pages/Workbox SPA fallbacks with explicit
+  app-route allowlists; publish a factual `llms.txt`; and enforce HSTS,
+  Permissions-Policy, and a CSP compatible with Pyodide/WASM, module/blob workers,
+  Turnstile, embedded fonts, and user-configured AI endpoints.
+- **AI error classification now routes through the vendored `@edgeproc/errors`
+  registry (PR #68).** AlmaMesh becomes the reference consumer of the portfolio's
+  canonical-errors standard — the hand-written `classifyConnectionError` chain is
+  replaced by the shared coded-error registry. Behaviour-identical: the same HTTP
+  status still yields the same coded error and the same existing `chat:errors.*`
+  copy, with no i18n key changed.
+
+### Fixed
+- **Deterministic report-PDF pagination (PR #63).** Report PDFs paginate the same
+  way every time.
+- **Rectification gated on current previews (PR #64).** Save and programmatic
+  submit now fail closed until both candidate-time lagna previews are current and
+  ready, so a slow-worker race can never skip the mandatory rising-sign-flip
+  acknowledgement; preview failure surfaces a localized Retry action.
+- **Specific AI-error messages in chat and reading (PR #67).** A shared coded
+  mapper turns each HTTP status into precise copy (billing · bad key · dead
+  model · rate limited · provider outage · endpoint unreachable), and the
+  structured reading path now preserves the typed HTTP status instead of
+  flattening it. New `chat:errors` keys (`auth_failed` / `rate_limited` /
+  `server_error`) added in en/es/pt with a parity test.
+
+### Security
+- **Bumped `click` 8.3.1 → 8.3.3 to clear PYSEC-2026-2132.** `click` is a
+  CLI-only transitive dependency (via `typer`, for the `almamesh-bundle` CLI) and
+  is absent from the shipped PWA runtime, so this is pure supply-chain hygiene
+  with no runtime-behavior change. Added a `click>=8.3.3,<8.4` floor to
+  `[tool.uv] constraint-dependencies` and re-locked; the weekly Security-Audit
+  now passes.
 
 ## [0.4.0] - 2026-07-11
 

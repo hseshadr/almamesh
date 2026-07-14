@@ -1,7 +1,8 @@
 # AlmaMesh
 
 **A free, local-first Vedic astrology app that runs entirely in your browser.**
-Give it a birth date, time, and place; it computes a full sidereal chart —
+Give it a birth date, time, and place; it computes a full sidereal (star-based,
+not the Western calendar zodiac) chart —
 planets, signs, houses, nakshatras, and Vimshottari dasha periods — on your own
 device, in a tab. You get **degree-accurate North- and South-Indian kundli
 charts** and a **live 3D planetary force-field** of the sky at your birth
@@ -30,7 +31,7 @@ PWA and it works offline after the first load.
 - **Status:** **shipped and tested.** The in-browser engine, the North/South
   charts, the **D9 Navamsa** divisional chart, the 3D force-field, online-primary
   birthplace search with a bundled offline fallback, named profiles (create /
-  rename / delete), deterministic **PDF export**, optional AI interpretation + chat, the **mesh** (relationship
+  rename / delete), deterministic (same input, same file every time) **PDF export**, optional AI interpretation + chat, the **mesh** (relationship
   readings between people) and the **Sky & Timing** predictive layer, and
   PWA/offline delivery all work today — see [Status](#status). There is **no
   backend**: the Python side is a build-time bundle publisher plus the engine.
