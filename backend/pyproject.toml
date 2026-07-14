@@ -46,12 +46,22 @@ almamesh-bundle = "almamesh.edge.publish_cli:app"
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
-# Security floor for the transitive bundle-signing dependency. cryptography is
-# pulled in by edge-proc[bundles] for ed25519 bundle signing — NOT by chart
-# math — so lifting it does not affect engine byte-determinism. Bumps the lock
-# 48.0.0 -> 48.0.1 (security patch); capped <49 to avoid the untested major.
+# Security floors for transitive dependencies (not declared in [dependencies]):
+#
+# cryptography is pulled in by edge-proc[bundles] for ed25519 bundle signing —
+# NOT by chart math — so lifting it does not affect engine byte-determinism.
+# Bumps the lock 48.0.0 -> 48.0.1 (security patch); capped <49 to avoid the
+# untested major.
+#
+# click is CLI-only (pulled in via typer for the almamesh-bundle CLI) and is
+# absent from the shipped PWA runtime — so this too does not touch engine
+# determinism. PYSEC-2026-2132 is fixed in 8.3.3; capped <8.4 to stay on the
+# tested 8.3.x line. Bumps the lock 8.3.1 -> 8.3.3.
 [tool.uv]
-constraint-dependencies = ["cryptography>=48.0.1,<49"]
+constraint-dependencies = [
+    "cryptography>=48.0.1,<49",
+    "click>=8.3.3,<8.4",
+]
 
 # In-repo vendored sources for the unpublished edge-proc substrate and its
 # shared-libs-python dependency — a single clone builds with no private
