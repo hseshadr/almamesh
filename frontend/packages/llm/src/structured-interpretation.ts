@@ -32,7 +32,7 @@ import type {
 import type { SiderealChart } from "@almamesh/browser/types";
 
 import { estimateTokens } from "./budget";
-import { chatCompletionJson, type ChatMessage } from "./client";
+import { chatCompletionJson, LlmRequestError, type ChatMessage } from "./client";
 import { ensurePrivacy, isLocalEndpoint, type ProviderConfig } from "./config";
 import { withLanguage, type PromptLanguage } from "./language";
 import { buildPredictiveFactsBlock } from "./predictive-facts";
@@ -873,7 +873,7 @@ function mergeResults(results: SectionResults): VedicInterpretation {
 /** Internal per-section outcome reported back to the event loop. */
 type SectionOutcome =
   | { section: InterpretationSectionKey; ok: true; raw: string }
-  | { section: InterpretationSectionKey; ok: false; message: string };
+  | { section: InterpretationSectionKey; ok: false; error: unknown };
 
 /**
  * The LITE-prompt gate: a local OpenAI-compatible endpoint (Ollama et al.) means
@@ -903,11 +903,15 @@ function runOneSection(
     ...(params.fetchImpl ? { fetchImpl: params.fetchImpl } : {}),
   })
     .then((raw): SectionOutcome => ({ section, ok: true, raw }))
-    .catch((err: unknown): SectionOutcome => ({
-      section,
-      ok: false,
-      message: err instanceof Error ? err.message : String(err),
-    }));
+    // Keep the ORIGINAL error (not just its message) so the aggregation can
+    // preserve the HTTP status/body of a representative failure — the caller
+    // classifies a total failure by status, not by parsing prose.
+    .catch((err: unknown): SectionOutcome => ({ section, ok: false, error: err }));
+}
+
+/** The message text a section failure contributes to the aggregate summary. */
+function outcomeErrorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
 }
 
 function abortError(): Error {
@@ -965,10 +969,19 @@ export async function* streamStructuredInterpretation(
   const results = emptyResults();
   let applied = 0;
   const failures: string[] = [];
+  // The first HTTP failure seen — rethrown (with its status/body) if EVERY
+  // section fails, so the caller can classify the total failure structurally
+  // (402 billing / 401 auth / 429 rate-limit / 5xx outage) instead of parsing
+  // prose. A non-HTTP total failure (parse/fetch errors) leaves this undefined.
+  let representative: LlmRequestError | undefined;
   for (const outcome of outcomes) {
     if (!outcome.ok) {
-      failures.push(outcome.message);
-      yield { type: "error", section: outcome.section, message: outcome.message };
+      if (representative === undefined && outcome.error instanceof LlmRequestError) {
+        representative = outcome.error;
+      }
+      const message = outcomeErrorMessage(outcome.error);
+      failures.push(message);
+      yield { type: "error", section: outcome.section, message };
       continue;
     }
     try {
@@ -977,7 +990,7 @@ export async function* streamStructuredInterpretation(
       yield { type: "section_complete", section: outcome.section };
     } catch (err) {
       // A 2xx response that wasn't valid JSON for this section: degrade too.
-      const message = err instanceof Error ? err.message : String(err);
+      const message = outcomeErrorMessage(err);
       failures.push(message);
       yield {
         type: "error",
@@ -991,8 +1004,9 @@ export async function* streamStructuredInterpretation(
   // But ZERO usable sections is a total failure (privacy/auth/network/bad model),
   // and must be loud so the UI shows an error + Retry instead of going blank.
   if (applied === 0) {
-    throw new Error(
+    throw new LlmRequestError(
       `Interpretation failed: all ${outcomes.length} sections failed. ${summarizeFailures(failures)}`,
+      representative ? { status: representative.status, body: representative.body } : undefined,
     );
   }
 

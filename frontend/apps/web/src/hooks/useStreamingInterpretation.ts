@@ -22,7 +22,6 @@ import { useCallback, useRef } from 'react';
 import {
   applyInterpretationSettings,
   configProvenance,
-  LlmRequestError,
   PrivacyViolationError,
   resolveProviderConfig,
   streamStructuredInterpretation,
@@ -42,8 +41,7 @@ import {
 import type { PredictiveContexts, SiderealChart } from '@almamesh/browser/types';
 import type { ProcessedBirthData, VedicInterpretation } from '@almamesh/shared-types';
 
-import i18n from '../i18n/config';
-import { isInsufficientCreditsMessage, isModelUnavailableMessage } from '../lib/errors';
+import { chatErrorMessage, classifyConnectionError } from '../lib/errors';
 import { buildEnsurePredictiveInput, predictiveReferenceInstant } from '../lib/predictive';
 
 /** The five structured sections, in the order the generator announces them. */
@@ -97,9 +95,6 @@ export interface UseStreamingInterpretationResult {
  * the raw endpoint response body never reaches the screen.
  */
 export const READING_MODEL_UNAVAILABLE = 'reading_model_unavailable';
-
-/** Message fragments a failed `fetch` leaves behind (Chrome/Safari/Firefox). */
-const NETWORK_FAILURE_PATTERN = /failed to fetch|load failed|networkerror|network error|unreachable/i;
 
 /**
  * Resolve the LLM env for the INTERPRETATION path: build-time Vite env, with any
@@ -300,27 +295,18 @@ function describeError(err: unknown): string {
   // console — never the returned string — keeps the endpoint-URL privacy fence
   // intact.
   console.error('[interpretation] reading stream failed:', err);
-  const request = err instanceof LlmRequestError ? err : undefined;
-  const text = err instanceof Error ? `${err.message} ${request?.body ?? ''}` : String(err);
-  if (request?.status === 402 || isInsufficientCreditsMessage(text)) {
-    // Valid key, exhausted provider balance (e.g. OpenRouter 402): retrying
-    // can't fix billing — say what actually happened.
-    return i18n.t('chat:errors.insufficient_credits');
-  }
-  if (request?.status === 404 || isModelUnavailableMessage(text)) {
-    // Dead/retired/typo'd model → the dashboard's switch-model prompt.
+  // The reading surfaces a dead/typo'd model as a STABLE sentinel the dashboard
+  // maps to its switch-model prompt (recommended-model button + AI settings
+  // door). Every other failure shares the chat path's coded copy — the same
+  // classification, so 402 billing / 401 auth / 429 rate-limit / 5xx outage /
+  // unreachable endpoint each get their specific, actionable message instead of
+  // the old generic "check your model and endpoint" dead-end. This works now
+  // that the aggregation preserves the representative HTTP status (see
+  // structured-interpretation.ts), so 401/429/5xx classify structurally.
+  if (classifyConnectionError(err) === 'model') {
     return READING_MODEL_UNAVAILABLE;
   }
-  if (NETWORK_FAILURE_PATTERN.test(text)) {
-    // A real fetch network failure — "Failed to fetch" (Chrome) / "Load failed"
-    // (Safari) / "NetworkError" (Firefox), the message `fetch`'s own TypeError
-    // carries, plus the aggregate that concatenates those fragments. A bare
-    // non-network TypeError (a code bug) no longer masquerades as "endpoint
-    // unreachable": it falls through to the generic message and is visible in
-    // the raw error logged above.
-    return i18n.t('chat:errors.endpoint_unreachable');
-  }
-  return i18n.t('chat:errors.request_failed');
+  return chatErrorMessage(err);
 }
 
 export function useStreamingInterpretation(chartId?: string | null): UseStreamingInterpretationResult {

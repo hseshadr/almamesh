@@ -12,6 +12,7 @@ import {
   PrivacyViolationError,
 } from '@almamesh/llm';
 import { useChatStore } from '@almamesh/store';
+import i18n from '../../i18n/config';
 import {
   __setMemoryForTest,
   __resetMemoryForTest,
@@ -248,7 +249,7 @@ describe('useChatThread', () => {
     expect(bubble.content).not.toContain('QA_001');
   });
 
-  it('a non-404 request failure gets actionable retry/settings copy (not QA_001)', async () => {
+  it('a 5xx provider outage gets provider-trouble copy (not the generic settings dead-end)', async () => {
     const { memory } = fakeMemory();
     __setMemoryForTest(memory);
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
@@ -264,7 +265,9 @@ describe('useChatThread', () => {
     await waitFor(() => expect(result.current.messages.length).toBe(2));
     const bubble = result.current.messages[1];
     expect(bubble.error).toBe(true);
-    expect(bubble.content).toContain('Settings → AI');
+    // A provider 5xx is out of the user's control — say so and say "try again",
+    // never send them to re-check a model/endpoint that is configured correctly.
+    expect(bubble.content).toBe(i18n.t('chat:errors.server_error'));
     expect(bubble.content).not.toContain('QA_001');
   });
 
@@ -329,5 +332,45 @@ describe('the chat error mapping derives from ONE map (rethrow contract and copy
     error.name = 'SomeUnmappedError';
     expect(isMappedChatStreamError(error)).toBe(false);
     expect(describeChatStreamError(error)).toContain('QA_001');
+  });
+});
+
+describe('describeChatStreamError — coded messages per HTTP status (live-bug fix)', () => {
+  beforeEach(() => vi.spyOn(console, 'error').mockImplementation(() => undefined));
+
+  it('a 402 out-of-credits shows the billing copy, NEVER the generic request_failed', () => {
+    const msg = describeChatStreamError(
+      new LlmRequestError('LLM endpoint returned 402 Payment Required: Insufficient credits', {
+        status: 402,
+      }),
+    );
+    expect(msg).toBe(i18n.t('chat:errors.insufficient_credits'));
+    expect(msg).not.toBe(i18n.t('chat:errors.request_failed'));
+  });
+
+  it('a 401 rejected key shows the auth-failed copy', () => {
+    expect(
+      describeChatStreamError(new LlmRequestError('LLM endpoint returned 401 Unauthorized', { status: 401 })),
+    ).toBe(i18n.t('chat:errors.auth_failed'));
+  });
+
+  it('a 429 shows the rate-limited copy', () => {
+    expect(
+      describeChatStreamError(new LlmRequestError('LLM endpoint returned 429 Too Many Requests', { status: 429 })),
+    ).toBe(i18n.t('chat:errors.rate_limited'));
+  });
+
+  it('a 404 dead model still shows the model-unavailable copy (regression guard)', () => {
+    expect(
+      describeChatStreamError(
+        new LlmRequestError('LLM endpoint returned 404: No endpoints found for x/y', { status: 404 }),
+      ),
+    ).toBe(i18n.t('chat:errors.model_unavailable'));
+  });
+
+  it('a 500 shows the server-error copy', () => {
+    expect(
+      describeChatStreamError(new LlmRequestError('LLM endpoint returned 500', { status: 500 })),
+    ).toBe(i18n.t('chat:errors.server_error'));
   });
 });

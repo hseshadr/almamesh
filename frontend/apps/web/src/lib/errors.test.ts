@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import i18n from '../i18n/config';
 import {
+  chatErrorMessage,
   classifyConnectionError,
   connectionErrorDetail,
   ERROR_CODES,
@@ -203,6 +204,70 @@ describe('classifyConnectionError', () => {
 
   it('falls back to unknown for an unrecognized failure', () => {
     expect(classifyConnectionError(new FakeLlmRequestError("I'm a teapot", 418))).toBe('unknown');
+  });
+});
+
+describe('chatErrorMessage', () => {
+  // The chat + reading surfaces share ONE coded-message mapper (the same
+  // classification the Settings "Save & test connection" path uses). A 402/401/
+  // 429/5xx must each get its own specific, actionable copy — never the generic
+  // "request failed — check your model and endpoint" dead-end that sent users
+  // in circles for a billing/auth/outage problem.
+  it('maps a 402 to the insufficient-credits copy, NEVER the generic request_failed', () => {
+    const msg = chatErrorMessage(
+      new FakeLlmRequestError('LLM endpoint returned 402 Payment Required: Insufficient credits', 402),
+    );
+    expect(msg).toBe(i18n.t('chat:errors.insufficient_credits'));
+    expect(msg).not.toBe(i18n.t('chat:errors.request_failed'));
+  });
+
+  it('maps a 401/403 to the auth-failed copy', () => {
+    expect(chatErrorMessage(new FakeLlmRequestError('returned 401 Unauthorized', 401))).toBe(
+      i18n.t('chat:errors.auth_failed'),
+    );
+    expect(chatErrorMessage(new FakeLlmRequestError('returned 403 Forbidden', 403))).toBe(
+      i18n.t('chat:errors.auth_failed'),
+    );
+  });
+
+  it('maps a 404 / bad-model-id to the model-unavailable copy (regression guard)', () => {
+    expect(chatErrorMessage(new FakeLlmRequestError('returned 404: No endpoints found', 404))).toBe(
+      i18n.t('chat:errors.model_unavailable'),
+    );
+  });
+
+  it('maps a 429 to the rate-limited copy', () => {
+    expect(chatErrorMessage(new FakeLlmRequestError('returned 429 Too Many Requests', 429))).toBe(
+      i18n.t('chat:errors.rate_limited'),
+    );
+  });
+
+  it('maps any 5xx to the server-error copy', () => {
+    expect(chatErrorMessage(new FakeLlmRequestError('returned 500 Internal Server Error', 500))).toBe(
+      i18n.t('chat:errors.server_error'),
+    );
+    expect(chatErrorMessage(new FakeLlmRequestError('returned 503 Service Unavailable', 503))).toBe(
+      i18n.t('chat:errors.server_error'),
+    );
+  });
+
+  it('maps a fetch network TypeError to the unreachable-endpoint copy', () => {
+    expect(chatErrorMessage(new TypeError('Failed to fetch'))).toBe(
+      i18n.t('chat:errors.endpoint_unreachable'),
+    );
+  });
+
+  it('surfaces a PrivacyViolationError message verbatim (fail-closed fence)', () => {
+    const err = new Error('refusing to send chart data to non-local endpoint');
+    err.name = 'PrivacyViolationError';
+    expect(chatErrorMessage(err)).toBe('refusing to send chart data to non-local endpoint');
+  });
+
+  it('falls back to the generic request_failed copy for an unknown failure', () => {
+    expect(chatErrorMessage(new FakeLlmRequestError("I'm a teapot", 418))).toBe(
+      i18n.t('chat:errors.request_failed'),
+    );
+    expect(chatErrorMessage(new Error('mystery'))).toBe(i18n.t('chat:errors.request_failed'));
   });
 });
 

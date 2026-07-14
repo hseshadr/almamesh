@@ -52,6 +52,7 @@ import {
   useProfilesStore,
 } from '@almamesh/store';
 import type { VedicInterpretation } from '@almamesh/shared-types';
+import i18n from '../../i18n/config';
 
 const mockedStream = vi.mocked(streamStructuredInterpretation);
 
@@ -408,6 +409,48 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
 
     await waitFor(() => expect(result.current.status).toBe('error'));
     expect(result.current.error).toMatch(/credit/i);
+  });
+
+  it('maps an all-sections-failed 401 aggregate to the auth-failed copy (rejected key)', async () => {
+    // After the aggregation carries the representative HTTP status (fix 5), a
+    // 401 on every section surfaces as a typed LlmRequestError; the reading must
+    // say "your key was rejected", not the generic "try again in a moment".
+    mockedStream.mockImplementation(
+      failingStream(
+        new LlmRequestError(
+          'Interpretation failed: all 6 sections failed. LLM endpoint returned 401 Unauthorized',
+          { status: 401 },
+        ),
+      ),
+    );
+
+    const { result } = renderHook(() => useStreamingInterpretation('chart-123'));
+    await act(async () => {
+      await result.current.streamInterpretation('chart-123');
+    });
+
+    await waitFor(() => expect(result.current.status).toBe('error'));
+    expect(result.current.error).toBe(i18n.t('chat:errors.auth_failed'));
+    expect(result.current.error).not.toMatch(/try again in a moment/i);
+  });
+
+  it('maps an all-sections-failed 429 aggregate to the rate-limited copy', async () => {
+    mockedStream.mockImplementation(
+      failingStream(
+        new LlmRequestError(
+          'Interpretation failed: all 6 sections failed. LLM endpoint returned 429 Too Many Requests',
+          { status: 429 },
+        ),
+      ),
+    );
+
+    const { result } = renderHook(() => useStreamingInterpretation('chart-123'));
+    await act(async () => {
+      await result.current.streamInterpretation('chart-123');
+    });
+
+    await waitFor(() => expect(result.current.status).toBe('error'));
+    expect(result.current.error).toBe(i18n.t('chat:errors.rate_limited'));
   });
 
   it('surfaces the privacy violation message verbatim (fail-closed)', async () => {
