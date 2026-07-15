@@ -18,14 +18,14 @@ public entrypoint. A shared ``schemas/__init__`` is intentionally NOT edited.
 
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
 from almamesh.constants.astrology import PlanetName, ZodiacSign
 
 
-class DivisionalChart(str, Enum):
+class DivisionalChart(StrEnum):
     """The 16 Shodasavarga divisional charts (BPHS), keyed by their D-number."""
 
     D1 = "D1"  # Rasi — the natal body chart

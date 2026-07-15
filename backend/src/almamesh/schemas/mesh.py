@@ -19,7 +19,7 @@ assignment knowingly.
 from __future__ import annotations
 
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -41,14 +41,14 @@ class _FrozenModel(BaseModel):
 # --- Closed enums -----------------------------------------------------------
 
 
-class MatchRole(str, Enum):
+class MatchRole(StrEnum):
     """Explicit Melapaka role — the caller states who is whom, never the engine."""
 
     BRIDE = "bride"
     GROOM = "groom"
 
 
-class Relationship(str, Enum):
+class Relationship(StrEnum):
     """The relation kinds the mesh edge models (closed set)."""
 
     SPOUSE = "spouse"
@@ -61,7 +61,7 @@ class Relationship(str, Enum):
     BUSINESS = "business"
 
 
-class KootaName(str, Enum):
+class KootaName(StrEnum):
     """The eight kootas of Ashtakoota Guna Milan (1+2+3+4+5+6+7+8 = 36)."""
 
     VARNA = "varna"
@@ -74,7 +74,7 @@ class KootaName(str, Enum):
     NADI = "nadi"
 
 
-class CompatibilityBand(str, Enum):
+class CompatibilityBand(StrEnum):
     """Classical-convention reading of the /36 total (labels, not verdicts)."""
 
     NOT_RECOMMENDED = "not_recommended"  # total < 18
@@ -83,7 +83,7 @@ class CompatibilityBand(str, Enum):
     EXCELLENT = "excellent"  # 33 <= total <= 36
 
 
-class Varna(str, Enum):
+class Varna(StrEnum):
     """Varna class of a Moon sign (Varna koota)."""
 
     BRAHMIN = "brahmin"
@@ -92,7 +92,7 @@ class Varna(str, Enum):
     SHUDRA = "shudra"
 
 
-class VashyaClass(str, Enum):
+class VashyaClass(StrEnum):
     """Vashya class of a Moon sign (five-fold classical classification)."""
 
     CHATUSHPADA = "chatushpada"  # quadruped
@@ -102,7 +102,7 @@ class VashyaClass(str, Enum):
     KEETA = "keeta"  # insect/scorpion (Scorpio)
 
 
-class YoniAnimal(str, Enum):
+class YoniAnimal(StrEnum):
     """The fourteen yoni animals of the nakshatra yoni table."""
 
     HORSE = "horse"  # Ashwa
@@ -121,14 +121,14 @@ class YoniAnimal(str, Enum):
     LION = "lion"  # Simha
 
 
-class YoniSex(str, Enum):
+class YoniSex(StrEnum):
     """Male/female of a nakshatra's yoni animal (classical pairing)."""
 
     MALE = "male"
     FEMALE = "female"
 
 
-class Gana(str, Enum):
+class Gana(StrEnum):
     """Gana (temperament class) of a nakshatra."""
 
     DEVA = "deva"
@@ -136,7 +136,7 @@ class Gana(str, Enum):
     RAKSHASA = "rakshasa"
 
 
-class Nadi(str, Enum):
+class Nadi(StrEnum):
     """Nadi (constitutional channel) of a nakshatra."""
 
     ADI = "adi"
@@ -144,14 +144,14 @@ class Nadi(str, Enum):
     ANTYA = "antya"
 
 
-class MeshDosha(str, Enum):
+class MeshDosha(StrEnum):
     """The dosha flags Guna Milan raises (closed set)."""
 
     BHAKOOT_DOSHA = "bhakoot_dosha"
     NADI_DOSHA = "nadi_dosha"
 
 
-class MangalReference(str, Enum):
+class MangalReference(StrEnum):
     """Reference point Mars's dosha houses are counted from (per school)."""
 
     LAGNA = "lagna"
@@ -159,7 +159,7 @@ class MangalReference(str, Enum):
     VENUS = "venus"
 
 
-class ContactKind(str, Enum):
+class ContactKind(StrEnum):
     """How a guest graha touches a host natal point in the overlay."""
 
     CLOSE_CONJUNCTION = "close_conjunction"  # same sign AND within the stated orb
@@ -167,7 +167,7 @@ class ContactKind(str, Enum):
     GRAHA_DRISHTI = "graha_drishti"  # classical whole-sign aspect
 
 
-class NatalPoint(str, Enum):
+class NatalPoint(StrEnum):
     """A host chart's natal points the overlay targets (lagna + 9 grahas)."""
 
     LAGNA = "lagna"

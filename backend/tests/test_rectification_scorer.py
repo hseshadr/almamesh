@@ -732,11 +732,13 @@ def test_ad_only_rules_hit_emits_ad_key_antar_weight() -> None:
         dashas,
         date(2014, 1, 1),
         date(2015, 12, 31),
-        lambda lords: lords[1] == PlanetName.VENUS
-        and lords[2]
-        not in (
-            PlanetName.VENUS,
-            PlanetName.SUN,
+        lambda lords: (
+            lords[1] == PlanetName.VENUS
+            and lords[2]
+            not in (
+                PlanetName.VENUS,
+                PlanetName.SUN,
+            )
         ),
     )
     evidence = _score_one(ctx, _marriage(when))

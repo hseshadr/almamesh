@@ -13,7 +13,7 @@ Conventions:
 
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -34,7 +34,7 @@ SHADBALA_PLANETS: tuple[PlanetName, ...] = (
 VIRUPAS_PER_RUPA: float = 60.0
 
 
-class ShadbalaComponent(str, Enum):
+class ShadbalaComponent(StrEnum):
     """The six-fold strength components (BPHS Shadbala Adhyaya)."""
 
     STHANA = "sthana"  # positional strength

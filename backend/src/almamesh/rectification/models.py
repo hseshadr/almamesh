@@ -7,21 +7,21 @@ Snake_case fields mirror the camelCase TS contract in @almamesh/shared-types
 from __future__ import annotations
 
 import datetime
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict
 
 from almamesh.constants.astrology import EventType, ZodiacSign
 
 
-class RectificationMode(str, Enum):
+class RectificationMode(StrEnum):
     """How the rectification search was performed."""
 
     CUSP = "cusp"
     WINDOW = "window"
 
 
-class RectificationBand(str, Enum):
+class RectificationBand(StrEnum):
     """Confidence band for the rectification result."""
 
     NEAR_TIE = "near_tie"
@@ -29,7 +29,7 @@ class RectificationBand(str, Enum):
     CONSISTENT = "consistent"
 
 
-class EventDatePrecision(str, Enum):
+class EventDatePrecision(StrEnum):
     """How precisely the user knows an event's date (drives engine weighting)."""
 
     EXACT = "exact"  # known day
@@ -38,7 +38,7 @@ class EventDatePrecision(str, Enum):
     APPROX = "approx"  # no reliable year (a multi-year span)
 
 
-class AnchorConfidence(str, Enum):
+class AnchorConfidence(StrEnum):
     """How much the recorded birth time anchors the prior (Spec 062 E5).
 
     ABOUT: a weak triangular prior around the recorded time (max bonus 0.5 —
