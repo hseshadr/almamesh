@@ -45,7 +45,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       # ---- Python toolchain (for the bundle publisher) ----
       - name: Set up Python 3.13
@@ -60,7 +60,7 @@ jobs:
           version: "latest"
 
       - name: Cache uv dependencies
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ~/.cache/uv
           key: ${{ runner.os }}-uv-${{ hashFiles('backend/uv.lock', 'backend/vendor/edge-proc/uv.lock') }}
@@ -74,7 +74,7 @@ jobs:
           bun-version-file: frontend/.bun-version
 
       - name: Cache Bun dependencies
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: |
             ~/.bun/install/cache
@@ -92,7 +92,7 @@ jobs:
       # unreliable from GH runners; the ephemeris files are static, so a
       # fixed-key cache kills the flaky download after the first green run.
       - name: Cache Skyfield ephemeris data (de421.bsp + finals2000A.all)
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ~/.skyfield-data
           key: skyfield-data-de421-v1
