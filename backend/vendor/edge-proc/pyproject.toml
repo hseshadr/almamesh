@@ -30,7 +30,7 @@ dependencies = [
 localvec = [
     "faiss-cpu>=1.9",
     "sentence-transformers>=3.3",
-    "rank-bm25>=0.2",
+    "rank-bm25>=0.2.2",
     "numpy>=2.0",
 ]
 bundles = [

@@ -389,7 +389,7 @@ requires-dist = [
     { name = "numpy", marker = "extra == 'localvec'", specifier = ">=2.0" },
     { name = "pydantic", specifier = ">=2.9" },
     { name = "pydantic-settings", specifier = ">=2.5" },
-    { name = "rank-bm25", marker = "extra == 'localvec'", specifier = ">=0.2" },
+    { name = "rank-bm25", marker = "extra == 'localvec'", specifier = ">=0.2.2" },
     { name = "sentence-transformers", marker = "extra == 'localvec'", specifier = ">=3.3" },
     { name = "shared-libs-python", editable = "vendor/shared-libs-python" },
     { name = "structlog", marker = "extra == 'bundles'", specifier = ">=24.4" },
