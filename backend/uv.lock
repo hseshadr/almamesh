@@ -1007,7 +1007,7 @@ dependencies = [
 requires-dist = [
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.7.0" },
     { name = "numpy", marker = "extra == 'pgvector'", specifier = ">=1.26.0" },
-    { name = "pgvector", marker = "extra == 'pgvector'", specifier = ">=0.2.4" },
+    { name = "pgvector", marker = "extra == 'pgvector'", specifier = ">=0.5.0" },
     { name = "poethepoet", marker = "extra == 'dev'", specifier = ">=0.30.0" },
     { name = "pydantic", specifier = ">=2.5.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.4.3" },
