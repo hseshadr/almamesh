@@ -784,10 +784,27 @@ test('REAL onboarding -> rectify -> offline reload -> predictive PDF is correct'
   });
   await viewNewChart.click();
 
-  // Back on the dashboard, the SCOPED lagna must have flipped to Cancer. POLL —
-  // the IdentityStrip re-renders from the store a beat after the regenerate
-  // commits; a single read can catch the pre-update frame.
+  // Back on the dashboard, wait for the regenerated Cancer chart to be COMMITTED
+  // and live before asserting the lagna. "Confirm & Regenerate" is fire-and-forget:
+  // it shows the success card (and thus "View New Chart") the instant the
+  // birth-info-changed event is emitted, NOT when the recompute finishes. The
+  // real on-device regenerate then has to run engine.generateChart on the SINGLE
+  // serial Pyodide worker, saveChart the new chart id, invalidate the
+  // ['primary-chart'] query, refetch, and re-render — and that recompute can be
+  // queued behind the dashboard's ~30s predictive auto-compute on the same worker.
+  // Polling the lagna text alone races that commit: the stale Leo snapshot reads
+  // for the whole window, which is the CI flake ("Received: leo0°02′ …"). Gate on
+  // the commit-tied `identity-rectification` note instead — it is ABSENT on the
+  // entered-time Leo chart and renders ONLY once the new rectified (06:14) chart
+  // is the live primary chart, and the SAME render flips the lagna to Cancer. So
+  // it is the deterministic "the new chart is on screen" signal. Allow
+  // serial-worker headroom (mirrors the 180s Save-gate waits above); the lagna
+  // poll then resolves immediately once the note is present.
   await waitForDashboardChart(page);
+  await expect(
+    page.getByTestId('identity-rectification'),
+    'the regenerated rectified (06:14) chart must become the live dashboard chart',
+  ).toContainText('6:14 AM', { timeout: 180_000 });
   await expect
     .poll(() => readDashboardLagna(page), {
       timeout: 30_000,
