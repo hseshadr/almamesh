@@ -22,15 +22,28 @@ import {
   useInterpretationStore,
   useLifeEventsStore,
   useMeshStore,
+  usePredictiveStore,
   useProfilesStore,
+  useRectificationRecordsStore,
   type StoredChart,
 } from '@almamesh/store';
 
+import { clearMemory } from './chatMemory';
 import { resetEverything } from './resetEverything';
+
+vi.mock('./chatMemory', () => ({ clearMemory: vi.fn().mockResolvedValue(undefined) }));
 
 const LANGUAGE_KEY = 'almamesh-language';
 const LLM_SETTINGS_KEY = 'almamesh-llm-settings';
 const INTERPRETATIONS_KEY = 'almamesh-interpretations';
+
+function deferred(): { promise: Promise<void>; resolve: () => void } {
+  let resolve!: () => void;
+  const promise = new Promise<void>((done) => {
+    resolve = done;
+  });
+  return { promise, resolve };
+}
 
 /** A minimal synthetic chart — only the fields the library store reads. */
 function makeChart(chartId: string): StoredChart {
@@ -65,6 +78,10 @@ function seedEverything(): { profileId: string; chartId: string } {
     .getState()
     .setInterpretation(chartId, makeInterpretation(), '2026-06-29T00:00:00.000Z');
   useMeshStore.setState({ edges: { [`${profileId}|other`]: { status: 'idle' } } });
+  useRectificationRecordsStore.setState({
+    recordsByProfile: { [profileId]: { profileId } },
+  } as never);
+  usePredictiveStore.setState({ status: 'ready', profileKey: profileId, requestKey: 'ready' });
   return { profileId, chartId };
 }
 
@@ -78,6 +95,9 @@ beforeEach(() => {
   useChatStore.setState({ threads: {}, messages: {} });
   useInterpretationStore.setState({ byChart: {} });
   useMeshStore.setState({ edges: {} });
+  useRectificationRecordsStore.setState({ recordsByProfile: {} });
+  usePredictiveStore.getState().reset();
+  vi.mocked(clearMemory).mockClear();
 });
 
 describe('store clearAll actions', () => {
@@ -135,13 +155,112 @@ describe('store clearAll actions', () => {
 });
 
 describe('resetEverything', () => {
+  it('publishes reset only after its fenced empty generation is durable', async () => {
+    seedEverything();
+    const events: string[] = [];
+    vi.mocked(clearMemory).mockImplementationOnce(async () => {
+      events.push('clear-memory');
+    });
+    const beginDatasetReset = vi.fn(async () => {
+      events.push('begin');
+      return 9;
+    });
+    const clearPersisted = vi.fn(async () => {
+      events.push('clear-persisted');
+    });
+    const finalizeDatasetReset = vi.fn(async () => {
+      events.push('finalize');
+    });
+    const publishDatasetReset = vi.fn(() => {
+      events.push('publish');
+    });
+
+    await resetEverything({
+      waitForHydration: () => Promise.resolve(),
+      beginDatasetReset,
+      clearPersisted,
+      finalizeDatasetReset,
+      publishDatasetReset,
+    });
+
+    expect(finalizeDatasetReset).toHaveBeenCalledWith(9);
+    expect(publishDatasetReset).toHaveBeenNthCalledWith(1, {
+      kind: 'dataset',
+      operation: 'reset',
+      phase: 'begin',
+    });
+    expect(publishDatasetReset).toHaveBeenNthCalledWith(2, {
+      kind: 'dataset',
+      operation: 'reset',
+      phase: 'complete',
+    });
+    expect(events).toEqual([
+      'begin',
+      'publish',
+      'clear-memory',
+      'clear-persisted',
+      'finalize',
+      'publish',
+    ]);
+  });
+
+  it('waits for every persisted store hydration barrier before deleting anything', async () => {
+    const hydration = deferred();
+    const waitForHydration = vi.fn(() => hydration.promise);
+
+    const pending = resetEverything({
+      waitForHydration,
+      clearPersisted: () => Promise.resolve(),
+    });
+    await Promise.resolve();
+
+    expect(waitForHydration).toHaveBeenCalledTimes(1);
+    expect(clearMemory).not.toHaveBeenCalled();
+
+    hydration.resolve();
+    await pending;
+    expect(clearMemory).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not resolve until every durable persistence deletion finishes', async () => {
+    const deletion = deferred();
+    const clearPersisted = vi.fn(() => deletion.promise);
+    let settled = false;
+
+    const pending = resetEverything({
+      waitForHydration: () => Promise.resolve(),
+      beginDatasetReset: () => Promise.resolve(1),
+      finalizeDatasetReset: () => Promise.resolve(),
+      clearPersisted,
+    }).then(() => {
+      settled = true;
+    });
+    await vi.waitFor(() => expect(clearPersisted).toHaveBeenCalledTimes(1));
+    expect(settled).toBe(false);
+
+    deletion.resolve();
+    await pending;
+    expect(settled).toBe(true);
+  });
+
+  it('rejects when durable persistence deletion fails', async () => {
+    const failure = new Error('IndexedDB deletion blocked');
+
+    await expect(
+      resetEverything({
+        waitForHydration: () => Promise.resolve(),
+        clearPersisted: () => Promise.reject(failure),
+      }),
+    ).rejects.toBe(failure);
+  });
+
   it('clears every owned store and the chart flag, preserving device prefs', async () => {
     localStorage.setItem(LANGUAGE_KEY, JSON.stringify({ state: { language: 'es' }, version: 0 }));
     localStorage.setItem(LLM_SETTINGS_KEY, JSON.stringify({ endpoint: 'https://example' }));
     const { profileId, chartId } = seedEverything();
 
     expect(localStorage.getItem(CHART_LIBRARY_FLAG_KEY)).toBe('1');
-    expect(localStorage.getItem(INTERPRETATIONS_KEY)).not.toBeNull();
+    expect(useInterpretationStore.getState().getEntry(chartId)).toBeDefined();
 
     await resetEverything();
 
@@ -152,6 +271,10 @@ describe('resetEverything', () => {
     expect(useChatStore.getState().threads).toEqual({});
     expect(useInterpretationStore.getState().getEntry(chartId)).toBeUndefined();
     expect(useMeshStore.getState().edges).toEqual({});
+    expect(useRectificationRecordsStore.getState().recordsByProfile).toEqual({});
+    expect(usePredictiveStore.getState().status).toBe('idle');
+    expect(usePredictiveStore.getState().profileKey).toBeUndefined();
+    expect(clearMemory).toHaveBeenCalledTimes(1);
     expect(localStorage.getItem(CHART_LIBRARY_FLAG_KEY)).toBeNull();
     expect(localStorage.getItem(INTERPRETATIONS_KEY)).toBeNull();
 

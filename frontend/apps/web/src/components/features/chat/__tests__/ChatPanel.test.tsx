@@ -31,6 +31,9 @@ describe('ChatPanel — typing indicator vs streamed text', () => {
     __setMemoryForTest({
       indexMessage: vi.fn().mockResolvedValue(undefined),
       retrieve: vi.fn().mockResolvedValue([]),
+      deleteForProfile: vi.fn().mockResolvedValue(undefined),
+      deleteForThread: vi.fn().mockResolvedValue(undefined),
+      clear: vi.fn().mockResolvedValue(undefined),
     });
   });
 
@@ -151,6 +154,9 @@ describe('ChatPanel — no-AI-configured gate (never invite a doomed question)',
     __setMemoryForTest({
       indexMessage: vi.fn().mockResolvedValue(undefined),
       retrieve: vi.fn().mockResolvedValue([]),
+      deleteForProfile: vi.fn().mockResolvedValue(undefined),
+      deleteForThread: vi.fn().mockResolvedValue(undefined),
+      clear: vi.fn().mockResolvedValue(undefined),
     });
   });
 

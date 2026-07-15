@@ -17,6 +17,7 @@
 
 import { get as idbGet, set as idbSet, del as idbDel } from 'idb-keyval';
 import type { BackupEnvelopePlain, BackupStoreSnapshot, BackupStores } from '@almamesh/shared-types';
+import { commitDatasetGeneration } from './deletionTombstones';
 
 /** The two persistence tiers a backup spans: `localStorage` and idb-keyval. */
 export type BackupTier = 'local' | 'idb';
@@ -42,7 +43,7 @@ export const BACKUP_STORES: ReadonlyArray<{ key: string; tier: BackupTier }> = [
   { key: 'almamesh-life-events', tier: 'idb' },
   { key: 'almamesh-rectification-records', tier: 'idb' },
   { key: 'almamesh-chat-history', tier: 'idb' },
-  { key: 'almamesh-interpretations', tier: 'local' },
+  { key: 'almamesh-interpretations', tier: 'idb' },
   { key: 'almamesh-language', tier: 'local' },
 ];
 
@@ -51,6 +52,9 @@ export const CHART_FLAG_KEY = 'almamesh-chart';
 
 /** idb-keyval RAG-embeddings key — deleted on import so vectors rebuild from chat. */
 export const CHAT_VECTORS_KEY = 'almamesh-chat-vectors';
+
+/** idb-keyval predictive cache — deleted on import so forecasts rebuild from restored charts. */
+export const PREDICTIVE_CACHE_KEY = 'almamesh-predictive';
 
 /** A typed, code-tagged failure so the UI can message the exact refusal reason. */
 export class BackupError extends Error {
@@ -71,6 +75,8 @@ export interface BackupDeps {
   tiers: Record<BackupTier, StorageTier>;
   appVersion: string;
   now: string;
+  /** Generation assigned by the cross-realm Replace coordinator. */
+  datasetEpoch?: number;
 }
 
 /** Parse one persisted `{ state, version }` blob, rejecting anything malformed. */
@@ -131,9 +137,9 @@ interface StagedWrite {
  * This is a TRUE "Replace all": a known store the envelope OMITS is DELETED, so
  * no stale local data survives an import of a sparse backup. Unknown store keys
  * are ignored (forward-compatible). After the writes it sets the chart route-guard
- * flag iff charts came back (else clears it) and deletes the stale RAG vectors so
- * they rebuild from restored chat history. Zustand `persist` + each store's
- * `migrate` run on the next app load.
+ * flag iff charts came back (else clears it) and deletes derived RAG/predictive
+ * caches so they rebuild from the restored source data. Zustand `persist` + each
+ * store's `migrate` run on the next app load.
  */
 export async function applyBackup(envelope: BackupEnvelopePlain, deps: BackupDeps): Promise<void> {
   if (envelope.format !== 'almamesh-backup') {
@@ -160,7 +166,13 @@ export async function applyBackup(envelope: BackupEnvelopePlain, deps: BackupDep
     staged.push({
       key,
       tier,
-      serialized: JSON.stringify({ state: snapshot.state, version: snapshot.version }),
+      serialized: JSON.stringify({
+        state: snapshot.state,
+        version: snapshot.version,
+        ...(deps.datasetEpoch !== undefined && tier === 'idb'
+          ? { datasetEpoch: deps.datasetEpoch }
+          : {}),
+      }),
     });
     if (key === 'almamesh-chart-library') chartLibraryPresent = true;
   }
@@ -180,7 +192,49 @@ export async function applyBackup(envelope: BackupEnvelopePlain, deps: BackupDep
   // Post-write housekeeping: the route-guard flag tracks charts-present.
   if (chartLibraryPresent) await deps.tiers.local.set(CHART_FLAG_KEY, '1');
   else await deps.tiers.local.del(CHART_FLAG_KEY);
-  await deps.tiers.idb.del(CHAT_VECTORS_KEY);
+  await Promise.all([
+    deps.tiers.idb.del(CHAT_VECTORS_KEY),
+    deps.tiers.idb.del(PREDICTIVE_CACHE_KEY),
+  ]);
+}
+
+/** Production Replace: commit every personal store and generation pointer atomically in IDB. */
+export async function applyBrowserBackupAtomically(
+  envelope: BackupEnvelopePlain,
+  deps: BackupDeps,
+  epoch: number,
+): Promise<void> {
+  if (envelope.format !== 'almamesh-backup' || envelope.formatVersion !== 1) {
+    await applyBackup(envelope, deps);
+    return;
+  }
+  const personalStores = BACKUP_STORES.filter((entry) => entry.tier === 'idb');
+  const writes = personalStores.map((entry) => {
+    const snapshot = envelope.stores[entry.key];
+    return {
+      key: entry.key,
+      value:
+        snapshot === undefined
+          ? null
+          : JSON.stringify({ state: snapshot.state, version: snapshot.version }),
+    };
+  });
+  await commitDatasetGeneration(epoch, writes, [CHAT_VECTORS_KEY, PREDICTIVE_CACHE_KEY], {
+    memoryRebuildPending: true,
+  });
+
+  const language = envelope.stores['almamesh-language'];
+  if (language === undefined) {
+    await deps.tiers.local.del('almamesh-language');
+  } else {
+    await deps.tiers.local.set(
+      'almamesh-language',
+      JSON.stringify({ state: language.state, version: language.version }),
+    );
+  }
+  const hasCharts = envelope.stores['almamesh-chart-library'] !== undefined;
+  if (hasCharts) await deps.tiers.local.set(CHART_FLAG_KEY, '1');
+  else await deps.tiers.local.del(CHART_FLAG_KEY);
 }
 
 /**

@@ -1,14 +1,14 @@
 /**
  * Interpretation store — the on-device, local-first home for the structured
  * `VedicInterpretation` the app generates client-side, keyed by `chartId` and
- * persisted to localStorage so a generated reading survives reloads.
+ * persisted to IndexedDB so a generated reading survives reloads and joins the
+ * same crash-atomic personal-data Replace transaction as every other store.
  *
  * No backend, no streaming SSE: unlike the predecessor (which tracked a server
  * stream token-by-token), the WHOLE `VedicInterpretation` is produced in the
  * browser, so this store holds the finished object plus coarse per-section
- * progress for the dashboard to render. Persistence is localStorage (small,
- * synchronous) under a single key, mirroring the naming of the other slices
- * (`almamesh-chart-library`, `almamesh-profiles`).
+ * progress for the dashboard to render. Persistence uses the shared personal-
+ * data IndexedDB transaction under one key, alongside the chart/profile stores.
  *
  * Callers pass `updatedAt` (an ISO string) explicitly — the store never calls
  * `Date.now()`/`new Date()` itself, keeping it deterministic and easy to test.
@@ -19,6 +19,7 @@ import { createJSONStorage, persist, type StateStorage } from 'zustand/middlewar
 
 import type { ReadingProvenance } from '@almamesh/llm';
 import type { VedicInterpretation } from '@almamesh/shared-types';
+import { deletionAwareIdbStorage } from './deletionTombstones';
 
 /** Lifecycle of a chart's interpretation generation. */
 export type InterpretationStatus = 'idle' | 'generating' | 'complete' | 'error';
@@ -66,7 +67,12 @@ export interface ChartInterpretationEntry {
   readonly provenance?: ReadingProvenance;
   /** Exact predictive input used for this reading, or explicit natal-only. */
   readonly inputProvenance?: InterpretationInputProvenance;
+  /** Owning profile, retained across chart regeneration for complete deletion. */
+  readonly profileId?: string;
 }
+
+/** Ephemeral identity for one generation attempt; never persisted. */
+export type InterpretationRunToken = number;
 
 export interface InterpretationStore {
   /** All interpretation entries, keyed by `chartId`. */
@@ -78,11 +84,19 @@ export interface InterpretationStore {
    * entry — keep-old-until-success — so a regeneration never destroys the
    * reading on screen; only a successful `setInterpretation` replaces it.
    */
-  startInterpretation: (chartId: string) => void;
+  startInterpretation: (chartId: string, profileId?: string) => InterpretationRunToken;
   /** Record that one named section finished (progressive progress). */
-  markSectionComplete: (chartId: string, section: string) => void;
+  markSectionComplete: (
+    chartId: string,
+    section: string,
+    runToken?: InterpretationRunToken,
+  ) => void;
   /** Record that one named section FAILED (degraded to empty; run continues). */
-  markSectionFailed: (chartId: string, section: string) => void;
+  markSectionFailed: (
+    chartId: string,
+    section: string,
+    runToken?: InterpretationRunToken,
+  ) => void;
   /**
    * Store the finished reading: status -> 'complete'. `provenance` is the
    * identity of the config that produced it; omitting it (legacy callers)
@@ -96,19 +110,24 @@ export interface InterpretationStore {
     updatedAt: string,
     provenance?: ReadingProvenance,
     inputProvenance?: InterpretationInputProvenance,
-  ) => void;
+    runToken?: InterpretationRunToken,
+  ) => Promise<void>;
   /** Record a failure: status -> 'error'. */
-  setError: (chartId: string, error: string) => void;
+  setError: (chartId: string, error: string, runToken?: InterpretationRunToken) => void;
   /** Read one chart's entry, or `undefined` if none exists. */
   getEntry: (chartId: string) => ChartInterpretationEntry | undefined;
   /** Drop one chart's entry entirely. */
   reset: (chartId: string) => void;
+  /** Drop current and historical chart entries owned by one profile. */
+  deleteForProfile: (profileId: string, currentChartIds: readonly string[]) => void;
+  /** Attribute legacy entries only when current chart/thread ownership is unambiguous. */
+  backfillProfileOwnership: (ownersByChart: Readonly<Record<string, string>>) => void;
   /** Drop every chart's entry — the "start fresh" reset. */
   clearAll: () => void;
 }
 
-/** A single localStorage key holding every interpretation, persisted by zustand. */
-const PERSIST_NAME = 'almamesh-interpretations';
+/** A single IndexedDB key holding every interpretation, persisted by zustand. */
+export const INTERPRETATION_PERSIST_NAME = 'almamesh-interpretations';
 
 /**
  * Bump when the persisted shape changes; always pair with `migrate`.
@@ -123,8 +142,11 @@ const PERSIST_NAME = 'almamesh-interpretations';
  * predictive request from explicit natal-only generation. Existing entries
  * remain unknown so consumers can fail closed instead of reusing possibly
  * stale predictive prose.
+ * v5: entries may carry `profileId` ownership. Legacy ownerless readings are
+ * preserved; deletion removes them only when chart/thread ownership proves
+ * they belong to the deleted profile.
  */
-export const INTERPRETATION_PERSIST_VERSION = 4;
+export const INTERPRETATION_PERSIST_VERSION = 5;
 
 /** The slice of the store that `partialize` actually persists. */
 export interface PersistedInterpretationState {
@@ -223,30 +245,37 @@ function normalizeEntrySummary(entry: unknown): ChartInterpretationEntry {
   };
 }
 
-/** True only where localStorage exists (real browsers), not in SSR/unit tests. */
-function hasLocalStorage(): boolean {
-  return typeof localStorage !== 'undefined';
-}
-
 /**
  * zustand `StateStorage` backed by localStorage. Outside a browser (SSR, unit
  * tests) localStorage is absent, so every op is a benign no-op and the store
  * simply runs in-memory — persistence is a browser-only enhancement, not a
  * correctness requirement (mirrors the IndexedDB pattern in the other slices).
  */
-const localStorageBackend: StateStorage = {
-  getItem: (name) => (hasLocalStorage() ? localStorage.getItem(name) : null),
-  setItem: (name, value) => {
-    if (hasLocalStorage()) {
-      localStorage.setItem(name, value);
-    }
+const interpretationStorage: StateStorage = {
+  getItem: async (name) => {
+    const durable = await deletionAwareIdbStorage.getItem(name);
+    if (durable !== null) return durable;
+    const storage = (globalThis as { localStorage?: Partial<Storage> }).localStorage;
+    const legacy = typeof storage?.getItem === 'function' ? storage.getItem(name) : null;
+    if (legacy === null) return null;
+    await deletionAwareIdbStorage.setItem(name, legacy);
+    if (typeof storage?.removeItem === 'function') storage.removeItem(name);
+    return deletionAwareIdbStorage.getItem(name);
   },
-  removeItem: (name) => {
-    if (hasLocalStorage()) {
-      localStorage.removeItem(name);
-    }
+  setItem: (name, value) => deletionAwareIdbStorage.setItem(name, value),
+  removeItem: async (name) => {
+    await deletionAwareIdbStorage.removeItem(name);
+    const storage = (globalThis as { localStorage?: Partial<Storage> }).localStorage;
+    if (typeof storage?.removeItem === 'function') storage.removeItem(name);
   },
 };
+
+async function persistInterpretationSnapshot(state: InterpretationStore): Promise<void> {
+  await useInterpretationStore.persist.getOptions().storage?.setItem(
+    INTERPRETATION_PERSIST_NAME,
+    { state: { byChart: state.byChart }, version: INTERPRETATION_PERSIST_VERSION },
+  );
+}
 
 /** The entry a chart starts from before any section has completed. */
 const EMPTY_ENTRY: ChartInterpretationEntry = { status: 'idle', sections: {} };
@@ -268,105 +297,175 @@ function withEntry(
   return { ...byChart, [chartId]: entry };
 }
 
-export const interpretationStoreCreator: StateCreator<InterpretationStore> = (set, get) => ({
-  byChart: {},
+export const interpretationStoreCreator: StateCreator<InterpretationStore> = (set, get) => {
+  const activeRuns = new Map<string, InterpretationRunToken>();
+  let nextRunToken = 0;
 
-  startInterpretation: (chartId) => {
-    set((state) => {
-      const current = entryOf(state.byChart, chartId);
-      // Keep-old-until-success: progress, error and failed sections reset, but
-      // a previously completed reading (with its provenance + timestamp) stays
-      // on the entry so the UI keeps showing it while — and after, if — the
-      // new run fails. A brand-new chart starts from the empty entry as before.
-      const kept =
-        current.interpretation !== undefined
-          ? {
-              interpretation: current.interpretation,
-              ...(current.provenance !== undefined ? { provenance: current.provenance } : {}),
-              ...(current.inputProvenance !== undefined
-                ? { inputProvenance: current.inputProvenance }
-                : {}),
-              ...(current.updatedAt !== undefined ? { updatedAt: current.updatedAt } : {}),
-            }
-          : {};
-      return {
-        byChart: withEntry(state.byChart, chartId, {
-          status: 'generating',
-          sections: {},
-          ...kept,
-        }),
-      };
-    });
-  },
+  const acceptsRun = (chartId: string, runToken?: InterpretationRunToken): boolean =>
+    runToken === undefined || activeRuns.get(chartId) === runToken;
 
-  markSectionComplete: (chartId, section) => {
-    set((state) => {
-      const current = entryOf(state.byChart, chartId);
-      const sections = { ...current.sections, [section]: true };
-      return { byChart: withEntry(state.byChart, chartId, { ...current, sections }) };
-    });
-  },
+  return {
+    byChart: {},
 
-  markSectionFailed: (chartId, section) => {
-    set((state) => {
-      const current = entryOf(state.byChart, chartId);
-      const failedSections = { ...current.failedSections, [section]: true };
-      return { byChart: withEntry(state.byChart, chartId, { ...current, failedSections }) };
-    });
-  },
+    startInterpretation: (chartId, profileId) => {
+      nextRunToken += 1;
+      const runToken = nextRunToken;
+      activeRuns.set(chartId, runToken);
+      set((state) => {
+        const current = entryOf(state.byChart, chartId);
+        // Keep-old-until-success: progress, error and failed sections reset, but
+        // a previously completed reading (with its provenance + timestamp) stays
+        // on the entry so the UI keeps showing it while — and after, if — the
+        // new run fails. A brand-new chart starts from the empty entry as before.
+        const kept =
+          current.interpretation !== undefined
+            ? {
+                interpretation: current.interpretation,
+                ...(current.provenance !== undefined ? { provenance: current.provenance } : {}),
+                ...(current.inputProvenance !== undefined
+                  ? { inputProvenance: current.inputProvenance }
+                  : {}),
+                ...(current.updatedAt !== undefined ? { updatedAt: current.updatedAt } : {}),
+              }
+            : {};
+        const owner = profileId ?? current.profileId;
+        return {
+          byChart: withEntry(state.byChart, chartId, {
+            status: 'generating',
+            sections: {},
+            ...kept,
+            ...(owner !== undefined ? { profileId: owner } : {}),
+          }),
+        };
+      });
+      return runToken;
+    },
 
-  setInterpretation: (chartId, interpretation, updatedAt, provenance, inputProvenance) => {
-    set((state) => {
-      const current = entryOf(state.byChart, chartId);
-      // `provenance` always overwrites (including with undefined): the stored
-      // fingerprint must describe THIS reading, never a stale predecessor's.
-      const entry: ChartInterpretationEntry = {
-        ...current,
-        status: 'complete',
-        interpretation,
-        error: undefined,
-        updatedAt,
-        provenance,
-        inputProvenance,
-      };
-      return { byChart: withEntry(state.byChart, chartId, entry) };
-    });
-  },
+    markSectionComplete: (chartId, section, runToken) => {
+      set((state) => {
+        if (!acceptsRun(chartId, runToken)) {
+          return state;
+        }
+        const current = entryOf(state.byChart, chartId);
+        const sections = { ...current.sections, [section]: true };
+        return { byChart: withEntry(state.byChart, chartId, { ...current, sections }) };
+      });
+    },
 
-  setError: (chartId, error) => {
-    set((state) => {
-      const current = entryOf(state.byChart, chartId);
-      return {
-        byChart: withEntry(state.byChart, chartId, { ...current, status: 'error', error }),
-      };
-    });
-  },
+    markSectionFailed: (chartId, section, runToken) => {
+      set((state) => {
+        if (!acceptsRun(chartId, runToken)) {
+          return state;
+        }
+        const current = entryOf(state.byChart, chartId);
+        const failedSections = { ...current.failedSections, [section]: true };
+        return { byChart: withEntry(state.byChart, chartId, { ...current, failedSections }) };
+      });
+    },
 
-  getEntry: (chartId) => get().byChart[chartId],
+    setInterpretation: async (
+      chartId,
+      interpretation,
+      updatedAt,
+      provenance,
+      inputProvenance,
+      runToken,
+    ) => {
+      set((state) => {
+        if (!acceptsRun(chartId, runToken)) {
+          return state;
+        }
+        const current = entryOf(state.byChart, chartId);
+        // `provenance` always overwrites (including with undefined): the stored
+        // fingerprint must describe THIS reading, never a stale predecessor's.
+        const entry: ChartInterpretationEntry = {
+          ...current,
+          status: 'complete',
+          interpretation,
+          error: undefined,
+          updatedAt,
+          provenance,
+          inputProvenance,
+        };
+        return { byChart: withEntry(state.byChart, chartId, entry) };
+      });
+      await persistInterpretationSnapshot(get());
+    },
 
-  reset: (chartId) => {
-    set((state) => {
-      const byChart = { ...state.byChart };
-      delete byChart[chartId];
-      return { byChart };
-    });
-  },
+    setError: (chartId, error, runToken) => {
+      set((state) => {
+        if (!acceptsRun(chartId, runToken)) {
+          return state;
+        }
+        const current = entryOf(state.byChart, chartId);
+        return {
+          byChart: withEntry(state.byChart, chartId, { ...current, status: 'error', error }),
+        };
+      });
+    },
 
-  clearAll: () => {
-    set({ byChart: {} });
-  },
-});
+    getEntry: (chartId) => get().byChart[chartId],
+
+    reset: (chartId) => {
+      activeRuns.delete(chartId);
+      set((state) => {
+        const byChart = { ...state.byChart };
+        delete byChart[chartId];
+        return { byChart };
+      });
+    },
+
+    deleteForProfile: (profileId, currentChartIds) => {
+      const targetIds = new Set(currentChartIds);
+      set((state) => {
+        const byChart: Record<string, ChartInterpretationEntry> = {};
+        for (const [chartId, entry] of Object.entries(state.byChart)) {
+          if (targetIds.has(chartId) || entry.profileId === profileId) {
+            activeRuns.delete(chartId);
+          } else {
+            byChart[chartId] = entry;
+          }
+        }
+        for (const chartId of targetIds) {
+          activeRuns.delete(chartId);
+        }
+        return { byChart };
+      });
+    },
+
+    backfillProfileOwnership: (ownersByChart) => {
+      set((state) => ({
+        byChart: Object.fromEntries(
+          Object.entries(state.byChart).map(([chartId, entry]) => {
+            const owner = ownersByChart[chartId];
+            return [
+              chartId,
+              entry.profileId === undefined && owner !== undefined
+                ? { ...entry, profileId: owner }
+                : entry,
+            ];
+          }),
+        ),
+      }));
+    },
+
+    clearAll: () => {
+      activeRuns.clear();
+      set({ byChart: {} });
+    },
+  };
+};
 
 /**
- * Interpretation store, persisted to localStorage under `almamesh-interpretations`.
+ * Interpretation store, persisted to IndexedDB under `almamesh-interpretations`.
  */
 export const useInterpretationStore = create<InterpretationStore>()(
   persist<InterpretationStore, [], [], PersistedInterpretationState>(interpretationStoreCreator, {
-    name: PERSIST_NAME,
+    name: INTERPRETATION_PERSIST_NAME,
     version: INTERPRETATION_PERSIST_VERSION,
     migrate: migrateInterpretationPersistedState,
     merge: mergeInterpretationPersistedState,
-    storage: createJSONStorage(() => localStorageBackend),
+    storage: createJSONStorage(() => interpretationStorage),
     partialize: (state) => ({ byChart: state.byChart }),
   }),
 );

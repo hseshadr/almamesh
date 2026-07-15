@@ -90,21 +90,22 @@ const languageStoreCreator: StateCreator<LanguageStore> = (set) => ({
   setLanguage: (language) => set({ language }),
 });
 
-function hasLocalStorage(): boolean {
-  return typeof localStorage !== 'undefined';
-}
-
 /** localStorage-backed zustand storage; benign no-op outside browsers (SSR/tests). */
 const localStorageBackend: StateStorage = {
-  getItem: (name) => (hasLocalStorage() ? localStorage.getItem(name) : null),
+  getItem: (name) => {
+    const storage = (globalThis as { localStorage?: Partial<Storage> }).localStorage;
+    return typeof storage?.getItem === 'function' ? storage.getItem(name) : null;
+  },
   setItem: (name, value) => {
-    if (hasLocalStorage()) {
-      localStorage.setItem(name, value);
+    const storage = (globalThis as { localStorage?: Partial<Storage> }).localStorage;
+    if (typeof storage?.setItem === 'function') {
+      storage.setItem(name, value);
     }
   },
   removeItem: (name) => {
-    if (hasLocalStorage()) {
-      localStorage.removeItem(name);
+    const storage = (globalThis as { localStorage?: Partial<Storage> }).localStorage;
+    if (typeof storage?.removeItem === 'function') {
+      storage.removeItem(name);
     }
   },
 };

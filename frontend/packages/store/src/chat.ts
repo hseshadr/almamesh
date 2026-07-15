@@ -13,10 +13,10 @@
  */
 
 import { create, type StateCreator } from 'zustand';
-import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware';
-import { get as idbGet, set as idbSet, del as idbDel } from 'idb-keyval';
+import { createJSONStorage, persist } from 'zustand/middleware';
 
 import type { ChatMessage, ChatThread } from '@almamesh/shared-types';
+import { deletionAwareIdbStorage } from './deletionTombstones';
 
 type ChatRole = ChatMessage['role'];
 
@@ -94,25 +94,6 @@ function nextId(prefix: string): string {
   return `${prefix}-${Date.now()}-${idFallbackCounter}`;
 }
 
-function hasIndexedDb(): boolean {
-  return typeof indexedDB !== 'undefined';
-}
-
-/** IndexedDB-backed zustand storage; benign no-op outside browsers (SSR/tests). */
-const idbStorage: StateStorage = {
-  getItem: async (name) => (hasIndexedDb() ? ((await idbGet<string>(name)) ?? null) : null),
-  setItem: async (name, value) => {
-    if (hasIndexedDb()) {
-      await idbSet(name, value);
-    }
-  },
-  removeItem: async (name) => {
-    if (hasIndexedDb()) {
-      await idbDel(name);
-    }
-  },
-};
-
 export interface ChatStore {
   /** All threads, keyed by thread id. */
   readonly threads: Readonly<Record<string, ChatThread>>;
@@ -143,6 +124,8 @@ export interface ChatStore {
   getActiveThread: (profileId: string) => ChatThread | null;
   renameThread: (threadId: string, title: string) => void;
   deleteThread: (threadId: string) => void;
+  /** Remove every thread and message owned by one profile. */
+  deleteThreadsForProfile: (profileId: string) => void;
   /** Assign all profile-less (orphan) threads to a profile — idempotent migration. */
   assignOrphanThreadsToProfile: (profileId: string) => number;
   /** Wipe all threads and messages — the "start fresh" reset. */
@@ -193,6 +176,9 @@ export const chatStoreCreator: StateCreator<ChatStore> = (set, get) => ({
   },
 
   appendMessage: (threadId, role, content, options) => {
+    if (!get().threads[threadId]) {
+      throw new Error(`Cannot append message: thread ${threadId} does not exist.`);
+    }
     const now = new Date().toISOString();
     const message: ChatMessage = {
       id: nextId('msg'),
@@ -204,11 +190,11 @@ export const chatStoreCreator: StateCreator<ChatStore> = (set, get) => ({
     };
     set((state) => {
       const thread = state.threads[threadId];
+      if (!thread) {
+        return state;
+      }
       const list = state.messages[threadId] ?? [];
       const nextMessages = { ...state.messages, [threadId]: [...list, message] };
-      if (!thread) {
-        return { messages: nextMessages };
-      }
       const nextThread: ChatThread = {
         ...thread,
         title: deriveTitle(thread, role, content),
@@ -250,6 +236,24 @@ export const chatStoreCreator: StateCreator<ChatStore> = (set, get) => ({
     });
   },
 
+  deleteThreadsForProfile: (profileId) => {
+    set((state) => {
+      const targetIds = new Set(
+        Object.values(state.threads)
+          .filter((thread) => thread.profile_id === profileId)
+          .map((thread) => thread.id),
+      );
+      return {
+        threads: Object.fromEntries(
+          Object.entries(state.threads).filter(([threadId]) => !targetIds.has(threadId)),
+        ),
+        messages: Object.fromEntries(
+          Object.entries(state.messages).filter(([threadId]) => !targetIds.has(threadId)),
+        ),
+      };
+    });
+  },
+
   assignOrphanThreadsToProfile: (profileId) => {
     let claimed = 0;
     set((state) => {
@@ -277,7 +281,7 @@ export const useChatStore = create<ChatStore>()(
     name: PERSIST_NAME,
     version: CHAT_PERSIST_VERSION,
     migrate: migrateChatPersistedState,
-    storage: createJSONStorage(() => idbStorage),
+    storage: createJSONStorage(() => deletionAwareIdbStorage),
     partialize: (state) => ({ threads: state.threads, messages: state.messages }),
     onRehydrateStorage: () => () => {
       useChatStore.setState({ hydrated: true });

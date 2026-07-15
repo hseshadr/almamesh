@@ -16,19 +16,51 @@
 
 import {
   createMemory,
+  createVectorStore,
   createWorkerEmbedder,
   type ChatMemory,
   type IndexableMessage,
   type RetrievedChunk,
+  type VectorStore,
 } from '@almamesh/memory';
 
 /** The slice of `ChatMemory` the UI depends on — keeps tests honest + injectable. */
-export type ChatMemoryFacade = Pick<ChatMemory, 'indexMessage' | 'retrieve'>;
+export type ChatMemoryFacade = Pick<
+  ChatMemory,
+  'indexMessage' | 'retrieve' | 'deleteForProfile' | 'deleteForThread' | 'clear'
+>;
 
 /** Default top-k for the discoverable search box (a few more than RAG uses). */
 const SEARCH_K = 8;
 
 let singleton: ChatMemoryFacade | null = null;
+
+function datasetGeneration(): string {
+  return globalThis.localStorage?.getItem('almamesh-restore-epoch') ?? '0';
+}
+
+function acceptsVectorGeneration(ledger: unknown, generation: string | number): boolean {
+  const value = ledger as {
+    activeEpoch?: unknown;
+    restoreEpoch?: unknown;
+    restoreInProgress?: unknown;
+  } | null;
+  const active = typeof value?.activeEpoch === 'number' ? value.activeEpoch : 0;
+  const fence = typeof value?.restoreEpoch === 'number' ? value.restoreEpoch : 0;
+  return value?.restoreInProgress !== true && active === Number(generation) && fence === active;
+}
+
+function createGenerationAwareVectorStore(): VectorStore {
+  return createVectorStore({
+    generation: datasetGeneration,
+    ledgerGuard: {
+      key: 'almamesh-deletion-tombstones',
+      accepts: acceptsVectorGeneration,
+    },
+  });
+}
+
+let vectorStore: VectorStore = createGenerationAwareVectorStore();
 
 /**
  * Resolve the process-wide memory singleton, booting the embedder worker on
@@ -39,7 +71,11 @@ function getMemory(): ChatMemoryFacade {
     // Boot the shared @almamesh/memory worker embedder: it enables local,
     // same-origin model loading (`env.allowLocalModels = true`) and forces
     // single-threaded ORT for non-cross-origin-isolated hosts.
-    singleton = createMemory({ embedder: createWorkerEmbedder() });
+    singleton = createMemory({
+      embedder: createWorkerEmbedder(),
+      store: vectorStore,
+      generation: datasetGeneration,
+    });
   }
   return singleton;
 }
@@ -52,6 +88,39 @@ export function __setMemoryForTest(fake: ChatMemoryFacade): void {
 /** TEST SEAM: drop the singleton so the next call re-boots a fresh instance. */
 export function __resetMemoryForTest(): void {
   singleton = null;
+  vectorStore = createGenerationAwareVectorStore();
+}
+
+/** Drop stale in-memory vector caches without deleting the active generation. */
+export function invalidateMemoryRuntime(): void {
+  singleton = null;
+  vectorStore = createGenerationAwareVectorStore();
+}
+
+/** Delete every persisted semantic-memory record owned by one profile. */
+export async function deleteMemoryForProfile(profileId: string): Promise<void> {
+  await getMemory().deleteForProfile(profileId);
+}
+
+/** Delete every persisted semantic-memory record owned by one chat thread. */
+export async function deleteMemoryForThread(threadId: string): Promise<void> {
+  await getMemory().deleteForThread(threadId);
+}
+
+/** Delete the entire persisted semantic-memory index. */
+export async function clearMemory(): Promise<void> {
+  await getMemory().clear();
+}
+
+/** Replace stale vectors with a complete index of restored chat messages. */
+export async function rebuildMemory(messages: readonly IndexableMessage[]): Promise<void> {
+  const memory = getMemory();
+  await memory.clear();
+  for (const message of messages) {
+    if (message.content.trim().length > 0) {
+      await memory.indexMessage(message);
+    }
+  }
 }
 
 /**

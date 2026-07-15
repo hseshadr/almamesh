@@ -16,8 +16,8 @@
 
 import type { EventDatePrecision, LifeEventCategory } from '@almamesh/shared-types';
 import { create, type StateCreator } from 'zustand';
-import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware';
-import { get as idbGet, set as idbSet, del as idbDel } from 'idb-keyval';
+import { createJSONStorage, persist } from 'zustand/middleware';
+import { deletionAwareIdbStorage } from './deletionTombstones';
 
 /** A persisted life-event note belonging to one profile. */
 export interface LifeEvent {
@@ -185,26 +185,6 @@ export function migrateLifeEventsPersistedState(
   return { eventsByProfile: migrated };
 }
 
-/** True only where IndexedDB exists (real browsers / workers), not in SSR/tests. */
-function hasIndexedDb(): boolean {
-  return typeof indexedDB !== 'undefined';
-}
-
-/** IndexedDB-backed zustand storage; benign no-op outside browsers (SSR/tests). */
-const idbStorage: StateStorage = {
-  getItem: async (name) => (hasIndexedDb() ? ((await idbGet<string>(name)) ?? null) : null),
-  setItem: async (name, value) => {
-    if (hasIndexedDb()) {
-      await idbSet(name, value);
-    }
-  },
-  removeItem: async (name) => {
-    if (hasIndexedDb()) {
-      await idbDel(name);
-    }
-  },
-};
-
 /** Generate an event id (uuid where available, deterministic counter fallback). */
 let idFallbackCounter = 0;
 function nextEventId(): string {
@@ -358,7 +338,7 @@ export const useLifeEventsStore = create<LifeEventsStore>()(
     name: PERSIST_NAME,
     version: LIFE_EVENTS_PERSIST_VERSION,
     migrate: migrateLifeEventsPersistedState,
-    storage: createJSONStorage(() => idbStorage),
+    storage: createJSONStorage(() => deletionAwareIdbStorage),
     partialize: (state) => ({ eventsByProfile: state.eventsByProfile }),
     onRehydrateStorage: () => () => {
       useLifeEventsStore.setState({ hydrated: true });

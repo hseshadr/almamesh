@@ -1,7 +1,12 @@
 import { clear } from "idb-keyval";
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { createMemory, type Embedder } from "./index";
+import {
+  createMemory,
+  createVectorStore,
+  type Embedder,
+  type VectorStore,
+} from "./index";
 
 /**
  * Deterministic stub embedder: a normalized 26-dim letter-frequency histogram.
@@ -128,5 +133,185 @@ describe("createMemory", () => {
 
     const hits = await memory.retrieve("anything", "p1", 5);
     expect(hits).toEqual([]);
+  });
+
+  it("drains an in-flight index before deleting a thread and rejects later writes", async () => {
+    let releaseEmbed!: () => void;
+    const embedStarted = Promise.withResolvers<void>();
+    const embedRelease = new Promise<void>((resolve) => {
+      releaseEmbed = resolve;
+    });
+    const delayedEmbedder: Embedder = {
+      async embed(texts: readonly string[]): Promise<Float32Array[]> {
+        embedStarted.resolve();
+        await embedRelease;
+        return texts.map(charHistogram);
+      },
+    };
+    const store = createVectorStore();
+    const memory = createMemory({ embedder: delayedEmbedder, store });
+    const indexing = memory.indexMessage({
+      id: "late",
+      thread_id: "deleted-thread",
+      profile_id: "target",
+      content: "late private answer",
+    });
+    await embedStarted.promise;
+
+    const deletion = memory.deleteForThread("deleted-thread");
+    releaseEmbed();
+    await Promise.all([indexing, deletion]);
+    await memory.indexMessage({
+      id: "later-still",
+      thread_id: "deleted-thread",
+      profile_id: "target",
+      content: "must stay deleted",
+    });
+
+    expect(await store.allForProfile("target")).toEqual([]);
+  });
+
+  it("drains target-profile indexes before deletion while preserving another profile", async () => {
+    let releaseTarget!: () => void;
+    const targetStarted = Promise.withResolvers<void>();
+    const targetRelease = new Promise<void>((resolve) => {
+      releaseTarget = resolve;
+    });
+    const delayedEmbedder: Embedder = {
+      async embed(texts: readonly string[]): Promise<Float32Array[]> {
+        if (texts.includes("target pending")) {
+          targetStarted.resolve();
+          await targetRelease;
+        }
+        return texts.map(charHistogram);
+      },
+    };
+    const store = createVectorStore();
+    const memory = createMemory({ embedder: delayedEmbedder, store });
+    await memory.indexMessage({
+      id: "keep",
+      thread_id: "survivor-thread",
+      profile_id: "survivor",
+      content: "survivor memory",
+    });
+    const targetIndex = memory.indexMessage({
+      id: "target",
+      thread_id: "target-thread",
+      profile_id: "target",
+      content: "target pending",
+    });
+    await targetStarted.promise;
+
+    const deletion = memory.deleteForProfile("target");
+    releaseTarget();
+    await Promise.all([targetIndex, deletion]);
+
+    expect(await store.allForProfile("target")).toEqual([]);
+    expect((await store.allForProfile("survivor")).map((record) => record.id)).toEqual([
+      "keep#0",
+    ]);
+  });
+
+  it("drops an in-flight embedding when another realm advances the dataset generation", async () => {
+    const embedStarted = Promise.withResolvers<void>();
+    const releaseEmbed = Promise.withResolvers<void>();
+    let generation = 3;
+    const delayedEmbedder: Embedder = {
+      async embed(texts: readonly string[]): Promise<Float32Array[]> {
+        embedStarted.resolve();
+        await releaseEmbed.promise;
+        return texts.map(charHistogram);
+      },
+    };
+    const store = createVectorStore();
+    const memory = createMemory({
+      embedder: delayedEmbedder,
+      store,
+      generation: () => generation,
+    });
+    const pending = memory.indexMessage({
+      id: "stale",
+      thread_id: "old-thread",
+      profile_id: "old-profile",
+      content: "must not cross Replace",
+    });
+    await embedStarted.promise;
+
+    generation = 4;
+    releaseEmbed.resolve();
+    await pending;
+
+    expect(await store.allForProfile("old-profile")).toEqual([]);
+  });
+
+  it("hands the starting generation to a pausable vector upsert so it cannot land stale", async () => {
+    const base = createVectorStore();
+    const upsertStarted = Promise.withResolvers<void>();
+    const releaseUpsert = Promise.withResolvers<void>();
+    let generation = 5;
+    const guardedStore: VectorStore = {
+      ...base,
+      upsert: async (records, startedInGeneration) => {
+        upsertStarted.resolve();
+        await releaseUpsert.promise;
+        if (startedInGeneration === generation) {
+          await base.upsert(records, startedInGeneration);
+        }
+      },
+    };
+    const memory = createMemory({
+      embedder: stubEmbedder,
+      store: guardedStore,
+      generation: () => generation,
+    });
+    const pending = memory.indexMessage({
+      id: "paused-upsert",
+      thread_id: "old-thread",
+      profile_id: "old-profile",
+      content: "stale after Replace",
+    });
+    await upsertStarted.promise;
+
+    generation = 6;
+    releaseUpsert.resolve();
+    await pending;
+
+    expect(await base.allForProfile("old-profile")).toEqual([]);
+  });
+
+  it("returns no retrieval when Replace advances during query embedding", async () => {
+    const queryStarted = Promise.withResolvers<void>();
+    const releaseQuery = Promise.withResolvers<void>();
+    let generation = 10;
+    const delayedQueryEmbedder: Embedder = {
+      async embed(texts: readonly string[]): Promise<Float32Array[]> {
+        queryStarted.resolve();
+        await releaseQuery.promise;
+        return texts.map(charHistogram);
+      },
+    };
+    const store = createVectorStore();
+    await store.upsert([
+      {
+        id: "old#0",
+        profile_id: "p1",
+        thread_id: "t1",
+        message_id: "old",
+        text: "old private context",
+        vector: charHistogram("old private context"),
+      },
+    ]);
+    const memory = createMemory({
+      embedder: delayedQueryEmbedder,
+      store,
+      generation: () => generation,
+    });
+    const pending = memory.retrieve("private", "p1");
+    await queryStarted.promise;
+
+    generation = 11;
+    releaseQuery.resolve();
+
+    await expect(pending).resolves.toEqual([]);
   });
 });

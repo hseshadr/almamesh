@@ -26,6 +26,7 @@ import {
   predictiveRequestKey,
   type EnsurePredictiveInput,
 } from "./predictive";
+import * as predictiveModule from "./predictive";
 
 // --- minimal but adapter-complete raw fixtures (mirrors predictive.test.ts) ---
 
@@ -268,6 +269,43 @@ describe("usePredictiveStore persistence", () => {
 
     expect(usePredictiveStore.getState().status).toBe("idle");
     expect(usePredictiveStore.getState().requestKey).toBeUndefined();
+  });
+
+  it("exposes a barrier that stays pending until IndexedDB hydration finishes", async () => {
+    const waitForHydration = (
+      predictiveModule as typeof predictiveModule & {
+        whenPredictiveHydrated?: () => Promise<void>;
+      }
+    ).whenPredictiveHydrated;
+    expect(waitForHydration).toBeTypeOf("function");
+    if (waitForHydration === undefined) return;
+
+    let finishHydration: (() => void) | undefined;
+    const hasHydrated = vi
+      .spyOn(usePredictiveStore.persist, "hasHydrated")
+      .mockReturnValue(false);
+    const onFinishHydration = vi
+      .spyOn(usePredictiveStore.persist, "onFinishHydration")
+      .mockImplementation((callback) => {
+        finishHydration = () => callback(usePredictiveStore.getState());
+        return vi.fn();
+      });
+
+    try {
+      let settled = false;
+      const pending = waitForHydration().then(() => {
+        settled = true;
+      });
+      await Promise.resolve();
+      expect(settled).toBe(false);
+
+      finishHydration?.();
+      await pending;
+      expect(settled).toBe(true);
+    } finally {
+      hasHydrated.mockRestore();
+      onFinishHydration.mockRestore();
+    }
   });
 });
 

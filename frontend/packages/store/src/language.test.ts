@@ -55,4 +55,15 @@ describe('useLanguageStore', () => {
     useLanguageStore.getState().setLanguage('pt');
     expect(useLanguageStore.getState().language).toBe('pt');
   });
+
+  it('stays in-memory when an SSR host exposes a partial localStorage global', () => {
+    const original = globalThis.localStorage;
+    (globalThis as { localStorage?: Partial<Storage> }).localStorage = {};
+    try {
+      expect(() => useLanguageStore.getState().setLanguage('es')).not.toThrow();
+      expect(useLanguageStore.getState().language).toBe('es');
+    } finally {
+      (globalThis as { localStorage?: Partial<Storage> }).localStorage = original;
+    }
+  });
 });

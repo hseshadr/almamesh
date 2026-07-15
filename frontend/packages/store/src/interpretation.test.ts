@@ -8,6 +8,7 @@ import {
   interpretationStoreCreator,
   mergeInterpretationPersistedState,
   migrateInterpretationPersistedState,
+  useInterpretationStore,
   type InterpretationStore,
 } from './interpretation';
 
@@ -27,8 +28,24 @@ function makeInterpretation(summary = 'A bright Jupiter year.'): VedicInterpreta
 
 describe('migrateInterpretationPersistedState (defensive hydration)', () => {
   it('passes a valid previous-shape blob through unchanged', () => {
-    const blob = { byChart: { c1: { status: 'complete', sections: {} } } };
-    expect(migrateInterpretationPersistedState(blob, 0)).toEqual(blob);
+    const blob = {
+      byChart: { c1: { status: 'complete', sections: {}, profileId: 'profile-1' } },
+    };
+    expect(migrateInterpretationPersistedState(blob, INTERPRETATION_PERSIST_VERSION)).toEqual(blob);
+  });
+
+  it('v4 migration preserves existing ownerless readings without deleting explicit ownership', () => {
+    const v4 = {
+      byChart: {
+        ambiguous: { status: 'complete', sections: {} },
+        survivor: { status: 'complete', sections: {}, profileId: 'survivor' },
+      },
+    };
+
+    const migrated = migrateInterpretationPersistedState(v4, 4);
+
+    expect(migrated.byChart.ambiguous).toEqual({ status: 'complete', sections: {} });
+    expect(migrated.byChart.survivor?.profileId).toBe('survivor');
   });
 
   it('does NOT throw on a malformed / corrupt blob, returns a clean empty map', () => {
@@ -44,6 +61,7 @@ describe('migrateInterpretationPersistedState (defensive hydration)', () => {
         c1: {
           status: 'complete',
           sections: {},
+          profileId: 'profile-1',
           interpretation: {
             summary: 'A grounded, determined chart.',
             strengths: [],
@@ -66,6 +84,7 @@ describe('migrateInterpretationPersistedState (defensive hydration)', () => {
         c1: {
           status: 'complete',
           sections: {},
+          profileId: 'profile-1',
           interpretation: {
             summary: { layman: 'plain', technical: 'Saturn in the 10th' },
             strengths: [],
@@ -87,13 +106,108 @@ describe('migrateInterpretationPersistedState (defensive hydration)', () => {
     // in-flight status is always an interrupted run (streams don't survive
     // reloads) and used to hydrate as an eternal "Generating…" dead-end.
     // See the hydrate-healing describe block below.
-    const v1 = { byChart: { c1: { status: 'error', error: 'boom', sections: {} } } };
+    const v1 = {
+      byChart: {
+        c1: { status: 'error', error: 'boom', sections: {}, profileId: 'profile-1' },
+      },
+    };
     const migrated = migrateInterpretationPersistedState(v1, 1);
-    expect(migrated.byChart.c1).toEqual({ status: 'error', error: 'boom', sections: {} });
+    expect(migrated.byChart.c1).toEqual({
+      status: 'error',
+      error: 'boom',
+      sections: {},
+      profileId: 'profile-1',
+    });
   });
 });
 
 describe('interpretationStore', () => {
+  it('backfills only provable legacy ownership without overwriting explicit owners', () => {
+    const store = newStore();
+    store.setState({
+      byChart: {
+        attributable: { status: 'complete', sections: {} },
+        ambiguous: { status: 'complete', sections: {} },
+        explicit: { status: 'complete', sections: {}, profileId: 'survivor' },
+      },
+    });
+
+    store.getState().backfillProfileOwnership({
+      attributable: 'target',
+      explicit: 'target',
+    });
+
+    expect(store.getState().getEntry('attributable')?.profileId).toBe('target');
+    expect(store.getState().getEntry('ambiguous')?.profileId).toBeUndefined();
+    expect(store.getState().getEntry('explicit')?.profileId).toBe('survivor');
+  });
+
+  it('stays in-memory when an SSR host exposes a partial localStorage global', () => {
+    const original = globalThis.localStorage;
+    (globalThis as { localStorage?: Partial<Storage> }).localStorage = {};
+    try {
+      expect(() => useInterpretationStore.getState().startInterpretation('ssr-chart')).not.toThrow();
+      expect(useInterpretationStore.getState().getEntry('ssr-chart')?.status).toBe('generating');
+    } finally {
+      (globalThis as { localStorage?: Partial<Storage> }).localStorage = original;
+      useInterpretationStore.getState().reset('ssr-chart');
+    }
+  });
+
+  it('rejects a late completion after the chart entry was deleted', () => {
+    const store = newStore();
+    const run = store.getState().startInterpretation('c1', 'profile-1');
+    store.getState().reset('c1');
+
+    store
+      .getState()
+      .setInterpretation(
+        'c1',
+        makeInterpretation('late'),
+        '2026-07-13T00:00:00.000Z',
+        undefined,
+        undefined,
+        run,
+      );
+
+    expect(store.getState().getEntry('c1')).toBeUndefined();
+  });
+
+  it('deletes current and historical readings owned by one profile only', () => {
+    const store = newStore();
+    const oldRun = store.getState().startInterpretation('old-chart', 'target');
+    store
+      .getState()
+      .setInterpretation(
+        'old-chart',
+        makeInterpretation('old target'),
+        '2026-07-01T00:00:00Z',
+        undefined,
+        undefined,
+        oldRun,
+      );
+    const survivorRun = store.getState().startInterpretation('survivor-chart', 'survivor');
+    store
+      .getState()
+      .setInterpretation(
+        'survivor-chart',
+        makeInterpretation('keep'),
+        '2026-07-01T00:00:00Z',
+        undefined,
+        undefined,
+        survivorRun,
+      );
+    store
+      .getState()
+      .setInterpretation('current-legacy-chart', makeInterpretation('current'), '2026-07-01');
+
+    store.getState().deleteForProfile('target', ['current-legacy-chart']);
+
+    expect(store.getState().getEntry('old-chart')).toBeUndefined();
+    expect(store.getState().getEntry('current-legacy-chart')).toBeUndefined();
+    expect(store.getState().getEntry('survivor-chart')?.interpretation).toBeDefined();
+  });
+
   it('startInterpretation sets status to generating with empty sections', () => {
     const store = newStore();
     store.getState().startInterpretation('c1');
@@ -340,9 +454,9 @@ describe('interpretationStore — provenance + keep-old-until-success', () => {
   });
 });
 
-describe('persist v4 migration (input provenance)', () => {
-  it('the persist version is bumped to 4', () => {
-    expect(INTERPRETATION_PERSIST_VERSION).toBe(4);
+describe('persist v5 migration (owner attribution)', () => {
+  it('the persist version is bumped to 5', () => {
+    expect(INTERPRETATION_PERSIST_VERSION).toBe(5);
   });
 
   it('a v2 entry (no provenance) hydrates unchanged and still renders', () => {
@@ -351,6 +465,7 @@ describe('persist v4 migration (input provenance)', () => {
         c1: {
           status: 'complete',
           sections: {},
+          profileId: 'profile-1',
           updatedAt: '2026-06-20T00:00:00Z',
           interpretation: {
             summary: { layman: 'plain', technical: 'Saturn in the 10th' },
@@ -426,6 +541,7 @@ describe('hydrate healing — an interrupted generation must never persist as a 
         c1: {
           status: 'generating',
           sections: { core: true },
+          profileId: 'profile-1',
           interpretation: makeInterpretation('Kept reading from before the reload.'),
           updatedAt: '2026-07-01T10:00:00.000Z',
           error: 'stale mid-run failure',
@@ -443,8 +559,8 @@ describe('hydrate healing — an interrupted generation must never persist as a 
   it('migrate: a stuck generating entry WITHOUT a reading is dropped so auto-generate can fire', () => {
     const blob = {
       byChart: {
-        c1: { status: 'generating', sections: { core: true } },
-        c2: { status: 'complete', sections: {} },
+        c1: { status: 'generating', sections: { core: true }, profileId: 'profile-1' },
+        c2: { status: 'complete', sections: {}, profileId: 'profile-1' },
       },
     };
     const migrated = migrateInterpretationPersistedState(blob, 2);
@@ -483,9 +599,9 @@ describe('hydrate healing — an interrupted generation must never persist as a 
   it('migrate: non-generating statuses pass through untouched', () => {
     const blob = {
       byChart: {
-        done: { status: 'complete', sections: {} },
-        failed: { status: 'error', error: 'boom', sections: {} },
-        idle: { status: 'idle', sections: {} },
+        done: { status: 'complete', sections: {}, profileId: 'profile-1' },
+        failed: { status: 'error', error: 'boom', sections: {}, profileId: 'profile-1' },
+        idle: { status: 'idle', sections: {}, profileId: 'profile-1' },
       },
     };
     const migrated = migrateInterpretationPersistedState(blob, 2);

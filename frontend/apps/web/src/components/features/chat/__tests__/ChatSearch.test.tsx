@@ -24,6 +24,9 @@ function memoryReturning(threadId: string): ChatMemoryFacade {
     retrieve: vi.fn().mockResolvedValue([
       { text: 'You have strong career yogas', message_id: 'm1', thread_id: threadId, score: 0.91 },
     ]),
+    deleteForProfile: vi.fn().mockResolvedValue(undefined),
+    deleteForThread: vi.fn().mockResolvedValue(undefined),
+    clear: vi.fn().mockResolvedValue(undefined),
   };
 }
 
@@ -40,7 +43,13 @@ describe('ChatSearch', () => {
   });
 
   it('renders a discoverable search input', () => {
-    __setMemoryForTest({ indexMessage: vi.fn(), retrieve: vi.fn().mockResolvedValue([]) });
+    __setMemoryForTest({
+      indexMessage: vi.fn(),
+      retrieve: vi.fn().mockResolvedValue([]),
+      deleteForProfile: vi.fn().mockResolvedValue(undefined),
+      deleteForThread: vi.fn().mockResolvedValue(undefined),
+      clear: vi.fn().mockResolvedValue(undefined),
+    });
     render(<ChatSearch profileId={PROFILE} onOpenResult={vi.fn()} />);
     expect(screen.getByTestId('chat-search-input')).toBeTruthy();
   });

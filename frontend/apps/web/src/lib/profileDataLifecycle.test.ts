@@ -1,0 +1,648 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import type { VedicInterpretation } from '@almamesh/shared-types';
+import {
+  setActiveProfileScope,
+  readDeletionTombstones,
+  useChartLibraryStore,
+  useChatStore,
+  useInterpretationStore,
+  useLifeEventsStore,
+  useMeshStore,
+  usePredictiveStore,
+  useProfilesStore,
+  useRectificationRecordsStore,
+  type StoredChart,
+} from '@almamesh/store';
+
+import {
+  applyRemoteDeletionNotice,
+  deleteChatThreadData,
+  deleteProfileData,
+  resumePendingMemoryRebuild,
+} from './profileDataLifecycle';
+
+function chart(chartId: string, profileId: string): StoredChart {
+  return { chart_id: chartId, profile_id: profileId, person_name: profileId, is_primary: true } as StoredChart;
+}
+
+function interpretation(summary: string): VedicInterpretation {
+  return { summary: { layman: summary, technical: summary }, strengths: [], challenges: [], life_themes: [] };
+}
+
+beforeEach(() => {
+  setActiveProfileScope(null);
+  useProfilesStore.setState({ profiles: {}, activeProfileId: null });
+  useChartLibraryStore.setState({ charts: {} });
+  useChatStore.setState({ threads: {}, messages: {} });
+  useLifeEventsStore.setState({ eventsByProfile: {} });
+  useInterpretationStore.setState({ byChart: {} });
+  useRectificationRecordsStore.setState({ recordsByProfile: {} });
+  usePredictiveStore.getState().reset();
+  useMeshStore.setState({ edges: {} });
+});
+
+describe('deleteProfileData', () => {
+  it('does not resolve until the deleted profile snapshot is durable', async () => {
+    const target = useProfilesStore.getState().createProfile('Target');
+    useProfilesStore.getState().createProfile('Survivor');
+    const originalStorage = useProfilesStore.persist.getOptions().storage;
+    const storageGate = Promise.withResolvers<void>();
+    const writes: unknown[] = [];
+    const storage: NonNullable<typeof originalStorage> = {
+      getItem: () => null,
+      setItem: async (_name, value) => {
+        await storageGate.promise;
+        writes.push(value);
+      },
+      removeItem: async () => undefined,
+    };
+    useProfilesStore.persist.setOptions({ storage });
+
+    let resolved = false;
+    try {
+      const deletion = deleteProfileData(target, {
+        deleteMemoryForProfile: vi.fn().mockResolvedValue(undefined),
+      });
+      void deletion.then(() => {
+        resolved = true;
+      });
+      await vi.waitFor(() => {
+        expect(useProfilesStore.getState().profiles[target]).toBeUndefined();
+      });
+      await Promise.resolve();
+
+      expect(resolved).toBe(false);
+      storageGate.resolve();
+      await deletion;
+
+      const latest = writes.at(-1) as { state: { profiles: Record<string, unknown> } };
+      expect(latest.state.profiles[target]).toBeUndefined();
+    } finally {
+      storageGate.resolve();
+      useProfilesStore.persist.setOptions({ storage: originalStorage });
+    }
+  });
+
+  it('waits for every profile persistence attempt before reporting a write failure', async () => {
+    const target = useProfilesStore.getState().createProfile('Target');
+    useProfilesStore.getState().createProfile('Survivor');
+    useChatStore.getState().ensureThread(target, 'target-chart');
+    const originalProfilesStorage = useProfilesStore.persist.getOptions().storage;
+    const originalChatStorage = useChatStore.persist.getOptions().storage;
+    const chatGate = Promise.withResolvers<void>();
+    let profileWriteCount = 0;
+    const profilesStorage: NonNullable<typeof originalProfilesStorage> = {
+      getItem: () => null,
+      setItem: async () => {
+        profileWriteCount += 1;
+        if (profileWriteCount > 1) {
+          throw new Error('profile persistence blocked');
+        }
+      },
+      removeItem: async () => undefined,
+    };
+    const chatStorage: NonNullable<typeof originalChatStorage> = {
+      getItem: () => null,
+      setItem: async () => {
+        await chatGate.promise;
+      },
+      removeItem: async () => undefined,
+    };
+    useProfilesStore.persist.setOptions({ storage: profilesStorage });
+    useChatStore.persist.setOptions({ storage: chatStorage });
+
+    let settled = false;
+    try {
+      const deletion = deleteProfileData(target, {
+        deleteMemoryForProfile: vi.fn().mockResolvedValue(undefined),
+      });
+      void deletion.then(
+        () => {
+          settled = true;
+        },
+        () => {
+          settled = true;
+        },
+      );
+      await vi.waitFor(() => {
+        expect(useProfilesStore.getState().profiles[target]).toBeUndefined();
+      });
+      await Promise.resolve();
+
+      expect(settled).toBe(false);
+      chatGate.resolve();
+      await expect(deletion).rejects.toThrow(/profile persistence blocked/);
+    } finally {
+      chatGate.resolve();
+      useProfilesStore.persist.setOptions({ storage: originalProfilesStorage });
+      useChatStore.persist.setOptions({ storage: originalChatStorage });
+    }
+  });
+
+  it('waits for every persisted owner store to hydrate before deleting', async () => {
+    const target = useProfilesStore.getState().createProfile('Target');
+    useProfilesStore.getState().createProfile('Survivor');
+    const hydration = Promise.withResolvers<void>();
+    const waitForHydration = vi.fn(() => hydration.promise);
+    const deleteMemoryForProfile = vi.fn().mockResolvedValue(undefined);
+
+    const deletion = deleteProfileData(target, {
+      deleteMemoryForProfile,
+      waitForHydration,
+    });
+    await Promise.resolve();
+
+    expect(waitForHydration).toHaveBeenCalledTimes(1);
+    expect(deleteMemoryForProfile).not.toHaveBeenCalled();
+    useLifeEventsStore.getState().addEvent(target, {
+      description: 'Arrived from delayed hydration',
+      date: '2012-01-01',
+    });
+    hydration.resolve();
+    await deletion;
+
+    expect(useLifeEventsStore.getState().getEvents(target)).toEqual([]);
+  });
+
+  it('serializes concurrent deletions so the final profile and its data survive intact', async () => {
+    const first = useProfilesStore.getState().createProfile('First');
+    const survivor = useProfilesStore.getState().createProfile('Survivor');
+    useLifeEventsStore.getState().addEvent(first, {
+      description: 'First event',
+      date: '2010-01-01',
+    });
+    useLifeEventsStore.getState().addEvent(survivor, {
+      description: 'Must survive',
+      date: '2011-01-01',
+    });
+    const firstMemoryStarted = Promise.withResolvers<void>();
+    const firstMemoryRelease = Promise.withResolvers<void>();
+    const deleteMemoryForProfile = vi.fn(async () => {
+      firstMemoryStarted.resolve();
+      await firstMemoryRelease.promise;
+    });
+
+    const firstDeletion = deleteProfileData(first, { deleteMemoryForProfile });
+    await firstMemoryStarted.promise;
+    const competingDeletion = deleteProfileData(survivor, { deleteMemoryForProfile });
+    await Promise.resolve();
+    firstMemoryRelease.resolve();
+    const results = await Promise.allSettled([firstDeletion, competingDeletion]);
+
+    expect(results.map((result) => result.status)).toEqual(['fulfilled', 'rejected']);
+    expect(deleteMemoryForProfile).toHaveBeenCalledTimes(1);
+    expect(useProfilesStore.getState().profiles[survivor]).toBeDefined();
+    expect(useLifeEventsStore.getState().getEvents(survivor)).toHaveLength(1);
+  });
+
+  it('deletes every target artifact while preserving the survivor', async () => {
+    const target = useProfilesStore.getState().createProfile('Target');
+    const survivor = useProfilesStore.getState().createProfile('Survivor');
+    useChartLibraryStore.getState().saveChart(chart('target-chart', target));
+    useChartLibraryStore.getState().saveChart(chart('survivor-chart', survivor));
+    useLifeEventsStore.getState().addEvent(target, { description: 'Target event', date: '2010-01-01' });
+    useLifeEventsStore.getState().addEvent(survivor, { description: 'Keep event', date: '2011-01-01' });
+    const targetThread = useChatStore.getState().ensureThread(target, 'target-chart');
+    const survivorThread = useChatStore.getState().ensureThread(survivor, 'survivor-chart');
+    useChatStore.getState().appendMessage(targetThread, 'user', 'delete');
+    useChatStore.getState().appendMessage(survivorThread, 'user', 'keep');
+    useInterpretationStore.getState().setInterpretation('target-chart', interpretation('delete'), '2026-01-01');
+    useInterpretationStore.getState().setInterpretation('survivor-chart', interpretation('keep'), '2026-01-01');
+    useRectificationRecordsStore.setState({
+      recordsByProfile: {
+        [target]: { profileId: target },
+        [survivor]: { profileId: survivor },
+      },
+    } as never);
+    usePredictiveStore.setState({ status: 'ready', profileKey: target, requestKey: 'target-key' });
+    useMeshStore.setState({
+      edges: {
+        [`${target}|${survivor}`]: { status: 'idle' },
+        [`${survivor}|other`]: { status: 'idle' },
+      },
+    });
+    const deleteMemoryForProfile = vi.fn().mockResolvedValue(undefined);
+
+    await deleteProfileData(target, { deleteMemoryForProfile });
+
+    expect(deleteMemoryForProfile).toHaveBeenCalledWith(target);
+    expect(useProfilesStore.getState().profiles[target]).toBeUndefined();
+    expect(useProfilesStore.getState().profiles[survivor]).toBeDefined();
+    expect(useChartLibraryStore.getState().getChart('target-chart')).toBeUndefined();
+    expect(useChartLibraryStore.getState().getChart('survivor-chart')).toBeDefined();
+    expect(useLifeEventsStore.getState().getEvents(target)).toEqual([]);
+    expect(useLifeEventsStore.getState().getEvents(survivor)).toHaveLength(1);
+    expect(useChatStore.getState().listThreads(target)).toEqual([]);
+    expect(useChatStore.getState().getMessages(survivorThread)).toHaveLength(1);
+    expect(useInterpretationStore.getState().getEntry('target-chart')).toBeUndefined();
+    expect(useInterpretationStore.getState().getEntry('survivor-chart')).toBeDefined();
+    expect(useRectificationRecordsStore.getState().getRecord(target)).toBeNull();
+    expect(useRectificationRecordsStore.getState().getRecord(survivor)).not.toBeNull();
+    expect(usePredictiveStore.getState().status).toBe('idle');
+    expect(useMeshStore.getState().edges[`${target}|${survivor}`]).toBeUndefined();
+    expect(useMeshStore.getState().edges[`${survivor}|other`]).toBeDefined();
+    const settledLedger = await readDeletionTombstones();
+    expect(settledLedger.profileIds).not.toContain(target);
+    expect(settledLedger.chartIds).not.toContain('target-chart');
+  });
+
+  it('establishes the generation fence before draining vectors or removing local data', async () => {
+    const target = useProfilesStore.getState().createProfile('Target');
+    useProfilesStore.getState().createProfile('Survivor');
+    useChartLibraryStore.getState().saveChart(chart('target-chart', target));
+    const threadId = useChatStore.getState().ensureThread(target, 'target-chart');
+    const deleteMemoryForProfile = vi.fn(async () => {
+      expect(recordDeletionTombstones).toHaveBeenCalledTimes(1);
+    });
+    const recordDeletionTombstones = vi.fn(async () => {
+      expect(deleteMemoryForProfile).not.toHaveBeenCalled();
+      expect(useProfilesStore.getState().profiles[target]).toBeDefined();
+    });
+    const deps = { deleteMemoryForProfile, recordDeletionTombstones };
+
+    await deleteProfileData(target, deps);
+
+    expect(recordDeletionTombstones).toHaveBeenCalledWith({
+      profileIds: [target],
+      threadIds: [threadId],
+      chartIds: ['target-chart'],
+    });
+  });
+
+  it('allows deterministic chart IDs to be reused after the deletion commit', async () => {
+    const target = useProfilesStore.getState().createProfile('Target');
+    useProfilesStore.getState().createProfile('Survivor');
+    useChartLibraryStore.getState().saveChart(chart('deterministic-birth-fingerprint', target));
+    const recordDeletionTombstones = vi.fn().mockResolvedValue(undefined);
+
+    await deleteProfileData(target, {
+      deleteMemoryForProfile: vi.fn().mockResolvedValue(undefined),
+      recordDeletionTombstones,
+    });
+
+    const additions = {
+      profileIds: [target],
+      threadIds: [],
+      chartIds: ['deterministic-birth-fingerprint'],
+    };
+    expect(recordDeletionTombstones).toHaveBeenCalledWith(additions);
+
+    useChartLibraryStore
+      .getState()
+      .saveChart(chart('deterministic-birth-fingerprint', useProfilesStore.getState().activeProfileId!));
+    expect(useChartLibraryStore.getState().getChart('deterministic-birth-fingerprint')).toBeDefined();
+  });
+
+  it('refuses the last profile before deleting any owned data', async () => {
+    const only = useProfilesStore.getState().createProfile('Only');
+    useLifeEventsStore.getState().addEvent(only, { description: 'Keep', date: '2010-01-01' });
+    const deleteMemoryForProfile = vi.fn().mockResolvedValue(undefined);
+
+    await expect(deleteProfileData(only, { deleteMemoryForProfile })).rejects.toThrow(/last profile/i);
+
+    expect(deleteMemoryForProfile).not.toHaveBeenCalled();
+    expect(useProfilesStore.getState().profiles[only]).toBeDefined();
+    expect(useLifeEventsStore.getState().getEvents(only)).toHaveLength(1);
+  });
+
+  it('finishes source deletion when best-effort derived-vector draining fails', async () => {
+    const target = useProfilesStore.getState().createProfile('Target');
+    useProfilesStore.getState().createProfile('Survivor');
+    useLifeEventsStore.getState().addEvent(target, { description: 'Keep on failure', date: '2010-01-01' });
+
+    await deleteProfileData(target, {
+      deleteMemoryForProfile: vi.fn().mockRejectedValue(new Error('IndexedDB blocked')),
+    });
+
+    expect(useProfilesStore.getState().profiles[target]).toBeUndefined();
+    expect(useLifeEventsStore.getState().getEvents(target)).toHaveLength(0);
+  });
+
+  it('deletes historical interpretations from prior chart regenerations', async () => {
+    const target = useProfilesStore.getState().createProfile('Target');
+    const survivor = useProfilesStore.getState().createProfile('Survivor');
+    useChartLibraryStore.getState().saveChart(chart('current-target', target));
+    useChartLibraryStore.getState().saveChart(chart('current-survivor', survivor));
+    const oldRun = useInterpretationStore
+      .getState()
+      .startInterpretation('historical-target', target);
+    useInterpretationStore
+      .getState()
+      .setInterpretation(
+        'historical-target',
+        interpretation('old target'),
+        '2026-01-01',
+        undefined,
+        undefined,
+        oldRun,
+      );
+    const survivorRun = useInterpretationStore
+      .getState()
+      .startInterpretation('historical-survivor', survivor);
+    useInterpretationStore
+      .getState()
+      .setInterpretation(
+        'historical-survivor',
+        interpretation('keep'),
+        '2026-01-01',
+        undefined,
+        undefined,
+        survivorRun,
+      );
+
+    await deleteProfileData(target, {
+      deleteMemoryForProfile: vi.fn().mockResolvedValue(undefined),
+    });
+
+    expect(useInterpretationStore.getState().getEntry('historical-target')).toBeUndefined();
+    expect(useInterpretationStore.getState().getEntry('historical-survivor')).toBeDefined();
+  });
+
+  it('uses owned chat history to delete legacy interpretations without owner metadata', async () => {
+    const target = useProfilesStore.getState().createProfile('Target');
+    const survivor = useProfilesStore.getState().createProfile('Survivor');
+    useChartLibraryStore.getState().saveChart(chart('current-target', target));
+    useChartLibraryStore.getState().saveChart(chart('current-survivor', survivor));
+    useChatStore.getState().ensureThread(target, 'historical-target');
+    useChatStore.getState().ensureThread(survivor, 'historical-survivor');
+    useInterpretationStore
+      .getState()
+      .setInterpretation('historical-target', interpretation('old target'), '2026-01-01');
+    useInterpretationStore
+      .getState()
+      .setInterpretation('historical-survivor', interpretation('keep'), '2026-01-01');
+
+    await deleteProfileData(target, {
+      deleteMemoryForProfile: vi.fn().mockResolvedValue(undefined),
+    });
+
+    expect(useInterpretationStore.getState().getEntry('historical-target')).toBeUndefined();
+    expect(useInterpretationStore.getState().getEntry('historical-survivor')).toBeDefined();
+  });
+
+  it('does not guess ownership and erase an ambiguous survivor reading at deletion time', async () => {
+    const target = useProfilesStore.getState().createProfile('Target');
+    const survivor = useProfilesStore.getState().createProfile('Survivor');
+    useChartLibraryStore.getState().saveChart(chart('current-target', target));
+    useChartLibraryStore.getState().saveChart(chart('current-survivor', survivor));
+    useInterpretationStore
+      .getState()
+      .setInterpretation('orphaned-legacy', interpretation('cannot attribute'), '2026-01-01');
+    const survivorRun = useInterpretationStore
+      .getState()
+      .startInterpretation('explicit-survivor', survivor);
+    useInterpretationStore
+      .getState()
+      .setInterpretation(
+        'explicit-survivor',
+        interpretation('keep'),
+        '2026-01-01',
+        undefined,
+        undefined,
+        survivorRun,
+      );
+
+    await deleteProfileData(target, {
+      deleteMemoryForProfile: vi.fn().mockResolvedValue(undefined),
+    });
+
+    expect(useInterpretationStore.getState().getEntry('orphaned-legacy')).toBeDefined();
+    expect(useInterpretationStore.getState().getEntry('explicit-survivor')).toBeDefined();
+  });
+});
+
+describe('deleteChatThreadData', () => {
+  it('records a durable thread tombstone before vector deletion and local removal', async () => {
+    const threadId = useChatStore.getState().ensureThread('profile', 'chart');
+    const deleteMemoryForThread = vi.fn().mockResolvedValue(undefined);
+    const recordDeletionTombstones = vi.fn(async () => {
+      expect(deleteMemoryForThread).not.toHaveBeenCalled();
+      expect(useChatStore.getState().threads[threadId]).toBeDefined();
+    });
+    const deps = { deleteMemoryForThread, recordDeletionTombstones };
+
+    await deleteChatThreadData(threadId, deps);
+
+    expect(recordDeletionTombstones).toHaveBeenCalledWith({ threadIds: [threadId] });
+  });
+
+  it('does not resolve until the deleted conversation snapshot is durable', async () => {
+    const threadId = useChatStore.getState().ensureThread('profile', 'chart');
+    useChatStore.getState().appendMessage(threadId, 'user', 'private question');
+    const originalStorage = useChatStore.persist.getOptions().storage;
+    const storageGate = Promise.withResolvers<void>();
+    const writes: unknown[] = [];
+    const storage: NonNullable<typeof originalStorage> = {
+      getItem: () => null,
+      setItem: async (_name, value) => {
+        await storageGate.promise;
+        writes.push(value);
+      },
+      removeItem: async () => undefined,
+    };
+    useChatStore.persist.setOptions({ storage });
+
+    let resolved = false;
+    try {
+      const deletion = deleteChatThreadData(threadId, {
+        deleteMemoryForThread: vi.fn().mockResolvedValue(undefined),
+      });
+      void deletion.then(() => {
+        resolved = true;
+      });
+      await vi.waitFor(() => {
+        expect(useChatStore.getState().threads[threadId]).toBeUndefined();
+      });
+      await Promise.resolve();
+
+      expect(resolved).toBe(false);
+      storageGate.resolve();
+      await deletion;
+
+      const latest = writes.at(-1) as {
+        state: { threads: Record<string, unknown>; messages: Record<string, unknown> };
+      };
+      expect(latest.state.threads[threadId]).toBeUndefined();
+      expect(latest.state.messages[threadId]).toBeUndefined();
+    } finally {
+      storageGate.resolve();
+      useChatStore.persist.setOptions({ storage: originalStorage });
+    }
+  });
+
+  it('rejects when the durable conversation snapshot cannot be written', async () => {
+    const threadId = useChatStore.getState().ensureThread('profile', 'chart');
+    const originalStorage = useChatStore.persist.getOptions().storage;
+    let writeCount = 0;
+    const storage: NonNullable<typeof originalStorage> = {
+      getItem: () => null,
+      setItem: async () => {
+        writeCount += 1;
+        if (writeCount > 1) {
+          throw new Error('chat persistence blocked');
+        }
+      },
+      removeItem: async () => undefined,
+    };
+    useChatStore.persist.setOptions({ storage });
+
+    try {
+      await expect(
+        deleteChatThreadData(threadId, {
+          deleteMemoryForThread: vi.fn().mockResolvedValue(undefined),
+        }),
+      ).rejects.toThrow(/chat persistence blocked/);
+    } finally {
+      useChatStore.persist.setOptions({ storage: originalStorage });
+    }
+  });
+
+  it('deletes vectors before removing the thread and its messages', async () => {
+    const threadId = useChatStore.getState().ensureThread('profile', 'chart');
+    useChatStore.getState().appendMessage(threadId, 'user', 'private question');
+    const deleteMemoryForThread = vi.fn().mockResolvedValue(undefined);
+
+    await deleteChatThreadData(threadId, { deleteMemoryForThread });
+
+    expect(deleteMemoryForThread).toHaveBeenCalledWith(threadId);
+    expect(useChatStore.getState().threads[threadId]).toBeUndefined();
+    expect(useChatStore.getState().getMessages(threadId)).toEqual([]);
+  });
+
+  it('deletes the conversation when best-effort vector draining fails', async () => {
+    const threadId = useChatStore.getState().ensureThread('profile', 'chart');
+
+    await deleteChatThreadData(threadId, {
+      deleteMemoryForThread: vi.fn().mockRejectedValue(new Error('storage blocked')),
+    });
+
+    expect(useChatStore.getState().threads[threadId]).toBeUndefined();
+  });
+});
+
+describe('durable memory rebuild recovery', () => {
+  it('rebuilds from durable chat and clears the marker only after success', async () => {
+    const threadId = useChatStore.getState().ensureThread('profile', 'chart');
+    useChatStore.getState().appendMessage(threadId, 'user', 'restored question');
+    const rebuild = vi.fn().mockResolvedValue(undefined);
+    const complete = vi.fn().mockResolvedValue(undefined);
+
+    await resumePendingMemoryRebuild({
+      readLedger: vi.fn().mockResolvedValue({
+        version: 1,
+        activeEpoch: 4,
+        restoreEpoch: 4,
+        restoreInProgress: false,
+        memoryRebuildPending: true,
+        profileIds: [],
+        threadIds: [],
+        chartIds: [],
+      }),
+      waitForChat: vi.fn().mockResolvedValue(undefined),
+      rebuild,
+      complete,
+    });
+
+    expect(rebuild).toHaveBeenCalledWith([
+      expect.objectContaining({
+        thread_id: threadId,
+        profile_id: 'profile',
+        content: 'restored question',
+      }),
+    ]);
+    expect(complete).toHaveBeenCalledWith(4);
+  });
+
+  it('keeps the durable marker when a resumed rebuild fails', async () => {
+    const complete = vi.fn();
+    await expect(
+      resumePendingMemoryRebuild({
+        readLedger: vi.fn().mockResolvedValue({
+          version: 1,
+          activeEpoch: 4,
+          restoreEpoch: 4,
+          restoreInProgress: false,
+          memoryRebuildPending: true,
+          profileIds: [],
+          threadIds: [],
+          chartIds: [],
+        }),
+        waitForChat: vi.fn().mockResolvedValue(undefined),
+        rebuild: vi.fn().mockRejectedValue(new Error('embedder unavailable')),
+        complete,
+      }),
+    ).rejects.toThrow(/embedder unavailable/);
+    expect(complete).not.toHaveBeenCalled();
+  });
+});
+
+describe('cross-realm deletion propagation', () => {
+  it('purges every live selector and vector task when another realm resets the dataset', async () => {
+    const target = useProfilesStore.getState().createProfile('Target');
+    useChartLibraryStore.getState().saveChart(chart('target-chart', target));
+    useLifeEventsStore
+      .getState()
+      .addEvent(target, { description: 'must disappear', date: '2010-01-01' });
+    const threadId = useChatStore.getState().ensureThread(target, 'target-chart');
+    useChatStore.getState().appendMessage(threadId, 'user', 'private question');
+    const clearMemory = vi.fn().mockResolvedValue(undefined);
+
+    await applyRemoteDeletionNotice(
+      { kind: 'dataset', operation: 'reset' },
+      {
+        clearMemory,
+        deleteMemoryForProfile: vi.fn(),
+        deleteMemoryForThread: vi.fn(),
+      },
+    );
+
+    expect(clearMemory).toHaveBeenCalledTimes(1);
+    expect(useProfilesStore.getState().profiles).toEqual({});
+    expect(useChartLibraryStore.getState().charts).toEqual({});
+    expect(useLifeEventsStore.getState().eventsByProfile).toEqual({});
+    expect(useChatStore.getState().threads).toEqual({});
+  });
+
+  it('purges an already-open realm when another tab deletes a profile', async () => {
+    const target = useProfilesStore.getState().createProfile('Target');
+    const survivor = useProfilesStore.getState().createProfile('Survivor');
+    useChartLibraryStore.getState().saveChart(chart('target-chart', target));
+    useLifeEventsStore.getState().addEvent(target, {
+      description: 'must disappear',
+      date: '2010-01-01',
+    });
+    const threadId = useChatStore.getState().ensureThread(target, 'target-chart');
+    useChatStore.getState().appendMessage(threadId, 'user', 'private question');
+    const run = useInterpretationStore.getState().startInterpretation('target-chart', target);
+    useInterpretationStore
+      .getState()
+      .setInterpretation(
+        'target-chart',
+        interpretation('private reading'),
+        '2026-01-01',
+        undefined,
+        undefined,
+        run,
+      );
+    const deleteMemoryForProfile = vi.fn().mockResolvedValue(undefined);
+
+    await applyRemoteDeletionNotice(
+      {
+        kind: 'profile',
+        profileId: target,
+        chartIds: ['target-chart'],
+        threadIds: [threadId],
+      },
+      { deleteMemoryForProfile, deleteMemoryForThread: vi.fn() },
+    );
+
+    expect(deleteMemoryForProfile).toHaveBeenCalledWith(target);
+    expect(useProfilesStore.getState().profiles[target]).toBeUndefined();
+    expect(useProfilesStore.getState().profiles[survivor]).toBeDefined();
+    expect(useChartLibraryStore.getState().getChart('target-chart')).toBeUndefined();
+    expect(useLifeEventsStore.getState().getEvents(target)).toEqual([]);
+    expect(useChatStore.getState().threads[threadId]).toBeUndefined();
+    expect(useInterpretationStore.getState().getEntry('target-chart')).toBeUndefined();
+  });
+});

@@ -27,8 +27,8 @@ import type {
   RectificationResult,
 } from '@almamesh/shared-types';
 import { create, type StateCreator } from 'zustand';
-import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware';
-import { get as idbGet, set as idbSet, del as idbDel } from 'idb-keyval';
+import { createJSONStorage, persist } from 'zustand/middleware';
+import { deletionAwareIdbStorage } from './deletionTombstones';
 
 /** A single IndexedDB key holding all profiles' rectification records. */
 const PERSIST_NAME = 'almamesh-rectification-records';
@@ -81,26 +81,6 @@ export function migrateRectificationRecordsPersistedState(
   }
   return { recordsByProfile: migrated };
 }
-
-/** True only where IndexedDB exists (real browsers / workers), not in SSR/tests. */
-function hasIndexedDb(): boolean {
-  return typeof indexedDB !== 'undefined';
-}
-
-/** IndexedDB-backed zustand storage; benign no-op outside browsers (SSR/tests). */
-const idbStorage: StateStorage = {
-  getItem: async (name) => (hasIndexedDb() ? ((await idbGet<string>(name)) ?? null) : null),
-  setItem: async (name, value) => {
-    if (hasIndexedDb()) {
-      await idbSet(name, value);
-    }
-  },
-  removeItem: async (name) => {
-    if (hasIndexedDb()) {
-      await idbDel(name);
-    }
-  },
-};
 
 /** Arguments for {@link buildRectificationRecord}. */
 export interface BuildRectificationRecordArgs {
@@ -166,6 +146,8 @@ export interface RectificationRecordsStore {
   getRecord: (profileId: string) => RectificationRecord | null;
   /** Remove a profile's record (e.g. when the person is deleted). A no-op when absent. */
   clearRecord: (profileId: string) => void;
+  /** Remove every confirmed rectification record. */
+  clearAll: () => void;
 }
 
 export const rectificationRecordsStoreCreator: StateCreator<RectificationRecordsStore> = (
@@ -193,6 +175,10 @@ export const rectificationRecordsStoreCreator: StateCreator<RectificationRecords
       return { recordsByProfile: next };
     });
   },
+
+  clearAll: () => {
+    set({ recordsByProfile: {} });
+  },
 });
 
 export const useRectificationRecordsStore = create<RectificationRecordsStore>()(
@@ -202,7 +188,7 @@ export const useRectificationRecordsStore = create<RectificationRecordsStore>()(
       name: PERSIST_NAME,
       version: RECTIFICATION_RECORDS_PERSIST_VERSION,
       migrate: migrateRectificationRecordsPersistedState,
-      storage: createJSONStorage(() => idbStorage),
+      storage: createJSONStorage(() => deletionAwareIdbStorage),
       partialize: (state) => ({ recordsByProfile: state.recordsByProfile }),
       onRehydrateStorage: () => () => {
         useRectificationRecordsStore.setState({ hydrated: true });
