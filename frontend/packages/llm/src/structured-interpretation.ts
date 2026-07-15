@@ -1,4 +1,4 @@
-// Structured six-section Vedic interpretation generator, ported to run entirely
+// Structured seven-section Vedic interpretation generator, ported to run entirely
 // client-side against any OpenAI-compatible endpoint (no backend).
 //
 // This is the in-browser port of the predecessor's multi-call orchestrator
@@ -49,7 +49,8 @@ export type InterpretationSectionKey =
   | "guidance1"
   | "guidance2"
   | "remedial"
-  | "upcoming_periods";
+  | "upcoming_periods"
+  | "current_sky";
 
 export type InterpretationEvent =
   | { type: "section_start"; section: InterpretationSectionKey }
@@ -72,13 +73,14 @@ export interface StructuredInterpretationParams {
   readonly fetchImpl?: typeof fetch;
 }
 
-const ALL_SECTIONS: readonly InterpretationSectionKey[] = [
+export const ALL_SECTIONS: readonly InterpretationSectionKey[] = [
   "core",
   "yoga",
   "guidance1",
   "guidance2",
   "remedial",
   "upcoming_periods",
+  "current_sky",
 ];
 
 // =============================================================================
@@ -137,8 +139,8 @@ const SYSTEM_PROMPT = [
   "  you may assert between two planets is CONJUNCTION — and only when they share the",
   "  same `house` value. State nothing about any other inter-planetary relationship.",
   "",
-  "DASHA HONESTY (ABSOLUTE): there is NO birth date, NO age, and NO transit data in",
-  "  this chart. NEVER compute ages, 'Saturn returns', or age milestones, and NEVER",
+  "DASHA HONESTY (ABSOLUTE): there is NO birth date and NO age in this chart. NEVER",
+  "  compute ages, 'Saturn returns', or age milestones, and NEVER",
   "  extrapolate a date the data does not state. Timing comes ONLY from the dasha",
   "  fields: the lords and ORDER of the sequence, each period's status, the current",
   "  period's `months_remaining`, and — when present — the engine-dated month windows",
@@ -205,7 +207,7 @@ const SYSTEM_PROMPT_LITE = [
   "  - ASPECTS: this chart has NO aspect/drishti data. NEVER say a planet 'aspects',",
   "    'sees', or 'casts a glance on' another. The only relation you may state is",
   "    CONJUNCTION, and only when two planets share the same `house` value.",
-  "  - TIMING: there is NO birth date, NO age, NO transits. NEVER give ages or 'Saturn",
+  "  - TIMING: there is NO birth date and NO age. NEVER give ages or 'Saturn",
   "    returns', and NEVER invent a date. You MAY cite the dasha fields' own dated month",
   "    windows (start_month/end_month, antar_sequence, pratyantar_sequence) VERBATIM",
   "    when present; otherwise speak of chapters via the dasha order and `months_remaining`.",
@@ -307,6 +309,9 @@ const GUIDANCE1_TASK = [
   "  communication in partnership. Do NOT bleed one area's framing into another.",
   "DEBILITY HONESTY throughout; describe what success AND struggle FEEL like, not just",
   "  outcomes. Only reference yogas in the provided list.",
+  "When the ENGINE PREDICTIVE CONTEXT block is present, ground this in the domain's",
+  "  current emphasis (active daśā significator, Sade Sati, transit severity) and its",
+  "  next month-precision windows; otherwise speak to the natal placements only.",
 ].join("\n");
 
 const GUIDANCE2_TASK = [
@@ -335,6 +340,9 @@ const GUIDANCE2_TASK = [
   "  Every challenge mentioned MUST end with a BRIDGE to a NAMED strength or yoga.",
   "DEBILITY HONESTY throughout; give each section a distinct voice. Convey how money",
   "  anxiety/abundance and inner seeking FEEL. Only reference yogas in the provided list.",
+  "When the ENGINE PREDICTIVE CONTEXT block is present, ground this in the domain's",
+  "  current emphasis (active daśā significator, Sade Sati, transit severity) and its",
+  "  next month-precision windows; otherwise speak to the natal placements only.",
 ].join("\n");
 
 const REMEDIAL_TASK = [
@@ -357,6 +365,9 @@ const REMEDIAL_TASK = [
   "  or that is `is_combust`, or a yoga whose `grade` is weak. Name that placement as",
   "  the thing the remedy supports. NEVER invent an affliction, aspect, or dosha that",
   "  is not visible in the chart JSON.",
+  "When the ENGINE PREDICTIVE CONTEXT block is present, ground this in the domain's",
+  "  current emphasis (active daśā significator, Sade Sati, transit severity) and its",
+  "  next month-precision windows; otherwise speak to the natal placements only.",
 ].join("\n");
 
 const UPCOMING_PERIODS_TASK = [
@@ -383,6 +394,26 @@ const UPCOMING_PERIODS_TASK = [
   "DEBILITY HONESTY: a debilitated, combust, or retrograde lord's window is a",
   "  growth-through-effort chapter — name the condition; never call it plainly easy.",
   "ZERO TOLERANCE: never invent a period, a date, a dignity, or a yoga not in the data.",
+  "When the ENGINE PREDICTIVE CONTEXT block is present, ground this in the domain's",
+  "  current emphasis (active daśā significator, Sade Sati, transit severity) and its",
+  "  next month-precision windows; otherwise speak to the natal placements only.",
+].join("\n");
+
+const CURRENT_SKY_TASK = [
+  'TASK: "What\'s active now & next" — Return JSON:',
+  '{ "current_sky": [ { "title": string, "layman": string, "technical": string } ] }.',
+  "",
+  'Write "What\'s active now & next" — the native\'s CURRENT sky + near timing,',
+  "grounded ENTIRELY in the ENGINE PREDICTIVE CONTEXT block. Return 2–4",
+  "TitledPersona entries, most salient first: (1) the running period — the",
+  "mahā/antar/pratyantar lords and what they activate; (2) current transits that",
+  "matter — planets by house from Lagna and/or Moon, flag Sade Sati phase if",
+  "active; (3) the next dated windows — cite the engine's month-precision windows",
+  "per life area (career/relationships/health/…): what opens or intensifies and",
+  'roughly when. Each entry: title = a plain, specific label; content.layman =',
+  'jargon-free "what this means for you and when"; content.technical = the',
+  "placement/period named precisely. If the ENGINE PREDICTIVE CONTEXT block is",
+  "ABSENT, return an EMPTY array (never invent timing).",
 ].join("\n");
 
 const SECTION_TASKS: Record<InterpretationSectionKey, string> = {
@@ -392,6 +423,7 @@ const SECTION_TASKS: Record<InterpretationSectionKey, string> = {
   guidance2: GUIDANCE2_TASK,
   remedial: REMEDIAL_TASK,
   upcoming_periods: UPCOMING_PERIODS_TASK,
+  current_sky: CURRENT_SKY_TASK,
 };
 
 // =============================================================================
@@ -502,6 +534,7 @@ const SECTION_TASKS_LITE: Record<InterpretationSectionKey, string> = {
   guidance2: GUIDANCE2_TASK_LITE,
   remedial: REMEDIAL_TASK_LITE,
   upcoming_periods: UPCOMING_PERIODS_TASK_LITE,
+  current_sky: CURRENT_SKY_TASK,
 };
 
 function modeHint(mode: ViewMode, lite: boolean): string {
@@ -524,18 +557,33 @@ function modeHint(mode: ViewMode, lite: boolean): string {
  * chart JSON, and the system+user roles — only the INSTRUCTION TEXT changes — and
  * `chatCompletionJson` still requests `response_format: json_object`.
  */
+// Appended to BOTH system prompts when the chart carries NO engine predictive
+// block, so the prompt stays honest that this is a natal-only reading — never
+// inventing a transit, age, or date the chart does not carry.
+const NATAL_ONLY_HONESTY = [
+  "",
+  "NATAL-ONLY HONESTY: this chart carries the natal blueprint only — NO current",
+  "transit, age, or timing data. Do NOT invent transits, ages, or dates; speak to",
+  "the natal placements and the daśā sequence dates already in the chart.",
+].join("\n");
+
 // Appended to BOTH system prompts ONLY when the chart carries the engine
-// predictive block — so natal-only prompts stay byte-identical, and prompts
-// WITH the block never contradict the "no transit data" honesty fences above.
+// predictive block — so natal-only prompts stay byte-identical (see
+// NATAL_ONLY_HONESTY above), and prompts WITH the block REQUIRE grounding in
+// the engine's own current sky + timing rather than merely permitting it.
 const PREDICTIVE_CONTEXT_EXCEPTION = [
   "",
-  "PREDICTIVE CONTEXT EXCEPTION: this chart ALSO carries a deterministic engine",
-  "block delimited as 'ENGINE PREDICTIVE CONTEXT' (transits/Gochara, Sade Sati,",
-  "strength figures, life-domain windows). Treat it exactly like the chart JSON:",
-  "narrate ONLY what it states. You MAY cite its month-precision windows (e.g.",
-  "2030-03) verbatim — they are the ONLY dates that exist. Every other timing",
-  "rule still applies: no ages, no birth dates, no years, and no transit, window,",
-  "or strength figure that is not stated in that block.",
+  "ENGINE PREDICTIVE CONTEXT — USE IT (REQUIRED):",
+  "The block below carries THIS chart's CURRENT sky + timing, computed by the",
+  "deterministic engine: the running daśā stack (mahā/antar/pratyantar) with dated",
+  "windows, current Gochara (transits) by house from Lagna AND the Moon, Sade Sati",
+  "phase + rough end, the daśā-lord × transit fusion, and per-life-area forecast",
+  "windows. Ground EVERY forward-looking or life-area statement in these specifics:",
+  "name the running daśā lords and phase; cite transits by house; state Sade Sati",
+  "status when active; cite upcoming windows using the engine's MONTH precision",
+  "verbatim (e.g. 2026-05). HONESTY (unchanged): month precision ONLY — never invent",
+  "a day or a degree; bands/strength labels are the engine's convention, not a",
+  "verdict; never fabricate a value absent from the block.",
 ].join("\n");
 
 // --- Chart-JSON budget (Spec 062, LLM delta 6) ------------------------------
@@ -594,7 +642,7 @@ export function buildSectionMessages(
     ? liteUserContent(section, chartJson, mode, predictiveBlock)
     : fullUserContent(section, chartJson, mode, predictiveBlock);
   const basePrompt = lite ? SYSTEM_PROMPT_LITE : SYSTEM_PROMPT;
-  const exception = predictiveBlock === "" ? "" : PREDICTIVE_CONTEXT_EXCEPTION;
+  const exception = predictiveBlock === "" ? NATAL_ONLY_HONESTY : PREDICTIVE_CONTEXT_EXCEPTION;
   const systemPrompt = withLanguage(basePrompt + exception, language);
 
   return [
@@ -779,6 +827,11 @@ function parseUpcomingPeriods(json: unknown): TitledPersona[] {
   return parseTitledPersonas(rec.upcoming_periods);
 }
 
+function parseCurrentSky(json: unknown): TitledPersona[] {
+  const rec = asRecord(json);
+  return parseTitledPersonas(rec.current_sky);
+}
+
 // =============================================================================
 // Section results container (filled in parallel; merged at the end)
 // =============================================================================
@@ -790,6 +843,7 @@ interface SectionResults {
   guidance2: Guidance2Slice;
   remedial: RemedialMeasures | null;
   upcoming_periods: TitledPersona[];
+  current_sky: TitledPersona[];
 }
 
 function emptyResults(): SectionResults {
@@ -814,6 +868,7 @@ function emptyResults(): SectionResults {
     },
     remedial: null,
     upcoming_periods: [],
+    current_sky: [],
   };
 }
 
@@ -843,6 +898,9 @@ function applySection(
     case "upcoming_periods":
       results.upcoming_periods = parseUpcomingPeriods(json);
       return;
+    case "current_sky":
+      results.current_sky = parseCurrentSky(json);
+      return;
   }
 }
 
@@ -863,11 +921,14 @@ function mergeResults(results: SectionResults): VedicInterpretation {
     life_evolution_guidance: results.guidance2.life_evolution_guidance,
     remedial_measures: results.remedial,
     upcoming_periods: results.upcoming_periods,
+    // Degrades gracefully: an empty array (predictive absent, or the section
+    // failed) becomes null/absent so the UI never renders an empty block.
+    current_sky: results.current_sky.length > 0 ? results.current_sky : null,
   };
 }
 
 // =============================================================================
-// Orchestration: 5 parallel JSON calls -> stream of events -> merged complete
+// Orchestration: 7 parallel JSON calls -> stream of events -> merged complete
 // =============================================================================
 
 /** Internal per-section outcome reported back to the event loop. */
@@ -930,7 +991,7 @@ function summarizeFailures(messages: readonly string[]): string {
 }
 
 /**
- * Sanitize a chart and stream a structured six-section Vedic interpretation.
+ * Sanitize a chart and stream a structured seven-section Vedic interpretation.
  *
  * Emits `section_start` for every section up front, runs every section's JSON
  * call in PARALLEL, emits `section_complete` per successful section and `error`

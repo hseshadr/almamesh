@@ -389,6 +389,17 @@ export function buildNarrative(
     sections.push({ title: '', paragraphs: toParagraphs(summary) });
   }
 
+  // "What's Active Now & Next" (current_sky, Spec 065) — the predictive
+  // differentiator leads the reading, right after the summary. Degrades
+  // gracefully: absent/empty on a natal-only reading (honesty fence: never
+  // invent timing) simply drops the section, same as every titledSection below.
+  const currentSky = titledSection(
+    "What's Active Now & Next",
+    interpretation.current_sky ?? [],
+    audience,
+  );
+  if (currentSky) sections.push(currentSky);
+
   const strengths = titledSection('Strengths', interpretation.strengths ?? [], audience);
   if (strengths) sections.push(strengths);
   const challenges = titledSection('Challenges', interpretation.challenges ?? [], audience);

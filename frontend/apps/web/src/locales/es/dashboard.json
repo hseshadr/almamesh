@@ -37,7 +37,9 @@
   "reading": {
     "generated_by": "Generada por {{model}} · {{date}}",
     "generated_at": "Generada el {{date}}",
-    "regen_no_ai": "Conecta un modelo de IA para regenerar esta lectura."
+    "regen_no_ai": "Conecta un modelo de IA para regenerar esta lectura.",
+    "deepening": "Profundizando con tu momento astral actual…",
+    "enriched_caption": "Enriquecida con tu momento astral actual"
   },
   "grounding": {
     "summary": "Cómo se elabora esta lectura",
@@ -53,6 +55,7 @@
     "life_themes": "Grandes temas de vida",
     "yogas": "Yogas",
     "road_ahead": "El camino por delante",
+    "current_sky": "Lo que está activo ahora y a continuación",
     "explore": "Explora en profundidad",
     "expand": "Ampliar",
     "collapse": "Contraer",
@@ -72,7 +75,8 @@
     "yoga": "Trayectoria de vida (yogas)",
     "guidance1": "Salud, educación, carrera, relaciones",
     "guidance2": "Finanzas, camino espiritual, evolución de vida",
-    "remedial": "Medidas correctivas y autocuidado"
+    "remedial": "Medidas correctivas y autocuidado",
+    "current_sky": "Lo que está activo ahora y a continuación"
   },
   "chat": {
     "not_configured_notice": "Conecta un modelo de IA para hacer preguntas sobre tu carta: abre Configuración → Modelo de IA (o la insignia de IA en la cabecera) y usa la configuración rápida de OpenRouter con un clic, o apunta AlmaMesh a un modelo local (por ejemplo, Ollama en http://localhost:11434/v1)."

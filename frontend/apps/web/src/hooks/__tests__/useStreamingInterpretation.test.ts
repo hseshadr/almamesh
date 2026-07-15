@@ -133,7 +133,7 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
     expect(result.current.interpretation).toBeUndefined();
     expect(result.current.error).toBeNull();
     expect(result.current.isStreaming).toBe(false);
-    expect(result.current.sections).toHaveLength(5);
+    expect(result.current.sections).toHaveLength(6);
   });
 
   it('marks sections complete and stores the finished interpretation', async () => {
@@ -494,12 +494,17 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
     const entry = useInterpretationStore.getState().getEntry('chart-123');
     // The provenance is the display identity of the SAME resolved config the
     // hook streamed with — so the UI can caption the reading with its model
-    // and a later config change is detectable as a mismatch.
-    expect(entry?.provenance).toEqual(configProvenance(resolveInterpretationConfig()));
+    // and a later config change is detectable as a mismatch. It also carries
+    // predictiveAware (false here: the predictive store is not ready in this
+    // test), derived from the identity-keyed input provenance (null request key).
+    expect(entry?.provenance).toEqual({
+      ...configProvenance(resolveInterpretationConfig()),
+      predictiveAware: false,
+    });
     expect(entry?.provenance?.model).toBeTruthy();
-    // Never a secret: the persisted object has exactly the identity fields.
+    // Never a secret: the persisted object has exactly the identity + predictiveAware fields.
     expect(Object.keys(entry?.provenance ?? {}).sort()).toEqual(
-      Object.keys(configProvenance(resolveInterpretationConfig())).sort(),
+      [...Object.keys(configProvenance(resolveInterpretationConfig())), 'predictiveAware'].sort(),
     );
   });
 
@@ -524,9 +529,14 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
       await result.current.streamInterpretation('chart-123');
     });
 
-    expect(useInterpretationStore.getState().getEntry('chart-123')?.inputProvenance).toEqual({
+    const entry = useInterpretationStore.getState().getEntry('chart-123');
+    expect(entry?.inputProvenance).toEqual({
       predictiveRequestKey: CURRENT_PREDICTIVE_KEY,
     });
+    // `predictiveAware` is derived from the identity-keyed input provenance: a
+    // matching non-null request key means the full predictive superset was
+    // composed into THIS reading (the enrich-when-ready gate's signal).
+    expect(entry?.provenance?.predictiveAware).toBe(true);
   });
 
   it('records explicit natal-only provenance when no matching predictive facts were narrated', async () => {

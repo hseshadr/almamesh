@@ -1,7 +1,7 @@
 /**
  * useStreamingInterpretation Hook — local-first, in-browser STRUCTURED narration.
  *
- * Drives the structured 5-section Vedic interpretation generator from
+ * Drives the structured multi-section Vedic interpretation generator from
  * @almamesh/llm (`streamStructuredInterpretation`) and writes its progress +
  * result into the persisted `useInterpretationStore`, keyed by `chartId`. The
  * dashboard + astrologer cards read the finished `VedicInterpretation` straight
@@ -12,7 +12,7 @@
  * send anything (PrivacyViolationError). When no model is reachable / configured
  * we surface a friendly notice instead of crashing.
  *
- * The five JSON section calls fan out in parallel inside the generator; here we
+ * The JSON section calls fan out in parallel inside the generator; here we
  * translate its event stream into store mutations (startInterpretation /
  * markSectionComplete / setInterpretation / setError) and expose the derived
  * view-state the UI needs (status, per-section progress, error, isStreaming).
@@ -44,13 +44,14 @@ import type { ProcessedBirthData, VedicInterpretation } from '@almamesh/shared-t
 import { chatErrorMessage, classifyConnectionError } from '../lib/errors';
 import { buildEnsurePredictiveInput, predictiveReferenceInstant } from '../lib/predictive';
 
-/** The five structured sections, in the order the generator announces them. */
+/** The structured sections, in the order the generator announces them. */
 export const INTERPRETATION_SECTIONS: readonly InterpretationSectionKey[] = [
   'core',
   'yoga',
   'guidance1',
   'guidance2',
   'remedial',
+  'current_sky',
 ];
 
 /** One section's completion/failure flags, for a progress checklist in the UI. */
@@ -266,9 +267,15 @@ export function currentInterpretationForChart(
  * `sanitizeChartForLlm`, which reduces every predictive date to month
  * precision before any prompt is built.
  *
- * `chartId` mirrors `usePredictiveLayer`'s profile-key fallback
- * (`activeProfileId ?? chart_id ?? 'primary'`) so a stale profile's contexts
- * can never be composed onto another profile's chart.
+ * Identity is enforced by `narrationInput` / `currentPredictiveFacts`: contexts
+ * are composed only when the predictive store is `ready` for THIS chart's profile
+ * AND its deterministic `predictiveRequestKey` matches the current birth/reference
+ * identity — so a stale or cross-profile context can never reach another chart.
+ *
+ * Returns the (possibly-composed) chart. The caller derives `predictiveAware`
+ * from the resulting input provenance (a non-null `predictiveRequestKey`) to stamp
+ * whether the full predictive superset was present at generation time (Spec 065) —
+ * the single source of truth for the enrich-when-ready upgrade guard.
  */
 export function withRawPredictive(chart: SiderealChart, chartId: string | null): SiderealChart {
   return narrationInput(chart, chartId).chart;
@@ -359,17 +366,23 @@ export function useStreamingInterpretation(chartId?: string | null): UseStreamin
       }
 
       const config = resolveInterpretationConfig();
+      // Compose the persisted raw predictive contexts (when ready AND
+      // identity-current for this profile) so the section prompts carry the
+      // delimited engine predictive block; absent or stale contexts → natal-only,
+      // exactly as before. `predictiveAware` is DERIVED from the identity-keyed
+      // input provenance — a non-null `predictiveRequestKey` means the full
+      // predictive superset was composed into THIS reading — and is stamped onto
+      // the reading's provenance below as the single source of truth gating the
+      // one-shot enrich-when-ready upgrade (Spec 065).
+      const input = narrationInput(chart, id);
+      const predictiveAware = input.provenance.predictiveRequestKey !== null;
 
       const controller = new AbortController();
       abortControllerRef.current = controller;
-      const input = narrationInput(chart, id);
 
       startInterpretation(id);
       try {
         for await (const event of streamStructuredInterpretation({
-          // Compose the persisted raw predictive contexts (when ready for this
-          // profile) so the six section prompts carry the delimited engine
-          // predictive block; absent contexts → natal-only, exactly as before.
           chart: input.chart,
           config,
           mode: options.view_mode === 'expert' ? 'expert' : 'layman',
@@ -390,12 +403,14 @@ export function useStreamingInterpretation(chartId?: string | null): UseStreamin
             // Stamp the reading with the identity of the config that produced
             // it (engine/model/endpoint — never a key), so the UI can caption
             // it and a later config change is detectable as a provenance
-            // mismatch (auto-regeneration).
+            // mismatch (auto-regeneration). `predictiveAware` records whether
+            // the full predictive superset was actually composed into THIS
+            // reading, gating the one-shot enrich-when-ready upgrade.
             setInterpretation(
               id,
               event.interpretation,
               new Date().toISOString(),
-              configProvenance(config),
+              { ...configProvenance(config), predictiveAware },
               input.provenance,
             );
           }

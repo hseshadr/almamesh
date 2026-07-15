@@ -79,6 +79,17 @@ export function ReportInterpretation({
         </div>
       ) : null}
 
+      {/* "What's Active Now & Next" (current_sky, Spec 065) — the predictive
+          differentiator leads the reading, prominently placed right after the
+          summary. Degrades gracefully: absent/empty on a natal-only reading
+          (honesty fence: never invent timing) → simply not rendered. */}
+      <TitledBlock
+        title={t('interpretation.current_sky')}
+        items={interpretation.current_sky ?? []}
+        audience={audience}
+        testid="report-current-sky"
+      />
+
       <TitledBlock
         title={t('interpretation.strengths')}
         items={interpretation.strengths}

@@ -985,6 +985,10 @@ export interface VedicInterpretation {
   // no such section and must keep loading/rendering their 5 sections.
   upcoming_periods?: TitledPersona[] | null;
 
+  // The "What's active now & next" predictive section (7th). Optional: absent
+  // on natal-only readings (predictive not yet computed) and on older readings.
+  current_sky?: TitledPersona[] | null;
+
   // Current period guidance (for UI display, may be populated from dasha data)
   current_period_guidance?: CurrentPeriodGuidance | null;
 }

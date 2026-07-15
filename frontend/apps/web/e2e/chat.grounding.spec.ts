@@ -65,14 +65,16 @@ const READING_BLOCK_LABEL = 'Your chart reading (already generated';
 // request WITHOUT a recognized marker as THE CHAT TURN, so a missing key makes
 // that section's request (sent with the DEEP interpretation model — correct)
 // masquerade as the chat request and fail the fast-model assertion. That is
-// exactly how adding the sixth `upcoming_periods` section broke this gate.
+// exactly how adding the sixth `upcoming_periods` section broke this gate — and
+// how the seventh `current_sky` section (Spec 065) broke it again.
 type SectionKey =
   | 'core'
   | 'yoga'
   | 'guidance1'
   | 'guidance2'
   | 'remedial'
-  | 'upcoming_periods';
+  | 'upcoming_periods'
+  | 'current_sky';
 
 const STUB_SUMMARY = 'STUB GROUNDING SUMMARY about this chart.';
 
@@ -125,6 +127,17 @@ const SECTION_JSON: Record<SectionKey, unknown> = {
       },
     ],
   },
+  // Seventh section (Spec 065): "What's active now & next". Shape mirrors
+  // CURRENT_SKY_TASK ({ current_sky: [ { title, layman, technical } ] }).
+  current_sky: {
+    current_sky: [
+      {
+        title: 'The Saturn Mahadasha, Mercury Antardasha',
+        layman: 'STUB NOW & NEXT: a steady, building chapter right now.',
+        technical: 'Saturn maha active, Mercury antar; no transit data invented.',
+      },
+    ],
+  },
 };
 
 function sectionFor(body: string | null): SectionKey | null {
@@ -163,7 +176,7 @@ test('[contract/stubbed] chat reuses the reading + sends the fast chat model on 
     const body = route.request().postData();
     const section = sectionFor(body);
     if (section) {
-      // An interpretation section: answer with the canned JSON so the 5-section
+      // An interpretation section: answer with the canned JSON so the 7-section
       // reading actually completes (non-streaming chatCompletionJson path).
       interpRequestCount.n += 1;
       const content = JSON.stringify(SECTION_JSON[section]);
@@ -191,7 +204,7 @@ test('[contract/stubbed] chat reuses the reading + sends the fast chat model on 
 
   await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
 
-  // 1) Wait for the six-section reading to COMPLETE. interpretationText is only
+  // 1) Wait for the seven-section reading to COMPLETE. interpretationText is only
   //    reused when the stored entry's status === 'complete' (Dashboard.tsx), so
   //    this wait is load-bearing for change (c). Completion signal mirrors
   //    interpretation.spec.ts: the core summary renders AND the progress
@@ -201,8 +214,8 @@ test('[contract/stubbed] chat reuses the reading + sends the fast chat model on 
   await expect(page.getByTestId('interpretation-progress')).toHaveCount(0);
   expect(
     interpRequestCount.n,
-    'all 6 interpretation sections (incl. upcoming_periods) should have been requested',
-  ).toBeGreaterThanOrEqual(6);
+    'all 7 interpretation sections (incl. current_sky) should have been requested',
+  ).toBeGreaterThanOrEqual(7);
 
   // 2) Open the chat panel and send a question (selectors from chat.rag.real.spec.ts).
   await page.getByTestId('floating-chat-button').click({ timeout: 60_000 });

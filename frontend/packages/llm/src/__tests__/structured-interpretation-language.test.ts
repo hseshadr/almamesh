@@ -30,6 +30,7 @@ const SECTIONS: InterpretationSectionKey[] = [
   "guidance2",
   "remedial",
   "upcoming_periods",
+  "current_sky",
 ];
 
 function markerFor(body: string): InterpretationSectionKey {
@@ -58,6 +59,9 @@ const MINIMAL_SECTION_JSON: Record<InterpretationSectionKey, unknown> = {
   remedial: { remedial_measures: { layman: "ok", technical: "ok" } },
   upcoming_periods: {
     upcoming_periods: [{ title: "ok", layman: "ok", technical: "ok" }],
+  },
+  current_sky: {
+    current_sky: [{ title: "ok", layman: "ok", technical: "ok" }],
   },
 };
 
@@ -106,7 +110,7 @@ describe("streamStructuredInterpretation — language awareness", () => {
       }),
     );
     const systems = systemPrompts(bodies);
-    expect(systems).toHaveLength(6);
+    expect(systems).toHaveLength(7);
     for (const system of systems) {
       expect(system).toMatch(/Spanish/);
       expect(system).toMatch(/Español/);
