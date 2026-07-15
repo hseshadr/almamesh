@@ -13,6 +13,33 @@ export interface DeletionPropagation {
   subscribe: (listener: (notice: DeletionNotice) => void) => () => void;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isStringList(value: unknown): value is readonly string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === 'string');
+}
+
+function isDeletionNotice(value: unknown): value is DeletionNotice {
+  if (!isRecord(value)) return false;
+  if (value.kind === 'thread') return typeof value.threadId === 'string';
+  if (value.kind === 'profile') {
+    return (
+      typeof value.profileId === 'string' &&
+      isStringList(value.chartIds) &&
+      isStringList(value.threadIds)
+    );
+  }
+  if (value.kind !== 'dataset' || !['reset', 'replace'].includes(String(value.operation))) {
+    return false;
+  }
+  const validPhase =
+    value.phase === undefined || ['begin', 'complete', 'abort'].includes(String(value.phase));
+  const validStoreKeys = value.presentStoreKeys === undefined || isStringList(value.presentStoreKeys);
+  return validPhase && validStoreKeys;
+}
+
 export function createDeletionPropagation(channel?: DeletionChannel): DeletionPropagation {
   return {
     publish: (notice) => channel?.postMessage(notice),
@@ -20,7 +47,9 @@ export function createDeletionPropagation(channel?: DeletionChannel): DeletionPr
       if (!channel) {
         return () => undefined;
       }
-      const onMessage: MessageListener = (event) => listener(event.data as DeletionNotice);
+      const onMessage: MessageListener = (event) => {
+        if (isDeletionNotice(event.data)) listener(event.data);
+      };
       channel.addEventListener('message', onMessage);
       return () => channel.removeEventListener('message', onMessage);
     },

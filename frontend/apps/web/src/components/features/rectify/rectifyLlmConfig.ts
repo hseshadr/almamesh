@@ -16,13 +16,13 @@ import {
 } from '@almamesh/llm';
 
 /**
- * Returns true when the interview's AI loop can actually run: a cloud endpoint
- * (OpenRouter / custom). A BYO `local` endpoint stays gated — the typed
- * event-extraction contract is only enforced on cloud (server-side).
+ * Returns true when the interview's AI loop can actually run through any
+ * configured provider. Local endpoints use the same validated client-side
+ * event-extraction contract without sending the narrative to the cloud.
  */
 export function isAiUsable(): boolean {
   const status = describeLlmStatus(readLlmSettings());
-  return (status.kind === 'openrouter' || status.kind === 'cloud') && status.configured;
+  return status.kind !== 'none' && status.configured;
 }
 
 /** Build a ProviderConfig from the persisted user settings + Vite env. */

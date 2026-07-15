@@ -25,4 +25,28 @@ describe('deletion propagation', () => {
     unsubscribe();
     expect(listeners).toHaveLength(0);
   });
+
+  it('ignores malformed cross-realm messages instead of treating them as deletion commands', () => {
+    const listeners = new Set<(event: MessageEvent<unknown>) => void>();
+    const channel: DeletionChannel = {
+      postMessage: vi.fn(),
+      addEventListener: (_type, listener) => listeners.add(listener),
+      removeEventListener: (_type, listener) => listeners.delete(listener),
+    };
+    const listener = vi.fn();
+    createDeletionPropagation(channel).subscribe(listener);
+
+    const malformed = [
+      null,
+      { kind: 'profile', profileId: 'profile-1', chartIds: 'chart-1', threadIds: [] },
+      { kind: 'thread' },
+      { kind: 'dataset', operation: 'erase-everything' },
+      { kind: 'dataset', operation: 'reset', phase: 'unknown' },
+    ];
+    for (const data of malformed) {
+      for (const deliver of listeners) deliver(new MessageEvent('message', { data }));
+    }
+
+    expect(listener).not.toHaveBeenCalled();
+  });
 });

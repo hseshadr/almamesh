@@ -437,6 +437,7 @@ describe('commitBackupImport (full round-trip)', () => {
   it('commits source data and marks search resumable when vector reindex fails', async () => {
     const publishDatasetNotice = vi.fn();
     const completeMemoryRebuild = vi.fn().mockResolvedValue(undefined);
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     const envelope: BackupEnvelopePlain = {
       format: 'almamesh-backup',
       formatVersion: 1,
@@ -453,16 +454,61 @@ describe('commitBackupImport (full round-trip)', () => {
         tiers: { idb: memTier(), local: memTier() },
         beginBackupRestore: vi.fn().mockResolvedValue(4),
         finalizeBackupRestore: vi.fn().mockResolvedValue(undefined),
-        rebuildChatMemory: vi.fn().mockRejectedValue(new Error('embedding unavailable')),
+        rebuildChatMemory: vi
+          .fn()
+          .mockRejectedValue(new Error('private-message-content must never reach logs')),
         completeMemoryRebuild,
         publishDatasetNotice,
       }),
     ).resolves.toBeUndefined();
 
     expect(completeMemoryRebuild).not.toHaveBeenCalled();
+    expect(warn).toHaveBeenCalledWith('Restored chat search will rebuild on the next app load.');
     expect(publishDatasetNotice).toHaveBeenLastCalledWith(
       expect.objectContaining({ kind: 'dataset', phase: 'complete' }),
     );
+  });
+
+  it('finishes source restore within 30 seconds when semantic-memory rebuild hangs', async () => {
+    vi.useFakeTimers();
+    try {
+      const publishDatasetNotice = vi.fn();
+      const completeMemoryRebuild = vi.fn();
+      const envelope: BackupEnvelopePlain = {
+        format: 'almamesh-backup',
+        formatVersion: 1,
+        app: { version: 'test' },
+        exportedAt: FIXED_NOW,
+        encryption: 'none',
+        stores: {
+          'almamesh-profiles': {
+            version: 1,
+            state: { profiles: { p1: { id: 'p1' } }, activeProfileId: 'p1' },
+          },
+        },
+      };
+      let settled = false;
+
+      void commitBackupImport(envelope, {
+        tiers: { idb: memTier(), local: memTier() },
+        beginBackupRestore: vi.fn().mockResolvedValue(3),
+        finalizeBackupRestore: vi.fn().mockResolvedValue(undefined),
+        rebuildChatMemory: () => new Promise<void>(() => undefined),
+        completeMemoryRebuild,
+        publishDatasetNotice,
+      }).then(() => {
+        settled = true;
+      });
+      await vi.advanceTimersByTimeAsync(30_000);
+
+      expect(settled).toBe(true);
+      expect(completeMemoryRebuild).not.toHaveBeenCalled();
+      expect(publishDatasetNotice).toHaveBeenLastCalledWith(
+        expect.objectContaining({ phase: 'complete' }),
+      );
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('restores every store into fresh tiers and runs the post-write housekeeping', async () => {

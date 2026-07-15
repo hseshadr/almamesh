@@ -1,9 +1,8 @@
 /**
  * isAiUsable — the rectification-interview AI gate.
  *
- * Matrix: the interview is actionable on OpenRouter / custom-cloud configs; it
- * stays GATED on none and on BYO local endpoints (no xgrammar enforcement
- * there).
+ * Matrix: the interview is actionable on every configured provider, including
+ * private local endpoints, and stays gated only when no usable provider exists.
  *
  * These tests drive the REAL settings pipeline (localStorage blob →
  * readLlmSettings → describeLlmStatus) — no mocks — so the matrix proves the
@@ -18,7 +17,7 @@ function seedSettings(blob: Record<string, unknown>): void {
   window.localStorage.setItem(LLM_SETTINGS_KEY, JSON.stringify(blob));
 }
 
-describe('isAiUsable — cloud gate matrix', () => {
+describe('isAiUsable — provider gate matrix', () => {
   beforeEach(() => window.localStorage.clear());
   afterEach(() => window.localStorage.clear());
 
@@ -26,9 +25,9 @@ describe('isAiUsable — cloud gate matrix', () => {
     expect(isAiUsable()).toBe(false);
   });
 
-  it('BYO local endpoint (Ollama) → still gated, exactly as before 063', () => {
+  it('BYO local endpoint (Ollama) → usable without cloud egress', () => {
     seedSettings({ apiBase: 'http://localhost:11434/v1', model: 'llama3' });
-    expect(isAiUsable()).toBe(false);
+    expect(isAiUsable()).toBe(true);
   });
 
   it('OpenRouter, fully configured → usable', () => {

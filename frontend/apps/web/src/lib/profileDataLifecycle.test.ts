@@ -310,13 +310,40 @@ describe('deleteProfileData', () => {
     const target = useProfilesStore.getState().createProfile('Target');
     useProfilesStore.getState().createProfile('Survivor');
     useLifeEventsStore.getState().addEvent(target, { description: 'Keep on failure', date: '2010-01-01' });
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
     await deleteProfileData(target, {
-      deleteMemoryForProfile: vi.fn().mockRejectedValue(new Error('IndexedDB blocked')),
+      deleteMemoryForProfile: vi
+        .fn()
+        .mockRejectedValue(new Error('private-profile-id must never reach logs')),
     });
 
     expect(useProfilesStore.getState().profiles[target]).toBeUndefined();
     expect(useLifeEventsStore.getState().getEvents(target)).toHaveLength(0);
+    expect(warn).toHaveBeenCalledWith(
+      'Derived chat memory could not be drained before source deletion.',
+    );
+  });
+
+  it('finishes source deletion within 10 seconds when derived-vector draining hangs', async () => {
+    vi.useFakeTimers();
+    try {
+      const target = useProfilesStore.getState().createProfile('Target');
+      useProfilesStore.getState().createProfile('Survivor');
+      let settled = false;
+
+      void deleteProfileData(target, {
+        deleteMemoryForProfile: () => new Promise<void>(() => undefined),
+      }).then(() => {
+        settled = true;
+      });
+      await vi.advanceTimersByTimeAsync(10_000);
+
+      expect(settled).toBe(true);
+      expect(useProfilesStore.getState().profiles[target]).toBeUndefined();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('deletes historical interpretations from prior chart regenerations', async () => {

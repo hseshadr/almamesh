@@ -46,6 +46,17 @@ export interface ProfileDataLifecycleDeps {
   waitForHydration?: () => Promise<void>;
 }
 
+const DERIVED_MEMORY_DELETE_SLA_MS = 10_000;
+
+function withinDerivedMemoryDeleteSla(operation: Promise<void>): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      reject(new Error('Derived-memory deletion exceeded its 10-second safety bound.'));
+    }, DERIVED_MEMORY_DELETE_SLA_MS);
+    void operation.then(resolve, reject).finally(() => clearTimeout(timeout));
+  });
+}
+
 async function waitForProfileStoresHydrated(): Promise<void> {
   const interpretationHydration = useInterpretationStore.persist.hasHydrated()
     ? Promise.resolve()
@@ -210,9 +221,9 @@ export async function deleteProfileData(
       throw error;
     }
     try {
-      await deps.deleteMemoryForProfile(profileId);
-    } catch (error) {
-      console.warn('Derived chat memory could not be drained before source deletion.', error);
+      await withinDerivedMemoryDeleteSla(deps.deleteMemoryForProfile(profileId));
+    } catch {
+      console.warn('Derived chat memory could not be drained before source deletion.');
     }
     assertDeletableProfile(profileId);
     useLifeEventsStore.getState().clearEvents(profileId);
@@ -256,9 +267,9 @@ export async function deleteChatThreadData(
       throw error;
     }
     try {
-      await deps.deleteMemoryForThread(threadId);
-    } catch (error) {
-      console.warn('Derived chat memory could not be drained before source deletion.', error);
+      await withinDerivedMemoryDeleteSla(deps.deleteMemoryForThread(threadId));
+    } catch {
+      console.warn('Derived chat memory could not be drained before source deletion.');
     }
     useChatStore.getState().deleteThread(threadId);
     await persistChatDeletion();
@@ -382,9 +393,9 @@ export async function applyRemoteDeletionNotice(
     if (notice.kind === 'thread') {
       await whenChatHydrated();
       try {
-        await deps.deleteMemoryForThread(notice.threadId);
-      } catch (error) {
-        console.warn('Derived chat memory could not be drained in this realm.', error);
+        await withinDerivedMemoryDeleteSla(deps.deleteMemoryForThread(notice.threadId));
+      } catch {
+        console.warn('Derived chat memory could not be drained in this realm.');
       }
       useChatStore.getState().deleteThread(notice.threadId);
       await persistChatDeletion();
@@ -392,17 +403,17 @@ export async function applyRemoteDeletionNotice(
     }
     await waitForProfileStoresHydrated();
     try {
-      await deps.deleteMemoryForProfile(notice.profileId);
-    } catch (error) {
-      console.warn('Derived chat memory could not be drained in this realm.', error);
+      await withinDerivedMemoryDeleteSla(deps.deleteMemoryForProfile(notice.profileId));
+    } catch {
+      console.warn('Derived chat memory could not be drained in this realm.');
     }
     purgeLocalProfile(notice.profileId, notice.chartIds);
     await persistProfileDeletion();
   });
 }
 
-function reportRemoteDeletionError(error: unknown): void {
-  console.error('Cross-realm data deletion could not be applied.', error);
+function reportRemoteDeletionError(): void {
+  console.error('Cross-realm data deletion could not be applied.');
 }
 
 async function reconcileDurableDeletionLedger(): Promise<void> {

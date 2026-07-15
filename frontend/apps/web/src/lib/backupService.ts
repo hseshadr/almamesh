@@ -40,6 +40,18 @@ import type { IndexableMessage } from '@almamesh/memory';
 import { clearMemory, rebuildMemory } from './chatMemory';
 import { publishDeletionNotice } from './deletionPropagation';
 
+const MEMORY_REBUILD_SLA_MS = 30_000;
+
+function withinMemoryRebuildSla(operation: Promise<void>): Promise<void> {
+  return new Promise((resolvePromise, rejectPromise) => {
+    const timeout = setTimeout(
+      () => rejectPromise(new Error('Semantic-memory rebuild exceeded the 30-second restore SLA.')),
+      MEMORY_REBUILD_SLA_MS,
+    );
+    void operation.then(resolvePromise, rejectPromise).finally(() => clearTimeout(timeout));
+  });
+}
+
 /**
  * Build-injected app version (Vite `define`). Read with a `typeof` guard so an
  * undefined-at-runtime constant never throws — falling back to `'dev'`.
@@ -293,11 +305,11 @@ export async function commitBackupImport(
     throw error;
   }
   try {
-    await rebuild(restoredChatMessages(plain));
+    await withinMemoryRebuildSla(rebuild(restoredChatMessages(plain)));
     await (override?.completeMemoryRebuild ??
       (browserEffects ? clearMemoryRebuildPending : async () => undefined))(epoch);
-  } catch (error) {
-    console.warn('Restored chat search will rebuild on the next app load.', error);
+  } catch {
+    console.warn('Restored chat search will rebuild on the next app load.');
   }
   publish({ kind: 'dataset', operation: 'replace', phase: 'complete', presentStoreKeys });
 }
