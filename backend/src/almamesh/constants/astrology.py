@@ -1,9 +1,9 @@
-from enum import Enum
+from enum import StrEnum
 
 # --- Astrological Enums ---
 
 
-class PlanetName(str, Enum):
+class PlanetName(StrEnum):
     SUN = "sun"
     MOON = "moon"
     MARS = "mars"
@@ -15,7 +15,7 @@ class PlanetName(str, Enum):
     KETU = "ketu"
 
 
-class ZodiacSign(str, Enum):
+class ZodiacSign(StrEnum):
     ARIES = "Aries"
     TAURUS = "Taurus"
     GEMINI = "Gemini"
@@ -30,7 +30,7 @@ class ZodiacSign(str, Enum):
     PISCES = "Pisces"
 
 
-class Dignity(str, Enum):
+class Dignity(StrEnum):
     EXALTED = "exalted"
     DEBILITATED = "debilitated"
     OWN = "own"
@@ -42,13 +42,13 @@ class Dignity(str, Enum):
     BITTER_ENEMY = "bitter_enemy"
 
 
-class DashaSystem(str, Enum):
+class DashaSystem(StrEnum):
     VIMSHOTTARI = "vimshottari"
     CHARA = "chara"
     YOGINI = "yogini"
 
 
-class EventType(str, Enum):
+class EventType(StrEnum):
     # Career
     CAREER_CHANGE = "career_change"
     PROMOTION = "promotion"

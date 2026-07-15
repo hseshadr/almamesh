@@ -9,7 +9,7 @@ browser. See `backend/docs/predictive-engine-plan.md` section 2 for the contract
 from __future__ import annotations
 
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
@@ -18,7 +18,7 @@ from almamesh.constants.astrology import PlanetName, ZodiacSign
 # --- enums (closed sets; serialize as their .value) ---
 
 
-class SadeSatiPhase(str, Enum):
+class SadeSatiPhase(StrEnum):
     """Which sign Saturn occupies relative to the natal Moon during Sade Sati."""
 
     RISING = "rising"  # Saturn in the 12th from natal Moon sign
@@ -27,14 +27,14 @@ class SadeSatiPhase(str, Enum):
     NONE = "none"  # not currently in Sade Sati
 
 
-class TransitReference(str, Enum):
+class TransitReference(StrEnum):
     """The natal point a gochara reading is counted from."""
 
     MOON = "moon"  # Chandra Lagna (Janma Rasi) — the classical primary
     LAGNA = "lagna"  # natal Ascendant — secondary
 
 
-class TransitEventKind(str, Enum):
+class TransitEventKind(StrEnum):
     """The kind of a dated forward event in the timeline."""
 
     SIGN_INGRESS = "sign_ingress"  # a slow graha enters a new rasi
@@ -44,7 +44,7 @@ class TransitEventKind(str, Enum):
     STATION = "station"  # retrograde/direct station (slow grahas)
 
 
-class TransitSeverity(str, Enum):
+class TransitSeverity(StrEnum):
     """Coarse, deterministic, classical-leaning valence (the LLM refines later)."""
 
     SUPPORTIVE = "supportive"

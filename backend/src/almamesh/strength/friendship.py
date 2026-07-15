@@ -8,14 +8,14 @@ maitri table.)
 
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 from types import MappingProxyType
 from typing import Final
 
 from almamesh.constants.astrology import PlanetName
 
 
-class Relationship(str, Enum):
+class Relationship(StrEnum):
     """Natural relationship of a graha to a sign-lord."""
 
     GREAT_FRIEND = "great_friend"

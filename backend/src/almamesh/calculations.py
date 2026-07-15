@@ -24,7 +24,7 @@ import importlib.resources
 import logging
 import math
 from datetime import UTC, datetime, timedelta
-from enum import Enum
+from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
@@ -111,21 +111,21 @@ ComprehensiveAstrologicalData = SiderealContext
 # --- Ayanamsa Logic ---
 
 
-class AyanamsaType(str, Enum):
+class AyanamsaType(StrEnum):
     """Sidereal zero-point convention."""
 
     LAHIRI = "LAHIRI"  # official Chitrapaksha (default)
     TRUE_CHITRA = "TRUE_CHITRA"  # Spica forced to exactly 180.000 deg
 
 
-class NodeType(str, Enum):
+class NodeType(StrEnum):
     """Lunar-node model."""
 
     MEAN = "mean"  # Meeus polynomial (default, backward-compatible)
     TRUE = "true"  # osculating node from the Moon's state vector
 
 
-class HouseSystem(str, Enum):
+class HouseSystem(StrEnum):
     """House-division convention the engine uses.
 
     AlmaMesh uses **whole-sign** houses (Vedic standard): each house is one

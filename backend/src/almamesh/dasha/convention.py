@@ -18,7 +18,7 @@ human decision (an astrologer / JHora); the engine never picks silently, and
 
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 from typing import TYPE_CHECKING, Final
 
 if TYPE_CHECKING:
@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     from almamesh.schemas.astrology import VimshottariDashaData
 
 
-class DashaYearConvention(str, Enum):
+class DashaYearConvention(StrEnum):
     """How many solar days make one dasha year."""
 
     SAVANA_360 = "savana_360"

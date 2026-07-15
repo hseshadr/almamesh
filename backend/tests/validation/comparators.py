@@ -12,10 +12,10 @@ Tolerance Levels:
 """
 
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 
 
-class ValidationStatus(str, Enum):
+class ValidationStatus(StrEnum):
     """Status of a validation comparison."""
 
     EXACT = "exact"  # < 0.01 degrees difference

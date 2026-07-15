@@ -20,7 +20,7 @@ public entrypoint. A shared ``schemas/__init__`` is intentionally NOT edited.
 from __future__ import annotations
 
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -30,7 +30,7 @@ from almamesh.schemas.transits import TransitEventKind, TransitSeverity
 from almamesh.schemas.vargas import DivisionalChart
 
 
-class LifeDomain(str, Enum):
+class LifeDomain(StrEnum):
     """The closed set of life facets this synthesis layer forecasts."""
 
     CAREER = "career"
@@ -42,7 +42,7 @@ class LifeDomain(str, Enum):
     FAMILY = "family"
 
 
-class StrengthBand(str, Enum):
+class StrengthBand(StrEnum):
     """Coarse, deterministic strength verdict for a domain's key significator."""
 
     STRONG = "strong"
@@ -50,7 +50,7 @@ class StrengthBand(str, Enum):
     WEAK = "weak"
 
 
-class WindowSource(str, Enum):
+class WindowSource(StrEnum):
     """Which subsystem produced an upcoming window."""
 
     DASHA = "dasha"  # a maha/antar/pratyantar sub-period boundary
