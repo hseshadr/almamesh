@@ -166,6 +166,26 @@ describe('lifeEventsStore', () => {
     expect(events[0].id).not.toBe(events[1].id);
   });
 
+  it('persists typed onboarding rows without demoting them to legacy blobs', () => {
+    store.getState().setEvents('profile-a', [
+      {
+        description: 'Got married',
+        summary: 'Got married',
+        date: '2015-01-01',
+        category: 'marriage',
+        precision: 'year',
+      } as unknown as Parameters<LifeEventsStore['setEvents']>[1][number],
+    ]);
+
+    expect(store.getState().getEvents('profile-a')[0]).toMatchObject({
+      date: '2015-01-01',
+      category: 'marriage',
+      precision: 'year',
+      summary: 'Got married',
+    });
+    expect(isStructuredLifeEvent(store.getState().getEvents('profile-a')[0])).toBe(true);
+  });
+
   it('returns an empty array for a profile with no events', () => {
     expect(store.getState().getEvents('nobody')).toEqual([]);
   });

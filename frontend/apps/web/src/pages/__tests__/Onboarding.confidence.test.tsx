@@ -15,6 +15,8 @@ import '../../i18n/config';
 
 // --- module mocks (declared before importing the page) ---
 const navigateSpy = vi.fn();
+const structureLifeEventsSpy = vi.hoisted(() => vi.fn());
+const structurerAvailability = vi.hoisted(() => ({ enabled: true }));
 vi.mock('react-router-dom', async (orig) => {
   const actual = await orig<typeof import('react-router-dom')>();
   return { ...actual, useNavigate: () => navigateSpy };
@@ -22,6 +24,23 @@ vi.mock('react-router-dom', async (orig) => {
 
 vi.mock('../../lib/resetAppData', () => ({
   resetAppData: () => Promise.resolve(),
+}));
+
+vi.mock('@almamesh/llm', async (orig) => {
+  const actual = await orig<typeof import('@almamesh/llm')>();
+  return { ...actual, structureLifeEvents: structureLifeEventsSpy };
+});
+
+vi.mock('../../components/features/rectify/rectifyLlmConfig', () => ({
+  isAiUsable: () => structurerAvailability.enabled,
+  resolveConfig: () => ({
+    engine: 'openai-http',
+    endpoint: 'https://example.invalid/v1',
+    apiKey: 'synthetic-test-key',
+    model: 'synthetic/test-model',
+    privacyMode: 'pii_redacted',
+  }),
+  toPromptLanguage: () => 'en',
 }));
 
 const fakeEngine = { generateChart: vi.fn() } as unknown as ChartEngine;
@@ -92,6 +111,15 @@ beforeEach(() => {
   useOnboardingStore.getState().reset();
   useProfilesStore.setState({ profiles: {}, activeProfileId: null });
   useLifeEventsStore.setState({ eventsByProfile: {} });
+  structurerAvailability.enabled = true;
+  structureLifeEventsSpy.mockReset();
+  structureLifeEventsSpy.mockResolvedValue({
+    status: 'ok',
+    events: [
+      { date: '2015-01-01', category: 'marriage', precision: 'year', summary: 'Got married' },
+      { date: '2020-01-01', category: 'career_change', precision: 'year', summary: 'Changed careers' },
+    ],
+  });
 });
 
 afterEach(() => {
@@ -149,10 +177,24 @@ describe('Onboarding — honest life-events copy', () => {
     // The CTA is still reachable (a real button, just honestly labeled).
     expect(screen.getByTestId('extract-events-button')).toBeTruthy();
   });
+
+  it('discloses the configured-AI narrative egress before Save is pressed', () => {
+    seedAt(5);
+    renderPage();
+
+    expect(screen.getByText(/connected AI provider/i)).toBeTruthy();
+  });
+
+  it('bounds the narrative sent to a provider or deterministic parser', () => {
+    seedAt(5);
+    renderPage();
+
+    expect((screen.getByTestId('life-events-input') as HTMLTextAreaElement).maxLength).toBe(5000);
+  });
 });
 
 describe('Onboarding — life events persist per profile', () => {
-  it('saves the captured life events to the active profile on generation', async () => {
+  it('uses configured AI to persist one typed row per event', async () => {
     seedAt(5);
     renderPage();
 
@@ -166,7 +208,30 @@ describe('Onboarding — life events persist per profile', () => {
     const profileId = useProfilesStore.getState().activeProfileId;
     expect(profileId).toBeTruthy();
     const events = useLifeEventsStore.getState().getEvents(profileId as string);
-    expect(events).toHaveLength(1);
-    expect(events[0].description).toContain('married');
+    expect(structureLifeEventsSpy).toHaveBeenCalledOnce();
+    expect(events).toHaveLength(2);
+    expect(events.map((event) => event.category)).toEqual(['marriage', 'career_change']);
+    expect(events.map((event) => event.date)).toEqual(['2015-01-01', '2020-01-01']);
+    expect(events.every((event) => event.needsStructuring !== true)).toBe(true);
+  }, 8000);
+
+  it('deterministically separates dated events when AI is unavailable', async () => {
+    structurerAvailability.enabled = false;
+    seedAt(5);
+    renderPage();
+
+    fireEvent.change(screen.getByTestId('life-events-input'), {
+      target: { value: 'I got married in 2015. I changed careers in 2020.' },
+    });
+    fireEvent.click(screen.getByTestId('extract-events-button'));
+
+    await waitFor(() => expect(navigateSpy).toHaveBeenCalledWith('/dashboard'), { timeout: 6000 });
+
+    expect(structureLifeEventsSpy).not.toHaveBeenCalled();
+    const profileId = useProfilesStore.getState().activeProfileId;
+    const events = useLifeEventsStore.getState().getEvents(profileId as string);
+    expect(events).toHaveLength(2);
+    expect(events.map((event) => event.category)).toEqual(['marriage', 'career_change']);
+    expect(events.map((event) => event.precision)).toEqual(['year', 'year']);
   }, 8000);
 });

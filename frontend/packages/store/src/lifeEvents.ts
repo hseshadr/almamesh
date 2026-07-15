@@ -75,6 +75,10 @@ export interface LifeEvent {
 export interface LifeEventInput {
   readonly description: string;
   readonly date?: string;
+  /** Typed category supplied by the validated onboarding/rectification structurer. */
+  readonly category?: LifeEventCategory;
+  /** Honest date precision supplied with a structured row. */
+  readonly precision?: EventDatePrecision;
   /** Human-readable "what happened" summary in the user's own words (optional). */
   readonly summary?: string;
 }
@@ -212,6 +216,8 @@ function toLifeEvent(input: LifeEventInput): LifeEvent | null {
     description,
     date: input.date?.trim() ?? '',
     createdAt: new Date().toISOString(),
+    ...(input.category ? { category: input.category } : {}),
+    ...(input.precision ? { precision: input.precision } : {}),
     ...(summary ? { summary } : {}),
   };
 }

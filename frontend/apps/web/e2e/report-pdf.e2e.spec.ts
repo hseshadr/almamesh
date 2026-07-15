@@ -58,6 +58,7 @@ const MAXIMAL_DOWNLOAD_PATH = resolve(OUT_DIR, 'e2e-maximal-download.pdf');
 const SYNTHETIC_PROFILE_ID = 'report-pdf-maximal-profile';
 const SYNTHETIC_CHART_ID = 'report-pdf-maximal-chart';
 const SYNTHETIC_EVENT_COUNT = 18;
+const CURRENT_SKY_SENTINEL = 'Current sky browser-download sentinel';
 const TRANSIT_REFERENCE_TIME = '2026-07-11T12:00:00Z';
 const RECTIFIED_TRANSIT_ROWS = [
   { graha: 'Saturn', sign: 'Pisces', cancerHouse: 9, aquariusHouse: 2 },
@@ -382,6 +383,38 @@ async function seedSyntheticMaximalReport(page: Page): Promise<void> {
       JSON.stringify({
         state: { eventsByProfile: { [SYNTHETIC_PROFILE_ID]: events } },
         version: 4,
+      }),
+    ],
+    [
+      'almamesh-interpretations',
+      JSON.stringify({
+        state: {
+          byChart: {
+            [SYNTHETIC_CHART_ID]: {
+              status: 'complete',
+              sections: { current_sky: true },
+              profileId: SYNTHETIC_PROFILE_ID,
+              updatedAt: '2026-07-11T12:00:00Z',
+              interpretation: {
+                summary: {
+                  layman: 'A synthetic maximal-report reading.',
+                  technical: 'A synthetic maximal-report reading.',
+                },
+                strengths: [],
+                challenges: [],
+                life_themes: [],
+                current_sky: [
+                  {
+                    title: 'Jupiter transit',
+                    layman: CURRENT_SKY_SENTINEL,
+                    technical: CURRENT_SKY_SENTINEL,
+                  },
+                ],
+              },
+            },
+          },
+        },
+        version: 5,
       }),
     ],
     [
@@ -1074,6 +1107,7 @@ test('synthetic maximal state -> real browser download preserves every report fa
     'accepted the maximal browser sentinel role',
     'final yoga sentinel',
     'final paginated event sentinel',
+    CURRENT_SKY_SENTINEL.toLowerCase(),
     '08:15',
     'timed to the sub-sub-period',
   ]) {
