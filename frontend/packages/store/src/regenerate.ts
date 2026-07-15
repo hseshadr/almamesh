@@ -26,7 +26,8 @@ export interface RegenerateEngine {
 
 /** The minimal chart-library surface the handler mutates. */
 export interface RegenerateLibrary {
-  getPrimaryChart: () => StoredChart | undefined;
+  /** Every stored chart, independent of whichever profile is active now. */
+  listAllCharts: () => StoredChart[];
   saveChart: (chart: StoredChart) => void;
   deleteChart: (chartId: string) => void;
 }
@@ -56,9 +57,15 @@ function buildPrimary(
   };
 }
 
-/** True when the new birth inputs resolve to the existing primary's chart id. */
-function isUnchanged(library: RegenerateLibrary, nextId: string): boolean {
-  return library.getPrimaryChart()?.chart_id === nextId;
+/** Resolve the primary in the event owner's profile, never the active UI profile. */
+function primaryForProfile(
+  library: RegenerateLibrary,
+  profileId: string | null,
+): StoredChart | undefined {
+  const scoped = library
+    .listAllCharts()
+    .filter((stored) => (stored.profile_id ?? null) === profileId);
+  return scoped.find((stored) => stored.is_primary) ?? scoped[0];
 }
 
 /**
@@ -75,10 +82,10 @@ export async function regenerateOnBirthChange(
 ): Promise<void> {
   const { birth, profileId } = event;
   const nextId = chartId(birth);
-  if (isUnchanged(deps.library, nextId)) {
+  const prior = primaryForProfile(deps.library, profileId);
+  if (prior?.chart_id === nextId) {
     return;
   }
-  const prior = deps.library.getPrimaryChart();
   const chart = await deps.engine.generateChart(toBirthInput(birth));
   deps.library.saveChart(buildPrimary(chart, birth, profileId));
   if (prior && prior.chart_id !== nextId) {

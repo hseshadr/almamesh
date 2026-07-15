@@ -26,7 +26,11 @@ import {
  * ~38 MB engine. The bootstrap is deferred and only prewarmed once the visitor
  * shows intent on a "Generate my chart" CTA (see `usePrewarmEngineOnIntent`).
  */
-export default function Landing(): ReactElement {
+export interface LandingProps {
+  readonly variant: 'home' | 'welcome';
+}
+
+export default function Landing({ variant }: LandingProps): ReactElement {
   // Establish the `landing` namespace as the page default so nested sections
   // resolve their keys without repeating the namespace prefix.
   useTranslation('landing');
@@ -36,15 +40,19 @@ export default function Landing(): ReactElement {
       <LandingNav />
       <main>
         <Hero />
-        <WhatSection />
-        <WhatYouCanDoSection />
-        <ComparisonSection />
-        <HowItWorksSection />
-        <WhoSection />
-        <WhereWhenSection />
-        <FounderNote />
-        <TrustSection />
-        <FinalCta />
+        {variant === 'welcome' && (
+          <>
+            <WhatSection />
+            <WhatYouCanDoSection />
+            <ComparisonSection />
+            <HowItWorksSection />
+            <WhoSection />
+            <WhereWhenSection />
+            <FounderNote />
+            <TrustSection />
+            <FinalCta />
+          </>
+        )}
       </main>
       <LandingFooter />
     </div>

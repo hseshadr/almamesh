@@ -145,6 +145,97 @@ describe('buildRectificationPdf — clean supporting-event rows', () => {
     expect(cell.endsWith('…')).toBe(true); // signalled as truncated
     expect(cell.length).toBeGreaterThan(20); // still a meaningful gist, not '—'
   });
+
+  it('turns repeated legacy story blobs into a compact date-and-event table', () => {
+    const blob =
+      '## Life events (used for rectification; domain · reliability)\n' +
+      '- 1978 — relocated - 1991 — relocated again - 2008 — started a business';
+    const slice = buildRectificationPdf({
+      record: V1_RECORD,
+      events: [
+        { date: '1978-01-01', category: 'relocation', summary: blob },
+        { date: '1991-01-01', category: 'relocation', summary: blob },
+        { date: '2008-01-01', category: 'business_start', summary: blob },
+      ],
+      t,
+    });
+
+    expect(slice.events.headers).toEqual(['Date', 'Event']);
+    expect(slice.events.rows.map((row) => row.cells)).toEqual([
+      ['01/01/1978', 'Relocation'],
+      ['01/01/1991', 'Relocation'],
+      ['01/01/2008', 'Business Started'],
+    ]);
+    expect(allText(slice)).not.toContain('## Life events');
+  });
+
+  it('removes a repeated normalized legacy summary even when it is short', () => {
+    const slice = buildRectificationPdf({
+      record: V1_RECORD,
+      events: [
+        {
+          date: '2004-01-01',
+          category: 'marriage',
+          summary: 'Married in 2004, then moved in 2008',
+        },
+        {
+          date: '2008-01-01',
+          category: 'relocation',
+          summary: '  Married in 2004,   then moved in 2008  ',
+        },
+      ],
+      t,
+    });
+
+    expect(slice.events.headers).toEqual(['Date', 'Event']);
+    expect(slice.events.rows.map((row) => row.cells)).toEqual([
+      ['01/01/2004', 'Marriage'],
+      ['01/01/2008', 'Relocation'],
+    ]);
+  });
+
+  it('preserves a legitimate concise description repeated for distinct events', () => {
+    const slice = buildRectificationPdf({
+      record: V1_RECORD,
+      events: [
+        { date: '2010-01-01', category: 'career_change', summary: 'Promoted to senior engineer' },
+        { date: '2018-01-01', category: 'career_change', summary: 'Promoted to senior engineer' },
+      ],
+      t,
+    });
+
+    expect(slice.events.headers).toEqual(['Date', 'Category', 'Event']);
+    expect(slice.events.rows.map((row) => row.cells[2])).toEqual([
+      'Promoted to senior engineer',
+      'Promoted to senior engineer',
+    ]);
+  });
+
+  it('preserves distinct long descriptions that share the same clipped prefix', () => {
+    const shared =
+      'This deliberately long event description has the same opening words and enough detail to ' +
+      'cross the clipping boundary while remaining a legitimate single-event account with context ' +
+      'about the role, location, and decision. ';
+    const slice = buildRectificationPdf({
+      record: V1_RECORD,
+      events: [
+        {
+          date: '2010-01-01',
+          category: 'career_change',
+          summary: `${shared}The first event ended with a promotion.`,
+        },
+        {
+          date: '2018-01-01',
+          category: 'career_change',
+          summary: `${shared}The second event ended with a new company.`,
+        },
+      ],
+      t,
+    });
+
+    expect(slice.events.headers).toEqual(['Date', 'Category', 'Event']);
+    expect(slice.events.rows.every((row) => row.cells[2]?.endsWith('…'))).toBe(true);
+  });
 });
 
 describe('buildRectificationPdf — method label honesty', () => {
@@ -214,5 +305,43 @@ describe('buildRectificationPdf — phase 2 snapshot', () => {
     expect(text).not.toContain('3.55');
     expect(text).not.toContain('0.7341');
     expect(text).not.toContain('1.85');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Rigor Stage 3: the aggregate confidence % + evidence-balance facts in the PDF.
+// ---------------------------------------------------------------------------
+
+const CONFIDENT_V2_RECORD: RectificationRecord = {
+  ...V2_RECORD,
+  band: 'consistent',
+  resultSnapshot: {
+    ...V2_RECORD.resultSnapshot!,
+    band: 'consistent',
+    margin: 0.42,
+    discriminatingEventCount: 5,
+    confidencePct: 42,
+    honestyNoteKey: 'rectify.honesty.consistent',
+  },
+};
+
+describe('buildRectificationPdf — Stage 3 confidence % + opposing vectors', () => {
+  beforeEach(() => {
+    useLanguageStore.setState({ language: 'en' });
+  });
+
+  it('appends the calibrated % + "confirmed by N events" to the confidence fact', () => {
+    const slice = buildRectificationPdf({ record: CONFIDENT_V2_RECORD, events: EVENTS, t });
+    const band = slice.facts.find((f) => f.label === t('rectification.band_label'));
+    expect(band?.value).toContain('42%');
+    expect(band?.value).toMatch(/confirmed by 5 of your events/i);
+  });
+
+  it('adds an evidence-balance fact as honest COUNTS (never raw score floats)', () => {
+    const slice = buildRectificationPdf({ record: CONFIDENT_V2_RECORD, events: EVENTS, t });
+    const balance = slice.facts.find((f) => f.label === t('rectification.evidence_balance_label'));
+    expect(balance?.value).toMatch(/supporting fit/i);
+    expect(balance?.value).toMatch(/quiet-period|unexplained/i);
+    expect(allText(slice)).not.toContain('3.55');
   });
 });

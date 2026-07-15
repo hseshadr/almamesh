@@ -29,7 +29,7 @@ import {
   type ChatTurn,
   type InterviewGatheredEvent,
 } from '@almamesh/llm';
-import type { RectificationEventInput } from '@almamesh/shared-types';
+import type { CanonicalLifeEventDraft } from '@almamesh/shared-types';
 import { MessageBubble } from '../chat/MessageBubble';
 import { Spinner } from '../../ui/Spinner';
 import { isAiUsable, resolveConfig, toPromptLanguage } from './rectifyLlmConfig';
@@ -71,7 +71,7 @@ function gatheredInterviewState(profileId: string): InterviewGatheredEvent[] {
 }
 
 /** Format a captured event as a human-readable chip label. */
-function formatChip(ev: RectificationEventInput): string {
+function formatChip(ev: CanonicalLifeEventDraft): string {
   const label = ev.category.replace(/_/g, ' ');
   const cap = label.charAt(0).toUpperCase() + label.slice(1);
   let date = ev.date;
@@ -107,7 +107,7 @@ export function ConversationalAccelerator({
   // Distinguishes the post-turn event-extraction phase from the streaming phase
   // so the UI can show a distinct "reading your message…" indicator.
   const [gathering, setGathering] = useState(false);
-  const [captured, setCaptured] = useState<readonly RectificationEventInput[]>([]);
+  const [captured, setCaptured] = useState<readonly CanonicalLifeEventDraft[]>([]);
   const [chatError, setChatError] = useState<string | null>(null);
 
   // Abort any in-flight stream on unmount to avoid setState on an unmounted component.
@@ -189,13 +189,15 @@ export function ConversationalAccelerator({
         // addEvent accepts LifeEventInput (description + date + summary) —
         // category and precision are patched via editEvent because
         // LifeEventInput has no category field. The summary is the user's own
-        // words: prefer one the extractor returned, else fall back to the raw
-        // turn text so the gathered row is always human-readable.
+        // words. A raw-turn fallback is safe only when the turn produced one
+        // event; copying one multi-event blob into every row destroys meaning.
+        const singleEventFallback = extracted.length === 1 ? trimmed : undefined;
         for (const ev of extracted) {
+          const summary = ev.summary ?? singleEventFallback;
           addEvent(profileId, {
             description: ev.category,
             date: ev.date,
-            summary: ev.summary ?? trimmed,
+            ...(summary ? { summary } : {}),
           });
         }
 

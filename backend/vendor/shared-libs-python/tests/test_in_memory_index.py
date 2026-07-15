@@ -60,9 +60,7 @@ async def test_search_filters_by_tenant_id(
     index = InMemoryVectorIndex("demo")
     await index.insert(sample_embeddings)
 
-    results = await index.search(
-        [1.0, 0.0, 0.0, 0.0], k=5, filters={"tenant_id": "t1"}
-    )
+    results = await index.search([1.0, 0.0, 0.0, 0.0], k=5, filters={"tenant_id": "t1"})
     assert {entity_id for entity_id, _ in results} == {"a", "c"}
 
 
@@ -73,9 +71,7 @@ async def test_search_filters_by_metadata_key(
     index = InMemoryVectorIndex("demo")
     await index.insert(sample_embeddings)
 
-    results = await index.search(
-        [0.0, 1.0, 0.0, 0.0], k=5, filters={"category": "y"}
-    )
+    results = await index.search([0.0, 1.0, 0.0, 0.0], k=5, filters={"category": "y"})
     assert {entity_id for entity_id, _ in results} == {"b", "c"}
 
 
@@ -124,9 +120,7 @@ async def test_rebuild_clears_tombstones_and_adopts_config(
 async def test_search_handles_zero_norm_query() -> None:
     """A zero-norm query yields distance 1.0 (no NaN, no divide-by-zero)."""
     index = InMemoryVectorIndex("demo")
-    await index.insert(
-        [VectorEmbedding(entity_id="a", embedding=[1.0, 0.0, 0.0, 0.0])]
-    )
+    await index.insert([VectorEmbedding(entity_id="a", embedding=[1.0, 0.0, 0.0, 0.0])])
     results = await index.search([0.0, 0.0, 0.0, 0.0], k=1)
     assert results == [("a", 1.0)]
 

@@ -7,11 +7,15 @@
 // unchanged; only candidate *selection* changes. Logic matches pool.py exactly.
 
 import type { Product, SearchResult } from "./domain";
-import { SCORING_WEIGHTS } from "./reranker";
+import { DEFAULT_RANKING_CONFIG, type ScoringWeights } from "./rankingConfig";
 import type { SessionProfile } from "./session";
 
 /** Personalization-only score (category + tag + brand affinity), no popularity. */
-function affinityScore(product: Product, profile: SessionProfile): number {
+function affinityScore(
+	product: Product,
+	profile: SessionProfile,
+	weights: ScoringWeights,
+): number {
 	const cat = profile.categoryAffinity.get(product.category) ?? 0;
 	let tag = 0;
 	if (product.tags.length > 0) {
@@ -24,8 +28,7 @@ function affinityScore(product: Product, profile: SessionProfile): number {
 	const brand = product.brand
 		? (profile.brandAffinity.get(product.brand) ?? 0)
 		: 0;
-	const w = SCORING_WEIGHTS;
-	return w.category * cat + w.tag * tag + w.brand * brand;
+	return weights.category * cat + weights.tag * tag + weights.brand * brand;
 }
 
 /** True once the session has folded in any interaction signal. */
@@ -46,9 +49,12 @@ function popularityTop(catalog: ReadonlyArray<Product>, n: number): Product[] {
 function affinityMatches(
 	catalog: ReadonlyArray<Product>,
 	profile: SessionProfile,
+	weights: ScoringWeights,
 ): Product[] {
 	// Every product the session has shown affinity for (rerank orders them later).
-	return catalog.filter((product) => affinityScore(product, profile) > 0);
+	return catalog.filter(
+		(product) => affinityScore(product, profile, weights) > 0,
+	);
 }
 
 function dedupeById(products: ReadonlyArray<Product>): Product[] {
@@ -71,13 +77,14 @@ export function selectCandidatePool(
 	catalog: ReadonlyArray<Product>,
 	profile: SessionProfile,
 	limit: number,
+	weights: ScoringWeights = DEFAULT_RANKING_CONFIG.scoring_weights,
 ): SearchResult[] {
 	const size = Math.min(limit * 5, catalog.length);
 	let pool: Product[];
 	if (!hasAffinity(profile)) {
 		pool = popularityTop(catalog, size);
 	} else {
-		const matches = affinityMatches(catalog, profile);
+		const matches = affinityMatches(catalog, profile, weights);
 		pool =
 			matches.length >= limit
 				? matches
@@ -86,6 +93,35 @@ export function selectCandidatePool(
 	return pool.map((product) => ({
 		product,
 		score: product.popularity_score,
+		score_components: null,
+	}));
+}
+
+/** The `popularity` policy: the most-popular `limit*5` products (pool.popularity_pool). */
+export function popularityPool(
+	catalog: ReadonlyArray<Product>,
+	limit: number,
+): SearchResult[] {
+	const size = Math.min(limit * 5, catalog.length);
+	return popularityTop(catalog, size).map((product) => ({
+		product,
+		score: product.popularity_score,
+		score_components: null,
+	}));
+}
+
+/** The `freshness` policy: the freshest `limit*5` products (pool.freshness_pool). */
+export function freshnessPool(
+	catalog: ReadonlyArray<Product>,
+	limit: number,
+): SearchResult[] {
+	const size = Math.min(limit * 5, catalog.length);
+	const pool = [...catalog]
+		.sort((a, b) => b.freshness_score - a.freshness_score)
+		.slice(0, size);
+	return pool.map((product) => ({
+		product,
+		score: product.freshness_score,
 		score_components: null,
 	}));
 }

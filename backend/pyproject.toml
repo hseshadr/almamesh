@@ -46,12 +46,15 @@ almamesh-bundle = "almamesh.edge.publish_cli:app"
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
-# Security floor for the transitive bundle-signing dependency. cryptography is
-# pulled in by edge-proc[bundles] for ed25519 bundle signing — NOT by chart
-# math — so lifting it does not affect engine byte-determinism. Bumps the lock
-# 48.0.0 -> 48.0.1 (security patch); capped <49 to avoid the untested major.
+# Security floors for transitive dependencies (ENGINEERING-STANDARDS §4). Neither
+# is on the shipped PWA runtime, so neither affects engine byte-determinism.
+# - cryptography: pulled in by edge-proc[bundles] for ed25519 bundle signing —
+#   NOT by chart math. Bumps the lock 48.0.0 -> 48.0.1 (security patch); capped
+#   <49 to avoid the untested major.
+# - click: CLI-only, pulled in via typer for the almamesh-bundle CLI. Bumps
+#   8.3.1 -> 8.3.3 to clear PYSEC-2026-2132; capped <8.4 (untested major).
 [tool.uv]
-constraint-dependencies = ["cryptography>=48.0.1,<49"]
+constraint-dependencies = ["cryptography>=48.0.1,<49", "click>=8.3.3,<8.4"]
 
 # In-repo vendored sources for the unpublished edge-proc substrate and its
 # shared-libs-python dependency — a single clone builds with no private
@@ -69,6 +72,8 @@ shared-libs-python = { path = "vendor/shared-libs-python", editable = true }
 # addopts below so every `pytest` run (local or CI) enforces it identically.
 [tool.poe.tasks]
 lint = { shell = "ruff check . && ruff format --check . && mypy src/ && xenon --max-absolute C --max-modules C --max-average A src/" }
+typecheck = "mypy src/"
+complexity = "xenon --max-absolute C --max-modules C --max-average A src/"
 test = "pytest -q"
 # The vendored edge-proc substrate ships its own pinned suite (private .venv
 # under vendor/edge-proc) — run it so a re-vendor or local patch can never

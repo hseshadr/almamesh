@@ -429,6 +429,10 @@ function toStrengthSummary(raw: StrengthSummary): StrengthSummaryData {
     key_graha_meets_minimum: raw.key_graha_meets_minimum,
     sav_bindus: raw.sav_bindus,
     band: raw.band,
+    shadbala_pct: raw.shadbala_pct,
+    sav_pct: raw.sav_pct,
+    strength_pct: raw.strength_pct,
+    strength_tier: raw.strength_tier,
     approximated: raw.approximated,
     note: raw.note,
   };

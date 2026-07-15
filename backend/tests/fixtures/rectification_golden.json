@@ -144,6 +144,7 @@
         ]
       }
     ],
+    "confidence_pct": 62.127299,
     "discriminating_event_count": 6,
     "honesty_note_key": "rectify.honesty.consistent",
     "margin": 0.621273,
@@ -182,6 +183,7 @@
         "supporting_events": []
       }
     ],
+    "confidence_pct": null,
     "discriminating_event_count": 0,
     "honesty_note_key": "rectify.honesty.near_tie.prior_influenced",
     "margin": 0.036151,

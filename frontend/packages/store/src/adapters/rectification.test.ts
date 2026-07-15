@@ -63,6 +63,22 @@ describe('adaptRectification', () => {
     expect(result.honestyNoteKey).toBe('rectify.honesty.leans');
   });
 
+  it('maps the aggregate confidence_pct verbatim when the wheel provides it', () => {
+    // Rigor Stage 3 (Tier E): margin*100, already gated in the engine.
+    const raw: RectificationResultRaw = { ...RAW, confidence_pct: 42 };
+    expect(adaptRectification(raw).confidencePct).toBe(42);
+  });
+
+  it('maps a gated (null) confidence_pct through unchanged', () => {
+    const raw: RectificationResultRaw = { ...RAW, confidence_pct: null };
+    expect(adaptRectification(raw).confidencePct).toBeNull();
+  });
+
+  it('defaults confidencePct to null when an older wheel omits it (safe under-claim)', () => {
+    // RAW carries no confidence_pct — the adapter must not invent a number.
+    expect(adaptRectification(RAW).confidencePct).toBeNull();
+  });
+
   it('maps all candidate camelCase fields', () => {
     const result = adaptRectification(RAW);
     expect(result.candidates).toHaveLength(1);

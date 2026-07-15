@@ -1,4 +1,4 @@
-import { Suspense, type ReactNode } from 'react'
+import { Suspense, useEffect, type ReactElement, type ReactNode } from 'react'
 import { Route, Routes, Navigate } from 'react-router-dom'
 import { lazyWithRetry } from './lib/lazyWithRetry'
 import { useTranslation } from 'react-i18next'
@@ -21,7 +21,14 @@ function page(element: ReactNode): ReactNode {
 // Lazy-loaded page components for code splitting. `lazyWithRetry` makes a failed
 // chunk import (a stale/poisoned SW cache after a deploy) self-recover — retry
 // once, then a single guarded reload — instead of white-screening the route.
-const LandingPage = lazyWithRetry(() => import('./pages/Landing'), 'Landing')
+const HomeLandingPage = lazyWithRetry(async () => {
+  const { default: Landing } = await import('./pages/Landing')
+  return { default: () => <Landing variant="home" /> }
+}, 'Landing')
+const WelcomeLandingPage = lazyWithRetry(async () => {
+  const { default: Landing } = await import('./pages/Landing')
+  return { default: () => <Landing variant="welcome" /> }
+}, 'Landing')
 const OnboardingPage = lazyWithRetry(() => import('./pages/Onboarding'), 'Onboarding')
 const DashboardPage = lazyWithRetry(() => import('./pages/Dashboard'), 'Dashboard')
 const PredictivePage = lazyWithRetry(() => import('./pages/Predictive'), 'Predictive')
@@ -76,7 +83,7 @@ function RootRoute() {
     return <Navigate to="/dashboard" replace />
   }
 
-  return <LandingPage />
+  return <HomeLandingPage />
 }
 
 /**
@@ -87,7 +94,34 @@ function RootRoute() {
  * like the landing at `/`, and equally engine-free.
  */
 function WelcomeRoute() {
-  return <LandingPage />
+  return <WelcomeLandingPage />
+}
+
+function NotFoundPage(): ReactElement {
+  useEffect(() => {
+    const existing = document.querySelector<HTMLMetaElement>('meta[name="robots"]')
+    const meta = existing ?? document.createElement('meta')
+    const previousContent = existing?.content
+
+    meta.name = 'robots'
+    meta.content = 'noindex, nofollow'
+    if (!existing) document.head.appendChild(meta)
+
+    return () => {
+      if (!existing) meta.remove()
+      else if (previousContent !== undefined) existing.content = previousContent
+    }
+  }, [])
+
+  return (
+    <main className="mx-auto flex min-h-[60vh] max-w-2xl flex-col items-center justify-center px-6 text-center">
+      <h1 className="font-display text-4xl text-text-primary">Page not found</h1>
+      <p className="mt-4 text-text-secondary">This address is not part of AlmaMesh.</p>
+      <a className="mt-8 text-accent-gold hover:text-accent-gold-bright" href="/">
+        Return home
+      </a>
+    </main>
+  )
 }
 
 /**
@@ -125,8 +159,7 @@ function AppRoutes() {
         <Route path="/terms" element={page(<TermsOfService />)} />
         <Route path="/data-deletion" element={page(<DataDeletion />)} />
 
-        {/* Catch-all */}
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<NotFoundPage />} />
       </AnimatedRoutes>
     </AppLayout>
   )

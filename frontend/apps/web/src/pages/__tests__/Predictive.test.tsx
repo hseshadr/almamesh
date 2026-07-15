@@ -5,6 +5,8 @@ import {
   useChartLibraryStore,
   useLanguageStore,
   usePredictiveStore,
+  useProfilesStore,
+  predictiveRequestKey,
   type StoredChart,
 } from '@almamesh/store';
 import type { SiderealChart } from '@almamesh/browser/types';
@@ -22,6 +24,7 @@ import { FOUNDER_DASHAS } from '../../test/dashaFixtures';
 function storedChart(): StoredChart {
   return {
     chart_id: 'chart-1',
+    profile_id: 'chart-1',
     person_name: 'Asha Rao',
     is_primary: true,
     birth_data: {
@@ -37,6 +40,16 @@ function storedChart(): StoredChart {
     // The natal payload the Periods tab reads — present without any compute.
     sidereal_chart: { dashas: FOUNDER_DASHAS } as SiderealChart,
   } as StoredChart;
+}
+
+function currentRequestKey(): string {
+  return predictiveRequestKey({
+    profileKey: 'chart-1',
+    datetimeUtc: '1990-03-30T06:30:00Z',
+    latitude: 12.97,
+    longitude: 77.59,
+    referenceInstant: `${new Date().toISOString().slice(0, 10)}T00:00:00Z`,
+  });
 }
 
 function renderPage(initialEntry = '/predictive'): ReturnType<typeof render> {
@@ -55,12 +68,14 @@ function seedReady(): void {
     strengthCtx: STRENGTH_CTX,
     domainsCtx: DOMAINS_CTX,
     profileKey: 'chart-1',
+    requestKey: currentRequestKey(),
   });
 }
 
 describe('PredictivePage (/predictive)', () => {
   beforeEach(() => {
     useLanguageStore.setState({ language: 'en' });
+    useProfilesStore.setState({ activeProfileId: 'chart-1' });
     useChartLibraryStore.setState({ charts: { 'chart-1': storedChart() }, hydrated: true });
     usePredictiveStore.getState().reset();
   });
@@ -74,7 +89,11 @@ describe('PredictivePage (/predictive)', () => {
   });
 
   it('shows an honest progress message (what + where + elapsed) while computing', () => {
-    usePredictiveStore.setState({ status: 'loading', profileKey: 'chart-1' });
+    usePredictiveStore.setState({
+      status: 'loading',
+      profileKey: 'chart-1',
+      requestKey: currentRequestKey(),
+    });
     renderPage();
     const loading = screen.getByTestId('predictive-loading');
     expect(loading.textContent).toContain('on your device');
@@ -82,7 +101,12 @@ describe('PredictivePage (/predictive)', () => {
   });
 
   it('shows the error state with a retry affordance', () => {
-    usePredictiveStore.setState({ status: 'error', error: 'engine exploded' });
+    usePredictiveStore.setState({
+      status: 'error',
+      error: 'engine exploded',
+      profileKey: 'chart-1',
+      requestKey: currentRequestKey(),
+    });
     renderPage();
     expect(screen.getByTestId('predictive-error').textContent).toContain('engine exploded');
     expect(screen.getByTestId('predictive-retry')).toBeTruthy();

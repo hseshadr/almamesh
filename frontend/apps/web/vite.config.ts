@@ -102,21 +102,20 @@ function pwaPlugin(): Plugin[] {
         // ship ~200 KB of dead code to every client at SW install.
         'assets/prerender-entry-*.js',
       ],
-      // App-shell SPA fallback: an offline navigation to any route serves the
-      // precached shell (then React Router takes over). The shell is precached
+      // App-shell SPA fallback: an offline navigation to a registered client
+      // route serves the precached shell (then React Router takes over). The shell is precached
       // under the extensionless canonical URL `/` (see manifestTransforms below),
       // NOT `/index.html`, because Cloudflare Pages 308-redirects `/index.html`
       // -> `/`. Precaching/falling-back on a redirecting URL is fragile and left
       // returning users with an empty precache + a Chrome error page. `/` is
       // served 200 by CF Pages and by `vite preview`.
       navigateFallback: '/',
-      navigateFallbackDenylist: [
-        /^\/(pyodide|bundle|models)\//,
-        /^\/version\.json$/,
-        // Hashed, immutable code-split chunks and the Workbox runtime are never
-        // navigations — never answer a script request with the app-shell HTML.
-        /^\/assets\//,
-        /^\/workbox-[^/]+\.js$/,
+      navigateFallbackAllowlist: [
+        /^\/(?:onboarding|dashboard|predictive|report|edit-birth-details)\/?$/,
+        /^\/life\/(?:career|finances|health|relationships|spiritual|education|family)\/?$/,
+        /^\/mesh(?:\/[^/]+)?\/?$/,
+        /^\/rectify\/[^/]+\/?$/,
+        /^\/settings(?:\/(?:profile|people|ai|preferences|data))?\/?$/,
       ],
       // Raise the 2 MiB default so the offline geocoder data (~2 MB cities) and
       // the larger app-shell chunks precache.

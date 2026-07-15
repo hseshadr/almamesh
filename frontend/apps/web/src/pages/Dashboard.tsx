@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useCallback, useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -26,6 +26,7 @@ import {
   useChartLibraryStore,
   useInterpretationStore,
   useLanguageStore,
+  usePredictiveStore,
   useProfilesStore,
   useRectificationRecordsStore,
 } from "@almamesh/store";
@@ -50,6 +51,8 @@ import { useContentModeStore } from "../stores/contentMode";
 import type { ViewMode } from "../lib/types";
 import {
   READING_MODEL_UNAVAILABLE,
+  currentInterpretationForChart,
+  isAutomaticNarrationInputSettled,
   resolveInterpretationConfig,
   useStreamingInterpretation,
   withRawPredictive,
@@ -167,6 +170,8 @@ export default function DashboardPage() {
     error: streamingError,
     cancel: cancelStreaming,
   } = useStreamingInterpretation(chartId);
+  const predictiveRequestIdentity = usePredictiveStore((s) => s.requestKey);
+  const predictiveStatus = usePredictiveStore((s) => s.status);
 
   // The full persisted entry for the active chart: carries the reading's
   // provenance (which model wrote it) and updatedAt for the quiet caption
@@ -191,6 +196,9 @@ export default function DashboardPage() {
   // in the reading section (keep-old-until-success keeps the reading itself).
   // Dismissed locally; a new generation attempt re-arms it.
   const [regenErrorDismissed, setRegenErrorDismissed] = useState(false);
+  // A manual regenerate requested while today's predictive facts are still
+  // computing is queued, never downgraded to natal-only narration.
+  const [regenerationQueued, setRegenerationQueued] = useState(false);
 
   // Dead/retired/typo'd model → the switch-model prompt. The hook stores the
   // stable sentinel for this case; the raw-message sniff keeps recognizing
@@ -233,8 +241,7 @@ export default function DashboardPage() {
     // Reuse the already-generated natal reading (when complete) so a fast/small
     // chat model can lean on the frontier reading instead of re-deriving from raw
     // facts. Absent/incomplete → chat behaves exactly as before (facts only).
-    const interpEntry = chartId ? useInterpretationStore.getState().getEntry(chartId) : undefined;
-    const interp = interpEntry?.status === 'complete' ? interpEntry.interpretation : undefined;
+    const interp = currentInterpretationForChart(chartId);
     const interpretationText = interp
       ? serializeInterpretationForChat(interp, chatMode)
       : undefined;
@@ -309,8 +316,13 @@ export default function DashboardPage() {
     };
   };
 
-  const handleGenerateSeparatedInterpretation = async () => {
+  const handleGenerateSeparatedInterpretation = useCallback(async () => {
     if (!chartId) return;
+    if (!isAutomaticNarrationInputSettled(chartId)) {
+      setRegenerationQueued(true);
+      return;
+    }
+    setRegenerationQueued(false);
     // A fresh attempt re-arms the regeneration-failure strip (it was for the
     // PREVIOUS failure; a new one must be visible again).
     setRegenErrorDismissed(false);
@@ -331,7 +343,7 @@ export default function DashboardPage() {
     } catch (err) {
       console.error('[Dashboard] Error generating interpretation:', err);
     }
-  };
+  }, [cancelStreaming, chartId, streamInterpretation, viewMode]);
 
   // Recover from a dead/typo'd cloud model: re-point settings at the recommended
   // OpenRouter model (keeping the user's saved key), then re-run generation.
@@ -355,6 +367,18 @@ export default function DashboardPage() {
 
   // Track if auto-generation has been triggered to prevent double-triggers
   const autoGenerationTriggeredRef = useRef(false);
+  const previousPredictiveRequestRef = useRef(predictiveRequestIdentity);
+  useEffect(() => {
+    if (previousPredictiveRequestRef.current === predictiveRequestIdentity) {
+      return;
+    }
+    previousPredictiveRequestRef.current = predictiveRequestIdentity;
+    // A different deterministic predictive input owns a fresh one-shot cycle.
+    // An old stream may still finish, but its provenance will be hidden; once
+    // that stream settles, this re-armed guard permits exactly one replacement.
+    autoGenerationTriggeredRef.current = false;
+    versionCheckRef.current = 'idle';
+  }, [predictiveRequestIdentity]);
   const astronomicalData = chartDetails || chartData?.chart_data?.astronomical_calculations;
 
   // Check if interpretation has actual content (not just placeholders).
@@ -387,12 +411,24 @@ export default function DashboardPage() {
   useEffect(() => {
     // Skip if conditions not met (no chart, still loading, no AI model, or a
     // generation is already in flight).
-    if (!chartId || isLoading || !aiConfigured || isStreamingInterpretation) {
+    if (
+      !chartId ||
+      isLoading ||
+      !aiConfigured ||
+      isStreamingInterpretation ||
+      !isAutomaticNarrationInputSettled(chartId)
+    ) {
       return;
     }
 
-    // Skip if already triggered auto-generation or currently checking versions.
-    if (autoGenerationTriggeredRef.current || versionCheckRef.current === 'checking') {
+    // Preserve a manual click made while predictive computation was loading.
+    // Consume it once after that request settles; the generation helper reads
+    // the now-current predictive contexts (or intentionally falls back to natal
+    // facts after a settled predictive error).
+    if (regenerationQueued) {
+      versionCheckRef.current = 'done';
+      autoGenerationTriggeredRef.current = true;
+      handleGenerateSeparatedInterpretation();
       return;
     }
 
@@ -407,6 +443,10 @@ export default function DashboardPage() {
       const configChanged =
         !storedProvenance || configFingerprint(storedProvenance) !== configFingerprint(config);
       if (!configChanged) {
+        // A successful, current reading completes the previous one-shot cycle.
+        // Reset only here (never on error) so a later predictive day/input can
+        // auto-regenerate once while a failed attempt still cannot spin.
+        autoGenerationTriggeredRef.current = false;
         versionCheckRef.current = 'done';
         return;
       }
@@ -415,14 +455,31 @@ export default function DashboardPage() {
       // cannot retrigger.
     }
 
+    // Skip if this input/config already consumed its one automatic attempt.
+    // This guard comes AFTER the successful-current branch above so completion
+    // can close that cycle and admit one attempt for a later predictive day.
+    if (autoGenerationTriggeredRef.current || versionCheckRef.current === 'checking') {
+      return;
+    }
+
     // Local-first: there is no backend version store to consult — narration is
     // generated on demand via the configured OpenAI-compatible endpoint.
     // Auto-trigger a single generation (first reading, or config-change regen).
     versionCheckRef.current = 'done';
     autoGenerationTriggeredRef.current = true;
     handleGenerateSeparatedInterpretation();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- Intentionally controlled via refs
-  }, [chartId, aiConfigured, hasValidInterpretation, interpretationStatus, isLoading, isStreamingInterpretation]);
+  }, [
+    aiConfigured,
+    chartId,
+    handleGenerateSeparatedInterpretation,
+    hasValidInterpretation,
+    interpretationStatus,
+    isLoading,
+    isStreamingInterpretation,
+    predictiveRequestIdentity,
+    predictiveStatus,
+    regenerationQueued,
+  ]);
 
   // Extract sidereal context data for the identity strip + chart panels.
   const siderealCtx = astronomicalData?.sidereal_ctx;
@@ -563,14 +620,16 @@ export default function DashboardPage() {
                   header slot) and is gated on an existing `interpretation` — so
                   it stays present as a recovery affordance even when a completed
                   reading came back with an empty summary (the prose section
-                  below unmounts, but this button does not). Disabled while a run
-                  is in flight or when no AI is configured (never a silent
-                  no-op). */}
+                  below unmounts, but this button does not). A click made while
+                  predictive facts load is queued once; the button stays disabled
+                  until that current-key narration starts. */}
               {interpretation && (
                 <button
                   type="button"
                   onClick={handleRegenerateReading}
-                  disabled={isStreamingInterpretation || !canRegenerateReading}
+                  disabled={
+                    isStreamingInterpretation || regenerationQueued || !canRegenerateReading
+                  }
                   data-testid="regenerate-reading"
                   title={
                     !canRegenerateReading
@@ -579,7 +638,7 @@ export default function DashboardPage() {
                   }
                   className="inline-flex items-center gap-1.5 rounded-md border border-ui-border px-3 py-1.5 text-sm text-text-secondary transition-colors hover:border-accent-gold/40 hover:text-text-primary disabled:cursor-not-allowed disabled:border-ui-border/60 disabled:text-text-tertiary disabled:hover:border-ui-border/60"
                 >
-                  {isStreamingInterpretation ? (
+                  {isStreamingInterpretation || regenerationQueued ? (
                     <Spinner size="sm" />
                   ) : (
                     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">

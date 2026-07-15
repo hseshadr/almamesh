@@ -1,6 +1,9 @@
+import { starterPack } from '@edgeproc/errors';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import i18n from '../i18n/config';
 import {
+  aiErrorRegistry,
+  chatErrorMessage,
   classifyConnectionError,
   connectionErrorDetail,
   ERROR_CODES,
@@ -206,6 +209,70 @@ describe('classifyConnectionError', () => {
   });
 });
 
+describe('chatErrorMessage', () => {
+  // The chat + reading surfaces share ONE coded-message mapper (the same
+  // classification the Settings "Save & test connection" path uses). A 402/401/
+  // 429/5xx must each get its own specific, actionable copy — never the generic
+  // "request failed — check your model and endpoint" dead-end that sent users
+  // in circles for a billing/auth/outage problem.
+  it('maps a 402 to the insufficient-credits copy, NEVER the generic request_failed', () => {
+    const msg = chatErrorMessage(
+      new FakeLlmRequestError('LLM endpoint returned 402 Payment Required: Insufficient credits', 402),
+    );
+    expect(msg).toBe(i18n.t('chat:errors.insufficient_credits'));
+    expect(msg).not.toBe(i18n.t('chat:errors.request_failed'));
+  });
+
+  it('maps a 401/403 to the auth-failed copy', () => {
+    expect(chatErrorMessage(new FakeLlmRequestError('returned 401 Unauthorized', 401))).toBe(
+      i18n.t('chat:errors.auth_failed'),
+    );
+    expect(chatErrorMessage(new FakeLlmRequestError('returned 403 Forbidden', 403))).toBe(
+      i18n.t('chat:errors.auth_failed'),
+    );
+  });
+
+  it('maps a 404 / bad-model-id to the model-unavailable copy (regression guard)', () => {
+    expect(chatErrorMessage(new FakeLlmRequestError('returned 404: No endpoints found', 404))).toBe(
+      i18n.t('chat:errors.model_unavailable'),
+    );
+  });
+
+  it('maps a 429 to the rate-limited copy', () => {
+    expect(chatErrorMessage(new FakeLlmRequestError('returned 429 Too Many Requests', 429))).toBe(
+      i18n.t('chat:errors.rate_limited'),
+    );
+  });
+
+  it('maps any 5xx to the server-error copy', () => {
+    expect(chatErrorMessage(new FakeLlmRequestError('returned 500 Internal Server Error', 500))).toBe(
+      i18n.t('chat:errors.server_error'),
+    );
+    expect(chatErrorMessage(new FakeLlmRequestError('returned 503 Service Unavailable', 503))).toBe(
+      i18n.t('chat:errors.server_error'),
+    );
+  });
+
+  it('maps a fetch network TypeError to the unreachable-endpoint copy', () => {
+    expect(chatErrorMessage(new TypeError('Failed to fetch'))).toBe(
+      i18n.t('chat:errors.endpoint_unreachable'),
+    );
+  });
+
+  it('surfaces a PrivacyViolationError message verbatim (fail-closed fence)', () => {
+    const err = new Error('refusing to send chart data to non-local endpoint');
+    err.name = 'PrivacyViolationError';
+    expect(chatErrorMessage(err)).toBe('refusing to send chart data to non-local endpoint');
+  });
+
+  it('falls back to the generic request_failed copy for an unknown failure', () => {
+    expect(chatErrorMessage(new FakeLlmRequestError("I'm a teapot", 418))).toBe(
+      i18n.t('chat:errors.request_failed'),
+    );
+    expect(chatErrorMessage(new Error('mystery'))).toBe(i18n.t('chat:errors.request_failed'));
+  });
+});
+
 describe('connectionErrorDetail', () => {
   it("extracts the provider's structured error.message from a JSON body", () => {
     const body =
@@ -261,6 +328,100 @@ describe('connectionErrorDetail', () => {
   it('returns undefined when there is nothing useful to show', () => {
     expect(connectionErrorDetail(new FakeLlmRequestError('', undefined, ''))).toBeUndefined();
     expect(connectionErrorDetail(null)).toBeUndefined();
+  });
+});
+
+describe('@edgeproc/errors adoption (canonical-errors standard)', () => {
+  // classifyConnectionError now routes through the VENDORED @edgeproc/errors
+  // registry (packages/edgeproc-errors) instead of an ad-hoc if-chain. These
+  // tests prove two things: (1) the vendored library is really what does the
+  // work — `aiErrorRegistry` is a genuine @edgeproc/errors Registry built from
+  // its `starterPack` codes; and (2) the coded classification is UNCHANGED —
+  // the same HTTP status → the same canonical code → the same
+  // ConnectionErrorKind the app already rendered, so no user-visible string or
+  // i18n key moved.
+
+  it('exposes a genuine @edgeproc/errors Registry built from the vendored starterPack', () => {
+    // The Registry method surface from the library (proves we imported IT).
+    for (const method of ['classify', 'describe', 'toProblemDetails', 'create'] as const) {
+      expect(typeof (aiErrorRegistry as unknown as Record<string, unknown>)[method]).toBe('function');
+    }
+    // The reused codes ARE the vendored starter-pack codes, carrying the
+    // vendored library's own data (impossible to satisfy from local-only logic).
+    const reused = [
+      'ai.provider.out_of_credits',
+      'ai.provider.unauthorized',
+      'ai.model.unavailable',
+      'ai.provider.rate_limited',
+      'ai.provider.server_error',
+      'net.unreachable',
+      'internal.unknown',
+    ] as const;
+    const pack = starterPack as Record<string, { en?: string }>;
+    for (const code of reused) {
+      expect(aiErrorRegistry.has(code)).toBe(true);
+      expect(Object.keys(starterPack)).toContain(code);
+      expect(aiErrorRegistry.get(code)?.en).toBe(pack[code].en);
+    }
+  });
+
+  it('classifies each HTTP status into the reused canonical starter-pack code', () => {
+    const code = (raw: unknown) => aiErrorRegistry.classify(raw);
+    expect(code(new FakeLlmRequestError('returned 402', 402))).toBe('ai.provider.out_of_credits');
+    expect(code(new FakeLlmRequestError('returned 401', 401))).toBe('ai.provider.unauthorized');
+    expect(code(new FakeLlmRequestError('returned 403', 403))).toBe('ai.provider.unauthorized');
+    expect(code(new FakeLlmRequestError('returned 404: No endpoints found', 404))).toBe('ai.model.unavailable');
+    expect(code(new FakeLlmRequestError('returned 429', 429))).toBe('ai.provider.rate_limited');
+    expect(code(new FakeLlmRequestError('returned 500', 500))).toBe('ai.provider.server_error');
+    expect(code(new TypeError('Failed to fetch'))).toBe('net.unreachable');
+    expect(code(new FakeLlmRequestError("I'm a teapot", 418))).toBe('internal.unknown');
+  });
+
+  it('keeps classifyConnectionError a thin map over the registry (delegation)', () => {
+    // Every kind classifyConnectionError returns is the registry code mapped to
+    // a ConnectionErrorKind — there is no independent classification path.
+    const cases: Array<readonly [unknown, string]> = [
+      [new FakeLlmRequestError('returned 402', 402), 'credits'],
+      [new FakeLlmRequestError('returned 401', 401), 'auth'],
+      [new FakeLlmRequestError('returned 404: No endpoints found', 404), 'model'],
+      [new FakeLlmRequestError('returned 429', 429), 'rate_limited'],
+      [new FakeLlmRequestError('returned 522', 522), 'server'],
+      [new TypeError('Failed to fetch'), 'network'],
+      [new FakeLlmRequestError("I'm a teapot", 418), 'unknown'],
+    ];
+    for (const [raw, kind] of cases) {
+      expect(classifyConnectionError(raw)).toBe(kind);
+    }
+  });
+
+  it('preserves the >=500 RANGE, not just the indexed 5xx codes (behavior-identical)', () => {
+    // A naive status-index over [500,502,503,504] would miss these; the app has
+    // always treated ANY 5xx as a provider outage, so the registry must too.
+    for (const status of [500, 501, 505, 520, 522, 599]) {
+      expect(classifyConnectionError(new FakeLlmRequestError(`returned ${status}`, status))).toBe('server');
+      expect(chatErrorMessage(new FakeLlmRequestError(`returned ${status}`, status))).toBe(
+        i18n.t('chat:errors.server_error'),
+      );
+    }
+  });
+
+  it('preserves message-only credit/model detection with no HTTP status (behavior-identical)', () => {
+    // The billing / dead-model signal can arrive with no status at all (an
+    // OpenRouter body surfaced as the error message). Pure status-mapping would
+    // drop it; the app always classified it, so the registry path must too.
+    expect(classifyConnectionError(new FakeLlmRequestError('Insufficient credits'))).toBe('credits');
+    expect(chatErrorMessage(new FakeLlmRequestError('Insufficient credits'))).toBe(
+      i18n.t('chat:errors.insufficient_credits'),
+    );
+    expect(classifyConnectionError(new FakeLlmRequestError('bad/slug is not a valid model ID'))).toBe('model');
+  });
+
+  it('renders the same coded copy through the registry path in other languages', async () => {
+    await i18n.changeLanguage('es');
+    expect(chatErrorMessage(new FakeLlmRequestError('returned 402', 402))).toBe(
+      i18n.t('chat:errors.insufficient_credits'),
+    );
+    expect(i18n.t('chat:errors.insufficient_credits')).toContain('créditos');
   });
 });
 

@@ -1,0 +1,38 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "ignoreWorkspaces": ["packages/edgeproc-browser", "packages/edgeproc-errors"],
+  "workspaces": {
+    ".": {
+      "entry": ["scripts/*.mjs"],
+      "ignoreDependencies": ["baseline-browser-mapping", "caniuse-lite"]
+    },
+    "apps/web": {
+      "entry": [
+        "playwright.*.config.ts",
+        "scripts/*.mjs",
+        "verify-*.mjs",
+        "e2e/**/*.ts",
+        "public/app-shell-bootstrap.js"
+      ],
+      "project": ["src/**/*.{ts,tsx}"]
+    },
+    "packages/llm": {
+      "entry": ["bench/vitest.config.ts", "bench/src/**/*.ts"]
+    }
+  },
+  "rules": {
+    "files": "error",
+    "duplicates": "warn",
+    "exports": "warn",
+    "types": "warn",
+    "nsExports": "warn",
+    "nsTypes": "warn",
+    "enumMembers": "warn",
+    "dependencies": "warn",
+    "devDependencies": "warn",
+    "optionalPeerDependencies": "warn",
+    "unlisted": "warn",
+    "unresolved": "warn",
+    "binaries": "warn"
+  }
+}

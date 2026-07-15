@@ -1,6 +1,7 @@
 # Spec 062 — Robust Rectifier + Comprehensive Report
 
-**Status:** Draft (frontend sections pending explorer reports)
+**Lifecycle:** SHIPPED
+**Status:** The v0.4.0 baseline is shipped; complete all-table report export is Unreleased in PR #62.
 **Owner surfaces:** `backend/src/almamesh/rectification/`, `edge/chart_runtime.py`,
 `@almamesh/browser`, `@almamesh/store`, `@almamesh/shared-types`, `apps/web` (`/rectify`, `/report`)
 
@@ -10,14 +11,15 @@ Event-based rectification is the *primary* method when the entered birth time is
 not a fallback — so the scorer must graduate from "suggestive" to "robust". Three engine
 upgrades (depth-aware dasha scoring incl. pratyantar, D9 navamsa-lagna scoring, and
 miss-penalties/negative evidence), one new weak prior, and honest sign-level output.
-Alongside: the exported report becomes fully comprehensive (every calculated table +
-the rectification evidence story), and the `/rectify` journey gets an experience-quality
-pass. No headline percentages, ever.
+Alongside, v0.4.0 shipped the expanded report and rectification evidence baseline.
+Unreleased PR #62 completes the all-table export with every available chart and table,
+including maha, antar, and pratyantar detail, plus artifact-completeness gates. The
+`/rectify` journey also gets an experience-quality pass. No headline percentages, ever.
 
-## Why (the critique, verified against the code)
+## Why (pre-implementation critique, verified against the code)
 
 A cusp birth with a soft time (±10–15 min plausible) cannot be saved by the birth
-record. The current engine (verified 2026-07-01):
+record. Before Spec 062 shipped, the engine state verified on 2026-07-01:
 
 - Scores maha+antar+pratyantar lords **pooled into one set** (`scorer.py:137`
   `_active_lords_at` → `_house_signals`), so depth is invisible: a pratyantar hit
@@ -238,7 +240,7 @@ Out of scope (deferred): mesh edges in Dashboard chat; D9 dignity enrichment bey
 what lever 1 provides. All fences byte-preserved; `en` prompts stay byte-identical
 through `withLanguage`.
 
-## Comprehensive report (audited 2026-07-01)
+## Comprehensive report (pre-v0.4.0 audit, 2026-07-01)
 
 Finding: the downloaded PDF (`components/report-pdf/ReportDocument.tsx`, sole export
 path — browser print is retired) is a **strict subset** of the web report: it omits

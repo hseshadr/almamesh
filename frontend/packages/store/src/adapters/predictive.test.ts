@@ -92,6 +92,10 @@ function rawForecast(domain: string): LifeDomainForecast {
       key_graha_meets_minimum: true,
       sav_bindus: 58,
       band: "strong",
+      shadbala_pct: 82.5,
+      sav_pct: 51.79,
+      strength_pct: 51.79,
+      strength_tier: "model",
       approximated: true,
       note: "band = AlmaMesh heuristic over exact Shadbala Rupas + SAV bindus",
     },
@@ -357,6 +361,11 @@ describe("toDomainsCtx", () => {
     expect(career?.strength_summary.band).toBe("strong");
     expect(career?.strength_summary.sav_bindus).toBe(58);
     expect(career?.strength_summary.approximated).toBe(true);
+    // Stage 2: the calibrated Tier-M %s thread through field-for-field (no rescore in TS).
+    expect(career?.strength_summary.shadbala_pct).toBe(82.5);
+    expect(career?.strength_summary.sav_pct).toBe(51.79);
+    expect(career?.strength_summary.strength_pct).toBe(51.79);
+    expect(career?.strength_summary.strength_tier).toBe("model");
 
     expect(career?.current_emphasis.active_dasha_significator).toBe(true);
     expect(career?.current_emphasis.dasha_levels).toEqual(["maha", "antar"]);

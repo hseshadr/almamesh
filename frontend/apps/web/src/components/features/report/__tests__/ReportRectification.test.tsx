@@ -1,11 +1,10 @@
 /**
  * ReportRectification — Section "Birth Time Authority".
  *
- * Contract: entered vs working time + rising sign, mode, the QUALITATIVE band
- * label (reused from the rectify namespace), confirm date, the resolved
- * supporting events (date + category + summary) and the honest caveat.
- * ANTI-SCAM HARD LINE: no percentage, no margin number, no fit score may ever
- * render — the band is a convention, never a verdict.
+ * Contract: entered vs working time + rising sign, mode, qualitative band,
+ * confirm date, resolved events, and the honest caveat. A min-evidence-gated
+ * aggregate confidence percentage may accompany the band with its provenance
+ * and ledger; raw margins, fit scores, and per-event numbers never render.
  *
  * All data is SYNTHETIC (a "Reference Native") — never real birth data.
  */
@@ -57,7 +56,7 @@ describe('ReportRectification — Birth Time Authority', () => {
     expect(facts.textContent).toContain('Pisces');
   });
 
-  it('renders the qualitative band label and NEVER a number or percentage', () => {
+  it('renders the legacy qualitative-only band when aggregate confidence is absent', () => {
     render(<ReportRectification record={RECORD} events={EVENTS} />);
     const section = screen.getByTestId('report-rectification');
     expect(screen.getByTestId('report-rectification-band').textContent).toBe('Leans Toward');
@@ -220,5 +219,81 @@ describe('ReportRectification — phase 2 result snapshot', () => {
     expect(text).not.toContain('3.55');
     expect(text).not.toContain('1.85');
     expect(text).not.toContain('0.35');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Rigor Stage 3: aggregate confidence % (Tier E) + opposing vectors.
+// The AGGREGATE margin*100 becomes a calibrated %; per-signal evidence stays
+// words + polarity only (the honesty covenant, amended in rectifySignals.ts).
+// ---------------------------------------------------------------------------
+
+const CONFIDENT_RECORD: RectificationRecord = {
+  ...SNAPSHOT_RECORD,
+  band: 'consistent',
+  resultSnapshot: {
+    ...SNAPSHOT_RECORD.resultSnapshot!,
+    band: 'consistent',
+    margin: 0.42,
+    discriminatingEventCount: 5,
+    confidencePct: 42,
+    honestyNoteKey: 'rectify.honesty.consistent',
+  },
+};
+
+const INCONCLUSIVE_RECORD: RectificationRecord = {
+  ...SNAPSHOT_RECORD,
+  band: 'near_tie',
+  resultSnapshot: {
+    ...SNAPSHOT_RECORD.resultSnapshot!,
+    band: 'near_tie',
+    margin: 0.08,
+    discriminatingEventCount: 2,
+    confidencePct: null,
+    honestyNoteKey: 'rectify.honesty.near_tie',
+  },
+};
+
+describe('ReportRectification — Stage 3 confidence % + opposing vectors', () => {
+  it('shows the calibrated % and "confirmed by N of your events" beside the band', () => {
+    render(<ReportRectification record={CONFIDENT_RECORD} events={EVENTS} />);
+    const band = screen.getByTestId('report-rectification-band');
+    expect(band.textContent).toContain('Consistent'); // the band word survives
+    expect(band.textContent).toContain('42%');
+    expect(band.textContent).toMatch(/confirmed by 5 of your events/i);
+  });
+
+  it('explains the % means best-fit-vs-runner-up, never "odds the time is right"', () => {
+    render(<ReportRectification record={CONFIDENT_RECORD} events={EVENTS} />);
+    const section = screen.getByTestId('report-rectification');
+    expect(section.textContent).toMatch(/how much better your best-fit/i);
+    // The raw margin decimal is NEVER shown — only its calibrated % form.
+    expect(section.textContent).not.toContain('0.42');
+  });
+
+  it('surfaces supporting-vs-opposing totals as honest COUNTS (never raw score floats)', () => {
+    render(<ReportRectification record={CONFIDENT_RECORD} events={EVENTS} />);
+    const balance = screen.getByTestId('report-rectification-balance');
+    expect(balance.textContent).toMatch(/supporting fit/i);
+    expect(balance.textContent).toMatch(/quiet-period|unexplained/i);
+    // Never the raw positive_total / penalty_total floats.
+    expect(balance.textContent).not.toContain('3.55');
+    expect(balance.textContent).not.toContain('0.15');
+  });
+
+  it('keeps per-signal evidence cells words-only — no %, no per-signal number', () => {
+    render(<ReportRectification record={CONFIDENT_RECORD} events={EVENTS} />);
+    const evidence = screen.getByTestId('report-rectification-evidence');
+    expect(evidence.textContent).not.toContain('%');
+    expect(evidence.textContent).not.toContain('1.85'); // the per-event contribution
+    expect(evidence.textContent).toContain('Supports');
+    expect(evidence.textContent).toContain('Counts against');
+  });
+
+  it('renders "inconclusive" (not a small %) below the min-evidence gate', () => {
+    render(<ReportRectification record={INCONCLUSIVE_RECORD} events={EVENTS} />);
+    const band = screen.getByTestId('report-rectification-band');
+    expect(band.textContent).toMatch(/inconclusive|not enough/i);
+    expect(band.textContent).not.toMatch(/\d+%/);
   });
 });

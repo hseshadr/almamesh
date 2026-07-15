@@ -6,6 +6,10 @@
 // most-recent first, capped at 50), and a click counter.
 
 import type { EventType, InteractionEvent, Product } from "./domain";
+import {
+	DEFAULT_RANKING_CONFIG,
+	type InteractionWeights,
+} from "./rankingConfig";
 
 /** Affinity sketch over a browsing session. Maps mirror Python dicts. */
 export interface SessionProfile {
@@ -18,19 +22,6 @@ export interface SessionProfile {
 
 /** Max entries kept in recently_viewed (signals.py RECENTLY_VIEWED_CAP). */
 export const RECENTLY_VIEWED_CAP = 50;
-
-/** Per-event affinity deltas (signals.py INTERACTION_WEIGHTS). */
-export const INTERACTION_WEIGHTS: Readonly<
-	Record<
-		EventType,
-		{ readonly category: number; readonly tag: number; readonly brand: number }
-	>
-> = {
-	click: { category: 0.1, tag: 0.05, brand: 0.08 },
-	view: { category: 0.02, tag: 0.01, brand: 0.02 },
-	favorite: { category: 0.2, tag: 0.1, brand: 0.15 },
-	cart: { category: 0.25, tag: 0.12, brand: 0.2 },
-};
 
 /** An empty profile (Python SessionProfile() defaults). */
 export function emptyProfile(): SessionProfile {
@@ -57,13 +48,18 @@ function bumped(
 	return next;
 }
 
-/** Apply one interaction, returning a new profile (signals.apply_interaction). */
+/**
+ * Apply one interaction, returning a new profile (signals.apply_interaction).
+ * `interactionWeights` come from the synced bundle's ranking_config.json; they
+ * default to DEFAULT_RANKING_CONFIG so call sites keep today's affinity bumps.
+ */
 export function applyInteraction(
 	profile: SessionProfile,
 	product: Product,
 	eventType: EventType,
+	interactionWeights: InteractionWeights = DEFAULT_RANKING_CONFIG.interaction_weights,
 ): SessionProfile {
-	const weights = INTERACTION_WEIGHTS[eventType];
+	const weights = interactionWeights[eventType];
 
 	const categoryAffinity = bumped(
 		profile.categoryAffinity,
@@ -102,12 +98,18 @@ export function applyInteraction(
 export function buildProfile(
 	events: ReadonlyArray<InteractionEvent>,
 	productById: ReadonlyMap<string, Product>,
+	interactionWeights: InteractionWeights = DEFAULT_RANKING_CONFIG.interaction_weights,
 ): SessionProfile {
 	let profile = emptyProfile();
 	for (const event of events) {
 		const product = productById.get(event.product_id);
 		if (product !== undefined) {
-			profile = applyInteraction(profile, product, event.event_type);
+			profile = applyInteraction(
+				profile,
+				product,
+				event.event_type,
+				interactionWeights,
+			);
 		}
 	}
 	return profile;

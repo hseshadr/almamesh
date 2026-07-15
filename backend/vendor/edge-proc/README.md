@@ -2,6 +2,10 @@
 
 **Run AI search and ranking right on your own device — no cloud, no per-search bill, your data never leaves the machine.**
 
+[![CI](https://github.com/hseshadr/edge-proc/actions/workflows/ci.yml/badge.svg)](https://github.com/hseshadr/edge-proc/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python 3.13+](https://img.shields.io/badge/python-3.13%2B-blue.svg)](https://www.python.org/downloads/)
+
 ## What is this? (plain version)
 
 Most apps that "search" or "recommend" things quietly ship your data off to a company's
@@ -18,15 +22,40 @@ index files over the internet and check, with cryptography, that nobody tampered
 along the way. Think of it like an app store that verifies the signature on an update
 before installing it — except for your search index.
 
+## Where it fits
+
+EdgeProc is the reusable **substrate** that makes on-device compute possible: it ships your
+search index as a signed, content-addressed bundle any CDN can serve, verifies it fail-closed,
+and runs the inference locally — the generic Lego other products build on.
+[**edge-reco**](https://github.com/hseshadr/edge-reco) is the reference product built on it — a
+full search + recommendation engine running entirely in the browser ([live demo](https://edge-reco.com)).
+EdgeProc itself builds on [**shared-libs-python**](https://github.com/hseshadr/shared-libs-python),
+the vector-partitioning protocol its FAISS runtime implements.
+
 ## What you'd use it for
 
-- **An offline-first assistant** that can still search your local notes and files when
-  you've got no signal — no round-trip to a server required.
-- **A privacy-first app** where the user's data is searched and ranked locally and simply
-  never leaves their device.
-- **An on-device recommender** that suggests the next item with zero per-search cloud bill,
-  no matter how many users you have.
-- **An edge or IoT device** that needs fast local search without standing up a big backend.
+Moving compute to the edge buys you four things at once. The index + data ship as a static,
+signed, content-addressed bundle any CDN serves; inference runs on the device — so there's
+no embedding API, vector DB, or ranking server in the request path:
+
+- **Zero-marginal-cost compute.** Every per-request cloud bill (embeddings, vector search,
+  reranking) becomes a one-time bundle build. The Nth query costs you nothing.
+- **Scales on the clients, not your servers.** A traffic spike — Black Friday, a launch, a
+  Hacker News hug — is absorbed by users' own devices. No autoscaling bill, nothing to fall
+  over.
+- **Resilient on weak, flaky, or dropped connections.** After a one-time sync the consumer
+  needs no network. An offline-first assistant still searches your local notes with no
+  signal.
+- **Trustworthy by construction.** Fail-closed Ed25519 + SHA-256 means an unverifiable or
+  tampered pull is *rejected, not silently served* — like an app store checking an update's
+  signature before installing it, but for your search index. And because the data is searched
+  and ranked locally, it never leaves the device.
+
+Concretely: an on-device recommender that suggests the next item with no per-search cloud
+bill no matter how many users you have; a privacy-first app where user data never leaves the
+machine; an edge or IoT box that needs fast local search without standing up a backend.
+[edge-reco](https://github.com/hseshadr/edge-reco) puts all four together — a browser-native
+storefront with search + recommendations and zero backend calls after sync.
 
 ## Quickstart
 
@@ -144,6 +173,19 @@ for. The core is tiny; the heavy machinery (FAISS, sync) is opt-in behind extras
 on [`shared-libs-python`](https://github.com/hseshadr/shared-libs-python): the FAISS index
 here is a concrete implementation of that library's `VectorIndex` Protocol.
 
+**Working on EdgeProc itself? Clone-and-go:**
+
+```bash
+git clone https://github.com/hseshadr/edge-proc.git
+cd edge-proc
+uv sync --all-extras   # core + extras + dev tooling
+```
+
+That Just Works — `shared-libs-python` isn't on PyPI, so `pyproject.toml` pins it to a
+release tag from public GitHub (see `[tool.uv.sources]`); `uv sync` fetches it for you,
+nothing else to clone. Co-developing `shared-libs-python` alongside EdgeProc? Clone it next
+to this repo and swap the git source for the commented path source in `pyproject.toml`.
+
 ### The deterministic router
 
 You hand EdgeProc a `Task` and a router picks which engine (a "runtime") serves it. **That
@@ -249,7 +291,10 @@ module map — see [**docs/ARCHITECTURE.md**](docs/ARCHITECTURE.md) (with d2 dia
 
 **Roadmap — not built yet** (kept as Protocol seams, not in v0):
 
-- A Wasm-3.0 deterministic kernel for sandboxed, portable runtimes — *roadmap, not built yet.*
+- **First-party WASM kernel v0** — one deterministic hot path (chunk hash/verify, BM25, or
+  rerank math), Rust→wasm32, running identically in the browser and in Python via wasmtime,
+  filling the `CUSTOM_WASM` seam — *roadmap, not built yet; full definition of done in
+  [ROADMAP.md](ROADMAP.md).*
 - Biscuit capability tokens for fine-grained, attenuable authorization — *roadmap, not built yet.*
 - Sigstore keyless bundle signing as an alternative to pinned ed25519 keys — *roadmap, not built yet.*
 
@@ -259,6 +304,18 @@ module map — see [**docs/ARCHITECTURE.md**](docs/ARCHITECTURE.md) (with d2 dia
 - [docs/QUICKSTART.md](docs/QUICKSTART.md) — clone → gate → CLI walkthrough of the full `keygen → publish → sync → route` loop in five minutes.
 - [docs/diagrams/](docs/diagrams/) — d2 sources + rendered SVGs.
 
+## The stack
+
+EdgeProc is the middle layer of a three-repo system, all MIT-licensed:
+
+- [**edge-reco**](https://github.com/hseshadr/edge-reco) — the reference product built on
+  this substrate: a browser-native storefront with hybrid search + session-aware
+  recommendations, zero backend calls after sync ([live demo](https://edge-reco.com)).
+- **edge-proc** (this repo) — the reusable local-compute substrate: signed bundle sync, a
+  CAS cache, fail-closed verification, and hybrid retrieval primitives.
+- [**shared-libs-python**](https://github.com/hseshadr/shared-libs-python) — the
+  vector-partitioning protocol EdgeProc's FAISS/localvec runtime builds on.
+
 ## Develop
 
 ```bash
@@ -267,6 +324,14 @@ uv run poe gate        # lint + format-check + mypy strict + Radon Grade A + pyt
 ```
 
 `poe gate` mirrors CI exactly — if it passes locally, CI passes.
+
+## About
+
+**EdgeProc** — also written `edge-proc` and `edgeproc`; canonical repo
+[`hseshadr/edge-proc`](https://github.com/hseshadr/edge-proc) — is the open-source,
+local-first search/ranking substrate described above. Canonical entity page:
+[edge-reco.com/edgeproc](https://edge-reco.com/edgeproc) — EdgeProc on the domain we
+control. It is **not affiliated with any other product or company named "EdgeProc"**.
 
 ## License
 

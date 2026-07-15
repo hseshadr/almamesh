@@ -27,7 +27,7 @@ import type {
 } from '@almamesh/shared-types';
 import { buildVargaGeometry } from '@almamesh/store';
 import { formatDegree } from '../../lib/reportData';
-import { formatPredictiveDate, formatRupas, toVargaChart } from '../../lib/predictive';
+import { formatPct, formatPredictiveDate, formatRupas, toVargaChart } from '../../lib/predictive';
 import {
   domainWindowLabel,
   grahaName,
@@ -347,7 +347,7 @@ export function buildStrengthSection(
         planet.meets_minimum ? tr('strength.meets') : tr('strength.below'),
       ]),
     ),
-    widths: [1.4, 1, 1, 1, 1, 1.2, 1, 1, 1, 1.6],
+    widths: [1.6, 1.05, 0.8, 1.05, 1.05, 1.4, 0.85, 1, 1.25, 1.5],
   };
 
   return {
@@ -408,9 +408,15 @@ export function buildDomainsSection(
     return {
       name: glyphSafe(tp(`domains.names.${domain}`)),
       band: glyphSafe(
-        `${tp('domains.band_label', { band: tp(`domains.band.${strength.band}`) })}${
+        `${formatPct(strength.strength_pct)} · ${tp(`domains.band.${strength.band}`)}${
           strength.approximated ? ' ≈' : ''
         }`,
+      ),
+      strengthAxes: glyphSafe(
+        `${tp('domains.strength_axes', {
+          shadbala: formatPct(strength.shadbala_pct),
+          sav: formatPct(strength.sav_pct),
+        })} · ${tp('domains.strength_tier_model')}`,
       ),
       strengthLine: glyphSafe(
         tp('domains.strength_line', {

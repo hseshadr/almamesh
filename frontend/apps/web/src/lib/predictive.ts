@@ -51,9 +51,11 @@ export function buildEnsurePredictiveInput(
  */
 export function selectPrimaryStoredChart(
   charts: Readonly<Record<string, StoredChart>>,
+  profileId?: string | null,
 ): StoredChart | undefined {
   const all = Object.values(charts);
-  return all.find((chart) => chart.is_primary) ?? all[0];
+  const scoped = profileId ? all.filter((chart) => chart.profile_id === profileId) : all;
+  return scoped.find((chart) => chart.is_primary) ?? scoped[0];
 }
 
 /** "aries" → "Aries", "saturn" → "Saturn" (pure casing, no vocabulary). */
@@ -111,4 +113,14 @@ export function formatPredictiveDate(iso: string): string {
  */
 export function formatRupas(value: number): string {
   return value.toFixed(2);
+}
+
+/**
+ * Display formatting for a calibrated strength percentage (0..100). The engine
+ * emits the full-precision, golden-locked value (e.g. 57.142857); the screen
+ * shows a whole-number mark (`57%`) — readable, and no false precision. Pure
+ * presentation — the exact engine value is untouched.
+ */
+export function formatPct(value: number): string {
+  return `${Math.round(value)}%`;
 }

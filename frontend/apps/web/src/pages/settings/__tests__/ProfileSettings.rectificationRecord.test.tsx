@@ -9,12 +9,14 @@
  * Synthetic data only — no real birth details.
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { useProfilesStore, useRectificationRecordsStore } from '@almamesh/store';
 import type { RectificationRecord } from '@almamesh/shared-types';
+import type { LocalBirthInput } from '@almamesh/store';
 
 import '../../../i18n/config';
+import { useSettingsStore } from '../../../stores/settings';
 
 // --- Heavy/engine deps stubbed so the page renders without the runtime ------
 
@@ -22,8 +24,10 @@ vi.mock('../../../providers/AlmaMeshRuntimeProvider', () => ({
   useChartEngine: () => ({ engine: null, error: null }),
 }));
 
+const useLagnaPreviewMock = vi.hoisted(() => vi.fn());
+
 vi.mock('../../../hooks/useLagnaPreview', () => ({
-  useLagnaPreview: () => ({ status: 'idle' as const }),
+  useLagnaPreview: (...args: unknown[]) => useLagnaPreviewMock(...args),
 }));
 
 vi.mock('../../../lib/localChartRead', () => ({
@@ -49,10 +53,6 @@ vi.mock('../../../lib/localChartRead', () => ({
 
 vi.mock('../../../components/shared/LocationSearch', () => ({
   LocationSearch: () => <div data-testid="location-search-stub" />,
-}));
-
-vi.mock('../../../components/features/settings/RegenerationConfirmModal', () => ({
-  RegenerationConfirmModal: () => null,
 }));
 
 vi.mock('../../../components/features/settings/BirthTimeComparison', () => ({
@@ -91,6 +91,9 @@ function renderPage() {
 
 describe('ProfileSettings — rectification record', () => {
   beforeEach(() => {
+    useLagnaPreviewMock.mockReset();
+    useLagnaPreviewMock.mockReturnValue({ status: 'idle' as const });
+    useSettingsStore.getState().clearPendingChanges();
     useProfilesStore.setState({
       activeProfileId: PROFILE_ID,
       profiles: {
@@ -128,5 +131,67 @@ describe('ProfileSettings — rectification record', () => {
     expect(await screen.findByText('Birth time rectification')).toBeTruthy();
     // …but the read-only record section is absent.
     expect(screen.queryByTestId('rectification-record')).toBeNull();
+  });
+
+  it('does not allow saving a rectified time before both lagna previews resolve', async () => {
+    useLagnaPreviewMock.mockImplementation(
+      (_engine: unknown, _error: unknown, input: LocalBirthInput | null) => {
+        if (input === null) return { status: 'idle' as const };
+        const clock = input.rectifiedTime ?? input.time;
+        if (clock === '07:15') return { status: 'loading' as const };
+        return {
+          status: 'ready' as const,
+          lagna: { sign: 'Leo', signDegrees: 0.1, nakshatra: 'Magha' },
+        };
+      },
+    );
+
+    const { container } = renderPage();
+    await screen.findByText('Birth time rectification');
+    const rectifiedTime = screen.getByLabelText<HTMLInputElement>('Rectified time');
+    fireEvent.change(rectifiedTime, { target: { value: '07:15' } });
+
+    const save = screen.getByRole<HTMLButtonElement>('button', { name: 'Save Changes' });
+    await waitFor(() => expect(save.disabled).toBe(true));
+
+    // Keyboard/programmatic form submission must not bypass the disabled button.
+    fireEvent.submit(container.querySelector('form')!);
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('surfaces an entered-time preview failure and retries both previews', async () => {
+    useLagnaPreviewMock.mockImplementation(
+      (
+        _engine: unknown,
+        _error: unknown,
+        input: LocalBirthInput | null,
+        retryAttempt = 0,
+      ) => {
+        if (input === null) return { status: 'idle' as const };
+        const clock = input.rectifiedTime ?? input.time;
+        if (clock === '07:30' && retryAttempt === 0) return { status: 'error' as const };
+        return {
+          status: 'ready' as const,
+          lagna: {
+            sign: clock === '07:15' ? 'Cancer' : 'Leo',
+            signDegrees: 1,
+            nakshatra: 'Magha',
+          },
+        };
+      },
+    );
+
+    renderPage();
+    await screen.findByText('Birth time rectification');
+    fireEvent.change(screen.getByLabelText('Rectified time'), { target: { value: '07:15' } });
+
+    const failure = await screen.findByTestId('rectification-preview-failure');
+    expect(failure.textContent).toContain('Could not preview the Ascendant');
+    const save = screen.getByRole<HTMLButtonElement>('button', { name: 'Save Changes' });
+    expect(save.disabled).toBe(true);
+
+    fireEvent.click(within(failure).getByRole('button', { name: 'Retry' }));
+    await waitFor(() => expect(screen.queryByTestId('rectification-preview-failure')).toBeNull());
+    expect(save.disabled).toBe(false);
   });
 });

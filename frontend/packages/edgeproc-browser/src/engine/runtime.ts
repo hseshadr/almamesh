@@ -15,8 +15,10 @@
 // are offline-capable (a re-sync over a reachable origin fetches zero chunks).
 
 import { EngineClient } from "./client";
+import { type CooccurrenceMatrix, parseCooccurrence } from "./cooccurrence";
 import { createEmbedder, type Embedder } from "./embedder";
 import { createWorkerEmbedder, spawnEmbedderWorker } from "./embedderClient";
+import { parseRankingConfig, type RankingConfig } from "./rankingConfig";
 import { createSearchEngine, type SearchEngine } from "./searchEngine";
 import type { SyncResult } from "./types";
 import type { VectorIndexFiles } from "./vectorIndex";
@@ -26,6 +28,10 @@ const META_PATH = "catalog_meta.json";
 const STATE_PATH = "vector/state.json";
 const EMBEDDINGS_PATH = "vector/embeddings.f32";
 const PRODUCTS_PATH = "products.jsonl";
+/** The signed ranking weights; absent on bundles that predate the feature. */
+const RANKING_CONFIG_PATH = "ranking_config.json";
+/** The signed co-occurrence matrix; absent on bundles that predate Phase 3. */
+const COOCCURRENCE_PATH = "cooccurrence.json";
 
 /** Any non-empty string warms the ONNX session; content is discarded. */
 const WARMUP_PROMPT = "warm up the model";
@@ -85,6 +91,59 @@ async function readBundleFiles(engine: EnginePort): Promise<VectorIndexFiles> {
 	return { meta, state, embeddings, products };
 }
 
+/**
+ * Read an OPTIONAL bundle file, distinguishing ABSENT from a real error. The sync
+ * layer signals "this file predates the bundle" with a typed `file <path> not in
+ * manifest` rejection (sync.ts `fileEntry`); that — and ONLY that — maps to
+ * `undefined` so the caller degrades to its default. Any other rejection (a read/
+ * IPC failure, a corrupt chunk) propagates so the bootstrap fails CLOSED instead of
+ * silently masking a real fault as "older bundle".
+ */
+export async function readOptionalBundleFile(
+	engine: EnginePort,
+	path: string,
+): Promise<Uint8Array | undefined> {
+	try {
+		return await engine.readFile(path);
+	} catch (error) {
+		if (
+			error instanceof Error &&
+			error.message === `file ${path} not in manifest`
+		) {
+			return undefined;
+		}
+		throw error;
+	}
+}
+
+/**
+ * Read the bundle's VERIFIED ranking_config.json — it rides in the signed
+ * manifest, so engine.readFile materializes it through the same ed25519/sha256
+ * path as catalog_meta.json (no out-of-band fetch, no verification bypass). A
+ * bundle that predates the file has no such manifest entry (→ undefined → typed
+ * default). A present-but-malformed file throws in parseRankingConfig (fail-closed),
+ * and an unexpected read error propagates from readOptionalBundleFile.
+ */
+async function readRankingConfig(engine: EnginePort): Promise<RankingConfig> {
+	const bytes = await readOptionalBundleFile(engine, RANKING_CONFIG_PATH);
+	return parseRankingConfig(bytes);
+}
+
+/**
+ * Read the bundle's VERIFIED cooccurrence.json the SAME way as ranking_config.json:
+ * it rides in the signed manifest, so engine.readFile materializes it through the
+ * ed25519/sha256 path (no out-of-band fetch, no verification bypass). A bundle that
+ * predates Phase 3 has no such manifest entry (→ undefined → empty matrix). A
+ * present-but-malformed file throws in parseCooccurrence (fail-closed), and an
+ * unexpected read error propagates from readOptionalBundleFile.
+ */
+async function readCooccurrence(
+	engine: EnginePort,
+): Promise<CooccurrenceMatrix> {
+	const bytes = await readOptionalBundleFile(engine, COOCCURRENCE_PATH);
+	return parseCooccurrence(bytes);
+}
+
 /** Read Vite env into a RuntimeConfig; the pubkey is pinned same-origin. */
 export function configFromEnv(): RuntimeConfig {
 	const bundleBaseUrl = import.meta.env.VITE_BUNDLE_BASE_URL;
@@ -140,7 +199,11 @@ export class EngineRuntime {
 		onStage({ kind: "synced", result });
 
 		onStage({ kind: "reassembling" });
-		const files = await readBundleFiles(engineClient);
+		const [files, rankingConfig, cooccurrence] = await Promise.all([
+			readBundleFiles(engineClient),
+			readRankingConfig(engineClient),
+			readCooccurrence(engineClient),
+		]);
 
 		onStage({ kind: "loading-model" });
 		const embedder = this.#deps.makeEmbedder();
@@ -148,7 +211,12 @@ export class EngineRuntime {
 		// real work and the first user query is fast.
 		await embedder.embed(WARMUP_PROMPT);
 
-		const engine = await createSearchEngine(files, embedder);
+		const engine = await createSearchEngine(
+			files,
+			embedder,
+			rankingConfig,
+			cooccurrence,
+		);
 		this.#ready = engine;
 		onStage({ kind: "ready" });
 		return engine;

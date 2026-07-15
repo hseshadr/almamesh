@@ -13,7 +13,9 @@ vi.mock('./providers/chartEngineContext', () => ({
 // The landing page is heavy (force-field); stub it to a marker so the routing
 // test asserts WHICH element renders at `/`, not the page internals.
 vi.mock('./pages/Landing', () => ({
-  default: () => <div data-testid="landing-page">landing</div>,
+  default: ({ variant }: { variant: string }) => (
+    <div data-testid="landing-page" data-variant={variant}>landing</div>
+  ),
 }));
 
 // The Dashboard page is heavy (react-query / chart reads); stub it to a marker so
@@ -64,7 +66,7 @@ describe('RootRoute (/)', () => {
   it('renders the LandingPage for a first-time visitor with no chart', async () => {
     hasLocalChart.mockReturnValue(false);
     renderAt('/');
-    expect(await screen.findByTestId('landing-page')).toBeTruthy();
+    expect((await screen.findByTestId('landing-page')).getAttribute('data-variant')).toBe('home');
   });
 
   it('renders the landing OUTSIDE the AppLayout chrome', async () => {
@@ -83,5 +85,18 @@ describe('RootRoute (/)', () => {
     expect(screen.getByTestId('app-layout-chrome')).toBeTruthy();
     // And it is NOT the landing splash.
     expect(screen.queryByTestId('landing-page')).toBeNull();
+  });
+});
+
+describe('unknown routes', () => {
+  it('renders a noindex not-found page instead of redirecting to the root landing', async () => {
+    hasLocalChart.mockReturnValue(false);
+    renderAt('/definitely-not-a-route');
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Page not found' })).toBeTruthy();
+    expect(screen.queryByTestId('landing-page')).toBeNull();
+    expect(document.querySelector('meta[name="robots"]')?.getAttribute('content')).toBe(
+      'noindex, nofollow',
+    );
   });
 });

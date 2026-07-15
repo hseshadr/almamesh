@@ -1,13 +1,10 @@
 /**
- * Zustand Stores - UI State Management (in-memory only)
+ * Zustand stores for browser-local persisted state and UI state
  *
  * Architecture:
- * - Zustand handles UI-specific state (not server data)
- * - React Query handles server state (API responses, caching)
- * - All stores are in-memory only (no localStorage persistence)
- *
- * Spec 036 (Cache Consolidation): Removed all persist middleware.
- * UI state doesn't need to survive page refresh.
+ * - IndexedDB-backed stores own durable charts, profiles, chat, and backups
+ * - localStorage-backed stores own small user preferences
+ * - in-memory stores own ephemeral UI selections
  *
  * Stores:
  * - useOnboardingStore: Onboarding flow state

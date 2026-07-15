@@ -5,6 +5,8 @@ import {
   useChartLibraryStore,
   useInterpretationStore,
   usePredictiveStore,
+  useProfilesStore,
+  predictiveRequestKey,
   type StoredChart,
 } from '@almamesh/store';
 import type { SiderealChart } from '@almamesh/browser/types';
@@ -30,6 +32,8 @@ vi.mock('../../lib/downloadReportPdf', () => ({
 import { downloadReportPdf } from '../../lib/downloadReportPdf';
 
 import ReportView from '../ReportView';
+
+const NATAL_ONLY_INPUT = { predictiveRequestKey: null } as const;
 
 // --- A complete-enough engine chart fixture (Title-Case signs, as emitted) ---
 const CHART: SiderealChart = {
@@ -210,6 +214,7 @@ const FULL_INTERPRETATION: VedicInterpretation = {
 function storedChart(): StoredChart {
   return {
     chart_id: 'chart-1',
+    profile_id: 'chart-1',
     person_name: 'Asha Rao',
     is_primary: true,
     birth_data: {
@@ -245,7 +250,15 @@ function seed(interpretationComplete = true): void {
   useChartLibraryStore.setState({ charts: { 'chart-1': storedChart() }, hydrated: true });
   useInterpretationStore.setState({ byChart: {} });
   if (interpretationComplete) {
-    useInterpretationStore.getState().setInterpretation('chart-1', FULL_INTERPRETATION, '2026-06-05T00:00:00Z');
+    useInterpretationStore
+      .getState()
+      .setInterpretation(
+        'chart-1',
+        FULL_INTERPRETATION,
+        '2026-06-05T00:00:00Z',
+        undefined,
+        NATAL_ONLY_INPUT,
+      );
   }
 }
 
@@ -259,6 +272,7 @@ function renderReport(mode: string): ReturnType<typeof render> {
 
 describe('ReportView', () => {
   beforeEach(() => {
+    useProfilesStore.setState({ activeProfileId: 'chart-1' });
     useChartLibraryStore.setState({ charts: {}, hydrated: true });
     useInterpretationStore.setState({ byChart: {} });
     usePredictiveStore.getState().reset();
@@ -277,7 +291,7 @@ describe('ReportView', () => {
     expect(screen.getByTestId('report-footer')).toBeTruthy();
   });
 
-  it('renders every formed yoga with its grade word and classical citation — no percentages', () => {
+  it('renders legacy yogas without percentages when the fixture omits strength_pct', () => {
     seed();
     renderReport('astrologer');
     const yogas = screen.getByTestId('report-yogas');
@@ -288,8 +302,8 @@ describe('ReportView', () => {
     expect(
       within(yogas).getByText('Vipareeta Raja Yoga (Harsha: the 6th lord in the 8th)'),
     ).toBeTruthy();
-    // The grade is a typographic word from the engine's closed vocabulary —
-    // the old fake percentage badge is gone.
+    // This legacy fixture predates the calibrated field, so the grade remains
+    // useful on its own and no percentage is invented by the renderer.
     expect(within(yogas).getByText('moderate')).toBeTruthy();
     expect(within(yogas).getByText('weak')).toBeTruthy();
     expect(yogas.textContent ?? '').not.toMatch(/%/);
@@ -439,7 +453,15 @@ describe('ReportView', () => {
     };
     useChartLibraryStore.setState({ charts: { 'chart-1': storedChart() }, hydrated: true });
     useInterpretationStore.setState({ byChart: {} });
-    useInterpretationStore.getState().setInterpretation('chart-1', MARKDOWN, '2026-06-05T00:00:00Z');
+    useInterpretationStore
+      .getState()
+      .setInterpretation(
+        'chart-1',
+        MARKDOWN,
+        '2026-06-05T00:00:00Z',
+        undefined,
+        NATAL_ONLY_INPUT,
+      );
     renderReport('you');
 
     const summary = screen.getByTestId('report-summary');
@@ -459,6 +481,7 @@ describe('ReportView', () => {
 
 describe('ReportView predictive sections', () => {
   beforeEach(() => {
+    useProfilesStore.setState({ activeProfileId: 'chart-1' });
     useChartLibraryStore.setState({ charts: {}, hydrated: true });
     useInterpretationStore.setState({ byChart: {} });
     usePredictiveStore.getState().reset();
@@ -485,6 +508,13 @@ describe('ReportView predictive sections', () => {
       strengthCtx: STRENGTH_CTX,
       domainsCtx: DOMAINS_CTX,
       profileKey: 'chart-1',
+      requestKey: predictiveRequestKey({
+        profileKey: 'chart-1',
+        datetimeUtc: '1990-03-30T06:30:00Z',
+        latitude: 12.97,
+        longitude: 77.59,
+        referenceInstant: `${new Date().toISOString().slice(0, 10)}T00:00:00Z`,
+      }),
     });
     renderReport('astrologer');
 
@@ -515,7 +545,15 @@ describe('ReportView predictive sections', () => {
       },
     } as StoredChart;
     useChartLibraryStore.setState({ charts: { 'chart-1': withConvention }, hydrated: true });
-    useInterpretationStore.getState().setInterpretation('chart-1', FULL_INTERPRETATION, '2026-06-05T00:00:00Z');
+    useInterpretationStore
+      .getState()
+      .setInterpretation(
+        'chart-1',
+        FULL_INTERPRETATION,
+        '2026-06-05T00:00:00Z',
+        undefined,
+        NATAL_ONLY_INPUT,
+      );
     renderReport('astrologer');
 
     const convention = screen.getByTestId('report-dasha-convention');
@@ -532,7 +570,15 @@ describe('ReportView predictive sections', () => {
       },
     } as StoredChart;
     useChartLibraryStore.setState({ charts: { 'chart-1': nearCusp }, hydrated: true });
-    useInterpretationStore.getState().setInterpretation('chart-1', FULL_INTERPRETATION, '2026-06-05T00:00:00Z');
+    useInterpretationStore
+      .getState()
+      .setInterpretation(
+        'chart-1',
+        FULL_INTERPRETATION,
+        '2026-06-05T00:00:00Z',
+        undefined,
+        NATAL_ONLY_INPUT,
+      );
     renderReport('you');
 
     const note = screen.getByTestId('report-cusp-note');
@@ -555,7 +601,15 @@ describe('ReportView predictive sections', () => {
       },
     } as StoredChart;
     useChartLibraryStore.setState({ charts: { 'chart-1': midSign }, hydrated: true });
-    useInterpretationStore.getState().setInterpretation('chart-1', FULL_INTERPRETATION, '2026-06-05T00:00:00Z');
+    useInterpretationStore
+      .getState()
+      .setInterpretation(
+        'chart-1',
+        FULL_INTERPRETATION,
+        '2026-06-05T00:00:00Z',
+        undefined,
+        NATAL_ONLY_INPUT,
+      );
     renderReport('you');
 
     expect(screen.queryByTestId('report-cusp-note')).toBeNull();
@@ -571,7 +625,15 @@ describe('ReportView predictive sections', () => {
       },
     } as StoredChart;
     useChartLibraryStore.setState({ charts: { 'chart-1': nearCusp }, hydrated: true });
-    useInterpretationStore.getState().setInterpretation('chart-1', FULL_INTERPRETATION, '2026-06-05T00:00:00Z');
+    useInterpretationStore
+      .getState()
+      .setInterpretation(
+        'chart-1',
+        FULL_INTERPRETATION,
+        '2026-06-05T00:00:00Z',
+        undefined,
+        NATAL_ONLY_INPUT,
+      );
     renderReport('you');
 
     const callout = screen.getByTestId('report-cusp-note');
@@ -612,7 +674,15 @@ describe('ReportView cover — birth-time honesty', () => {
       birth_data: { ...chart.birth_data, birth_time_original: '11:45' },
     } as StoredChart;
     useChartLibraryStore.setState({ charts: { 'chart-1': rectified }, hydrated: true });
-    useInterpretationStore.getState().setInterpretation('chart-1', FULL_INTERPRETATION, '2026-06-05T00:00:00Z');
+    useInterpretationStore
+      .getState()
+      .setInterpretation(
+        'chart-1',
+        FULL_INTERPRETATION,
+        '2026-06-05T00:00:00Z',
+        undefined,
+        NATAL_ONLY_INPUT,
+      );
     renderReport('you');
 
     const badge = screen.getByTestId('report-time-badge');

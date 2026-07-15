@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { SiderealChart } from "@almamesh/browser/types";
 
 import golden from "../../../../../backend/tests/fixtures/chart_golden_de421.json";
+import { LlmRequestError } from "../client";
 import { ProviderConfig } from "../config";
 import {
   streamStructuredInterpretation,
@@ -275,6 +276,38 @@ describe("streamStructuredInterpretation — degrade gracefully", () => {
     // (misleading) `complete` event.
     expect(seen.filter((e) => e.type === "error")).toHaveLength(6);
     expect(seen.filter((e) => e.type === "complete")).toHaveLength(0);
+  });
+
+  it("rethrows a typed LlmRequestError carrying the representative HTTP status (402) when every section fails", async () => {
+    // The reading aggregation must PRESERVE the upstream HTTP status so the UI
+    // can classify a total failure structurally (402 -> billing copy) instead of
+    // parsing prose. A plain Error dropped the status, which is why an out-of-
+    // credits reading showed the generic "check your model/endpoint" dead-end.
+    const fetch402 = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ error: { message: "Insufficient credits", code: 402 } }), {
+          status: 402,
+          statusText: "Payment Required",
+          headers: { "Content-Type": "application/json" },
+        }),
+    ) as unknown as typeof fetch;
+
+    const gen = streamStructuredInterpretation({
+      chart: realChart,
+      config: LOCAL_CFG,
+      now: NOW,
+      fetchImpl: fetch402,
+    });
+
+    const thrown = await collect(gen).then(
+      () => {
+        throw new Error("expected streamStructuredInterpretation to throw");
+      },
+      (e: unknown) => e,
+    );
+    expect(thrown).toBeInstanceOf(LlmRequestError);
+    expect((thrown as LlmRequestError).status).toBe(402);
+    expect((thrown as Error).message).toMatch(/all .*sections? failed/i);
   });
 });
 

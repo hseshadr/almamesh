@@ -144,6 +144,14 @@ production) — re-run the probe if Cloudflare semantics are ever in doubt:
 4. Content types: Pages serves `.wasm` as `application/wasm`, `.js` as
    `application/javascript`; extensionless bundle files (`latest`, sha256
    chunks) come back as octet-stream and are consumed via `fetch()` — fine.
+5. **The app shell owns zero-egress at the origin.** The catch-all response uses
+   `Cache-Control: public, no-cache, no-transform`, which keeps revalidation while
+   preventing Cloudflare Web Analytics from injecting a third-party beacon into
+   valid HTML. Keep the dashboard automatic setup disabled too, but do not rely on
+   dashboard state as the enforcement boundary. The public-file test locks the
+   origin header rule. After deployment, the release operator must verify the
+   effective live header and run the live no-third-party-request/clean-console
+   acceptance checks before declaring the release complete.
 
 ## Verifying an artifact before deploy
 

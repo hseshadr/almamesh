@@ -17,6 +17,7 @@ import type {
 } from '@almamesh/shared-types';
 import type {
   BirthDetailLabels,
+  ReportPdfAssumptions,
   ReportPdfLabels,
   ReportPdfRectification,
   ReportPdfTranslators,
@@ -40,6 +41,8 @@ export interface ReportPdfChrome {
   readonly formatRectifiedNote?: (delta: RectificationDelta) => string;
   /** Binds `report:dasha.antar_heading` for the all-mahā antar tables. */
   readonly formatAntarHeading?: (lord: string) => string;
+  /** Binds `report:dasha.pratyantar_heading` for the running antar's table. */
+  readonly formatPratyantarHeading?: (lord: string) => string;
   /** Localized kundli plate captions ("Rāśi · D1" / "Navāṁśa · D9"). */
   readonly chartCaptions: { readonly rasi: string; readonly navamsa: string };
   readonly detailLabels: BirthDetailLabels;
@@ -74,6 +77,8 @@ export interface DownloadReportPdfInput {
   };
   /** Pre-localized Birth Time Authority slice (when a rectification exists). */
   readonly rectification?: ReportPdfRectification;
+  /** Pre-localized assumptions & provenance section (Section XIII). */
+  readonly assumptions?: ReportPdfAssumptions;
   /** The download file name (without extension). */
   readonly fileBaseName: string;
 }
@@ -102,10 +107,12 @@ export async function downloadReportPdf(input: DownloadReportPdfInput): Promise<
     ascendantNote: input.chrome.ascendantNote,
     formatRectifiedNote: input.chrome.formatRectifiedNote,
     formatAntarHeading: input.chrome.formatAntarHeading,
+    formatPratyantarHeading: input.chrome.formatPratyantarHeading,
     detailLabels: input.chrome.detailLabels,
     chromeLabels: input.chrome.chromeLabels,
     comprehensive: input.comprehensive,
     rectification: input.rectification,
+    assumptions: input.assumptions,
   });
 
   const blob = await pdf(<ReportDocument data={data} />).toBlob();

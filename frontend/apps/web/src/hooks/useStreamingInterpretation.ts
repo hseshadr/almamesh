@@ -22,7 +22,6 @@ import { useCallback, useRef } from 'react';
 import {
   applyInterpretationSettings,
   configProvenance,
-  LlmRequestError,
   PrivacyViolationError,
   resolveProviderConfig,
   streamStructuredInterpretation,
@@ -35,15 +34,15 @@ import {
   useInterpretationStore,
   useLanguageStore,
   usePredictiveStore,
-  useProfilesStore,
+  predictiveRequestKey,
+  type InterpretationInputProvenance,
   type InterpretationStatus,
 } from '@almamesh/store';
-import type { SiderealChart } from '@almamesh/browser/types';
-import type { VedicInterpretation } from '@almamesh/shared-types';
-import type { SepViewMode } from '@almamesh/shared-types';
+import type { PredictiveContexts, SiderealChart } from '@almamesh/browser/types';
+import type { ProcessedBirthData, VedicInterpretation } from '@almamesh/shared-types';
 
-import i18n from '../i18n/config';
-import { isInsufficientCreditsMessage, isModelUnavailableMessage } from '../lib/errors';
+import { chatErrorMessage, classifyConnectionError } from '../lib/errors';
+import { buildEnsurePredictiveInput, predictiveReferenceInstant } from '../lib/predictive';
 
 /** The five structured sections, in the order the generator announces them. */
 export const INTERPRETATION_SECTIONS: readonly InterpretationSectionKey[] = [
@@ -62,8 +61,10 @@ export interface SectionProgress {
   readonly failed: boolean;
 }
 
+type StreamingInterpretationViewMode = 'layman' | 'expert';
+
 export interface StreamInterpretationOptions {
-  view_mode?: SepViewMode;
+  view_mode?: StreamingInterpretationViewMode;
 }
 
 export interface UseStreamingInterpretationResult {
@@ -95,9 +96,6 @@ export interface UseStreamingInterpretationResult {
  */
 export const READING_MODEL_UNAVAILABLE = 'reading_model_unavailable';
 
-/** Message fragments a failed `fetch` leaves behind (Chrome/Safari/Firefox). */
-const NETWORK_FAILURE_PATTERN = /failed to fetch|load failed|networkerror|network error|unreachable/i;
-
 /**
  * Resolve the LLM env for the INTERPRETATION path: build-time Vite env, with any
  * browser-local Settings overrides (localStorage) taking precedence, and the
@@ -127,6 +125,134 @@ export function resolveInterpretationConfig(): ProviderConfig {
   return resolveProviderConfig(readLlmEnv());
 }
 
+interface NarrationInput {
+  readonly chart: SiderealChart;
+  readonly provenance: InterpretationInputProvenance;
+}
+
+interface CurrentPredictiveFacts {
+  readonly rawContexts: PredictiveContexts;
+  readonly requestKey: string;
+}
+
+/** The requested chart owns its profile identity, independent of active-UI races. */
+function predictiveProfileKey(chartId: string | null): string {
+  const stored = chartId ? useChartLibraryStore.getState().getChart(chartId) : undefined;
+  return stored?.profile_id ?? chartId ?? 'primary';
+}
+
+/** Build today's deterministic predictive identity for one stored chart. */
+function expectedPredictiveKey(chartId: string | null): string | null {
+  const stored = chartId ? useChartLibraryStore.getState().getChart(chartId) : undefined;
+  const input = buildEnsurePredictiveInput(
+    predictiveProfileKey(chartId),
+    stored?.birth_data as ProcessedBirthData | undefined,
+    predictiveReferenceInstant(),
+  );
+  return input ? predictiveRequestKey(input) : null;
+}
+
+/**
+ * Whether automatic narration may take its one shot for the current chart.
+ *
+ * An unpublished predictive request preserves the historical natal-only path.
+ * Once a request identity exists, however, a stale key or an in-flight current
+ * key must settle before auto-generation: otherwise narration can snapshot
+ * natal-only provenance between `loading` and `ready` and never retry when only
+ * the status changes. A settled error still permits the explicit fail-open
+ * natal-only behavior.
+ */
+export function isAutomaticNarrationInputSettled(chartId: string | null): boolean {
+  const expectedRequest = expectedPredictiveKey(chartId);
+  const { requestKey, status } = usePredictiveStore.getState();
+  if (expectedRequest === null || requestKey === undefined) {
+    return true;
+  }
+  if (requestKey !== expectedRequest) {
+    return false;
+  }
+  return status !== 'loading';
+}
+
+/** Return predictive facts only when every identity and readiness guard agrees. */
+function currentPredictiveFacts(chartId: string | null): CurrentPredictiveFacts | null {
+  const { status, rawContexts, profileKey, requestKey } = usePredictiveStore.getState();
+  if (
+    status !== 'ready' ||
+    rawContexts === undefined ||
+    profileKey !== predictiveProfileKey(chartId) ||
+    requestKey === undefined ||
+    requestKey !== expectedPredictiveKey(chartId)
+  ) {
+    return null;
+  }
+  return { rawContexts, requestKey };
+}
+
+/** Compose only exact-key predictive facts and record what the LLM received. */
+function narrationInput(chart: SiderealChart, chartId: string | null): NarrationInput {
+  const predictive = currentPredictiveFacts(chartId);
+  if (predictive === null) {
+    return { chart, provenance: { predictiveRequestKey: null } };
+  }
+  return {
+    chart: { ...chart, ...predictive.rawContexts },
+    provenance: { predictiveRequestKey: predictive.requestKey },
+  };
+}
+
+/**
+ * True only when a persisted reading's deterministic inputs are still valid.
+ * Legacy entries fail closed because they may contain unkeyed predictive prose.
+ */
+export function isInterpretationInputCurrent(
+  provenance: InterpretationInputProvenance | undefined,
+  chartId: string | null,
+): boolean {
+  if (!provenance) {
+    return false;
+  }
+  if (provenance.predictiveRequestKey === null) {
+    return currentPredictiveFacts(chartId) === null;
+  }
+  return provenance.predictiveRequestKey === expectedPredictiveKey(chartId);
+}
+
+/**
+ * Whether persisted prose is honest to keep on screen while fresher narration
+ * is attempted. Natal-only prose remains valid natal interpretation; an exact
+ * predictive reading is display-safe only for its own current request key.
+ */
+export function isInterpretationInputSafeToDisplay(
+  provenance: InterpretationInputProvenance | undefined,
+  chartId: string | null,
+): boolean {
+  if (!provenance) {
+    return false;
+  }
+  return (
+    provenance.predictiveRequestKey === null ||
+    provenance.predictiveRequestKey === expectedPredictiveKey(chartId)
+  );
+}
+
+/** Read a complete interpretation only when its deterministic inputs are current. */
+export function currentInterpretationForChart(
+  chartId: string | null,
+): VedicInterpretation | undefined {
+  if (!chartId) {
+    return undefined;
+  }
+  const entry = useInterpretationStore.getState().getEntry(chartId);
+  if (
+    entry?.status !== 'complete' ||
+    !isInterpretationInputCurrent(entry.inputProvenance, chartId)
+  ) {
+    return undefined;
+  }
+  return entry.interpretation;
+}
+
 /**
  * Compose the persisted RAW engine predictive contexts onto the natal chart
  * (Spec 062, LLM delta 1) so interpretation + chat prompts carry the engine's
@@ -145,15 +271,7 @@ export function resolveInterpretationConfig(): ProviderConfig {
  * can never be composed onto another profile's chart.
  */
 export function withRawPredictive(chart: SiderealChart, chartId: string | null): SiderealChart {
-  const { status, rawContexts, profileKey } = usePredictiveStore.getState();
-  if (status !== 'ready' || !rawContexts) {
-    return chart;
-  }
-  const expectedKey = useProfilesStore.getState().activeProfileId ?? chartId ?? 'primary';
-  if (profileKey !== expectedKey) {
-    return chart;
-  }
-  return { ...chart, ...rawContexts };
+  return narrationInput(chart, chartId).chart;
 }
 
 /**
@@ -177,32 +295,27 @@ function describeError(err: unknown): string {
   // console — never the returned string — keeps the endpoint-URL privacy fence
   // intact.
   console.error('[interpretation] reading stream failed:', err);
-  const request = err instanceof LlmRequestError ? err : undefined;
-  const text = err instanceof Error ? `${err.message} ${request?.body ?? ''}` : String(err);
-  if (request?.status === 402 || isInsufficientCreditsMessage(text)) {
-    // Valid key, exhausted provider balance (e.g. OpenRouter 402): retrying
-    // can't fix billing — say what actually happened.
-    return i18n.t('chat:errors.insufficient_credits');
-  }
-  if (request?.status === 404 || isModelUnavailableMessage(text)) {
-    // Dead/retired/typo'd model → the dashboard's switch-model prompt.
+  // The reading surfaces a dead/typo'd model as a STABLE sentinel the dashboard
+  // maps to its switch-model prompt (recommended-model button + AI settings
+  // door). Every other failure shares the chat path's coded copy — the same
+  // classification, so 402 billing / 401 auth / 429 rate-limit / 5xx outage /
+  // unreachable endpoint each get their specific, actionable message instead of
+  // the old generic "check your model and endpoint" dead-end. This works now
+  // that the aggregation preserves the representative HTTP status (see
+  // structured-interpretation.ts), so 401/429/5xx classify structurally.
+  if (classifyConnectionError(err) === 'model') {
     return READING_MODEL_UNAVAILABLE;
   }
-  if (NETWORK_FAILURE_PATTERN.test(text)) {
-    // A real fetch network failure — "Failed to fetch" (Chrome) / "Load failed"
-    // (Safari) / "NetworkError" (Firefox), the message `fetch`'s own TypeError
-    // carries, plus the aggregate that concatenates those fragments. A bare
-    // non-network TypeError (a code bug) no longer masquerades as "endpoint
-    // unreachable": it falls through to the generic message and is visible in
-    // the raw error logged above.
-    return i18n.t('chat:errors.endpoint_unreachable');
-  }
-  return i18n.t('chat:errors.request_failed');
+  return chatErrorMessage(err);
 }
 
 export function useStreamingInterpretation(chartId?: string | null): UseStreamingInterpretationResult {
   // Subscribe to the store so the component re-renders as events land.
   const entry = useInterpretationStore((s) => (chartId ? s.byChart[chartId] : undefined));
+  // Context identity changes must immediately re-evaluate persisted prose even
+  // when the interpretation entry itself did not mutate.
+  usePredictiveStore((s) => s.requestKey);
+  usePredictiveStore((s) => s.status);
   const startInterpretation = useInterpretationStore((s) => s.startInterpretation);
   const markSectionComplete = useInterpretationStore((s) => s.markSectionComplete);
   const markSectionFailed = useInterpretationStore((s) => s.markSectionFailed);
@@ -249,6 +362,7 @@ export function useStreamingInterpretation(chartId?: string | null): UseStreamin
 
       const controller = new AbortController();
       abortControllerRef.current = controller;
+      const input = narrationInput(chart, id);
 
       startInterpretation(id);
       try {
@@ -256,7 +370,7 @@ export function useStreamingInterpretation(chartId?: string | null): UseStreamin
           // Compose the persisted raw predictive contexts (when ready for this
           // profile) so the six section prompts carry the delimited engine
           // predictive block; absent contexts → natal-only, exactly as before.
-          chart: withRawPredictive(chart, id),
+          chart: input.chart,
           config,
           mode: options.view_mode === 'expert' ? 'expert' : 'layman',
           language,
@@ -282,6 +396,7 @@ export function useStreamingInterpretation(chartId?: string | null): UseStreamin
               event.interpretation,
               new Date().toISOString(),
               configProvenance(config),
+              input.provenance,
             );
           }
           // `section_start` is informational.
@@ -294,7 +409,15 @@ export function useStreamingInterpretation(chartId?: string | null): UseStreamin
     [language, markSectionComplete, markSectionFailed, setError, setInterpretation, startInterpretation]
   );
 
-  const status: InterpretationStatus = entry?.status ?? 'idle';
+  const resolvedChartId = chartId ?? null;
+  const inputIsCurrent = isInterpretationInputCurrent(entry?.inputProvenance, resolvedChartId);
+  const inputIsSafeToDisplay = isInterpretationInputSafeToDisplay(
+    entry?.inputProvenance,
+    resolvedChartId,
+  );
+  const storedStatus: InterpretationStatus = entry?.status ?? 'idle';
+  const status: InterpretationStatus =
+    storedStatus === 'complete' && !inputIsCurrent ? 'idle' : storedStatus;
   const completed = entry?.sections ?? {};
   const failed = entry?.failedSections ?? {};
   const sections: readonly SectionProgress[] = INTERPRETATION_SECTIONS.map((key) => ({
@@ -305,7 +428,7 @@ export function useStreamingInterpretation(chartId?: string | null): UseStreamin
 
   return {
     streamInterpretation,
-    interpretation: entry?.interpretation,
+    interpretation: inputIsSafeToDisplay ? entry?.interpretation : undefined,
     status,
     sections,
     failedSections: sections.filter((s) => s.failed).map((s) => s.key),

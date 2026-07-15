@@ -1,0 +1,27 @@
+# AlmaMesh
+
+> AlmaMesh is a free, local-first Vedic astrology web app. Chart calculation runs in the browser, without an account or a server-side birth-data store.
+
+## Product
+
+- Computes sidereal charts, nakshatras, dashas, and divisional charts on the user's device.
+- Works offline after the engine and signed data bundle have been loaded.
+- Offers optional AI narration configured by the user. Core chart calculation does not require AI.
+- Presents astrology as reflective interpretation, with visible assumptions and uncertainty.
+
+## Privacy
+
+Birth details and computed charts remain in the browser. The city search can use Open-Meteo with an offline fallback, and optional AI sends only user-approved context to the endpoint the user configures.
+
+- Privacy: https://almamesh.com/privacy
+- Data deletion: https://almamesh.com/data-deletion
+- Terms: https://almamesh.com/terms
+
+## Public pages
+
+- Home: https://almamesh.com/
+- Product overview: https://almamesh.com/welcome
+
+## Source
+
+- Repository: https://github.com/hseshadr/almamesh

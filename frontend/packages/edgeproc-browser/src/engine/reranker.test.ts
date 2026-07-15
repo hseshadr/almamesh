@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { Product, SearchResult } from "./domain";
+import { DEFAULT_RANKING_CONFIG } from "./rankingConfig";
 import { rerank, scoreProduct } from "./reranker";
 import { applyInteraction, emptyProfile, type SessionProfile } from "./session";
+
+const WEIGHTS = DEFAULT_RANKING_CONFIG.scoring_weights;
 
 function product(overrides: Partial<Product> & Pick<Product, "id">): Product {
 	return {
@@ -70,8 +73,59 @@ describe("scoreProduct (parity vs scorer.score_product)", () => {
 
 	it("averages tag affinity over the product's tags", () => {
 		const result = scoreProduct(P2, profileFixture());
-		// single tag 'run' affinity 0.1 * weight 0.15 = 0.015
-		expect(result.score_components?.tag_match).toBeCloseTo(0.015, 12);
+		// single tag 'run' affinity 0.1 * tag weight from config = 0.1 * 0.15 = 0.015
+		expect(result.score_components?.tag_match).toBeCloseTo(
+			0.1 * WEIGHTS.tag,
+			12,
+		);
+	});
+});
+
+describe("scoreProduct (weights come from the ranking config)", () => {
+	it("default and explicit DEFAULT_RANKING_CONFIG weights agree", () => {
+		const implicit = scoreProduct(P1, profileFixture());
+		const explicit = scoreProduct(P1, profileFixture(), WEIGHTS);
+		expect(explicit.score).toBeCloseTo(implicit.score, 12);
+		expect(explicit.score_components).toEqual(implicit.score_components);
+	});
+
+	it("honors a retuned config — doubling popularity doubles that signal", () => {
+		const retuned = { ...WEIGHTS, popularity: WEIGHTS.popularity * 2 };
+		const base = scoreProduct(P1, emptyProfile());
+		const doubled = scoreProduct(P1, emptyProfile(), retuned);
+		expect(doubled.score_components?.popularity).toBeCloseTo(
+			(base.score_components?.popularity ?? 0) * 2,
+			12,
+		);
+	});
+});
+
+describe("scoreProduct (Phase-3 co-occurrence term)", () => {
+	it("adds weights.cooccurrence * cooc_score and reports the component", () => {
+		const weights = { ...WEIGHTS, cooccurrence: 0.7 };
+		const base = scoreProduct(P1, emptyProfile(), weights);
+		const withCooc = scoreProduct(P1, emptyProfile(), weights, 0, 0.5);
+		expect(withCooc.score_components?.cooccurrence).toBeCloseTo(0.7 * 0.5, 12);
+		// The cooccurrence term is purely additive over the base score.
+		expect(withCooc.score - base.score).toBeCloseTo(0.7 * 0.5, 12);
+	});
+
+	it("reports cooccurrence 0 when the weight or score is 0 (Phase-1/2 unchanged)", () => {
+		const noWeight = scoreProduct(P1, emptyProfile(), WEIGHTS, 0, 0.9);
+		expect(noWeight.score_components?.cooccurrence).toBe(0);
+		const noScore = scoreProduct(
+			P1,
+			emptyProfile(),
+			{ ...WEIGHTS, cooccurrence: 0.8 },
+			0,
+			0,
+		);
+		expect(noScore.score_components?.cooccurrence).toBe(0);
+		// With both similarity and cooccurrence 0, the score equals the Phase-1 formula.
+		expect(noScore.score).toBeCloseTo(
+			scoreProduct(P1, emptyProfile(), WEIGHTS).score,
+			12,
+		);
 	});
 });
 

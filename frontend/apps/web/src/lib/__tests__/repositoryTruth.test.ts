@@ -1,0 +1,215 @@
+import { existsSync, readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, resolve } from 'node:path';
+import { describe, expect, it } from 'vitest';
+
+const here = dirname(fileURLToPath(import.meta.url));
+const root = resolve(here, '../../../../../..');
+const readRoot = (path: string): string => readFileSync(resolve(root, path), 'utf8');
+const readSection = (document: string, heading: string): string => {
+  const start = document.indexOf(heading);
+  if (start < 0) throw new Error(`Missing section: ${heading}`);
+  const end = document.indexOf('\n## ', start + heading.length);
+  return document.slice(start, end < 0 ? undefined : end);
+};
+
+describe('repository truth', () => {
+  it('prints architecture paths that exist exactly as written', () => {
+    const architecture = readSection(readRoot('README.md'), '## Architecture');
+    const paths = [
+      'frontend/apps/web',
+      'frontend/packages/browser',
+      'frontend/packages/store',
+      'frontend/packages/llm',
+      'frontend/packages/shared-types',
+      'frontend/packages/constants',
+      'frontend/packages/memory',
+      'frontend/packages/edgeproc-browser',
+      'backend/src/almamesh',
+    ];
+    for (const path of paths) {
+      expect(architecture).toContain(path);
+      expect(existsSync(resolve(root, path))).toBe(true);
+    }
+  });
+
+  it('describes PDF and network behavior without contradictions', () => {
+    const readme = readRoot('README.md');
+    expect(readme).toContain('deterministic report is available without AI');
+    expect(readme).toContain('online-primary birthplace search with a bundled offline fallback');
+    expect(readme).toContain('chart computation remains local and deterministic');
+    expect(readme).not.toContain('It stays disabled until a real interpretation has completed');
+    expect(readme).not.toContain('birth location with zero network');
+  });
+
+  it('records the complete PR 62 artifact and provenance behavior', () => {
+    const unreleased = readSection(readRoot('CHANGELOG.md'), '## [Unreleased]');
+    for (const claim of [
+      'maha, antar, and pratyantar',
+      'predictive cache identity',
+      'interpretation provenance',
+      'conservative life-event structuring',
+      'semantic, geometric, and browser PDF gates',
+    ]) expect(unreleased).toContain(claim);
+  });
+
+  it('dates the report baseline to v0.4.0 and all-table completion to PR 62', () => {
+    const spec = readRoot('docs/specs/062-robust-rectifier-comprehensive-report.md');
+    expect(spec).toContain(
+      '**Status:** The v0.4.0 baseline is shipped; complete all-table report export is Unreleased in PR #62.',
+    );
+    expect(spec).not.toContain('**Status:** Shipped in v0.4.0');
+  });
+
+  it('uses the Vite 8 JSX config without deprecated transform keys', () => {
+    const config = readRoot('frontend/apps/web/vitest.config.ts');
+    expect(config).toContain('oxc:');
+    expect(config).toContain('rolldownOptions:');
+    expect(config).not.toContain("import react from '@vitejs/plugin-react'");
+    expect(config).not.toContain('react()');
+    expect(config).not.toContain('esbuild:');
+    expect(config).not.toContain('esbuildOptions:');
+  });
+
+  it('publishes the categorized cleverness-debt ledger', () => {
+    const path = 'docs/CLEVERNESS-DEBT.md';
+    expect(existsSync(resolve(root, path))).toBe(true);
+    const ledger = readRoot(path);
+    for (const heading of [
+      '## Remove now',
+      '## Redesign only with a named consumer',
+      '## Accepted boundary',
+    ]) expect(ledger).toContain(heading);
+    for (const boundary of [
+      'Skyfield type edge',
+      'PEP 562 lazy import',
+      'Shadbala classical-argument shape',
+      'JSON metadata',
+      'Downstream raw Skyfield position mappings',
+      'worker singletons',
+      'lazy-load cache',
+      'chat cache',
+      'geocoder cache',
+      'mutable store counters',
+    ]) expect(ledger).toContain(boundary);
+    for (const evidence of [
+      'transits/positions.py',
+      'transits/aspects.py',
+      'transits/gochara.py',
+      'Before adding another consumer of `get_planetary_positions()`',
+    ]) expect(ledger).toContain(evidence);
+  });
+
+  it('records rigor stages 1-3 as shipped and Stage 4 as partial without overstating validity', () => {
+    const rigor = readRoot('docs/rigor-upgrade-spec.md');
+    for (const evidence of [
+      '**Lifecycle:** PARTIAL',
+      'Stages 1–3 shipped',
+      'Stage 4 is PARTIAL',
+      'assumptions panel and conservative web cusp proxy are shipped',
+      'exact dual-lagna production wiring and PDF stability markers remain roadmap',
+      'PR #56',
+      'PR #58',
+      'PR #57',
+      'PR #59',
+      'historical design and acceptance rationale',
+      'not empirically validated life outcomes',
+      'backend/tests/test_domain_strength_pct.py',
+      'Exalted Jupiter in a kendra: net +2 / range −3..+3 → **83.33%**',
+      'Debilitated Sun in a dusthana: net −2 / range −2..+2 → **0%**',
+      'margin 0.42): **42%, consistent**',
+      'Percentage and qualitative band are parallel explainable outputs',
+      'Yoga grade remains `net ≥ 2` strong · `net ≤ −1` weak · otherwise moderate',
+      'Domain band remains both signals strong → strong · both weak → weak · otherwise moderate',
+      'Saturn-career 95% ∧ SAV 61% → **61%, strong**',
+      'combust debilitated dusthana Mars',
+      'non-combust debilitated dusthana Sun',
+    ]) expect(rigor).toContain(evidence);
+    for (const impossibleOrStaleClaim of [
+      'Stages 1–4 shipped',
+      'stages 1–4 complete',
+      'Very strong — 92%',
+      'net +4 of max +4',
+      'Weak — 8%',
+      'margin 0.42): **43%, consistent**',
+      'margin-0.42 case → "43%, consistent"',
+      '| %→band |',
+      '≥75% strong · 40–75% moderate · <40% weak',
+      '≥80% strong · 50–80% moderate · <50% weak',
+      '**61%, moderate–strong**',
+      'debil-combust-dusthana Sun',
+    ]) expect(rigor).not.toContain(impossibleOrStaleClaim);
+    for (const path of [
+      'backend/tests/test_domain_strength_pct.py',
+      'backend/tests/test_stability.py',
+      'frontend/apps/web/src/components/features/report/__tests__/ReportAssumptions.test.tsx',
+    ]) expect(existsSync(resolve(root, path))).toBe(true);
+
+    const reportView = readRoot('frontend/apps/web/src/pages/ReportView.tsx');
+    expect(reportView).toContain('reportStabilityMarkers(claimIds, nearCusp)');
+    expect(reportView).not.toContain('diffMarkers(');
+
+    const rectificationPdfTypes = readRoot(
+      'frontend/apps/web/src/components/report-pdf/types.ts',
+    );
+    expect(rectificationPdfTypes).toContain('aggregate calibrated event-fit confidence percentage');
+    expect(rectificationPdfTypes).toContain('Per-event evidence');
+    expect(rectificationPdfTypes).not.toContain('QUALITATIVE ONLY by contract');
+    expect(rectificationPdfTypes).not.toContain('never a percentage, margin number, or fit score');
+
+    const yogaFactors = readRoot('backend/src/almamesh/yogas/factors.py');
+    expect(yogaFactors).toContain('calibrated structural percentages');
+    expect(yogaFactors).toContain('not empirically validated life outcomes');
+    expect(yogaFactors).not.toContain('real factors, no percentages');
+
+    const rectificationPdf = readRoot(
+      'frontend/apps/web/src/components/report-pdf/sections/ReportPdfRectification.tsx',
+    );
+    expect(rectificationPdf).toContain('aggregate calibrated confidence percentage');
+    expect(rectificationPdf).toContain('not a probability that the time is correct');
+    expect(rectificationPdf).not.toContain('carries NO percentage');
+  });
+
+  it('allows only the gated aggregate rectification percentage across shipped truth surfaces', () => {
+    const rectificationTruthSurfaces = [
+      'docs/specs/059-event-based-rectification.md',
+      'docs/specs/060-conversational-rectification-elicitation.md',
+      'frontend/apps/web/src/components/features/report/__tests__/ReportRectification.test.tsx',
+      'frontend/apps/web/src/pages/__tests__/ReportView.test.tsx',
+      'frontend/apps/web/src/components/report-pdf/__tests__/comprehensiveSections.test.ts',
+    ].map(readRoot).join('\n');
+    for (const staleAbsolute of [
+      'never a single percentage',
+      'Never a headline %',
+      '"no headline %" all continue to hold',
+      'evidence and a margin — never a percentage',
+      'No headline confidence %, ever',
+      'no headline % appears anywhere',
+      'ANTI-SCAM HARD LINE: no percentage',
+      'NEVER a number or percentage',
+      'no margin, no percentage anywhere in the slice',
+    ]) expect(rectificationTruthSurfaces).not.toContain(staleAbsolute);
+    expect(rectificationTruthSurfaces).toContain('calibrated aggregate percentage');
+    expect(rectificationTruthSurfaces).toContain('provenance and its supporting ledger');
+  });
+
+  it.each([
+    ['docs/specs/054-karma-action-classification.md', 'ROADMAP'],
+    ['docs/specs/057-karma-gamification-ui.md', 'ROADMAP'],
+    ['docs/specs/058-dasha-modifier-config.md', 'ROADMAP'],
+    ['docs/specs/059-event-based-rectification.md', 'SHIPPED'],
+    ['docs/specs/059-event-based-rectification-plan.md', 'SHIPPED'],
+    ['docs/specs/060-conversational-rectification-elicitation.md', 'SHIPPED'],
+    ['docs/specs/061-backup-restore-your-data.md', 'SHIPPED'],
+    ['docs/specs/062-robust-rectifier-comprehensive-report.md', 'SHIPPED'],
+    ['docs/specs/063-ai-tiers-ondevice-optin.md', 'SUPERSEDED'],
+    ['docs/specs/064-seo-prerender-public-routes.md', 'SHIPPED'],
+    ['docs/specs/SPEC-COMPLETION-TRACKING.md', 'SUPERSEDED'],
+    ['docs/rigor-upgrade-spec.md', 'PARTIAL'],
+  ])('%s has an explicit lifecycle', (path, lifecycle) => {
+    const [title, separator, banner] = readRoot(path).split('\n');
+    expect(title).toMatch(/^# /);
+    expect(separator).toBe('');
+    expect(banner).toBe(`**Lifecycle:** ${lifecycle}`);
+  });
+});

@@ -26,7 +26,9 @@ import {
   type EnsurePredictiveInput,
   type PredictiveRuntime,
   type StoredChart,
+  predictiveRequestKey,
 } from '@almamesh/store';
+import type { TransitCtx } from '@almamesh/shared-types';
 
 import { ChartEngineContext, type ChartEngineContextValue } from '../../providers/chartEngineContext';
 import { usePredictiveLayer } from '../usePredictiveLayer';
@@ -34,6 +36,7 @@ import { usePredictiveLayer } from '../usePredictiveLayer';
 function storedChart(chartId = 'chart-1', personName = 'Asha Rao'): StoredChart {
   return {
     chart_id: chartId,
+    profile_id: chartId,
     person_name: personName,
     is_primary: true,
     birth_data: {
@@ -71,7 +74,11 @@ function makeWrapper(ctx: ChartEngineContextValue | null) {
 /** A spying ensurePredictive that marks the store ready for the input's key. */
 function readyingEnsure() {
   return vi.fn((_runtime: PredictiveRuntime, input: EnsurePredictiveInput): Promise<void> => {
-    usePredictiveStore.setState({ status: 'ready', profileKey: input.profileKey });
+    usePredictiveStore.setState({
+      status: 'ready',
+      profileKey: input.profileKey,
+      requestKey: predictiveRequestKey(input),
+    });
     return Promise.resolve();
   });
 }
@@ -79,12 +86,13 @@ function readyingEnsure() {
 describe('usePredictiveLayer({ auto: true })', () => {
   beforeEach(() => {
     vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-12T12:00:00Z'));
     useChartLibraryStore.setState({ charts: { 'chart-1': storedChart() }, hydrated: true });
     useProfilesStore.setState({ activeProfileId: 'chart-1' });
     usePredictiveStore.getState().reset();
   });
   afterEach(() => {
-    vi.runOnlyPendingTimers();
+    vi.clearAllTimers();
     vi.useRealTimers();
     vi.restoreAllMocks();
   });
@@ -108,11 +116,11 @@ describe('usePredictiveLayer({ auto: true })', () => {
     });
 
     act(() => {
-      vi.runAllTimers();
+      vi.advanceTimersByTime(2_500);
     });
     rerender();
     act(() => {
-      vi.runAllTimers();
+      vi.advanceTimersByTime(2_500);
     });
 
     expect(ensure).toHaveBeenCalledTimes(1);
@@ -130,7 +138,7 @@ describe('usePredictiveLayer({ auto: true })', () => {
     // User navigates away before the deferred kickoff fires.
     unmount();
     act(() => {
-      vi.runAllTimers();
+      vi.advanceTimersByTime(2_500);
     });
 
     expect(ensure).not.toHaveBeenCalled();
@@ -142,7 +150,7 @@ describe('usePredictiveLayer({ auto: true })', () => {
 
     renderHook(() => usePredictiveLayer({ auto: true }), { wrapper: makeWrapper(null) });
     act(() => {
-      vi.runAllTimers();
+      vi.advanceTimersByTime(2_500);
     });
 
     expect(ensure).not.toHaveBeenCalled();
@@ -150,18 +158,30 @@ describe('usePredictiveLayer({ auto: true })', () => {
 
   it('never auto-retries an error (status stays error, no further compute)', () => {
     const ensure = vi.fn((): Promise<void> => Promise.resolve());
-    usePredictiveStore.setState({ status: 'error', error: 'boom', ensurePredictive: ensure });
+    usePredictiveStore.setState({
+      status: 'error',
+      error: 'boom',
+      profileKey: 'chart-1',
+      requestKey: predictiveRequestKey({
+        profileKey: 'chart-1',
+        datetimeUtc: '1990-03-30T06:30:00Z',
+        latitude: 12.97,
+        longitude: 77.59,
+        referenceInstant: '2026-07-12T00:00:00Z',
+      }),
+      ensurePredictive: ensure,
+    });
 
     const { rerender } = renderHook(() => usePredictiveLayer({ auto: true }), {
       wrapper: makeWrapper(engineCtx()),
     });
 
     act(() => {
-      vi.runAllTimers();
+      vi.advanceTimersByTime(2_500);
     });
     rerender();
     act(() => {
-      vi.runAllTimers();
+      vi.advanceTimersByTime(2_500);
     });
     expect(ensure).not.toHaveBeenCalled();
     expect(usePredictiveStore.getState().status).toBe('error');
@@ -170,13 +190,24 @@ describe('usePredictiveLayer({ auto: true })', () => {
   it('recomputes when the active profile switches under an already-ready store', () => {
     const ensure = readyingEnsure();
     // Already ready for chart-1.
-    usePredictiveStore.setState({ status: 'ready', profileKey: 'chart-1', ensurePredictive: ensure });
+    usePredictiveStore.setState({
+      status: 'ready',
+      profileKey: 'chart-1',
+      requestKey: predictiveRequestKey({
+        profileKey: 'chart-1',
+        datetimeUtc: '1990-03-30T06:30:00Z',
+        latitude: 12.97,
+        longitude: 77.59,
+        referenceInstant: '2026-07-12T00:00:00Z',
+      }),
+      ensurePredictive: ensure,
+    });
 
     const { rerender } = renderHook(() => usePredictiveLayer({ auto: true }), {
       wrapper: makeWrapper(engineCtx()),
     });
     act(() => {
-      vi.runAllTimers();
+      vi.advanceTimersByTime(2_500);
     });
     rerender();
     expect(ensure).not.toHaveBeenCalled(); // already current
@@ -191,11 +222,101 @@ describe('usePredictiveLayer({ auto: true })', () => {
     });
     rerender();
     act(() => {
-      vi.runAllTimers();
+      vi.advanceTimersByTime(2_500);
     });
 
     expect(ensure).toHaveBeenCalledTimes(1);
     expect(ensure.mock.calls[0]?.[1].profileKey).toBe('chart-2');
+  });
+
+  it('recomputes when rectification changes the birth instant under the same profile and day', () => {
+    const ensure = readyingEnsure();
+    const originalInput: EnsurePredictiveInput = {
+      profileKey: 'chart-1',
+      datetimeUtc: '1990-03-30T06:30:00Z',
+      latitude: 12.97,
+      longitude: 77.59,
+      referenceInstant: '2026-07-12T00:00:00Z',
+    };
+    usePredictiveStore.setState({
+      status: 'ready',
+      profileKey: 'chart-1',
+      requestKey: predictiveRequestKey(originalInput),
+      ensurePredictive: ensure,
+    });
+
+    const { rerender } = renderHook(() => usePredictiveLayer({ auto: true }), {
+      wrapper: makeWrapper(engineCtx()),
+    });
+
+    act(() => {
+      const rectified = storedChart();
+      const birth = rectified.birth_data!;
+      rectified.birth_data = {
+        ...birth,
+        birth_datetime_utc: '1990-03-30T06:45:00Z',
+      };
+      useChartLibraryStore.setState({ charts: { 'chart-1': rectified }, hydrated: true });
+    });
+    rerender();
+    act(() => {
+      vi.advanceTimersByTime(2_500);
+    });
+
+    expect(ensure).toHaveBeenCalledTimes(1);
+    expect(ensure.mock.calls[0]?.[1].datetimeUtc).toBe('1990-03-30T06:45:00Z');
+  });
+
+  it('withholds stale predictive contexts from a regenerated natal chart', () => {
+    usePredictiveStore.setState({
+      status: 'ready',
+      profileKey: 'chart-1',
+      requestKey: predictiveRequestKey({
+        profileKey: 'chart-1',
+        datetimeUtc: '1990-03-30T06:15:00Z',
+        latitude: 12.97,
+        longitude: 77.59,
+        referenceInstant: '2026-07-12T00:00:00Z',
+      }),
+      transitCtx: { instant: 'stale-aquarius' } as TransitCtx,
+    });
+
+    const { result } = renderHook(() => usePredictiveLayer(), {
+      wrapper: makeWrapper(engineCtx()),
+    });
+
+    expect(result.current.status).toBe('idle');
+    expect(result.current.transitCtx).toBeUndefined();
+  });
+
+  it('recomputes after the UTC reference day rolls over', () => {
+    vi.setSystemTime(new Date('2026-07-12T23:59:58Z'));
+    const ensure = readyingEnsure();
+    usePredictiveStore.setState({
+      status: 'ready',
+      profileKey: 'chart-1',
+      requestKey: predictiveRequestKey({
+        profileKey: 'chart-1',
+        datetimeUtc: '1990-03-30T06:30:00Z',
+        latitude: 12.97,
+        longitude: 77.59,
+        referenceInstant: '2026-07-12T00:00:00Z',
+      }),
+      ensurePredictive: ensure,
+    });
+    renderHook(() => usePredictiveLayer({ auto: true }), {
+      wrapper: makeWrapper(engineCtx()),
+    });
+
+    act(() => {
+      vi.advanceTimersByTime(2_001);
+    });
+    act(() => {
+      vi.advanceTimersByTime(2_500);
+    });
+
+    expect(ensure).toHaveBeenCalledTimes(1);
+    expect(ensure.mock.calls[0]?.[1].referenceInstant).toBe('2026-07-13T00:00:00Z');
   });
 
   it('does not double-fire when the deferred timer is rescheduled across re-renders', () => {
@@ -210,11 +331,11 @@ describe('usePredictiveLayer({ auto: true })', () => {
     rerender();
     rerender();
     act(() => {
-      vi.runAllTimers();
+      vi.advanceTimersByTime(2_500);
     });
     rerender();
     act(() => {
-      vi.runAllTimers();
+      vi.advanceTimersByTime(2_500);
     });
 
     expect(ensure).toHaveBeenCalledTimes(1);

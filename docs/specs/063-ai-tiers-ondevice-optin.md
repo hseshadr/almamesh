@@ -1,6 +1,7 @@
 # Spec 063 — AI Tiers: No-AI Default, On-Device Opt-In, Cloud Stronger
 
-**Status:** Approved (owner, 2026-07-02)
+**Lifecycle:** SUPERSEDED
+**Status:** Superseded before v0.4.0 by the shipped cloud/BYO-only AI model; retained as historical design.
 **Surfaces:** `@almamesh/llm`, `apps/web` (settings, rectify gate, landing, SW config), docs
 
 ## TL;DR

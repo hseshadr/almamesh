@@ -1,8 +1,13 @@
 # Event-based Birth-time Rectification — Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended)
-> or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`)
-> syntax for tracking. Spec: `docs/specs/059-event-based-rectification.md`.
+**Lifecycle:** SHIPPED
+
+> **Historical execution record:** This plan shipped on 2026-06-27. Its unchecked
+> boxes preserve the original TDD sequence for provenance; they are not current work.
+
+> **Historical worker note:** The original plan required superpowers:subagent-driven-development
+> (recommended) or superpowers:executing-plans and used checkbox (`- [ ]`) syntax for tracking.
+> Spec: `docs/specs/059-event-based-rectification.md`.
 
 **Goal:** Let a user resolve their rising sign from dated, categorized life events via an on-device
 deterministic engine scorer, shown with honest qualitative confidence, then make the chosen time the

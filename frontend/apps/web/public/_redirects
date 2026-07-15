@@ -1,17 +1,23 @@
-# SPA fallback for the almamesh.com Cloudflare Pages deployment: any path that
-# does not match a real static asset serves the app shell, and React Router
-# takes over (deep links to /dashboard, /predictive, /mesh/:id, /report, …).
-#
-# Verified against `wrangler pages dev` (same asset-serving code as production,
-# see docs/deploy/almamesh-com.md): with this rule in place real assets still
-# win — /assets/*.js, /pyodide/*, /bundle/* (including the extensionless
-# /bundle/latest pointer) and /models/* are all served as themselves, NOT
-# rewritten to index.html. Pages also has implicit SPA rendering when no
-# top-level 404.html exists; this rule makes that behavior explicit and keeps
-# it stable even if a 404.html is ever added.
-#
-# Inside the app the service worker applies the same fallback offline
-# (navigateFallback: / — the canonical shell — with /pyodide|/bundle|/models
-# and /assets denylisted; see vite.config.ts + docs/specs/064). This CF rewrite
-# still serves the index.html FILE at 200 for any unmatched path.
-/* /index.html 200
+# Only registered client routes receive the SPA shell. The top-level 404.html
+# makes every other unknown URL a real 404 instead of a crawlable soft 404.
+/onboarding / 200
+/dashboard / 200
+/predictive / 200
+/life/career / 200
+/life/finances / 200
+/life/health / 200
+/life/relationships / 200
+/life/spiritual / 200
+/life/education / 200
+/life/family / 200
+/mesh / 200
+/report / 200
+/edit-birth-details / 200
+/settings / 200
+/settings/profile / 200
+/settings/people / 200
+/settings/ai / 200
+/settings/preferences / 200
+/settings/data / 200
+/mesh/:memberId / 200
+/rectify/:profileId / 200

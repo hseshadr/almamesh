@@ -101,7 +101,13 @@
       "moderate": "moderate",
       "weak": "weak"
     },
-    "grade_aria": "Yoga grade: {{grade}}"
+    "grade_aria": "Yoga grade: {{grade}}",
+    "strength": {
+      "tier": "structural estimate",
+      "summary_max": "net {{net}} of max {{bound}}",
+      "summary_min": "net {{net}} of min {{bound}}",
+      "aria": "Structural strength estimate: {{pct}} percent, {{band}}"
+    }
   },
   "dasha": {
     "heading": "Vimshottari Daśā",
@@ -176,6 +182,11 @@
       "window": "Time-window scan — candidate birth times across the stated window compared against dated life events"
     },
     "band_label": "Confidence",
+    "confidence_confirmed_one": "{{pct}}% — confirmed by {{count}} of your events",
+    "confidence_confirmed_other": "{{pct}}% — confirmed by {{count}} of your events",
+    "confidence_inconclusive": "Inconclusive — not enough dated events to tell your candidate times apart",
+    "confidence_meaning": "This confidence is how much better your best-fit time explains your events than the runner-up — not the odds the time itself is correct.",
+    "evidence_balance_label": "Evidence balance",
     "confirmed_label": "Confirmed",
     "events_heading": "Supporting life events",
     "events_empty": "No dated life events are attached to this rectification.",
@@ -215,5 +226,25 @@
   },
   "footer": {
     "provenance": "Calculated with the Lahiri Ayanamsa · AlmaMesh"
+  },
+  "stability": {
+    "stable": "birth-time stable",
+    "stable_aria": "This verdict does not depend on your exact birth time",
+    "sensitive": "birth-time sensitive",
+    "sensitive_aria": "Near a sign boundary — this verdict could change with a small birth-time correction"
+  },
+  "assumptions": {
+    "heading": "Assumptions & Provenance",
+    "intro": "Every verdict in this report rests on these four choices. They are stated plainly here so nothing is hidden.",
+    "ayanamsa_label": "Ayanāṁśa (sidereal zero-point)",
+    "ayanamsa_value": "Lahiri (Chitrapaksha) — the official sidereal convention",
+    "house_system_label": "House system",
+    "house_system_value": "Whole-sign houses (each house is one whole sign from the ascendant)",
+    "time_label": "Birth time",
+    "time_recorded": "Used as recorded (no rectification applied)",
+    "time_rectified": "Entered {{entered}} → chart computed for {{rectified}}",
+    "cusp_label": "Ascendant cusp proximity",
+    "cusp_near": "≈{{degrees}}° from the {{sign}} boundary — house placements are birth-time-sensitive",
+    "cusp_clear": "Clear of any sign boundary — the rising sign is unambiguous"
   }
 }

@@ -23,6 +23,7 @@ import {
   appEvents,
   regenerateOnBirthChange,
   useChartLibraryStore,
+  usePredictiveStore,
   type BirthInfoChanged,
 } from '@almamesh/store'
 
@@ -58,6 +59,15 @@ export function useRegenerationSubscription(): void {
       engine: currentEngine,
       library: useChartLibraryStore.getState(),
       onRegenerated: () => {
+        // The predictive superset is natal-input-dependent. A rectification,
+        // birth-time edit, or location edit must never leave the previous
+        // chart's transits/vargas/strength/domains associated with the new one.
+        // A delayed profile-A regeneration must not erase profile B's current
+        // cache after the user switches people while the engine is working.
+        const predictive = usePredictiveStore.getState()
+        if (event.profileId === null || predictive.profileKey === event.profileId) {
+          predictive.reset()
+        }
         clearAllChartData()
         void queryClient.invalidateQueries({ queryKey: ['primary-chart'] })
       },

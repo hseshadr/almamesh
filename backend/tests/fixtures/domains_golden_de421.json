@@ -61,7 +61,11 @@
           "key_graha_meets_minimum": true,
           "key_graha_rupas": 7.515194,
           "note": "band = AlmaMesh heuristic over exact Shadbala Rupas + SAV bindus; inputs are BPHS-rigorous, the threshold mapping is a coarse synthesis.",
-          "sav_bindus": 32
+          "sav_bindus": 32,
+          "sav_pct": 57.142857,
+          "shadbala_pct": 80.12155,
+          "strength_pct": 57.142857,
+          "strength_tier": "model"
         },
         "upcoming_windows": [
           {
@@ -168,7 +172,11 @@
           "key_graha_meets_minimum": false,
           "key_graha_rupas": 6.871614,
           "note": "band = AlmaMesh heuristic over exact Shadbala Rupas + SAV bindus; inputs are BPHS-rigorous, the threshold mapping is a coarse synthesis.",
-          "sav_bindus": 57
+          "sav_bindus": 57,
+          "sav_pct": 50.892857,
+          "shadbala_pct": 58.89955,
+          "strength_pct": 50.892857,
+          "strength_tier": "model"
         },
         "upcoming_windows": [
           {
@@ -285,7 +293,11 @@
           "key_graha_meets_minimum": false,
           "key_graha_rupas": 6.484366,
           "note": "band = AlmaMesh heuristic over exact Shadbala Rupas + SAV bindus; inputs are BPHS-rigorous, the threshold mapping is a coarse synthesis.",
-          "sav_bindus": 121
+          "sav_bindus": 121,
+          "sav_pct": 54.017857,
+          "shadbala_pct": 59.855689,
+          "strength_pct": 54.017857,
+          "strength_tier": "model"
         },
         "upcoming_windows": [
           {
@@ -386,7 +398,11 @@
           "key_graha_meets_minimum": false,
           "key_graha_rupas": 6.484366,
           "note": "band = AlmaMesh heuristic over exact Shadbala Rupas + SAV bindus; inputs are BPHS-rigorous, the threshold mapping is a coarse synthesis.",
-          "sav_bindus": 52
+          "sav_bindus": 52,
+          "sav_pct": 46.428571,
+          "shadbala_pct": 59.855689,
+          "strength_pct": 46.428571,
+          "strength_tier": "model"
         },
         "upcoming_windows": [
           {
@@ -478,7 +494,11 @@
           "key_graha_meets_minimum": false,
           "key_graha_rupas": 6.301801,
           "note": "band = AlmaMesh heuristic over exact Shadbala Rupas + SAV bindus; inputs are BPHS-rigorous, the threshold mapping is a coarse synthesis.",
-          "sav_bindus": 84
+          "sav_bindus": 84,
+          "sav_pct": 50.0,
+          "shadbala_pct": 58.170475,
+          "strength_pct": 50.0,
+          "strength_tier": "model"
         },
         "upcoming_windows": [
           {
@@ -578,7 +598,11 @@
           "key_graha_meets_minimum": false,
           "key_graha_rupas": 4.958147,
           "note": "band = AlmaMesh heuristic over exact Shadbala Rupas + SAV bindus; inputs are BPHS-rigorous, the threshold mapping is a coarse synthesis.",
-          "sav_bindus": 24
+          "sav_bindus": 24,
+          "sav_pct": 42.857143,
+          "shadbala_pct": 54.088879,
+          "strength_pct": 42.857143,
+          "strength_tier": "model"
         },
         "upcoming_windows": [
           {
@@ -696,7 +720,11 @@
           "key_graha_meets_minimum": false,
           "key_graha_rupas": 6.484366,
           "note": "band = AlmaMesh heuristic over exact Shadbala Rupas + SAV bindus; inputs are BPHS-rigorous, the threshold mapping is a coarse synthesis.",
-          "sav_bindus": 86
+          "sav_bindus": 86,
+          "sav_pct": 51.190476,
+          "shadbala_pct": 59.855689,
+          "strength_pct": 51.190476,
+          "strength_tier": "model"
         },
         "upcoming_windows": [
           {
@@ -809,7 +837,11 @@
           "key_graha_meets_minimum": true,
           "key_graha_rupas": 6.903508,
           "note": "band = AlmaMesh heuristic over exact Shadbala Rupas + SAV bindus; inputs are BPHS-rigorous, the threshold mapping is a coarse synthesis.",
-          "sav_bindus": 27
+          "sav_bindus": 27,
+          "sav_pct": 48.214286,
+          "shadbala_pct": 75.228064,
+          "strength_pct": 48.214286,
+          "strength_tier": "model"
         },
         "upcoming_windows": [
           {
@@ -916,7 +948,11 @@
           "key_graha_meets_minimum": true,
           "key_graha_rupas": 7.591796,
           "note": "band = AlmaMesh heuristic over exact Shadbala Rupas + SAV bindus; inputs are BPHS-rigorous, the threshold mapping is a coarse synthesis.",
-          "sav_bindus": 66
+          "sav_bindus": 66,
+          "sav_pct": 58.928571,
+          "shadbala_pct": 63.381689,
+          "strength_pct": 58.928571,
+          "strength_tier": "model"
         },
         "upcoming_windows": [
           {
@@ -1027,7 +1063,11 @@
           "key_graha_meets_minimum": true,
           "key_graha_rupas": 9.784421,
           "note": "band = AlmaMesh heuristic over exact Shadbala Rupas + SAV bindus; inputs are BPHS-rigorous, the threshold mapping is a coarse synthesis.",
-          "sav_bindus": 113
+          "sav_bindus": 113,
+          "sav_pct": 50.446429,
+          "shadbala_pct": 80.21182,
+          "strength_pct": 50.446429,
+          "strength_tier": "model"
         },
         "upcoming_windows": [
           {
@@ -1126,7 +1166,11 @@
           "key_graha_meets_minimum": true,
           "key_graha_rupas": 9.784421,
           "note": "band = AlmaMesh heuristic over exact Shadbala Rupas + SAV bindus; inputs are BPHS-rigorous, the threshold mapping is a coarse synthesis.",
-          "sav_bindus": 57
+          "sav_bindus": 57,
+          "sav_pct": 50.892857,
+          "shadbala_pct": 80.21182,
+          "strength_pct": 50.892857,
+          "strength_tier": "model"
         },
         "upcoming_windows": [
           {
@@ -1222,7 +1266,11 @@
           "key_graha_meets_minimum": false,
           "key_graha_rupas": 4.866937,
           "note": "band = AlmaMesh heuristic over exact Shadbala Rupas + SAV bindus; inputs are BPHS-rigorous, the threshold mapping is a coarse synthesis.",
-          "sav_bindus": 84
+          "sav_bindus": 84,
+          "sav_pct": 50.0,
+          "shadbala_pct": 44.925574,
+          "strength_pct": 44.925574,
+          "strength_tier": "model"
         },
         "upcoming_windows": [
           {
@@ -1322,7 +1370,11 @@
           "key_graha_meets_minimum": true,
           "key_graha_rupas": 7.224748,
           "note": "band = AlmaMesh heuristic over exact Shadbala Rupas + SAV bindus; inputs are BPHS-rigorous, the threshold mapping is a coarse synthesis.",
-          "sav_bindus": 21
+          "sav_bindus": 21,
+          "sav_pct": 37.5,
+          "shadbala_pct": 72.543624,
+          "strength_pct": 37.5,
+          "strength_tier": "model"
         },
         "upcoming_windows": [
           {
@@ -1440,7 +1492,11 @@
           "key_graha_meets_minimum": true,
           "key_graha_rupas": 9.784421,
           "note": "band = AlmaMesh heuristic over exact Shadbala Rupas + SAV bindus; inputs are BPHS-rigorous, the threshold mapping is a coarse synthesis.",
-          "sav_bindus": 84
+          "sav_bindus": 84,
+          "sav_pct": 50.0,
+          "shadbala_pct": 80.21182,
+          "strength_pct": 50.0,
+          "strength_tier": "model"
         },
         "upcoming_windows": [
           {
@@ -1543,7 +1599,11 @@
           "key_graha_meets_minimum": true,
           "key_graha_rupas": 6.532915,
           "note": "band = AlmaMesh heuristic over exact Shadbala Rupas + SAV bindus; inputs are BPHS-rigorous, the threshold mapping is a coarse synthesis.",
-          "sav_bindus": 30
+          "sav_bindus": 30,
+          "sav_pct": 53.571429,
+          "shadbala_pct": 72.263318,
+          "strength_pct": 53.571429,
+          "strength_tier": "model"
         },
         "upcoming_windows": [
           {
@@ -1622,7 +1682,11 @@
           "key_graha_meets_minimum": false,
           "key_graha_rupas": 6.120784,
           "note": "band = AlmaMesh heuristic over exact Shadbala Rupas + SAV bindus; inputs are BPHS-rigorous, the threshold mapping is a coarse synthesis.",
-          "sav_bindus": 59
+          "sav_bindus": 59,
+          "sav_pct": 52.678571,
+          "shadbala_pct": 52.463866,
+          "strength_pct": 52.463866,
+          "strength_tier": "model"
         },
         "upcoming_windows": [
           {
@@ -1719,7 +1783,11 @@
           "key_graha_meets_minimum": true,
           "key_graha_rupas": 8.536183,
           "note": "band = AlmaMesh heuristic over exact Shadbala Rupas + SAV bindus; inputs are BPHS-rigorous, the threshold mapping is a coarse synthesis.",
-          "sav_bindus": 116
+          "sav_bindus": 116,
+          "sav_pct": 51.785714,
+          "shadbala_pct": 72.53036,
+          "strength_pct": 51.785714,
+          "strength_tier": "model"
         },
         "upcoming_windows": [
           {
@@ -1810,7 +1878,11 @@
           "key_graha_meets_minimum": true,
           "key_graha_rupas": 8.536183,
           "note": "band = AlmaMesh heuristic over exact Shadbala Rupas + SAV bindus; inputs are BPHS-rigorous, the threshold mapping is a coarse synthesis.",
-          "sav_bindus": 58
+          "sav_bindus": 58,
+          "sav_pct": 51.785714,
+          "shadbala_pct": 72.53036,
+          "strength_pct": 51.785714,
+          "strength_tier": "model"
         },
         "upcoming_windows": [
           {
@@ -1910,7 +1982,11 @@
           "key_graha_meets_minimum": false,
           "key_graha_rupas": 5.989445,
           "note": "band = AlmaMesh heuristic over exact Shadbala Rupas + SAV bindus; inputs are BPHS-rigorous, the threshold mapping is a coarse synthesis.",
-          "sav_bindus": 93
+          "sav_bindus": 93,
+          "sav_pct": 55.357143,
+          "shadbala_pct": 55.287182,
+          "strength_pct": 55.287182,
+          "strength_tier": "model"
         },
         "upcoming_windows": [
           {
@@ -2008,7 +2084,11 @@
           "key_graha_meets_minimum": true,
           "key_graha_rupas": 6.252448,
           "note": "band = AlmaMesh heuristic over exact Shadbala Rupas + SAV bindus; inputs are BPHS-rigorous, the threshold mapping is a coarse synthesis.",
-          "sav_bindus": 19
+          "sav_bindus": 19,
+          "sav_pct": 33.928571,
+          "shadbala_pct": 65.472351,
+          "strength_pct": 33.928571,
+          "strength_tier": "model"
         },
         "upcoming_windows": [
           {
@@ -2118,7 +2198,11 @@
           "key_graha_meets_minimum": true,
           "key_graha_rupas": 8.536183,
           "note": "band = AlmaMesh heuristic over exact Shadbala Rupas + SAV bindus; inputs are BPHS-rigorous, the threshold mapping is a coarse synthesis.",
-          "sav_bindus": 72
+          "sav_bindus": 72,
+          "sav_pct": 42.857143,
+          "shadbala_pct": 72.53036,
+          "strength_pct": 42.857143,
+          "strength_tier": "model"
         },
         "upcoming_windows": [
           {

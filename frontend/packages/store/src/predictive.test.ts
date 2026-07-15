@@ -14,7 +14,11 @@ import type {
   VargaContextFull,
 } from "@almamesh/browser/types";
 
-import { usePredictiveStore, type EnsurePredictiveInput } from "./predictive";
+import {
+  predictiveRequestKey,
+  usePredictiveStore,
+  type EnsurePredictiveInput,
+} from "./predictive";
 
 // --- minimal but adapter-complete raw fixtures ---
 
@@ -140,6 +144,24 @@ describe("usePredictiveStore", () => {
     expect(runtime.computePredictive).toHaveBeenCalledTimes(1);
   });
 
+  it("recomputes when rectification changes the birth instant for the same profile and day", async () => {
+    const runtime = makeRuntime();
+
+    await usePredictiveStore.getState().ensurePredictive(runtime, INPUT);
+    await usePredictiveStore.getState().ensurePredictive(runtime, {
+      ...INPUT,
+      datetimeUtc: "1990-01-15T12:15:00+00:00",
+    });
+
+    expect(runtime.computePredictive).toHaveBeenCalledTimes(2);
+    expect(runtime.computePredictive).toHaveBeenLastCalledWith({
+      datetimeUtc: "1990-01-15T12:15:00+00:00",
+      latitude: INPUT.latitude,
+      longitude: INPUT.longitude,
+      referenceInstant: INPUT.referenceInstant,
+    });
+  });
+
   it("does not double-compute while a call for the same key is already loading", async () => {
     let resolve!: (value: PredictiveContexts) => void;
     const runtime = makeRuntime(
@@ -197,6 +219,30 @@ describe("usePredictiveStore", () => {
     await slowCall;
 
     expect(usePredictiveStore.getState().profileKey).toBe("profile-2");
+    expect(usePredictiveStore.getState().status).toBe("ready");
+  });
+
+  it("drops an in-flight response when rectification supersedes its birth instant", async () => {
+    let resolveOldBirth!: (value: PredictiveContexts) => void;
+    const oldBirth = makeRuntime(
+      () => new Promise<PredictiveContexts>((resolve) => (resolveOldBirth = resolve)),
+    );
+    const rectifiedBirth = makeRuntime();
+
+    const oldCall = usePredictiveStore.getState().ensurePredictive(oldBirth, INPUT);
+    await usePredictiveStore.getState().ensurePredictive(rectifiedBirth, {
+      ...INPUT,
+      datetimeUtc: "1990-01-15T12:15:00+00:00",
+    });
+    resolveOldBirth(RAW);
+    await oldCall;
+
+    expect(usePredictiveStore.getState().requestKey).toBe(
+      predictiveRequestKey({
+        ...INPUT,
+        datetimeUtc: "1990-01-15T12:15:00+00:00",
+      }),
+    );
     expect(usePredictiveStore.getState().status).toBe("ready");
   });
 

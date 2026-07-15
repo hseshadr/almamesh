@@ -109,6 +109,7 @@ export default function ProfileSettings() {
   const [isSaving, setIsSaving] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [previewRetryAttempt, setPreviewRetryAttempt] = useState(0);
   const [regenerationStatus, setRegenerationStatus] = useState<'idle' | 'processing' | 'success' | 'error'>('idle');
 
   // Load initial data from the on-device chart library.
@@ -182,7 +183,7 @@ export default function ProfileSettings() {
           timezone: currentDetails.location.timezone || 'UTC',
         }
       : null;
-  const lagnaPreview = useLagnaPreview(engine, engineError, previewInput);
+  const lagnaPreview = useLagnaPreview(engine, engineError, previewInput, previewRetryAttempt);
   const previewCusp =
     lagnaPreview.status === 'ready'
       ? cuspInfo(lagnaPreview.lagna.sign, lagnaPreview.lagna.signDegrees)
@@ -212,7 +213,25 @@ export default function ProfileSettings() {
     rectificationActive && previewInput
       ? { ...previewInput, rectifiedTime: currentDetails.birth_time }
       : null;
-  const enteredLagnaPreview = useLagnaPreview(engine, engineError, enteredPreviewInput);
+  const enteredLagnaPreview = useLagnaPreview(
+    engine,
+    engineError,
+    enteredPreviewInput,
+    previewRetryAttempt,
+  );
+  const previewStates = [lagnaPreview.status, enteredLagnaPreview.status] as const;
+  const rectificationPreviewPending =
+    rectificationActive &&
+    previewStates.some((status) => status === 'idle' || status === 'loading');
+  const rectificationPreviewFailure = rectificationActive
+    ? previewStates.includes('error')
+      ? 'error'
+      : previewStates.includes('unavailable')
+        ? 'unavailable'
+        : null
+    : null;
+  const rectificationPreviewBlocked =
+    rectificationPreviewPending || rectificationPreviewFailure !== null;
 
   // The rising sign FLIPS when the rectified and entered lagnas land in different
   // signs. Both must be computed; when they match (or either is pending) no flip
@@ -271,6 +290,22 @@ export default function ProfileSettings() {
   const handleSaveClick = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    // A rectified time may cross the rising-sign boundary. Never open a modal
+    // without knowing whether the mandatory sign-flip acknowledgement applies.
+    // On slower engines both preview reads can still be in flight after input.
+    if (rectificationPreviewBlocked) {
+      setError(
+        t(
+          rectificationPreviewFailure === 'error'
+            ? 'settings:profile.ascendant_error'
+            : rectificationPreviewFailure === 'unavailable'
+              ? 'settings:profile.ascendant_unavailable'
+              : 'settings:profile.ascendant_calculating',
+        ),
+      );
+      return;
+    }
 
     if (!currentDetails.name.trim()) {
       setError(t('settings:profile.name_required'));
@@ -448,8 +483,14 @@ export default function ProfileSettings() {
           <p className="text-text-muted text-xs mt-1 mb-3">{t('settings:profile.rectification_description')}</p>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="block text-xs font-medium text-text-secondary mb-2">{t('settings:profile.rectified_time_label')}</label>
+              <label
+                htmlFor="rectified-time"
+                className="block text-xs font-medium text-text-secondary mb-2"
+              >
+                {t('settings:profile.rectified_time_label')}
+              </label>
               <input
+                id="rectified-time"
                 type="time"
                 value={currentDetails.rectified_time}
                 onChange={(e) => handleFieldChange('rectified_time', e.target.value)}
@@ -529,6 +570,29 @@ export default function ProfileSettings() {
             rectified={rectifiedReading}
             cusp={previewCusp}
           />
+
+          {rectificationPreviewFailure && (
+            <div
+              data-testid="rectification-preview-failure"
+              className="mt-3 flex items-center justify-between gap-3 rounded-md border border-status-warning/40 bg-status-warning/10 px-3 py-2"
+            >
+              <p className="text-xs text-status-warning">
+                {t(
+                  rectificationPreviewFailure === 'error'
+                    ? 'settings:profile.ascendant_error'
+                    : 'settings:profile.ascendant_unavailable',
+                )}
+              </p>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => setPreviewRetryAttempt((attempt) => attempt + 1)}
+              >
+                {t('common:actions.retry')}
+              </Button>
+            </div>
+          )}
 
           {adjustmentInEffect && (
             <p
@@ -678,7 +742,7 @@ export default function ProfileSettings() {
         <div className="flex gap-4 pt-4">
           <button
             type="submit"
-            disabled={!isDirty || isSaving}
+            disabled={!isDirty || isSaving || rectificationPreviewBlocked}
             className="px-8 py-2.5 bg-accent-gold text-background-primary font-bold rounded-lg hover:bg-accent-gold/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {t('settings:profile.save_changes')}

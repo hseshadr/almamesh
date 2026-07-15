@@ -242,6 +242,8 @@
     },
     "band_label": "Fuerza: {{band}}",
     "strength_line": "{{graha}} · {{rupas}} rūpas · {{bindus}} bindus SAV",
+    "strength_axes": "Śaḍbala {{shadbala}} · Aṣṭakavarga {{sav}}",
+    "strength_tier_model": "estimación del modelo — pesos tradicionales",
     "emphasis_heading": "Énfasis actual",
     "active_dasha": "Activada por la daśā vigente ({{levels}})",
     "no_active_dasha": "No enfatizada por la daśā vigente",

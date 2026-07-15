@@ -19,13 +19,20 @@
  *   miss_unexplained                         per-event: nothing fired → counts against
  *   miss_silent_{category}_h{n}              candidate-level quiet-period miss
  *
- * ANTI-SCAM: this module renders WORDS only. Scores, contributions and
- * percentages are never formatted here — polarity may use the SIGN of a
- * contribution, never its value.
+ * ANTI-SCAM: this module renders WORDS + POLARITY only for PER-SIGNAL evidence.
+ * Per-event contributions are never formatted as numbers here — polarity may use
+ * the SIGN of a contribution, never its value. (The AGGREGATE rectification
+ * confidence % — margin×100, event-validated, gated below MIN_DISCRIMINATING_EVENTS
+ * — is a CALIBRATED number and is formatted in the result header, NOT here.) The
+ * ban is on hidden/uncalibrated magnitudes, not on principled, anchored, tested %.
  */
 
 import type { TFunction } from 'i18next';
-import type { EventEvidence, RectificationCandidate } from '@almamesh/shared-types';
+import type {
+  EventEvidence,
+  RectificationCandidate,
+  RectificationResult,
+} from '@almamesh/shared-types';
 
 /** Whether a signal argues for or against the candidate (or is the prior). */
 export type SignalPolarity = 'support' | 'against' | 'prior';
@@ -201,6 +208,49 @@ export function fitCounts(
     if (eventHasMiss) unexplained += 1;
   }
   return { supporting, unexplained, quiet: candidate.misses.length };
+}
+
+/** The one calibrated aggregate line: the confidence % or the gated word. */
+export interface ConfidenceLine {
+  /** Localized text, e.g. "42% — confirmed by 5 of your events" or "Inconclusive…". */
+  readonly text: string;
+  /** True only when a real % is shown (drives the "what it means" explainer). */
+  readonly isPct: boolean;
+}
+
+/**
+ * Rigor Stage 3 (Tier E) — the ONE calibrated number the rectification surfaces:
+ * margin×100 tied to the discriminating-event count, or the "inconclusive" word
+ * when the engine gated it (`confidencePct === null`) or the result is a
+ * near-tie. Absent (`undefined`, a pre-Stage-3 record) → null (render nothing).
+ * Never re-derives the gate — it reads the engine's already-gated fields.
+ */
+export function confidenceLine(snapshot: RectificationResult, t: TFunction): ConfidenceLine | null {
+  const pct = snapshot.confidencePct;
+  if (typeof pct === 'number' && Number.isFinite(pct)) {
+    const text = t('rectification.confidence_confirmed', {
+      pct: Math.round(pct),
+      count: snapshot.discriminatingEventCount,
+    });
+    return { text, isPct: true };
+  }
+  if (pct === null || snapshot.band === 'near_tie') {
+    return { text: t('rectification.confidence_inconclusive'), isPct: false };
+  }
+  return null;
+}
+
+/** Supporting-vs-opposing totals as honest COUNTS — never the raw score floats. */
+export function evidenceBalance(chosen: RectificationCandidate, t: TFunction): string {
+  const counts = fitCounts(chosen);
+  const parts = [t('rectify:results.fit_supporting', { count: counts.supporting })];
+  if (counts.unexplained > 0) {
+    parts.push(t('rectify:results.fit_unexplained', { count: counts.unexplained }));
+  }
+  if (counts.quiet > 0) {
+    parts.push(t('rectify:results.fit_quiet', { count: counts.quiet }));
+  }
+  return parts.join(' · ');
 }
 
 /** Fixed storytelling priority when families tie on count (finest depth first). */

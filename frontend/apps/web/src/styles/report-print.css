@@ -615,8 +615,9 @@
   color: var(--report-ink);
 }
 
-/* The engine's qualitative grade as a small-caps typographic mark — a
-   letterpress word (strong / moderate / weak), never a number or a web badge. */
+/* The engine's qualitative grade as a small-caps typographic mark. The calibrated
+   strength_pct renders as its own calibrated numeric mark (see .report-strength-pct);
+   this word remains a word — never a fake badge/number in place of the real %. */
 .report-yoga-grade {
   font-family: var(--report-sans);
   font-size: 0.66rem;
@@ -625,6 +626,86 @@
   text-transform: uppercase;
   color: var(--report-gold-deep);
   white-space: nowrap;
+}
+
+/* The calibrated STRUCTURAL strength (rigor-upgrade §A.1, Tier S): a real,
+   anchored, golden-locked %+band with its epistemic tier and signed factor
+   ledger — the opposite of the banned uncalibrated "77.9". Sits between the
+   grade word and the description. */
+.report-yoga-strength {
+  margin: 5px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.report-strength-pct {
+  font-family: var(--report-sans);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--report-gold-deep);
+  white-space: nowrap;
+}
+
+.report-strength-band {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+/* The epistemic tier — a quiet small-caps label so the % never over-claims. */
+.report-strength-tier {
+  font-family: var(--report-sans);
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--report-ink-faint, var(--report-ink-soft));
+  white-space: nowrap;
+}
+
+/* The signed factor ledger — engine marks, each auditable to the %. */
+.report-strength-ledger {
+  flex-basis: 100%;
+  margin: 3px 0 0;
+  max-width: var(--report-measure);
+  font-family: var(--report-mono, var(--report-sans));
+  font-size: 0.72rem;
+  color: var(--report-ink-soft);
+}
+
+/* Grade + stability chip sit together on the right of the head. */
+.report-yoga-marks,
+.report-domain-marks {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+/* Stage-4 stable-vs-lagna mark: a small honest word (birth-time stable /
+   sensitive), NEVER a number — the marker is a Layer-1 deterministic fact. */
+.report-stability-chip {
+  font-family: var(--report-sans);
+  font-size: 0.56rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 0.5px solid var(--report-rule-soft);
+}
+
+.report-stability-chip[data-variant='stable'] {
+  color: var(--report-ink-soft);
+}
+
+.report-stability-chip[data-variant='sensitive'] {
+  color: var(--report-gold-deep);
+  border-color: var(--report-gold-deep);
 }
 
 .report-yoga-desc {
@@ -699,6 +780,48 @@
   font-size: 1rem;
   color: var(--report-ink);
   margin-bottom: 2px;
+}
+
+/* ---- Assumptions & provenance (Stage-4 panel) --------------------------- */
+.report-assumptions-intro {
+  max-width: var(--report-measure);
+  font-family: var(--report-sans);
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--report-ink-soft);
+  margin: 0 0 12px;
+}
+
+.report-assumptions-list {
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.report-assumptions-row {
+  display: grid;
+  grid-template-columns: minmax(160px, 30%) 1fr;
+  gap: 12px;
+  align-items: baseline;
+  border-bottom: 0.5px solid var(--report-rule-soft);
+  padding-bottom: 7px;
+}
+
+.report-assumptions-row dt {
+  font-family: var(--report-sans);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--report-gold-deep);
+}
+
+.report-assumptions-row dd {
+  margin: 0;
+  font-family: var(--report-sans);
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--report-ink);
 }
 
 /* ---- Footer / colophon --------------------------------------------------- */
@@ -835,6 +958,33 @@
   text-transform: uppercase;
   color: var(--report-gold-deep);
   white-space: nowrap;
+}
+
+/* The calibrated Tier-M headline strength %: a numeric mark (NOT a fake badge in
+   place of the real number — see the text-by-design law above). Tabular figures
+   keep the percent aligned block-to-block; it reads a shade larger than the
+   letterpress band word beside it, because the % is now the headline. */
+.report-strength-pct {
+  font-variant-numeric: tabular-nums lining-nums;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--report-ink);
+}
+
+/* The two-axis ledger line (Śaḍbala % · Aṣṭakavarga %) under the headline — the
+   audit trail that shows WHY the headline is what it is. */
+.report-strength-ledger {
+  font-variant-numeric: tabular-nums lining-nums;
+  margin-bottom: 2px;
+}
+
+/* The epistemic-tier label ("model estimate — traditional weights"): quiet, small
+   caps, so every surfaced % visibly names that it is a model output, not a fact. */
+.report-strength-tier {
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--report-ink-faint, var(--report-ink-soft));
 }
 
 .report-domain-line {

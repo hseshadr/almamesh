@@ -8,12 +8,20 @@
 import type { ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { DomainsCtx, LifeDomainForecastData } from '@almamesh/shared-types';
-import { formatPredictiveDate, formatRupas } from '../../../lib/predictive';
+import { formatPct, formatPredictiveDate, formatRupas } from '../../../lib/predictive';
 import { domainWindowLabel, grahaName } from '../../../lib/predictiveEventCopy';
+import { domainClaimId, type StabilityMarker } from '../../../lib/stability';
 import { DOMAIN_ORDER } from '../predictive/DomainsPanel';
 import { ReportSectionHeading } from './ReportSectionHeading';
+import { StabilityChip } from './StabilityChip';
 
-function DomainBlock({ forecast }: { forecast: LifeDomainForecastData }): ReactElement {
+function DomainBlock({
+  forecast,
+  marker,
+}: {
+  forecast: LifeDomainForecastData;
+  marker?: StabilityMarker;
+}): ReactElement {
   const { t } = useTranslation('report');
   const { t: tp } = useTranslation('predictive');
   const strength = forecast.strength_summary;
@@ -22,11 +30,24 @@ function DomainBlock({ forecast }: { forecast: LifeDomainForecastData }): ReactE
     <div className="report-domain-block report-avoid-break" data-testid={`report-domain-${forecast.domain}`}>
       <div className="report-domain-head">
         <h3>{tp(`domains.names.${forecast.domain}`)}</h3>
-        <span className="report-domain-band">
-          {tp('domains.band_label', { band: tp(`domains.band.${strength.band}`) })}
-          {strength.approximated ? ' ≈' : ''}
+        <span className="report-domain-marks">
+          <span className="report-domain-band">
+            <span className="report-strength-pct">{formatPct(strength.strength_pct)}</span>
+            {' · '}
+            {tp(`domains.band.${strength.band}`)}
+            {strength.approximated ? ' ≈' : ''}
+          </span>
+          <StabilityChip marker={marker} />
         </span>
       </div>
+      <p className="report-domain-line report-strength-ledger">
+        {tp('domains.strength_axes', {
+          shadbala: formatPct(strength.shadbala_pct),
+          sav: formatPct(strength.sav_pct),
+        })}
+        {' · '}
+        <span className="report-strength-tier">{tp('domains.strength_tier_model')}</span>
+      </p>
       <p className="report-domain-line">
         {tp('domains.strength_line', {
           graha: grahaName(tp, strength.key_graha),
@@ -72,17 +93,27 @@ function DomainBlock({ forecast }: { forecast: LifeDomainForecastData }): ReactE
 
 interface ReportDomainsProps {
   readonly domainsCtx: DomainsCtx;
+  /**
+   * OPTIONAL per-claim birth-time-stability markers, keyed by `domain:<domain>`.
+   * When present, each domain shows whether its strength band survives both
+   * candidate ascendants (Stage-4 stable-vs-lagna).
+   */
+  readonly stability?: ReadonlyMap<string, StabilityMarker>;
 }
 
 /** The seven life-domain forecast blocks for print. */
-export function ReportDomains({ domainsCtx }: ReportDomainsProps): ReactElement {
+export function ReportDomains({ domainsCtx, stability }: ReportDomainsProps): ReactElement {
   const { t } = useTranslation('report');
   return (
     <section className="report-section" data-testid="report-domains">
       <ReportSectionHeading index="X" title={t('domains.heading')} />
       <div className="report-domain-grid">
         {DOMAIN_ORDER.map((domain) => (
-          <DomainBlock key={domain} forecast={domainsCtx.forecasts[domain]} />
+          <DomainBlock
+            key={domain}
+            forecast={domainsCtx.forecasts[domain]}
+            marker={stability?.get(domainClaimId(domain))}
+          />
         ))}
       </div>
     </section>

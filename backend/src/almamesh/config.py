@@ -4,6 +4,10 @@ Configuration management using Pydantic Settings.
 COHESION: All configuration in one place.
 """
 
+from __future__ import annotations
+
+from functools import cache
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -23,15 +27,7 @@ class Settings(BaseSettings):
     )
 
 
-_settings: Settings | None = None
-
-
+@cache
 def get_settings() -> Settings:
     """Get cached settings instance."""
-    global _settings
-    if _settings is None:
-        _settings = Settings()
-    return _settings
-
-
-settings = Settings()
+    return Settings()

@@ -27,7 +27,6 @@ import {
   useProfilesStore,
   useRectificationRecordsStore,
   type LifeEvent,
-  type StoredChart,
 } from '@almamesh/store';
 import type { LagnaData } from '@almamesh/browser/types';
 import type { ProcessedBirthData, RectificationRecord } from '@almamesh/shared-types';
@@ -36,8 +35,10 @@ import { usePredictiveLayer, type PredictiveLayer } from '../hooks/usePredictive
 import { useElapsedSeconds, formatElapsed } from '../hooks/useElapsedSeconds';
 import { useContentModeStore } from '../stores/contentMode';
 import { resolveReportAudience } from '../lib/reportSelectors';
+import { selectPrimaryStoredChart } from '../lib/predictive';
 import { cuspInfo } from '../lib/lagnaCusp';
 import { rectificationDelta } from '../lib/rectification';
+import { domainClaimId, reportStabilityMarkers, yogaClaimId } from '../lib/stability';
 import { downloadReportPdf, type ReportPdfChrome } from '../lib/downloadReportPdf';
 // Deep import ON PURPOSE: the report-pdf index re-exports ReportDocument and
 // therefore @react-pdf/renderer, which must stay OUT of ReportView's static
@@ -45,6 +46,7 @@ import { downloadReportPdf, type ReportPdfChrome } from '../lib/downloadReportPd
 // is pure reshaping + i18n and pulls no renderer code.
 import { buildRectificationPdf } from '../components/report-pdf/buildRectificationPdf';
 import {
+  ReportAssumptions,
   ReportChartsPage,
   ReportCover,
   ReportDasha,
@@ -141,18 +143,6 @@ function ReportPredictivePending({ layer }: { layer: PredictiveLayer }): ReactEl
   );
 }
 
-/**
- * Resolve the active profile's primary stored chart from the `charts` map.
- * Mirrors the store's own `getPrimaryChart` rule (the explicit primary, else the
- * first chart) but derives it purely from the subscribed `charts` value so the
- * component re-renders the moment IndexedDB rehydrates on a cold load — no
- * imperative `getState()` read needed.
- */
-function selectPrimaryChart(charts: Readonly<Record<string, StoredChart>>): StoredChart | undefined {
-  const all = Object.values(charts);
-  return all.find((chart) => chart.is_primary) ?? all[0];
-}
-
 /** The print-first report page. */
 export default function ReportView(): ReactElement {
   const navigate = useNavigate();
@@ -162,8 +152,9 @@ export default function ReportView(): ReactElement {
   const { contentMode } = useContentModeStore();
 
   // Subscribe to the chart map so the page re-renders once IndexedDB rehydrates.
+  const activeProfileId = useProfilesStore((s) => s.activeProfileId);
   const charts = useChartLibraryStore((s) => s.charts);
-  const storedChart = selectPrimaryChart(charts);
+  const storedChart = selectPrimaryStoredChart(charts, activeProfileId);
   const chartId = storedChart?.chart_id ?? null;
   const { interpretation, status } = useStreamingInterpretation(chartId);
 
@@ -175,7 +166,6 @@ export default function ReportView(): ReactElement {
   // Birth Time Authority (Section XII): the profile's CONFIRMED rectification
   // record + its supporting life events, resolved in record order (read-only
   // store usage; ids that no longer resolve are simply dropped).
-  const activeProfileId = useProfilesStore((s) => s.activeProfileId);
   const profileId = activeProfileId ?? storedChart?.profile_id ?? null;
   const rectificationRecord: RectificationRecord | undefined = useRectificationRecordsStore(
     (s) => (profileId ? s.recordsByProfile[profileId] : undefined),
@@ -214,6 +204,22 @@ export default function ReportView(): ReactElement {
   const birth = storedChart.birth_data as ProcessedBirthData | undefined;
   const lagna = sidereal.lagna as LagnaData;
 
+  // Stage-4 stable-vs-lagna. A near-cusp ascendant means the whole-sign house
+  // frame could rotate to the adjacent sign under a small birth-time correction,
+  // so every house-based verdict (yoga grade, domain band) is birth-time-
+  // sensitive; an unambiguous ascendant makes them all stable. This is the
+  // CONSERVATIVE render-time marker — the exact dual-pass diff lives in the
+  // engine's `rectification.stability`; the chip here never over-claims stability.
+  const nearCusp = cuspInfo(titleCaseSign(lagna.sign), lagna.sign_degrees, 3, lagna) !== null;
+  const domainsReady = predictive.status === 'ready' && predictive.domainsCtx;
+  const claimIds = [
+    ...sidereal.yogas.map((yoga) => yogaClaimId(yoga.name)),
+    ...(domainsReady
+      ? Object.keys(predictive.domainsCtx.forecasts).map(domainClaimId)
+      : []),
+  ];
+  const stability = reportStabilityMarkers(claimIds, nearCusp);
+
   // Build the @react-pdf "Download PDF" action. Reuses the SAME engine values and
   // formatters the on-screen report renders. Enabled whenever the chart is ready
   // (birth data present); the interpretation is OPTIONAL — when absent the PDF
@@ -239,6 +245,7 @@ export default function ReportView(): ReactElement {
           minutes: Math.abs(delta.deltaMinutes),
         }),
       formatAntarHeading: (lord) => t('dasha.antar_heading', { lord }),
+      formatPratyantarHeading: (lord) => t('dasha.pratyantar_heading', { lord }),
       chartCaptions: {
         rasi: t('charts.rasi_caption'),
         navamsa: t('charts.navamsa_caption'),
@@ -290,6 +297,41 @@ export default function ReportView(): ReactElement {
         narrativeIntro: t('pdf.narrative_intro'),
       },
     };
+    // Assumptions & provenance (Section XIII) — assembled from the SAME cusp +
+    // rectification provenance the cover uses; i18n stays here in React.
+    const assumptionsDelta = rectificationDelta(birth);
+    const assumptions = {
+      chrome: {
+        eyebrow: t('section_eyebrow', { index: 'XIII' }),
+        title: t('assumptions.heading'),
+        intro: t('assumptions.intro'),
+      },
+      rows: [
+        { label: t('assumptions.ayanamsa_label'), value: t('assumptions.ayanamsa_value') },
+        {
+          label: t('assumptions.house_system_label'),
+          value: t('assumptions.house_system_value'),
+        },
+        {
+          label: t('assumptions.time_label'),
+          value: assumptionsDelta
+            ? t('assumptions.time_rectified', {
+                entered: assumptionsDelta.enteredLabel,
+                rectified: assumptionsDelta.rectifiedLabel,
+              })
+            : t('assumptions.time_recorded'),
+        },
+        {
+          label: t('assumptions.cusp_label'),
+          value: cusp
+            ? t('assumptions.cusp_near', {
+                degrees: cusp.degrees.toFixed(1),
+                sign: cusp.neighbourSign,
+              })
+            : t('assumptions.cusp_clear'),
+        },
+      ],
+    };
     // A rejected render (font fetch, @react-pdf failure, pdf().toBlob()) must
     // surface on screen — never a silent unhandled rejection.
     setPdfError(null);
@@ -329,6 +371,7 @@ export default function ReportView(): ReactElement {
             t,
           })
         : undefined,
+      assumptions,
       fileBaseName: t('pdf_title', { name: personName, date: isoDate(new Date()) }),
     }).catch((err) => {
       // Surface the real cause for the developer console — the friendly copy
@@ -395,6 +438,7 @@ export default function ReportView(): ReactElement {
           yogas={sidereal.yogas}
           interpretation={readyInterpretation}
           audience={audience}
+          stability={stability}
         />
         <ReportDasha dashas={sidereal.dashas} />
         {readyInterpretation ? (
@@ -412,12 +456,18 @@ export default function ReportView(): ReactElement {
           <ReportStrength strengthCtx={predictive.strengthCtx} />
         )}
         {predictive.status === 'ready' && predictive.domainsCtx && (
-          <ReportDomains domainsCtx={predictive.domainsCtx} />
+          <ReportDomains domainsCtx={predictive.domainsCtx} stability={stability} />
         )}
         {/* Birth Time Authority (XII) — only when a rectification was confirmed. */}
         {rectificationRecord ? (
           <ReportRectification record={rectificationRecord} events={supportingEvents} />
         ) : null}
+        {/* Assumptions & provenance (XIII) — the four load-bearing choices every
+            verdict above rests on, assembled from existing provenance. */}
+        <ReportAssumptions
+          lagna={lagna}
+          rectification={birth ? rectificationDelta(birth) : null}
+        />
         <ReportFooter personName={personName} />
       </article>
     </div>

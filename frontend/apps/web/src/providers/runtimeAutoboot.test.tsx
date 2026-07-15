@@ -49,11 +49,15 @@ function makeFakeRuntime(): FakeRuntime {
   }
 }
 
+interface ProbeProps {
+  readonly revision?: string
+}
+
 /** Surfaces whether the context exposes startBootstrap, for the contract assertion. */
-function Probe() {
+function Probe({ revision = 'initial' }: ProbeProps) {
   const value = useChartEngine()
   return (
-    <span data-testid="startBootstrap">
+    <span data-testid="startBootstrap" data-revision={revision}>
       {typeof value.startBootstrap === 'function' ? 'has-startBootstrap' : 'no-startBootstrap'}
     </span>
   )
@@ -62,6 +66,18 @@ function Probe() {
 /** Set the initial location the provider reads at mount (it sits above the router). */
 function setPath(pathname: string) {
   window.history.pushState({}, '', pathname)
+}
+
+function runtimeProviderUi(runtime: FakeRuntime, revision: string) {
+  return (
+    <AlmaMeshRuntimeProvider runtime={runtime}>
+      <Probe revision={revision} />
+    </AlmaMeshRuntimeProvider>
+  )
+}
+
+function renderRuntimeProvider(runtime = makeFakeRuntime()) {
+  return { runtime, view: render(runtimeProviderUi(runtime, 'initial')) }
 }
 
 describe('AlmaMeshRuntimeProvider — auto-boot gating', () => {
@@ -104,6 +120,22 @@ describe('AlmaMeshRuntimeProvider — auto-boot gating', () => {
     )
 
     await waitFor(() => expect(runtime.bootstrapCalls).toBe(1))
+  })
+
+  it('boots once when runtime and mount-gate boundaries change after mount', async () => {
+    setPath('/onboarding')
+    const { runtime, view } = renderRuntimeProvider()
+
+    await waitFor(() => expect(runtime.bootstrapCalls).toBe(1))
+    const replacementRuntime = makeFakeRuntime()
+    vi.mocked(hasLocalChart).mockReturnValue(true)
+    setPath('/')
+    view.rerender(runtimeProviderUi(replacementRuntime, 'after-boundary-change'))
+
+    expect(screen.getByTestId('startBootstrap').getAttribute('data-revision')).toBe(
+      'after-boundary-change',
+    )
+    expect(runtime.bootstrapCalls + replacementRuntime.bootstrapCalls).toBe(1)
   })
 
   it('DOES auto-boot on "/" when a chart already exists (returning visitor)', async () => {
