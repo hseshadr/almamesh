@@ -57,6 +57,7 @@ vi.mock('../../components/features/dashboard', () => ({
   IdentityStrip: () => null,
   LifeAtlas: () => null,
   DashboardInterpretation: () => null,
+  ReadingGrounding: () => null,
 }));
 
 import {
@@ -165,7 +166,13 @@ function seedCompleteReading(provenance?: ReadingProvenance): void {
   useInterpretationStore.setState({ byChart: {} });
   useInterpretationStore
     .getState()
-    .setInterpretation('chart-1', INTERPRETATION, '2026-06-20T00:00:00Z', provenance);
+    // Seed a display-safe, natal-only INPUT provenance (predictiveRequestKey: null)
+    // so main's identity-keyed display gate keeps the seeded reading on screen.
+    // The enrich-when-ready decision is independent — it keys off the reading
+    // provenance's `predictiveAware` flag (varied per test above).
+    .setInterpretation('chart-1', INTERPRETATION, '2026-06-20T00:00:00Z', provenance, {
+      predictiveRequestKey: null,
+    });
 }
 
 function renderDashboard(): ReturnType<typeof render> {

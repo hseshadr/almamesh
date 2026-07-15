@@ -255,7 +255,7 @@ export default function DashboardPage() {
       // Compose the persisted raw predictive contexts (when ready for this
       // profile) so chat answers can cite the engine's transit/strength/domain
       // facts (Spec 062 delta 1); absent contexts → natal-only, as before.
-      chart: withRawPredictive(chart, chartId).chart,
+      chart: withRawPredictive(chart, chartId),
       question,
       config,
       mode: chatMode,
@@ -492,7 +492,6 @@ export default function DashboardPage() {
   //   - `readingIsPredictiveAware` skips entirely once the reading already
   //     carries the superset (including the "ready at first paint" case,
   //     where the very first generation was already predictive-aware).
-  const predictiveStatus = usePredictiveStore((s) => s.status);
   const enrichFiredRef = useRef(false);
   const readingIsPredictiveAware = interpretationEntry?.provenance?.predictiveAware === true;
   useEffect(() => {
