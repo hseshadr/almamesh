@@ -79,7 +79,7 @@
     "s2_heading": "2. What Touches the Network",
     "s2_p1": "AlmaMesh makes the network do only these things:",
     "s2_li1": "Delivery only: downloading the app and a signed, content-addressed astronomy bundle (the DE421 ephemeris and program files) so the engine can run offline afterward. This is a one-way download; it carries no personal data about you.",
-    "s2_li3": "Birthplace search: when you look up a birthplace, only the city name you type is sent to a maps geocoding service (Open-Meteo) to fetch its coordinates and timezone. Never your birth date, time, name, or chart. If you are offline, AlmaMesh falls back to a bundled city list and sends nothing.",
+    "s2_li3": "Birthplace search: when you look up a birthplace, the city name you type plus ordinary HTTPS/request metadata visible to the provider are sent to a maps geocoding service (Open-Meteo) to fetch its coordinates and timezone. Never your birth date, time, name, or chart. If you are offline, AlmaMesh falls back to a bundled city list and sends nothing.",
     "s2_li2": "Optional AI: if you enable interpretation or chat, PII-redacted chart facts and your chat question go to your chosen endpoint. If you submit life-event prose for organization after the disclosure, that narrative is sent as written without birth details or chart data.",
     "s2_li4": "Optional feedback: opening the form loads Cloudflare Turnstile when configured. Sending stores the page, thumbs sentiment, optional message as written, app version, and timestamp in our D1 feedback database. Do not include personal information.",
     "s2_p2_prefix": "We do",
