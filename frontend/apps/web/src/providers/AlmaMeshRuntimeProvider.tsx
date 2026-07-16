@@ -57,6 +57,8 @@ const SKYFIELD_DATA_PATHS = [
 export function readRuntimeConfig(): RuntimeConfig {
   return {
     bundleBaseUrl: import.meta.env.VITE_BUNDLE_BASE_URL ?? '/bundle',
+    expectedBundleId: 'almamesh-constructs',
+    expectedChannel: 'stable',
     // ROOT-absolute on purpose, matching '/bundle' + '/pyodide/' and the SW
     // NetworkFirst rule (`url.pathname === '/public.key'`). Resolving against
     // document.baseURI broke deep links: a hard load of /rectify/<id> requested

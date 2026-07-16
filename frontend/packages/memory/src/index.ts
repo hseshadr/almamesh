@@ -53,6 +53,12 @@ export interface RetrievedChunk {
 export interface ChatMemory {
   /** Chunk → embed → persist a message's vectors for later retrieval. */
   indexMessage(msg: IndexableMessage): Promise<void>;
+  /** Drain pending writes, then permanently delete one profile's vectors. */
+  deleteForProfile(profileId: string): Promise<void>;
+  /** Drain pending writes, then permanently delete one thread's vectors. */
+  deleteForThread(threadId: string): Promise<void>;
+  /** Drain every pending write, then clear the entire vector index. */
+  clear(): Promise<void>;
   /** Embed `query`, then return the top-`k` most-similar chunks for a profile. */
   retrieve(
     query: string,
@@ -65,6 +71,8 @@ export interface ChatMemory {
 export interface ChatMemoryDeps {
   readonly embedder: Embedder;
   readonly store?: VectorStore;
+  /** Cross-realm dataset fence; changed generations discard stale embeddings. */
+  readonly generation?: () => string | number;
 }
 
 const DEFAULT_K = 5;
@@ -81,23 +89,110 @@ function chunkId(messageId: string, index: number): string {
 export function createMemory(deps: ChatMemoryDeps): ChatMemory {
   const store = deps.store ?? createVectorStore();
   const { embedder } = deps;
+  const generation = deps.generation ?? (() => 0);
+  const deletedProfiles = new Set<string>();
+  const deletedThreads = new Set<string>();
+  const pending = new Set<{
+    readonly profileId: string;
+    readonly threadId: string;
+    readonly promise: Promise<void>;
+  }>();
+  let clearInProgress: Promise<void> | null = null;
+
+  async function waitForClear(): Promise<void> {
+    if (clearInProgress !== null) {
+      await clearInProgress;
+    }
+  }
+
+  async function drain(
+    matches: (operation: { readonly profileId: string; readonly threadId: string }) => boolean,
+  ): Promise<void> {
+    const operations = Array.from(pending)
+      .filter(matches)
+      .map((operation) => operation.promise);
+    await Promise.allSettled(operations);
+  }
+
+  async function indexNow(msg: IndexableMessage, startedInGeneration: string | number): Promise<void> {
+    const chunks = chunkText(msg.content);
+    if (chunks.length === 0) {
+      return;
+    }
+    const vectors = await embedder.embed(chunks);
+    if (generation() !== startedInGeneration) {
+      return;
+    }
+    const records: VectorRecord[] = chunks.map((text, i) => ({
+      id: chunkId(msg.id, i),
+      profile_id: msg.profile_id,
+      thread_id: msg.thread_id,
+      message_id: msg.id,
+      text,
+      vector: vectors[i],
+    }));
+    await store.upsert(records, startedInGeneration);
+  }
 
   return {
     async indexMessage(msg: IndexableMessage): Promise<void> {
-      const chunks = chunkText(msg.content);
-      if (chunks.length === 0) {
+      await waitForClear();
+      if (deletedProfiles.has(msg.profile_id) || deletedThreads.has(msg.thread_id)) {
         return;
       }
-      const vectors = await embedder.embed(chunks);
-      const records: VectorRecord[] = chunks.map((text, i) => ({
-        id: chunkId(msg.id, i),
-        profile_id: msg.profile_id,
-        thread_id: msg.thread_id,
-        message_id: msg.id,
-        text,
-        vector: vectors[i],
-      }));
-      await store.upsert(records);
+      const operation = {
+        profileId: msg.profile_id,
+        threadId: msg.thread_id,
+        promise: indexNow(msg, generation()),
+      };
+      pending.add(operation);
+      try {
+        await operation.promise;
+      } finally {
+        pending.delete(operation);
+      }
+    },
+
+    async deleteForProfile(profileId: string): Promise<void> {
+      await waitForClear();
+      deletedProfiles.add(profileId);
+      try {
+        await drain((operation) => operation.profileId === profileId);
+        await store.deleteForProfile(profileId);
+      } catch (error) {
+        deletedProfiles.delete(profileId);
+        throw error;
+      }
+    },
+
+    async deleteForThread(threadId: string): Promise<void> {
+      await waitForClear();
+      deletedThreads.add(threadId);
+      try {
+        await drain((operation) => operation.threadId === threadId);
+        await store.deleteForThread(threadId);
+      } catch (error) {
+        deletedThreads.delete(threadId);
+        throw error;
+      }
+    },
+
+    async clear(): Promise<void> {
+      await waitForClear();
+      const operation = (async () => {
+        await drain(() => true);
+        await store.clear();
+        deletedProfiles.clear();
+        deletedThreads.clear();
+      })();
+      clearInProgress = operation;
+      try {
+        await operation;
+      } finally {
+        if (clearInProgress === operation) {
+          clearInProgress = null;
+        }
+      }
     },
 
     async retrieve(
@@ -105,11 +200,19 @@ export function createMemory(deps: ChatMemoryDeps): ChatMemory {
       profileId: string,
       k: number = DEFAULT_K,
     ): Promise<readonly RetrievedChunk[]> {
-      const [queryVec] = await embedder.embed([query]);
-      if (queryVec === undefined) {
+      await waitForClear();
+      const startedInGeneration = generation();
+      if (deletedProfiles.has(profileId)) {
         return [];
       }
-      const hits = await store.search(queryVec, profileId, k);
+      const [queryVec] = await embedder.embed([query]);
+      if (queryVec === undefined || generation() !== startedInGeneration) {
+        return [];
+      }
+      const hits = await store.search(queryVec, profileId, k, startedInGeneration);
+      if (generation() !== startedInGeneration) {
+        return [];
+      }
       return hits.map((hit) => ({
         text: hit.record.text,
         message_id: hit.record.message_id,

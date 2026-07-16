@@ -28,6 +28,7 @@ import {
   useRectificationRecordsStore,
   type LifeEvent,
 } from '@almamesh/store';
+import { safeError } from '@almamesh/shared-types';
 import type { LagnaData } from '@almamesh/browser/types';
 import type { ProcessedBirthData, RectificationRecord } from '@almamesh/shared-types';
 import { useStreamingInterpretation } from '../hooks/useStreamingInterpretation';
@@ -374,9 +375,8 @@ export default function ReportView(): ReactElement {
       assumptions,
       fileBaseName: t('pdf_title', { name: personName, date: isoDate(new Date()) }),
     }).catch((err) => {
-      // Surface the real cause for the developer console — the friendly copy
-      // below is all the user sees, so the raw error must never be swallowed.
-      console.error('[report-pdf] generation failed:', err);
+      // Keep a stable diagnostic code without logging report or profile data.
+      safeError('report.pdf_generation_failed', err);
       setPdfError(t('pdf_error'));
     });
   };

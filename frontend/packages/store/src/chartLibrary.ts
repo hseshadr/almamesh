@@ -9,11 +9,11 @@
  */
 
 import { create, type StateCreator } from 'zustand';
-import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware';
-import { get as idbGet, set as idbSet, del as idbDel } from 'idb-keyval';
+import { createJSONStorage, persist } from 'zustand/middleware';
 
 import type { ChartData } from '@almamesh/shared-types';
 import type { SiderealChart } from '@almamesh/browser/types';
+import { deletionAwareIdbStorage } from './deletionTombstones';
 
 /** A chart as held on-device: the rendered shape plus its identity + primacy. */
 export interface StoredChart extends ChartData {
@@ -80,10 +80,14 @@ function setLibraryFlag(hasAny: boolean): void {
   if (typeof localStorage === 'undefined') {
     return;
   }
+  // Node/Bun SSR can expose a partial localStorage global without the complete
+  // browser Storage API. The flag is only a synchronous routing optimization;
+  // never let that optional mirror break prerender or the authoritative IDB store.
+  const storage: Partial<Storage> = localStorage;
   if (hasAny) {
-    localStorage.setItem(CHART_LIBRARY_FLAG_KEY, '1');
+    storage.setItem?.(CHART_LIBRARY_FLAG_KEY, '1');
   } else {
-    localStorage.removeItem(CHART_LIBRARY_FLAG_KEY);
+    storage.removeItem?.(CHART_LIBRARY_FLAG_KEY);
   }
 }
 
@@ -117,31 +121,6 @@ export function getActiveProfileScope(): string | null {
 function chartInScope(chart: StoredChart, scope: string | null): boolean {
   return scope === null || chart.profile_id === undefined || chart.profile_id === scope;
 }
-
-/** True only where IndexedDB exists (real browsers / workers), not in SSR/tests. */
-function hasIndexedDb(): boolean {
-  return typeof indexedDB !== 'undefined';
-}
-
-/**
- * zustand `StateStorage` backed by IndexedDB (`idb-keyval`). Outside a browser
- * (SSR, unit tests) IndexedDB is absent, so every op is a benign no-op and the
- * store simply runs in-memory — persistence is a browser-only enhancement, not
- * a correctness requirement.
- */
-const idbStorage: StateStorage = {
-  getItem: async (name) => (hasIndexedDb() ? ((await idbGet<string>(name)) ?? null) : null),
-  setItem: async (name, value) => {
-    if (hasIndexedDb()) {
-      await idbSet(name, value);
-    }
-  },
-  removeItem: async (name) => {
-    if (hasIndexedDb()) {
-      await idbDel(name);
-    }
-  },
-};
 
 export interface ChartLibraryStore {
   /** All stored charts, keyed by `chart_id`. */
@@ -255,7 +234,7 @@ export const useChartLibraryStore = create<ChartLibraryStore>()(
     name: PERSIST_NAME,
     version: CHART_LIBRARY_PERSIST_VERSION,
     migrate: migrateChartLibraryPersistedState,
-    storage: createJSONStorage(() => idbStorage),
+    storage: createJSONStorage(() => deletionAwareIdbStorage),
     partialize: (state) => ({ charts: state.charts }),
     onRehydrateStorage: () => (state) => {
       // Re-sync the synchronous routing flag from the rehydrated truth.

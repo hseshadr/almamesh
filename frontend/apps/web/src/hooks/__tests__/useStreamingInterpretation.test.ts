@@ -291,7 +291,8 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
     // reading pipeline — used to short-circuit to the unreachable-endpoint copy
     // (`err instanceof TypeError` alone), sending the user to check an endpoint
     // that was never the problem. It must now fall through to the generic
-    // "try again / check settings" message (and be console.error-logged raw).
+    // "try again / check settings" message. Diagnostics expose only an
+    // allowlisted code; the private exception text must never reach the console.
     const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const bug = new TypeError("Cannot read properties of undefined (reading 'sections')");
     mockedStream.mockImplementation(failingStream(bug));
@@ -304,8 +305,8 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
     await waitFor(() => expect(result.current.status).toBe('error'));
     expect(result.current.error).not.toMatch(/couldn.t reach your ai endpoint/i);
     expect(result.current.error).toMatch(/try again in a moment/i);
-    // The raw error is logged for developers even though the user sees friendly copy.
-    expect(errSpy).toHaveBeenCalledWith('[interpretation] reading stream failed:', bug);
+    expect(errSpy).toHaveBeenCalledWith('[almamesh:error:interpretation.stream_failed]');
+    expect(JSON.stringify(errSpy.mock.calls)).not.toContain(bug.message);
     errSpy.mockRestore();
   });
 

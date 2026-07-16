@@ -11,7 +11,8 @@
  * seam, and `now` + `appVersion` are injected for determinism. All fixtures are
  * synthetic — never real birth data.
  */
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import type { BackupEnvelopePlain } from '@almamesh/shared-types';
 
 import {
   BackupCryptoError,
@@ -19,6 +20,7 @@ import {
   CHART_FLAG_KEY,
   CHAT_VECTORS_KEY,
   type StorageTier,
+  useInterpretationStore,
 } from '@almamesh/store';
 
 import {
@@ -98,6 +100,52 @@ describe('buildBackupExport', () => {
     expect(parsed.exportedAt).toBe(FIXED_NOW);
     expect(parsed.stores['almamesh-profiles']).toEqual({ state: PROFILES_STATE, version: 1 });
     expect(parsed.stores['almamesh-language']).toEqual({ state: LANGUAGE_STATE, version: 0 });
+  });
+
+  it('exports a completed interpretation immediately after its durability promise resolves', async () => {
+    const idb = memTier();
+    const originalStorage = useInterpretationStore.persist.getOptions().storage;
+    useInterpretationStore.persist.setOptions({
+      storage: {
+        getItem: () => null,
+        setItem: (name, value) => {
+          idb.map.set(name, JSON.stringify(value));
+        },
+        removeItem: (name) => {
+          idb.map.delete(name);
+        },
+      },
+    });
+    useInterpretationStore.setState({ byChart: {} });
+    const run = useInterpretationStore.getState().startInterpretation('chart-now', 'profile-now');
+    await useInterpretationStore.getState().setInterpretation(
+      'chart-now',
+      {
+        summary: { layman: 'Saved now.', technical: 'Saved now.' },
+        strengths: [],
+        challenges: [],
+        life_themes: [],
+      },
+      '2026-07-01T00:00:00.000Z',
+      undefined,
+      undefined,
+      run,
+    );
+    try {
+      const result = await buildBackupExport(undefined, {
+        tiers: { local: memTier(), idb },
+        now: FIXED_NOW,
+        appVersion: FIXED_VERSION,
+      });
+
+      const parsed = JSON.parse(result.text) as BackupEnvelopePlain;
+      expect(
+        (parsed.stores['almamesh-interpretations']?.state as { byChart: Record<string, unknown> })
+          .byChart['chart-now'],
+      ).toBeDefined();
+    } finally {
+      useInterpretationStore.persist.setOptions({ storage: originalStorage });
+    }
   });
 });
 
@@ -212,6 +260,257 @@ describe('stageBackupImport (validation)', () => {
 // --- full commit round-trip via injected tiers -------------------------------
 
 describe('commitBackupImport (full round-trip)', () => {
+  it('rolls back and finalizes a readable generation after a mid-write failure', async () => {
+    const oldProfiles = snapshot({ profiles: { old: { id: 'old' } } }, 1);
+    const oldCharts = snapshot({ charts: { old: { chart_id: 'old' } } }, 1);
+    const idb = memTier({
+      'almamesh-profiles': oldProfiles,
+      'almamesh-chart-library': oldCharts,
+    });
+    const originalSet = idb.set;
+    let failed = false;
+    idb.set = async (key, value) => {
+      if (key === 'almamesh-chart-library' && !failed) {
+        failed = true;
+        throw new Error('quota during second write');
+      }
+      await originalSet(key, value);
+    };
+    const beginBackupRestore = vi
+      .fn<() => Promise<number>>()
+      .mockResolvedValueOnce(8);
+    const finalizeBackupRestore = vi.fn().mockResolvedValue(undefined);
+    const abortBackupRestore = vi.fn().mockResolvedValue(undefined);
+    const envelope: BackupEnvelopePlain = {
+      format: 'almamesh-backup',
+      formatVersion: 1,
+      app: { version: 'test' },
+      exportedAt: FIXED_NOW,
+      encryption: 'none',
+      stores: {
+        'almamesh-profiles': { version: 1, state: { profiles: { replacement: {} } } },
+        'almamesh-chart-library': { version: 1, state: { charts: { replacement: {} } } },
+      },
+    };
+
+    await expect(
+      commitBackupImport(envelope, {
+        tiers: { idb, local: memTier() },
+        beginBackupRestore,
+        finalizeBackupRestore,
+        abortBackupRestore,
+      }),
+    ).rejects.toThrow(/quota/);
+
+    expect(beginBackupRestore).toHaveBeenCalledTimes(1);
+    expect(finalizeBackupRestore).toHaveBeenCalledWith(8);
+    expect(abortBackupRestore).not.toHaveBeenCalled();
+    expect(JSON.parse(idb.map.get('almamesh-profiles')!)).toMatchObject({
+      state: { profiles: { old: { id: 'old' } } },
+      datasetEpoch: 8,
+    });
+  });
+
+  it('restores stores, clears imported tombstones, then rebuilds every restored message', async () => {
+    const idb = memTier();
+    const local = memTier();
+    const events: string[] = [];
+    const originalSet = idb.set;
+    idb.set = async (key, value) => {
+      events.push(`write:${key}`);
+      await originalSet(key, value);
+    };
+    const beginBackupRestore = vi.fn(async () => {
+      events.push('begin-restore');
+      return 2;
+    });
+    const finalizeBackupRestore = vi.fn(async () => {
+      events.push('finalize-restore');
+    });
+    const rebuildChatMemory = vi.fn(async () => {
+      events.push('rebuild-memory');
+    });
+    const completeMemoryRebuild = vi.fn(async () => {
+      events.push('complete-memory');
+    });
+    const clearChatMemory = vi.fn(async () => {
+      events.push('clear-memory');
+    });
+    const publishDatasetNotice = vi.fn((notice: { phase?: string }) => {
+      events.push(`broadcast:${notice.phase}`);
+    });
+    const envelope: BackupEnvelopePlain = {
+      format: 'almamesh-backup',
+      formatVersion: 1,
+      app: { version: 'test' },
+      exportedAt: FIXED_NOW,
+      encryption: 'none',
+      stores: {
+        'almamesh-profiles': {
+          version: 1,
+          state: { profiles: { p1: { id: 'p1' } }, activeProfileId: 'p1' },
+        },
+        'almamesh-chart-library': {
+          version: 1,
+          state: { charts: { c1: { chart_id: 'c1', profile_id: 'p1' } } },
+        },
+        'almamesh-chat-history': {
+          version: 1,
+          state: {
+            threads: { t1: { id: 't1', profile_id: 'p1', chart_id: 'c1' } },
+            messages: {
+              t1: [
+                { id: 'm1', thread_id: 't1', role: 'user', content: 'restored question' },
+                {
+                  id: 'failed',
+                  thread_id: 't1',
+                  role: 'assistant',
+                  content: 'Connection failed. Please try again.',
+                  error: true,
+                },
+                { id: 'blank', thread_id: 't1', role: 'assistant', content: '   ' },
+              ],
+            },
+          },
+        },
+      },
+    };
+
+    await commitBackupImport(envelope, {
+      tiers: { idb, local },
+      beginBackupRestore,
+      finalizeBackupRestore,
+      clearChatMemory,
+      publishDatasetNotice,
+      rebuildChatMemory,
+      completeMemoryRebuild,
+    });
+
+    expect(beginBackupRestore).toHaveBeenCalledWith({
+      profileIds: ['p1'],
+      chartIds: ['c1'],
+      threadIds: ['t1'],
+    });
+    expect(rebuildChatMemory).toHaveBeenCalledWith([
+      { id: 'm1', thread_id: 't1', profile_id: 'p1', content: 'restored question' },
+    ]);
+    expect(finalizeBackupRestore).toHaveBeenCalledWith(2);
+    expect(JSON.parse(idb.map.get('almamesh-profiles')!)).toMatchObject({ datasetEpoch: 2 });
+    expect(events[0]).toBe('begin-restore');
+    expect(events.indexOf('broadcast:begin')).toBeGreaterThan(events.indexOf('begin-restore'));
+    expect(events.indexOf('clear-memory')).toBeGreaterThan(events.indexOf('broadcast:begin'));
+    expect(events.indexOf('finalize-restore')).toBeGreaterThan(events.indexOf('write:almamesh-profiles'));
+    expect(events.indexOf('rebuild-memory')).toBeGreaterThan(events.indexOf('finalize-restore'));
+    expect(events.indexOf('complete-memory')).toBeGreaterThan(events.indexOf('rebuild-memory'));
+    expect(completeMemoryRebuild).toHaveBeenCalledWith(2);
+    expect(events.at(-1)).toBe('broadcast:complete');
+  });
+
+  it('writes nothing when the cross-realm restore fence cannot be established', async () => {
+    const idb = memTier();
+    const rebuildChatMemory = vi.fn();
+    const envelope: BackupEnvelopePlain = {
+      format: 'almamesh-backup',
+      formatVersion: 1,
+      app: { version: 'test' },
+      exportedAt: FIXED_NOW,
+      encryption: 'none',
+      stores: {
+        'almamesh-profiles': {
+          version: 1,
+          state: { profiles: { p1: { id: 'p1' } }, activeProfileId: 'p1' },
+        },
+      },
+    };
+
+    await expect(
+      commitBackupImport(envelope, {
+        tiers: { idb, local: memTier() },
+        beginBackupRestore: vi.fn().mockRejectedValue(new Error('restore fence blocked')),
+        rebuildChatMemory,
+      }),
+    ).rejects.toThrow(/restore fence blocked/);
+    expect(idb.map.size).toBe(0);
+    expect(rebuildChatMemory).not.toHaveBeenCalled();
+  });
+
+  it('commits source data and marks search resumable when vector reindex fails', async () => {
+    const publishDatasetNotice = vi.fn();
+    const completeMemoryRebuild = vi.fn().mockResolvedValue(undefined);
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const envelope: BackupEnvelopePlain = {
+      format: 'almamesh-backup',
+      formatVersion: 1,
+      app: { version: 'test' },
+      exportedAt: FIXED_NOW,
+      encryption: 'none',
+      stores: {
+        'almamesh-profiles': { version: 1, state: { profiles: { p1: { id: 'p1' } } } },
+      },
+    };
+
+    await expect(
+      commitBackupImport(envelope, {
+        tiers: { idb: memTier(), local: memTier() },
+        beginBackupRestore: vi.fn().mockResolvedValue(4),
+        finalizeBackupRestore: vi.fn().mockResolvedValue(undefined),
+        rebuildChatMemory: vi
+          .fn()
+          .mockRejectedValue(new Error('private-message-content must never reach logs')),
+        completeMemoryRebuild,
+        publishDatasetNotice,
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(completeMemoryRebuild).not.toHaveBeenCalled();
+    expect(warn).toHaveBeenCalledWith('[almamesh:warn:backup.memory_rebuild_deferred]');
+    expect(publishDatasetNotice).toHaveBeenLastCalledWith(
+      expect.objectContaining({ kind: 'dataset', phase: 'complete' }),
+    );
+  });
+
+  it('finishes source restore within 30 seconds when semantic-memory rebuild hangs', async () => {
+    vi.useFakeTimers();
+    try {
+      const publishDatasetNotice = vi.fn();
+      const completeMemoryRebuild = vi.fn();
+      const envelope: BackupEnvelopePlain = {
+        format: 'almamesh-backup',
+        formatVersion: 1,
+        app: { version: 'test' },
+        exportedAt: FIXED_NOW,
+        encryption: 'none',
+        stores: {
+          'almamesh-profiles': {
+            version: 1,
+            state: { profiles: { p1: { id: 'p1' } }, activeProfileId: 'p1' },
+          },
+        },
+      };
+      let settled = false;
+
+      void commitBackupImport(envelope, {
+        tiers: { idb: memTier(), local: memTier() },
+        beginBackupRestore: vi.fn().mockResolvedValue(3),
+        finalizeBackupRestore: vi.fn().mockResolvedValue(undefined),
+        rebuildChatMemory: () => new Promise<void>(() => undefined),
+        completeMemoryRebuild,
+        publishDatasetNotice,
+      }).then(() => {
+        settled = true;
+      });
+      await vi.advanceTimersByTimeAsync(30_000);
+
+      expect(settled).toBe(true);
+      expect(completeMemoryRebuild).not.toHaveBeenCalled();
+      expect(publishDatasetNotice).toHaveBeenLastCalledWith(
+        expect.objectContaining({ phase: 'complete' }),
+      );
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('restores every store into fresh tiers and runs the post-write housekeeping', async () => {
     const { override } = seededSource();
     const exported = await buildBackupExport(undefined, override);
@@ -226,10 +525,16 @@ describe('commitBackupImport (full round-trip)', () => {
     await commitBackupImport(staged.envelope, { tiers: destTiers });
 
     // Stores landed verbatim in their tiers.
-    expect(destIdb.map.get('almamesh-profiles')).toBe(JSON.stringify({ state: PROFILES_STATE, version: 1 }));
-    expect(destIdb.map.get('almamesh-chart-library')).toBe(
-      JSON.stringify({ state: CHART_LIBRARY_STATE, version: 0 }),
-    );
+    expect(JSON.parse(destIdb.map.get('almamesh-profiles')!)).toEqual({
+      state: PROFILES_STATE,
+      version: 1,
+      datasetEpoch: 0,
+    });
+    expect(JSON.parse(destIdb.map.get('almamesh-chart-library')!)).toEqual({
+      state: CHART_LIBRARY_STATE,
+      version: 0,
+      datasetEpoch: 0,
+    });
     expect(destLocal.map.get('almamesh-language')).toBe(
       JSON.stringify({ state: LANGUAGE_STATE, version: 0 }),
     );

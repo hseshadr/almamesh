@@ -9,6 +9,7 @@ import i18n from './i18n/config'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { AlmaMeshRuntimeProvider } from './providers/AlmaMeshRuntimeProvider'
 import { runProfileMigration } from '@almamesh/store'
+import { safeWarn } from '@almamesh/shared-types'
 import { installChunkErrorRecovery } from './lib/swSelfHeal'
 import App from './App'
 // Self-hosted observatory typography (no external font CDN — keeps the app
@@ -21,8 +22,8 @@ import './index.css'
 
 // P5 local-first: there is no backend API to configure and no auth tokens to
 // store. The app runs on the in-browser engine + on-device storage; there are
-// exactly two runtime egresses, both user-facing: the optional, user-configured
-// LLM endpoint and the birthplace geocoding lookup (only the typed city name).
+// runtime egresses are explicit and user-facing; README's network/data-flow
+// table is the canonical inventory.
 
 let queryClient: QueryClient
 queryClient = new QueryClient({
@@ -35,7 +36,7 @@ queryClient = new QueryClient({
           : undefined
 
       if (maybeStatusCode === 404) {
-        console.warn('[Cache] 404 detected, invalidating all queries')
+        safeWarn('cache.query_not_found', error)
         queryClient.invalidateQueries()
       }
     },

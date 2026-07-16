@@ -2,15 +2,18 @@ import { describe, expect, it } from 'vitest';
 import type { BackupEnvelopePlain, BackupStores } from '@almamesh/shared-types';
 import {
   applyBackup,
+  applyLocalRestoreMirrors,
   BACKUP_STORES,
   BackupError,
   CHART_FLAG_KEY,
   CHAT_VECTORS_KEY,
   collectBackup,
+  PREDICTIVE_CACHE_KEY,
   type BackupDeps,
   type BackupTier,
   type StorageTier,
 } from './backup';
+import { migrateInterpretationPersistedState } from './interpretation';
 
 /**
  * In-memory, Map-backed fake of a {@link StorageTier}. Exposes the underlying
@@ -65,7 +68,7 @@ describe('BACKUP_STORES registry', () => {
       ['almamesh-life-events', 'idb'],
       ['almamesh-rectification-records', 'idb'],
       ['almamesh-chat-history', 'idb'],
-      ['almamesh-interpretations', 'local'],
+      ['almamesh-interpretations', 'idb'],
       ['almamesh-language', 'local'],
     ]);
   });
@@ -136,6 +139,56 @@ describe('collectBackup', () => {
 });
 
 describe('applyBackup', () => {
+  it('restores a v4 backup without erasing its ownerless saved reading', async () => {
+    const deps = makeDeps();
+    const envelope: BackupEnvelopePlain = {
+      format: 'almamesh-backup',
+      formatVersion: 1,
+      app: { version: 'legacy' },
+      exportedAt: '2026-07-01T12:00:00.000Z',
+      encryption: 'none',
+      stores: {
+        'almamesh-interpretations': {
+          version: 4,
+          state: { byChart: { legacy: { status: 'complete', sections: {} } } },
+        },
+      },
+    };
+
+    await applyBackup(envelope, deps);
+
+    const restored = JSON.parse(deps.tiers.idb.map.get('almamesh-interpretations')!) as {
+      state: unknown;
+      version: number;
+    };
+    expect(migrateInterpretationPersistedState(restored.state, restored.version).byChart).toEqual({
+      legacy: { status: 'complete', sections: {} },
+    });
+  });
+
+  it('tags every restored snapshot with the committed dataset generation', async () => {
+    const deps = makeDeps();
+    const envelope: BackupEnvelopePlain = {
+      format: 'almamesh-backup',
+      formatVersion: 1,
+      app: { version: 'test' },
+      exportedAt: '2026-07-01T12:00:00.000Z',
+      encryption: 'none',
+      stores: {
+        'almamesh-profiles': { version: 1, state: { profiles: { p1: { id: 'p1' } } } },
+        'almamesh-interpretations': { version: 5, state: { byChart: { c1: {} } } },
+      },
+    };
+
+    await applyBackup(envelope, { ...deps, datasetEpoch: 8 });
+
+    expect(JSON.parse(deps.tiers.idb.map.get('almamesh-profiles')!)).toMatchObject({
+      datasetEpoch: 8,
+    });
+    expect(JSON.parse(deps.tiers.idb.map.get('almamesh-interpretations')!)).toMatchObject({
+      datasetEpoch: 8,
+    });
+  });
   function seededEnvelope(): BackupEnvelopePlain {
     const stores: BackupStores = {
       'almamesh-profiles': { version: 1, state: { activeProfileId: 'p1' } },
@@ -178,9 +231,9 @@ describe('applyBackup', () => {
       'almamesh-profiles': persisted({ activeProfileId: 'p1' }, 1),
       'almamesh-chart-library': persisted({ charts: { c1: { id: 'c1' } } }, 1),
       'almamesh-chat-history': persisted({ threads: {} }, 1),
+      'almamesh-interpretations': persisted({ readings: { c1: 'hi' } }, 2),
     });
     const localA = makeTier({
-      'almamesh-interpretations': persisted({ readings: { c1: 'hi' } }, 2),
       'almamesh-language': persisted({ language: 'pt' }, 1),
     });
     const original = new Map([...idbA.map, ...localA.map]);
@@ -207,6 +260,17 @@ describe('applyBackup', () => {
 
     expect(local.map.get(CHART_FLAG_KEY)).toBe('1');
     expect(idb.map.has(CHAT_VECTORS_KEY)).toBe(false);
+  });
+
+  it('deletes stale predictive cache on restore without making it portable', async () => {
+    const idb = makeTier({
+      [PREDICTIVE_CACHE_KEY]: persisted({ profileKey: 'before-restore' }, 2),
+    });
+
+    await applyBackup(fullSevenStoreEnvelope(), makeDeps({ idb }));
+
+    expect(idb.map.has(PREDICTIVE_CACHE_KEY)).toBe(false);
+    expect(BACKUP_STORES.some((entry) => entry.key === PREDICTIVE_CACHE_KEY)).toBe(false);
   });
 
   it('ignores unknown store keys without failing', async () => {
@@ -286,9 +350,9 @@ describe('applyBackup', () => {
       'almamesh-life-events': persisted({ byProfile: {} }, 4),
       'almamesh-rectification-records': persisted({ records: {} }, 1),
       'almamesh-chat-history': persisted({ threads: { stale: {} } }, 1),
+      'almamesh-interpretations': persisted({ readings: {} }, 2),
     });
     const local = makeTier({
-      'almamesh-interpretations': persisted({ readings: {} }, 2),
       'almamesh-language': persisted({ language: 'en' }, 1),
     });
 
@@ -369,5 +433,28 @@ describe('applyBackup', () => {
     });
     expect(idb.map.size).toBe(0);
     expect(local.map.size).toBe(0);
+  });
+});
+
+describe('applyLocalRestoreMirrors', () => {
+  it('reports a mirror failure without throwing after the authoritative IDB commit', async () => {
+    const local = makeTier();
+    local.set = async (key) => {
+      if (key === CHART_FLAG_KEY) throw new Error('localStorage quota exceeded');
+    };
+
+    await expect(
+      applyLocalRestoreMirrors(local, persisted({ language: 'es' }, 1), true),
+    ).resolves.toBe(false);
+  });
+
+  it('applies language and chart mirrors when the optional tier is healthy', async () => {
+    const local = makeTier();
+
+    await expect(
+      applyLocalRestoreMirrors(local, persisted({ language: 'pt' }, 1), true),
+    ).resolves.toBe(true);
+    expect(local.map.get('almamesh-language')).toBe(persisted({ language: 'pt' }, 1));
+    expect(local.map.get(CHART_FLAG_KEY)).toBe('1');
   });
 });

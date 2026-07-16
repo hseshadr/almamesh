@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import {
   appEvents,
   type BirthMeta,
+  type LifeEventInput,
   useLifeEventsStore,
   useProfilesStore,
 } from "@almamesh/store";
@@ -14,16 +15,6 @@ import {
 } from "@almamesh/constants";
 import { useChartEngine } from "../providers/AlmaMeshRuntimeProvider";
 import { LocationSearch, type LocationResult } from "../components/shared/LocationSearch";
-
-/**
- * A life event the user describes during onboarding. Captured locally as
- * optional context for future on-device birth-time rectification; there is no
- * backend extraction.
- */
-interface ExtractedEvent {
-  description: string;
-  date?: string;
-}
 import { Logo } from "../components/ui/Logo";
 import { Header } from "../components/features/layout/Header";
 import { BirthDatePicker } from "../components/BirthDatePicker";
@@ -32,6 +23,12 @@ import { useOnboardingStore } from "../stores/onboarding";
 import { getUserFriendlyError, getEngineWarmingMessage } from "../lib/errors";
 import { resolveReadyEngine } from "../lib/resolveReadyEngine";
 import { resetAppData } from "../lib/resetAppData";
+import { prepareOnboardingLifeEvents } from "../lib/onboardingLifeEvents";
+import {
+  isAiUsable,
+  resolveConfig,
+  toPromptLanguage,
+} from "../components/features/rectify/rectifyLlmConfig";
 
 /**
  * Sentinel marking a transient "engine still warming up" condition (the
@@ -87,7 +84,7 @@ const STEP_KEYS: OnboardingStep[] = ["name", "birth-date", "birth-location", "bi
 
 export default function OnboardingPage() {
   const navigate = useNavigate();
-  const { t } = useTranslation(["onboarding", "common"]);
+  const { t, i18n } = useTranslation(["onboarding", "common"]);
 
   // Example narratives to guide users (translated; natural per-locale phrasing).
   const examplePrompts = t("life_events.examples", { returnObjects: true }) as string[];
@@ -131,11 +128,11 @@ export default function OnboardingPage() {
   const [currentStepKey, setCurrentStepKey] = React.useState<OnboardingStep>("name");
   const [generationStep, setGenerationStep] = React.useState(0);
   const [narrative, setNarrative] = React.useState("");
-  const [extractedEvents, setExtractedEvents] = React.useState<ExtractedEvent[]>([]);
+  const [extractedEvents, setExtractedEvents] = React.useState<LifeEventInput[]>([]);
   // The captured events as a ref so the (possibly stale) generation closure
   // reached via setTimeout always persists the LATEST notes, not the empty set
   // present when the "Save & Continue" button was first clicked.
-  const capturedEventsRef = React.useRef<ExtractedEvent[]>([]);
+  const capturedEventsRef = React.useRef<LifeEventInput[]>([]);
   const [isExtracting, setIsExtracting] = React.useState(false);
   const [extractionFeedback, setExtractionFeedback] = React.useState("");
   // i18n-correctness: drive the feedback styling off a language-independent
@@ -243,9 +240,9 @@ export default function OnboardingPage() {
     }
   };
 
-  // Capture life events from the narrative. P5 local-first: there is no backend
-  // NLP extraction — the narrative is recorded locally as a single context event
-  // for future on-device rectification, and the flow proceeds.
+  // Convert prose into typed rows. Configured AI uses the same allowlisted
+  // structurer as rectification; otherwise a conservative deterministic parser
+  // stays entirely on-device. Unrecognized prose remains one manual draft.
   const handleExtractEvents = async () => {
     // If already captured, just navigate to next step
     if (extractedEvents.length > 0) {
@@ -261,7 +258,13 @@ export default function OnboardingPage() {
     setIsExtracting(true);
     setFeedback("", null);
 
-    const captured: ExtractedEvent[] = [{ description: narrative.trim() }];
+    const captured = [
+      ...(await prepareOnboardingLifeEvents(narrative, {
+        aiConfigured: isAiUsable(),
+        config: resolveConfig(),
+        language: toPromptLanguage(i18n.language),
+      })),
+    ];
     capturedEventsRef.current = captured;
     setExtractedEvents(captured);
     setFeedback(t("life_events.saved_feedback"), "success");
@@ -766,12 +769,16 @@ export default function OnboardingPage() {
                   setFeedback("", null);
                 }}
                 placeholder={t("life_events.textarea_placeholder")}
+                maxLength={5000}
                 className="w-full px-4 py-4 bg-background-tertiary border border-ui-border rounded-lg text-text-primary text-base placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-accent-gold/50 resize-none"
                 rows={5}
                 disabled={isExtracting}
                 data-testid="life-events-input"
               />
               <p className="text-text-muted text-xs mt-1">{t("life_events.char_count", { count: narrative.length })}</p>
+              <p className="mt-2 text-xs leading-relaxed text-text-muted">
+                {t("life_events.privacy_note")}
+              </p>
             </div>
 
             {/* Feedback Message */}
@@ -799,7 +806,7 @@ export default function OnboardingPage() {
 
             {/* Captured Events Display */}
             {extractedEvents.length > 0 && (
-              <div className="space-y-2">
+              <div className="space-y-2" data-testid="captured-life-events">
                 <p className="text-text-secondary text-sm">{t("life_events.saved_label")}</p>
                 <div className="flex flex-wrap gap-2">
                   {extractedEvents.map((event, index) => (

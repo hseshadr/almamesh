@@ -74,7 +74,7 @@ describe('ConversationalAccelerator', () => {
 
   // ── Gated state ─────────────────────────────────────────────────────────
 
-  describe('gated state (AI not cloud-configured)', () => {
+  describe('provider availability gate', () => {
     it('renders a manual-only note with no text input', () => {
       vi.mocked(describeLlmStatus).mockReturnValue(NONE_STATUS);
       render(
@@ -90,7 +90,7 @@ describe('ConversationalAccelerator', () => {
       expect(screen.getByTestId('chat-gated')).toBeTruthy();
     });
 
-    it('shows the gated note for a local-only endpoint too', () => {
+    it('runs the interview through a configured local-only endpoint', () => {
       vi.mocked(describeLlmStatus).mockReturnValue({
         kind: 'local',
         label: 'Local',
@@ -103,8 +103,8 @@ describe('ConversationalAccelerator', () => {
           gatherFn={makeStubGather([])}
         />,
       );
-      expect(screen.queryByRole('textbox')).toBeNull();
-      expect(screen.getByTestId('chat-gated')).toBeTruthy();
+      expect(screen.getByRole('textbox')).toBeTruthy();
+      expect(screen.queryByTestId('chat-gated')).toBeNull();
     });
 
     it('a configured cloud tier is NOT gated — the interview runs', () => {

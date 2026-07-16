@@ -250,4 +250,24 @@ describe("syncIndex offline fallback to the cached active version", () => {
 			before?.manifest_hash,
 		);
 	});
+
+	it("re-verifies a cached pointer before serving it offline", async () => {
+		const store = await primedStore();
+		const before = await store.readActive();
+		const invalidCachedSignature: Verify = () =>
+			Promise.reject(new Error("cached pointer signature rejected"));
+
+		await expect(
+			syncIndex({
+				baseUrl: "/o",
+				store,
+				fetchBytes: () => Promise.reject(new NetworkError("offline")),
+				verify: invalidCachedSignature,
+			}),
+		).rejects.toThrow("cached pointer signature rejected");
+		// A failed offline verification must not mutate or evict the cached state.
+		expect((await store.readActive())?.manifest_hash).toBe(
+			before?.manifest_hash,
+		);
+	});
 });

@@ -17,8 +17,7 @@
  */
 
 import { create, type StateCreator } from 'zustand';
-import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware';
-import { get as idbGet, set as idbSet, del as idbDel } from 'idb-keyval';
+import { createJSONStorage, persist } from 'zustand/middleware';
 import type {
   DomainsCtx,
   StrengthCtx,
@@ -32,6 +31,7 @@ import {
   toTransitCtx,
   toVargaCtx,
 } from './adapters/predictive';
+import { deletionAwareIdbStorage } from './deletionTombstones';
 
 export type PredictiveStatus = 'idle' | 'loading' | 'ready' | 'error';
 
@@ -161,31 +161,6 @@ const IDLE_PERSISTED: PersistedPredictiveState = {
 function isPlainRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
-
-/** True only where IndexedDB exists (browsers/workers), not in SSR/unit tests. */
-function hasIndexedDb(): boolean {
-  return typeof indexedDB !== 'undefined';
-}
-
-/**
- * zustand `StateStorage` backed by IndexedDB (`idb-keyval`) — the exact pattern
- * the chart library uses. Outside a browser (SSR, unit tests) IndexedDB is
- * absent, so every op is a benign no-op and the store simply runs in-memory;
- * persistence is a browser-only enhancement, not a correctness requirement.
- */
-const idbStorage: StateStorage = {
-  getItem: async (name) => (hasIndexedDb() ? ((await idbGet<string>(name)) ?? null) : null),
-  setItem: async (name, value) => {
-    if (hasIndexedDb()) {
-      await idbSet(name, value);
-    }
-  },
-  removeItem: async (name) => {
-    if (hasIndexedDb()) {
-      await idbDel(name);
-    }
-  },
-};
 
 /** Persist ONLY a completed (`ready`) result + its identity; else persist idle. */
 function partializePredictive(state: PredictiveStore): PersistedPredictiveState {
@@ -350,9 +325,23 @@ export const usePredictiveStore = create<PredictiveStore>()(
   persist<PredictiveStore, [], [], PersistedPredictiveState>(predictiveStoreCreator, {
     name: PREDICTIVE_PERSIST_NAME,
     version: PREDICTIVE_PERSIST_VERSION,
-    storage: createJSONStorage(() => idbStorage),
+    storage: createJSONStorage(() => deletionAwareIdbStorage),
     partialize: partializePredictive,
     migrate: migratePredictivePersistedState,
     merge: mergePredictivePersisted,
   }),
 );
+
+/** Resolve once the persisted predictive cache has finished IndexedDB hydration. */
+export function whenPredictiveHydrated(): Promise<void> {
+  const { persist: persistApi } = usePredictiveStore;
+  if (!persistApi?.hasHydrated || persistApi.hasHydrated()) {
+    return Promise.resolve();
+  }
+  return new Promise<void>((resolve) => {
+    const unsubscribe = persistApi.onFinishHydration(() => {
+      unsubscribe?.();
+      resolve();
+    });
+  });
+}

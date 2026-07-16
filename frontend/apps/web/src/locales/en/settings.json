@@ -135,7 +135,7 @@
     "title": "AI Model",
     "description": "AI is off by default — your chart is pure calculation. Turn it on with a free OpenRouter key for written interpretations and chat. Your key lives only in this browser, and AI is never required to draw a chart.",
     "info_title": "The chart engine never calls the network",
-    "info_description": "By default no AI is configured: your chart is pure calculation and never leaves your device. If you connect AI, only the optional narration and chat use it — and only a privacy-redacted chart (no name, no birth date) is ever sent to your chosen provider.",
+    "info_description": "By default no AI is configured: your chart is pure calculation and never leaves your device. If you connect AI, optional narration, chat, and life-event organization can use it. Chart prompts are privacy-redacted (no name or birth date); life-event text is sent as written only after its separate disclosure.",
     "step1_title": "1. Create a free API key",
     "step1_body": "OpenRouter gives you one endpoint with hundreds of models. Sign up and create a key — it takes a minute.",
     "step1_link": "Get a key at openrouter.ai/keys",
@@ -147,7 +147,7 @@
     "error_auth": "API key rejected. Check that you pasted your OpenRouter key correctly.",
     "error_model": "That model isn't available. Check the model id under Advanced.",
     "error_credits": "Your provider account is out of credits. Add credits and try again.",
-    "error_privacy": "This endpoint isn't local. Tick \"Allow a cloud endpoint\" under Advanced to send the redacted chart off-device.",
+    "error_privacy": "This endpoint isn't local. Tick \"Allow a cloud endpoint\" under Advanced before sending optional AI content off-device.",
     "error_network": "Couldn't reach the endpoint. Check the URL and your internet connection.",
     "error_unknown": "Couldn't connect. Please check your settings and try again.",
     "error_rate_limited": "The provider is rate-limiting requests. Wait a moment and try again.",
@@ -161,9 +161,9 @@
     "credits_note": "OpenRouter bills prepaid credits in US dollars, not tokens.",
     "advanced_hint": "Enter an endpoint above to enable.",
     "advanced_summary": "Advanced: use a custom OpenAI-compatible endpoint",
-    "advanced_body": "Point AlmaMesh at any OpenAI-compatible endpoint — a local model (e.g. Ollama) or another provider. Only a privacy-redacted chart is ever sent.",
+    "advanced_body": "Point AlmaMesh at any OpenAI-compatible endpoint — a local model (e.g. Ollama) or another provider. Chart prompts are privacy-redacted. Life-event text is sent as written only when you submit it after the disclosure.",
     "endpoint_label": "Endpoint (OpenAI-compatible)",
-    "allow_cloud_label": "Allow a cloud endpoint (sends the redacted chart off-device)",
+    "allow_cloud_label": "Allow a cloud endpoint for optional AI content",
     "api_key_label": "API key (stored only in this browser)",
     "privacy_warning": "Privacy mode is local-only but the endpoint is not local — the connection will be refused until you either use a local endpoint or allow a cloud endpoint above."
   },
@@ -184,7 +184,7 @@
     "none_button": "Turn AI off",
     "active_badge": "Active",
     "cloud_title": "Connect AI",
-    "cloud_body": "Add written interpretations and chat with an OpenRouter key (recommended) or any OpenAI-compatible endpoint. Only a privacy-redacted chart leaves your device."
+    "cloud_body": "Add written interpretations and chat with an OpenRouter key (recommended) or any OpenAI-compatible endpoint. Only a privacy-redacted chart prompt leaves your device. If you use AI to organize life events, the narrative you enter is sent as written after the disclosure; birth details and chart data are not attached."
   },
   "preferences": {
     "title": "Preferences",

@@ -34,6 +34,7 @@ import {
   type RectificationRuntime,
   type StoredChart,
 } from '@almamesh/store';
+import { safeWarn } from '@almamesh/shared-types';
 import type {
   ProcessedBirthData,
   RectificationEventInput,
@@ -320,7 +321,7 @@ export function useRectification(profileId: string): UseRectificationResult {
         // Best-effort: the Run click has its own recovery path, but never
         // swallow the failure silently — leave a trace for diagnosis.
         void ctx.reboot().catch((error: unknown) => {
-          console.warn('[useRectification] engine pre-warm reboot failed (Run will retry):', error);
+          safeWarn('engine.prewarm_failed', error);
         });
       } else {
         ctx.startBootstrap();

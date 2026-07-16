@@ -10,11 +10,26 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
+from typing import Annotated, Final
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, field_validator
+
+from edgeproc.bundles.containment import ensure_safe_relpath
 
 # Mirrors shared-libs' convention: opaque metadata values are scalars, never `Any`.
 Scalar = str | int | float | bool | None
+_SHA256_PATTERN: Final = re.compile(r"[0-9a-f]{64}")
+
+
+def validate_sha256_hex(value: str) -> str:
+    """Return a canonical bare SHA-256 digest or reject it at the trust boundary."""
+    if _SHA256_PATTERN.fullmatch(value) is None:
+        raise ValueError("invalid SHA-256 digest: expected 64 lowercase hexadecimal characters")
+    return value
+
+
+type Sha256Hex = Annotated[str, AfterValidator(validate_sha256_hex)]
 
 
 class ChunkRef(BaseModel):
@@ -22,7 +37,7 @@ class ChunkRef(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    hash: str
+    hash: Sha256Hex
     size: int  # uncompressed chunk length in bytes
 
 
@@ -34,8 +49,18 @@ class FileEntry(BaseModel):
     path: str
     file_type: str | None = None
     size: int  # total uncompressed file length
-    file_sha256: str  # bare hex sha256 of the whole reassembled file
+    file_sha256: Sha256Hex  # bare hex sha256 of the whole reassembled file
     chunks: list[ChunkRef]
+
+    @field_validator("path")
+    @classmethod
+    def _reject_unsafe_path(cls, value: str) -> str:
+        """Refuse traversal/absolute paths at the model boundary (fail-closed).
+
+        The path is written to disk on materialize; a compromised or malformed
+        origin must not be able to smuggle ``../`` or ``/abs`` past parsing.
+        """
+        return ensure_safe_relpath(value)
 
 
 class IndexManifest(BaseModel):
@@ -51,13 +76,54 @@ class IndexManifest(BaseModel):
 
 
 class VersionPointer(BaseModel):
-    """Signed pointer to a manifest; ``signature`` is detached over the rest."""
+    """Signed pointer to a manifest; ``signature`` is detached over the rest.
+
+    ``bundle_id``/``channel`` optionally BIND the signature to a bundle identity and
+    release channel; ``sequence`` is an optional monotonic freshness counter. All three
+    default ``None`` and are excluded from the signed preimage when unset (see
+    :func:`pointer_signing_bytes`), so an already-signed legacy pointer — which carries
+    none of them — verifies byte-for-byte and existing verification is unchanged.
+    """
 
     model_config = ConfigDict(extra="forbid")
 
-    manifest_hash: str  # hex sha256 of the manifest's canonical bytes
+    manifest_hash: Sha256Hex  # hex sha256 of the manifest's canonical bytes
     version: str
-    signature: str  # ed25519 over canonical_bytes(self, exclude={"signature"})
+    bundle_id: str | None = None  # identity binding (optional; None ⇒ legacy preimage)
+    channel: str | None = None  # release-channel binding (optional)
+    sequence: int | None = Field(default=None, ge=0)  # monotonic freshness counter (optional)
+    signature: str  # ed25519 over pointer_signing_bytes(self)
+
+
+# Identity/freshness fields added after v0. They are excluded from the signing preimage
+# whenever they are unset, so a pointer carrying none of them hashes IDENTICALLY to the
+# legacy {manifest_hash, version} bytes — every already-signed pointer still verifies.
+_POINTER_OPTIONAL_FIELDS: Final = ("bundle_id", "channel", "sequence")
+
+
+def pointer_signing_bytes(pointer: VersionPointer) -> bytes:
+    """The exact bytes signed/verified for ``pointer`` (backward-compatible).
+
+    Excludes ``signature`` plus any identity/freshness field left ``None``. A pointer that
+    binds no identity therefore produces the byte-identical legacy preimage; a field that
+    IS set is folded in, binding the signature to that bundle / channel / sequence.
+    """
+    exclude = {"signature"}
+    exclude.update(f for f in _POINTER_OPTIONAL_FIELDS if getattr(pointer, f) is None)
+    return canonical_bytes(pointer, exclude=exclude)
+
+
+def is_fresh_sequence(incoming: VersionPointer, active: VersionPointer) -> bool:
+    """Freshness predicate for a downstream anti-replay guard (monotonic ``sequence``).
+
+    True only when ``incoming.sequence`` is STRICTLY greater than ``active.sequence`` — an
+    equal or lower sequence is a stale replay (non-fresh). When either pointer carries no
+    sequence the check is undecidable and returns True, so a legacy pointer is never called
+    stale; the caller falls back to the version-based anti-rollback guard.
+    """
+    if incoming.sequence is None or active.sequence is None:
+        return True
+    return incoming.sequence > active.sequence
 
 
 def canonical_bytes(model: BaseModel, *, exclude: set[str] | None = None) -> bytes:

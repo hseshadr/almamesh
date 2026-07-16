@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { safeError } from '@almamesh/shared-types';
 import { searchCities, timezoneForCoordinates, type CityMatch } from '../../lib/geo/cityLookup';
 
 export interface LocationResult {
@@ -51,8 +52,8 @@ function toLocationResult(match: CityMatch): LocationResult {
  * Birth-location typeahead.
  *
  * Search is ONLINE-PRIMARY via the Open-Meteo geocoder (one of the two
- * owner-approved network egresses — only the typed city string leaves the
- * device), with a transparent OFFLINE FALLBACK to the bundled city list so it
+ * owner-approved network egresses — the typed city string and ordinary HTTPS
+ * request metadata leave the device), with a transparent OFFLINE FALLBACK to the bundled city list so it
  * keeps working with no network. A manual lat/long entry remains as a last
  * resort. The external contract (props + `LocationResult`) is unchanged; every
  * emitted result carries a valid IANA `timezone`, which the engine path requires.
@@ -111,7 +112,7 @@ export function LocationSearch({
                 setSelectedIndex(-1);
             } catch (error) {
                 if (signal?.aborted) return; // an aborted search is expected, not a failure
-                console.error('City lookup failed:', error);
+                safeError('geo.city_lookup_failed', error);
                 setResults([]);
             } finally {
                 if (!signal?.aborted) setIsLoading(false);

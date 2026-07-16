@@ -9,6 +9,9 @@
  *  - life events
  *  - chat history (threads + messages)
  *  - generated interpretations
+ *  - confirmed rectification records
+ *  - persisted predictive contexts
+ *  - semantic chat-memory vectors
  *  - in-memory mesh edges
  *
  * PRESERVED on purpose:
@@ -26,54 +29,127 @@
 
 import {
   CHART_LIBRARY_FLAG_KEY,
+  abortBackupRestore,
+  bumpRestoreEpoch,
+  finalizeBackupRestore,
+  commitDatasetGeneration,
+  whenChartLibraryHydrated,
+  whenChatHydrated,
+  whenLifeEventsHydrated,
+  whenPredictiveHydrated,
+  whenProfilesHydrated,
+  whenRectificationRecordsHydrated,
   useChartLibraryStore,
   useChatStore,
   useInterpretationStore,
   useLifeEventsStore,
   useMeshStore,
+  usePredictiveStore,
   useProfilesStore,
+  useRectificationRecordsStore,
 } from '@almamesh/store';
+import { clearMemory } from './chatMemory';
+import { publishDeletionNotice } from './deletionPropagation';
 
 /** The interpretation store's persist key (mirrors interpretation.ts PERSIST_NAME). */
 const INTERPRETATIONS_KEY = 'almamesh-interpretations';
+const RESET_IDB_KEYS = [
+  'almamesh-chart-library',
+  'almamesh-profiles',
+  'almamesh-life-events',
+  'almamesh-chat-history',
+  'almamesh-rectification-records',
+  'almamesh-predictive',
+  'almamesh-interpretations',
+] as const;
+
+function getUsableLocalStorage(): Pick<Storage, 'removeItem'> | null {
+  try {
+    const storage = (globalThis as { localStorage?: Partial<Storage> }).localStorage;
+    if (typeof storage?.removeItem !== 'function') {
+      return null;
+    }
+    return { removeItem: storage.removeItem };
+  } catch {
+    return null;
+  }
+}
+
+export interface ResetEverythingDeps {
+  waitForHydration: () => Promise<void>;
+  clearPersisted: (epoch?: number) => Promise<void>;
+  beginDatasetReset?: () => Promise<number>;
+  finalizeDatasetReset?: (epoch: number) => Promise<void>;
+  abortDatasetReset?: (epoch: number) => Promise<void>;
+  publishDatasetReset?: (notice: {
+    kind: 'dataset';
+    operation: 'reset';
+    phase: 'begin' | 'complete';
+  }) => void;
+}
+
+async function waitForResetStoresHydrated(): Promise<void> {
+  await Promise.all([
+    whenChartLibraryHydrated(),
+    whenProfilesHydrated(),
+    whenLifeEventsHydrated(),
+    whenChatHydrated(),
+    whenRectificationRecordsHydrated(),
+    whenPredictiveHydrated(),
+  ]);
+}
+
+const DEFAULT_DEPS: ResetEverythingDeps = {
+  waitForHydration: waitForResetStoresHydrated,
+  clearPersisted: async (epoch) => {
+    if (epoch === undefined) return;
+    await commitDatasetGeneration(
+      epoch,
+      RESET_IDB_KEYS.map((key) => ({ key, value: null })),
+      ['almamesh-chat-vectors'],
+      { memoryRebuildPending: false },
+    );
+  },
+  beginDatasetReset: bumpRestoreEpoch,
+  finalizeDatasetReset: finalizeBackupRestore,
+  abortDatasetReset: abortBackupRestore,
+  publishDatasetReset: publishDeletionNotice,
+};
 
 /**
  * Wipe the chart and everything derived from it, then resolve so the caller can
- * navigate to `/`. Persistence is rewritten/removed via each store's own clear
- * action plus `persist.clearStorage()`, so even a hard reload re-hydrates from
- * nothing. Preserves the OPFS engine bundle and the device-preference keys.
+ * navigate to `/`. Each store is cleared in memory, then its IndexedDB record is
+ * deleted through an awaited persistence seam, so even a hard reload re-hydrates
+ * from nothing. Preserves the OPFS engine bundle and the device-preference keys.
  */
-export async function resetEverything(): Promise<void> {
-  // 1) Wipe in-memory store state via each store's own clear action, so the
-  //    running app reflects the empty state immediately.
-  useChartLibraryStore.getState().clearAll();
-  useProfilesStore.getState().clearAll();
-  useLifeEventsStore.getState().clearAll();
-  useChatStore.getState().clearAll();
-  useInterpretationStore.getState().clearAll();
-  useMeshStore.getState().reset();
+export async function resetEverything(deps: ResetEverythingDeps = DEFAULT_DEPS): Promise<void> {
+  await deps.waitForHydration();
 
-  // 2) Remove the persisted blobs outright (don't rely on the async rewrite),
-  //    so a subsequent hard reload re-hydrates from nothing. Best-effort: a
-  //    blocked store must never strand the user mid-reset.
+  const epoch = await (deps.beginDatasetReset ?? bumpRestoreEpoch)();
+  const publishReset = deps.publishDatasetReset ?? publishDeletionNotice;
+  publishReset({ kind: 'dataset', operation: 'reset', phase: 'begin' });
   try {
-    await Promise.all([
-      useChartLibraryStore.persist.clearStorage(),
-      useProfilesStore.persist.clearStorage(),
-      useLifeEventsStore.persist.clearStorage(),
-      useChatStore.persist.clearStorage(),
-      useInterpretationStore.persist.clearStorage(),
-    ]);
-  } catch {
-    // Best-effort — in-memory state is already cleared and the flag is removed
-    // below, which is what the synchronous route guard actually reads.
-  }
+    // The generation fence lands before vector draining, so another live
+    // realm's in-flight embed cannot repopulate the reset dataset after clear.
+    await clearMemory();
 
-  // 3) The synchronous localStorage keys read directly (the route-guard flag and
-  //    the interpretations key) — remove them explicitly. PRESERVED on purpose:
-  //    the OPFS engine bundle, `almamesh-language`, and `almamesh-llm-settings`.
-  if (typeof localStorage !== 'undefined') {
-    localStorage.removeItem(CHART_LIBRARY_FLAG_KEY);
-    localStorage.removeItem(INTERPRETATIONS_KEY);
+    useChartLibraryStore.getState().clearAll();
+    useProfilesStore.getState().clearAll();
+    useLifeEventsStore.getState().clearAll();
+    useChatStore.getState().clearAll();
+    useInterpretationStore.getState().clearAll();
+    useRectificationRecordsStore.getState().clearAll();
+    usePredictiveStore.getState().reset();
+    useMeshStore.getState().reset();
+
+    await deps.clearPersisted(epoch);
+    const storage = getUsableLocalStorage();
+    storage?.removeItem(CHART_LIBRARY_FLAG_KEY);
+    storage?.removeItem(INTERPRETATIONS_KEY);
+    await (deps.finalizeDatasetReset ?? finalizeBackupRestore)(epoch);
+    publishReset({ kind: 'dataset', operation: 'reset', phase: 'complete' });
+  } catch (error) {
+    await (deps.abortDatasetReset ?? abortBackupRestore)(epoch);
+    throw error;
   }
 }

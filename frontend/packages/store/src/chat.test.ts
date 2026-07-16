@@ -80,9 +80,35 @@ describe('chatStore', () => {
       expect(store.getState().listThreads('p1')).toHaveLength(0);
       expect(store.getState().getMessages(threadId)).toEqual([]);
     });
+
+    it('deleteThreadsForProfile removes only the target profile history', () => {
+      const store = newStore();
+      const targetThread = store.getState().ensureThread('target');
+      store.getState().appendMessage(targetThread, 'user', 'delete me');
+      const survivorThread = store.getState().ensureThread('survivor');
+      store.getState().appendMessage(survivorThread, 'user', 'keep me');
+
+      store.getState().deleteThreadsForProfile('target');
+
+      expect(store.getState().listThreads('target')).toEqual([]);
+      expect(store.getState().getMessages(targetThread)).toEqual([]);
+      expect(store.getState().listThreads('survivor')).toHaveLength(1);
+      expect(store.getState().getMessages(survivorThread)).toHaveLength(1);
+    });
   });
 
   describe('messages', () => {
+    it('rejects a late append after its thread was deleted', () => {
+      const store = newStore();
+      const threadId = store.getState().ensureThread('p1');
+      store.getState().deleteThread(threadId);
+
+      expect(() =>
+        store.getState().appendMessage(threadId, 'assistant', 'late answer'),
+      ).toThrow(/thread.*does not exist/i);
+      expect(store.getState().messages[threadId]).toBeUndefined();
+    });
+
     it('appendMessage + getMessages round-trips in order', () => {
       const store = newStore();
       const threadId = store.getState().ensureThread('p1');

@@ -3,8 +3,9 @@
 **TL;DR:** AlmaMesh is a Vedic astrology app with **no server**. The Python
 chart engine — the same `almamesh` package you can run on your laptop — runs
 *inside the browser tab* under Pyodide (Python compiled to WebAssembly), fed by
-an ed25519-signed, content-addressed bundle cached in OPFS. The network is
-delivery-only; birth data never leaves the device.
+an ed25519-signed, content-addressed bundle cached in OPFS. The network carries
+delivery metadata and the explicitly disclosed city-search/optional-AI flows;
+birth details and computed charts are not sent by the engine or geocoder.
 
 This page is the orientation map. The deep, always-current reference is
 [CLAUDE.md](../CLAUDE.md) (tech stack, package table, data contract, quality

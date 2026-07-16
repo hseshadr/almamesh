@@ -1,5 +1,6 @@
 import { Component, ReactNode } from 'react';
 import { withTranslation, type WithTranslation } from 'react-i18next';
+import { safeError } from '@almamesh/shared-types';
 
 import { resetAppData } from '../lib/resetAppData';
 import { isChunkLoadError } from '../lib/chunkError';
@@ -23,7 +24,7 @@ interface State {
 
 /**
  * Error Boundary component that catches JavaScript errors anywhere in the child
- * component tree, logs the error, and displays a fallback UI.
+ * component tree, logs a privacy-safe diagnostic code, and displays a fallback UI.
  */
 class ErrorBoundaryBase extends Component<Props, State> {
   constructor(props: Props) {
@@ -36,13 +37,9 @@ class ErrorBoundaryBase extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    // ALWAYS log the real underlying error + componentStack so a blank
-    // "Something went wrong" fallback can never hide the cause again (a stale
-    // service worker / older-schema persisted store once white-screened
-    // returning visitors with no console trace). By design this stays on-device:
-    // AlmaMesh is local-first and zero-egress — no telemetry backend, no Sentry,
-    // nothing here leaves the browser.
-    console.error('ErrorBoundary caught an error:', error, errorInfo.componentStack);
+    // Emit a stable code only: error messages and component props can contain
+    // user data. Recovery behavior below provides the actionable signal.
+    safeError('error_boundary.caught', { error, componentStack: errorInfo.componentStack });
 
     // A failed code-split import is a deploy/update artifact, not a crash. Heal
     // it automatically ONCE per session (unregister SW + drop the stale shell +

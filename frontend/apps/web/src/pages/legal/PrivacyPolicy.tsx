@@ -39,6 +39,7 @@ export default function PrivacyPolicy() {
         <li>{t('privacy.s2_li1')}</li>
         <li>{t('privacy.s2_li3')}</li>
         <li>{t('privacy.s2_li2')}</li>
+        <li>{t('privacy.s2_li4')}</li>
       </ul>
 
       <p>

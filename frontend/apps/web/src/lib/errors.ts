@@ -5,7 +5,7 @@
  * Instead, show generic user-friendly messages with error codes that can
  * be used by support to diagnose issues.
  *
- * Actual error details are logged to console for developer debugging.
+ * Console diagnostics contain stable codes only; raw errors are never serialized.
  *
  * i18n: this is a plain (non-React) module, so user-facing strings are resolved
  * through the shared app i18n instance (the `errors` namespace) rather than
@@ -14,6 +14,7 @@
  */
 
 import { type Catalog, defineErrors, httpStatusOf, starterPack } from '@edgeproc/errors';
+import { safeError } from '@almamesh/shared-types';
 import i18n from '../i18n/config';
 
 /**
@@ -49,21 +50,21 @@ export function ERROR_CODES(code: ErrorCode): string {
 
 /**
  * Get a user-friendly error message with error code.
- * The actual error is logged to console but never shown to users.
+ * A stable diagnostic code is logged; the actual error is never serialized.
  *
  * @param code - The error code for tracking
- * @param actualError - The actual error (logged to console, never shown to user)
- * @param context - Optional context for logging
+ * @param actualError - The actual error (classified but never serialized)
+ * @param _context - Optional internal context retained for API compatibility
  * @returns User-friendly error message with error code
  */
 export function getUserFriendlyError(
   code: ErrorCode,
   actualError?: unknown,
-  context?: string
+  _context?: string
 ): string {
   // Log the actual error for developers
   if (actualError) {
-    console.error(`[${code}]${context ? ` ${context}:` : ''}`, actualError);
+    safeError('app.typed_error', actualError);
   }
 
   return i18n.t('errors:generic', { code });
@@ -352,7 +353,7 @@ export function connectionErrorDetail(err: unknown): string | undefined {
  * These are shown inline in the chat interface.
  */
 export function getChatErrorMessage(code: ErrorCode, actualError?: unknown): string {
-  console.error(`[${code}] Chat error:`, actualError);
+  safeError('chat.stream_failed', actualError);
 
   return i18n.t('errors:chat', { code });
 }
@@ -365,7 +366,7 @@ export function getChatErrorMessage(code: ErrorCode, actualError?: unknown): str
  * compute failure.
  */
 export function getEngineWarmingMessage(actualError?: unknown): string {
-  console.error(`[ENGINE_WARMING] Engine not ready:`, actualError);
+  safeError('engine.warming', actualError);
 
   return i18n.t('errors:engine_warming');
 }

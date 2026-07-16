@@ -8,9 +8,9 @@ upstream (policy below).
 | | |
 |---|---|
 | Source repo | `https://github.com/hseshadr/shared-libs-python.git` (public) |
-| Commit vendored | `0ba9ba8c945b55073474322c353d838cf7b3dbba` (tag `v0.1.3`) |
-| Vendored on | 2026-07-11 |
-| Upstream tree state | clean at that tag |
+| Commit vendored | Base `0ba9ba8c945b55073474322c353d838cf7b3dbba` (tag `v0.1.3`); `shared_libs_python/errors/` refreshed byte-for-byte from `ed1c3f6` (tag `v0.2.0`) |
+| Vendored on | 2026-07-15 |
+| Upstream tree state | clean at both recorded commits |
 | License | **MIT — Copyright (c) 2025 Harish Seshadri** (`LICENSE`; holder normalized from upstream's "Vector Management Team" — same owner) |
 
 ## Legal / attribution (resolved)
@@ -45,6 +45,9 @@ package source): `docs/`, `examples/`, `.github/`, `.claude/`, `CLAUDE.md`,
   time, so there is nothing to fix here. The known-required `extra="ignore"`
   fix lives in `edge-proc`'s `EdgeProcSettings` — see
   `../edge-proc/VENDORED.md`.
+- The bounded v0.2.0 refresh adds only the canonical-errors package required by
+  edge-proc's bundle integrity error codes. The existing vector-management
+  snapshot remains byte-identical to v0.1.3.
 
 ## Run its test suite
 

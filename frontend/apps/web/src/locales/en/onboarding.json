@@ -52,6 +52,7 @@
     "textarea_label": "Tell us about your life events:",
     "textarea_placeholder": "For example: I got married in 2015, had my first child in 2018, changed careers in 2020...",
     "char_count": "{{count}}/5000 characters",
+    "privacy_note": "Organization stays on-device unless you connected AI. If AI is connected, pressing Save sends only this narrative to your connected AI provider to create typed event rows; your birth details and chart stay on this device.",
     "min_length_error": "Please describe at least one significant life event.",
     "saved_feedback": "Thanks! Your story is saved on this device as notes to help you rectify your birth time by hand in Settings.",
     "saved_label": "Saved on this device:",

@@ -58,6 +58,7 @@ const MAXIMAL_DOWNLOAD_PATH = resolve(OUT_DIR, 'e2e-maximal-download.pdf');
 const SYNTHETIC_PROFILE_ID = 'report-pdf-maximal-profile';
 const SYNTHETIC_CHART_ID = 'report-pdf-maximal-chart';
 const SYNTHETIC_EVENT_COUNT = 18;
+const CURRENT_SKY_SENTINEL = 'Current sky browser-download sentinel';
 const TRANSIT_REFERENCE_TIME = '2026-07-11T12:00:00Z';
 const RECTIFIED_TRANSIT_ROWS = [
   { graha: 'Saturn', sign: 'Pisces', cancerHouse: 9, aquariusHouse: 2 },
@@ -385,6 +386,39 @@ async function seedSyntheticMaximalReport(page: Page): Promise<void> {
       }),
     ],
     [
+      'almamesh-interpretations',
+      JSON.stringify({
+        state: {
+          byChart: {
+            [SYNTHETIC_CHART_ID]: {
+              status: 'complete',
+              sections: { current_sky: true },
+              profileId: SYNTHETIC_PROFILE_ID,
+              updatedAt: '2026-07-11T12:00:00Z',
+              inputProvenance: { predictiveRequestKey: requestKey },
+              interpretation: {
+                summary: {
+                  layman: 'A synthetic maximal-report reading.',
+                  technical: 'A synthetic maximal-report reading.',
+                },
+                strengths: [],
+                challenges: [],
+                life_themes: [],
+                current_sky: [
+                  {
+                    title: 'Jupiter transit',
+                    layman: CURRENT_SKY_SENTINEL,
+                    technical: CURRENT_SKY_SENTINEL,
+                  },
+                ],
+              },
+            },
+          },
+        },
+        version: 5,
+      }),
+    ],
+    [
       'almamesh-rectification-records',
       JSON.stringify({
         state: { recordsByProfile: { [SYNTHETIC_PROFILE_ID]: record } },
@@ -553,12 +587,16 @@ async function driveRealOnboarding(page: Page): Promise<void> {
   await fillTimePicker(page, 'birth-time-input');
   await advanceStep(page, () => page.getByTestId('life-events-input'));
 
-  // Step 5 — life events: skip ("Skip for now" since the #44 warm-invitation
-  // reframe) -> generate the chart. The testid is copy/locale-proof — the same
-  // locator scripts/verify-real-onboarding.mjs uses.
-  const skip = page.getByTestId('skip-life-events-button');
-  await skip.waitFor({ state: 'visible', timeout: 15_000 });
-  await skip.click();
+  // Step 5 — turn a real free-form narrative into two typed rows with the
+  // deterministic, zero-egress fallback. This is the exact first-run path used
+  // when no AI provider has been configured.
+  await page
+    .getByTestId('life-events-input')
+    .fill('I got married in 2015. I changed careers in 2020.');
+  await page.getByTestId('extract-events-button').click();
+  const capturedEvents = page.getByTestId('captured-life-events');
+  await expect(capturedEvents.getByText(/got married in 2015/i)).toBeVisible({ timeout: 10_000 });
+  await expect(capturedEvents.getByText(/changed careers in 2020/i)).toBeVisible();
 
   // The generating screen now WAITS for the ~38MB engine bootstrap, then
   // navigates to /dashboard. Be patient (cold Pyodide boot + OPFS bundle sync).
@@ -1074,6 +1112,7 @@ test('synthetic maximal state -> real browser download preserves every report fa
     'accepted the maximal browser sentinel role',
     'final yoga sentinel',
     'final paginated event sentinel',
+    CURRENT_SKY_SENTINEL.toLowerCase(),
     '08:15',
     'timed to the sub-sub-period',
   ]) {

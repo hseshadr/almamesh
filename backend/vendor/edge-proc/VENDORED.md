@@ -7,9 +7,9 @@ PAT). Do not edit by hand — re-vendor from upstream (policy below).
 | | |
 |---|---|
 | Source repo | `https://github.com/hseshadr/edge-proc.git` (public) |
-| Commit vendored | `3dabffa61e8063e4781f8c9ae4bedc24656c130c` (tag `v0.1.2`) |
-| Vendored on | 2026-07-11 |
-| Upstream tree state | clean at that tag |
+| Commit vendored | Base `3dabffa61e8063e4781f8c9ae4bedc24656c130c` (tag `v0.1.2`); bundle trust-boundary, CLI, settings, and their tests refreshed byte-for-byte from `f2d1b755eee1a0ee265a5f704a9050ecdfbef800` |
+| Vendored on | 2026-07-15 |
+| Upstream tree state | clean at both recorded commits |
 | License | MIT — Copyright (c) 2026 Harish Seshadri (`LICENSE`, copied verbatim) |
 
 ## What was copied
@@ -43,6 +43,12 @@ package source): `docs/`, `examples/`, `.github/`, `.gitignore`, `.env.example`,
   `extra="forbid"` occurrences in `edgeproc/bundles/manifest.py` are plain
   pydantic `ConfigDict` on signed-manifest models — strict schema validation,
   intentional, NOT env settings.
+- The security refresh updates only `edgeproc/bundles/`, `edgeproc/cli/`,
+  `edgeproc/core/settings.py`, `edgeproc/errors.py`, and their bundle/error tests.
+  It brings signed identity/channel/sequence binding, anti-rollback promotion,
+  path containment, and fetch/decompression/sync ceilings without changing the
+  unrelated local-vector runtime. `edgeproc/errors.py` consumes the separately
+  recorded shared-libs canonical-error refresh.
 
 ## Run its test suite
 

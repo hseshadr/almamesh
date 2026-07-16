@@ -63,6 +63,7 @@ export const FINAL_PRATYANTAR_SENTINELS = ['Venus', 'May 1989'] as const;
 export const FINAL_MAHA_SENTINELS = ['Ketu', 'May 2108'] as const;
 export const FINAL_PLANET_SENTINEL = 'Ketu';
 export const FINAL_YOGA_SENTINEL = 'Dhana Yoga Final Sentinel';
+export const CURRENT_SKY_SENTINEL = 'Current sky node-render sentinel';
 
 export const LEGACY_LIFE_EVENT_BLOB =
   '## Life events used for rectification\n- 1978 - moved to Belo Horizonte\n- 1991 - moved to the USA\n- 1995 - completed higher studies, followed by several other dated events that belong in their own rows rather than being repeated as this full narrative.';
@@ -331,6 +332,13 @@ const BIRTH = {
 
 const INTERPRETATION: VedicInterpretation = {
   summary: { layman: 'A balanced chart.', technical: 'A balanced chart.' },
+  current_sky: [
+    {
+      title: 'Jupiter transit',
+      layman: CURRENT_SKY_SENTINEL,
+      technical: CURRENT_SKY_SENTINEL,
+    },
+  ],
   strengths: [{ title: 'Determination', layman: 'You push through.' }],
   challenges: [],
   life_themes: [],

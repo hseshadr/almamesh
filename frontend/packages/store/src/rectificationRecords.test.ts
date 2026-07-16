@@ -272,4 +272,13 @@ describe('rectificationRecordsStore', () => {
     // clearing an unknown profile is a harmless no-op
     expect(() => store.getState().clearRecord('ghost')).not.toThrow();
   });
+
+  it('clearAll removes every profile record', () => {
+    store.getState().setRecord(sampleRecord({ profileId: 'p1' }));
+    store.getState().setRecord(sampleRecord({ profileId: 'p2' }));
+
+    store.getState().clearAll();
+
+    expect(store.getState().recordsByProfile).toEqual({});
+  });
 });

@@ -18,6 +18,7 @@
  */
 
 import { isChunkLoadError } from './chunkError';
+import { safeWarn } from '@almamesh/shared-types';
 
 /** One heal attempt per tab session, so a persistent fault can never loop-reload. */
 const HEAL_KEY = 'almamesh:sw-precache-heal';
@@ -101,7 +102,7 @@ export async function healStrandedServiceWorker(): Promise<void> {
     // Best-effort: a heal that itself fails must never crash the boot path.
     // Surface it on-device (this app is zero-egress — no telemetry backend), so
     // a regressed heal is visible in the console instead of silently swallowed.
-    console.warn('healStrandedServiceWorker: heal attempt failed', err);
+    safeWarn('sw.heal_failed', err);
   }
 }
 
@@ -119,7 +120,7 @@ export async function reloadForUpdate(): Promise<void> {
   } catch (err) {
     // Best-effort — reload regardless so the user is never stuck. Surface the
     // failure on-device (zero-egress app, no telemetry) rather than swallow it.
-    console.warn('reloadForUpdate: shell cleanup failed; reloading anyway', err);
+    safeWarn('sw.shell_cleanup_failed', err);
   } finally {
     window.location.reload();
   }

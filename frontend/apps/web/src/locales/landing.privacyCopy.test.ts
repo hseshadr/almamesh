@@ -8,6 +8,9 @@ import ptMesh from './pt/mesh.json';
 import enLegal from './en/legal.json';
 import esLegal from './es/legal.json';
 import ptLegal from './pt/legal.json';
+import enSettings from './en/settings.json';
+import esSettings from './es/settings.json';
+import ptSettings from './pt/settings.json';
 
 /**
  * Privacy-honesty invariant: the landing hero + footer must NOT claim an
@@ -142,6 +145,52 @@ describe('engine-surface privacy copy is scoped to birth data (anti-overclaim)',
     it(`[${lang}] legal.privacy.s5_p1 uses the scoped "birth data" phrasing`, () => {
       expect(legalRights).toContain(surface.scoped);
       expect(legalRights).not.toContain(surface.bannedLegalAbsolute);
+    });
+  }
+});
+
+type SettingsCopy = { tiers: { cloud_body: string } };
+
+const AI_SETTINGS_DISCLOSURE: Record<string, { body: string; narrative: string; birth: string }> = {
+  en: {
+    body: (enSettings as SettingsCopy).tiers.cloud_body,
+    narrative: 'narrative',
+    birth: 'birth details',
+  },
+  es: {
+    body: (esSettings as SettingsCopy).tiers.cloud_body,
+    narrative: 'relato',
+    birth: 'datos de nacimiento',
+  },
+  pt: {
+    body: (ptSettings as SettingsCopy).tiers.cloud_body,
+    narrative: 'narrativa',
+    birth: 'dados de nascimento',
+  },
+};
+
+describe('AI settings disclose free-form life-event egress', () => {
+  for (const [lang, disclosure] of Object.entries(AI_SETTINGS_DISCLOSURE)) {
+    it(`[${lang}] distinguishes narrative text from redacted chart prompts`, () => {
+      const body = disclosure.body.toLowerCase();
+      expect(body).toContain(disclosure.narrative);
+      expect(body).toContain(disclosure.birth);
+    });
+  }
+});
+
+type FeedbackLegalCopy = {
+  privacy: { s2_li4: string };
+  data_deletion: { retention_li1: string };
+};
+
+describe('legal copy discloses feedback storage separately from browser data', () => {
+  for (const [lang, legal] of Object.entries({ en: enLegal, es: esLegal, pt: ptLegal })) {
+    it(`[${lang}] names Turnstile and D1 retention`, () => {
+      const copy = legal as FeedbackLegalCopy;
+      expect(copy.privacy.s2_li4).toContain('Turnstile');
+      expect(copy.privacy.s2_li4).toContain('D1');
+      expect(copy.data_deletion.retention_li1).toContain('D1');
     });
   }
 });

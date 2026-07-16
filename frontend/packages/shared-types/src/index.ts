@@ -13,6 +13,8 @@ import type { PlanetName } from './energy';
 // Imported locally for the mesh-edge contract below; re-exported via `export *`.
 import type { MemberRelationship } from './mesh';
 
+export * from './safeDiagnostics';
+
 // Animation types for 3D Dasha visualization
 export type {
   GrahaName,

@@ -53,11 +53,18 @@ export interface RuntimeConfig {
 	readonly bundleBaseUrl: string;
 	/** Same-origin URL of the pinned ed25519 public key (NOT the bundle origin). */
 	readonly pubkeyUrl: string;
+	readonly expectedBundleId: string;
+	readonly expectedChannel: string;
 }
 
 /** The sync-Worker surface bootstrap needs: pull the bundle, read its files. */
 export interface EnginePort {
-	sync(baseUrl: string, pubkeyUrl: string): Promise<SyncResult>;
+	sync(
+		baseUrl: string,
+		pubkeyUrl: string,
+		expectedBundleId: string,
+		expectedChannel: string,
+	): Promise<SyncResult>;
 	readFile(path: string): Promise<Uint8Array>;
 }
 
@@ -152,8 +159,13 @@ export function configFromEnv(): RuntimeConfig {
 	// ROOT-absolute on purpose: resolving against document.baseURI broke deep
 	// links — a hard load of a nested route requested /<route>/public.key, the
 	// SPA fallback answered with index.html, and verification failed closed.
-	const pubkeyUrl = new URL("/public.key", globalThis.location.origin).toString();
-	return { bundleBaseUrl, pubkeyUrl };
+	const pubkeyUrl = new URL(
+		"/public.key",
+		globalThis.location.origin,
+	).toString();
+	const expectedBundleId = import.meta.env.VITE_BUNDLE_ID;
+	const expectedChannel = import.meta.env.VITE_BUNDLE_CHANNEL ?? "stable";
+	return { bundleBaseUrl, pubkeyUrl, expectedBundleId, expectedChannel };
 }
 
 /**
@@ -195,6 +207,8 @@ export class EngineRuntime {
 		const result = await engineClient.sync(
 			config.bundleBaseUrl,
 			config.pubkeyUrl,
+			config.expectedBundleId,
+			config.expectedChannel,
 		);
 		onStage({ kind: "synced", result });
 

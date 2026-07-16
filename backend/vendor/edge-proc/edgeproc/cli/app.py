@@ -11,6 +11,7 @@ from __future__ import annotations
 import asyncio
 import importlib
 import json
+import os
 from pathlib import Path
 from typing import TYPE_CHECKING, Annotated, NoReturn
 
@@ -25,8 +26,13 @@ from edgeproc.core.registry import RuntimeRegistry
 if TYPE_CHECKING:
     from edgeproc.bundles.adapters import FetchAdapter
     from edgeproc.bundles.cas import CacheStore
-    from edgeproc.bundles.manifest import VersionPointer
-    from edgeproc.bundles.signing import Ed25519Signer, Signer, Verifier
+    from edgeproc.bundles.manifest import IndexManifest, VersionPointer
+    from edgeproc.bundles.signing import (
+        Ed25519Signer,
+        Ed25519Verifier,
+        Signer,
+        Verifier,
+    )
     from edgeproc.bundles.sync import SyncResult
     from edgeproc.core.protocols import Runtime
     from edgeproc.localvec.encoder import Encoder
@@ -79,14 +85,21 @@ def sync(
         Path | None,
         typer.Option(help="Also reassemble every file from the synced cache into this dir."),
     ] = None,
+    expected_bundle_id: Annotated[
+        str | None, typer.Option(help="Pin the pointer's bound bundle_id (else accept any).")
+    ] = None,
+    expected_channel: Annotated[
+        str | None, typer.Option(help="Pin the pointer's bound release channel (else accept any).")
+    ] = None,
     pretty: Annotated[bool, typer.Option(help="Print a human summary instead of JSON.")] = False,
 ) -> None:
     """Pull a signed pointer, diff + fetch only missing chunks, verify, atomically swap.
 
     Refuses to sync without a pinned trust root (``--key`` or the env var): an
-    unverifiable sync is rejected fail-closed. ``--materialize-to`` reassembles the
-    synced files (fail-closed on a reassembly mismatch) so a follow-on ``route`` can
-    read them by path. Exit 0 on success, 1 otherwise.
+    unverifiable sync is rejected fail-closed. ``--expected-bundle-id``/``--expected-channel``
+    pin the pointer's bound identity, refusing a cross-bundle replay. ``--materialize-to``
+    reassembles the synced files (fail-closed on a reassembly mismatch) so a follow-on
+    ``route`` can read them by path. Exit 0 on success, 1 otherwise.
     """
     try:
         # Imported lazily so the core install stays light: these belong to the optional
@@ -96,10 +109,18 @@ def sync(
         from edgeproc.bundles.signing import Ed25519Verifier  # noqa: PLC0415
     except ImportError:  # pragma: no cover - exercised only without the [bundles] extra
         _fail("install edge-proc[bundles] to use sync")
-    verifier = Ed25519Verifier.from_public_bytes(_resolve_trust_key(key).read_bytes())
+    verifier = _load_verifier(key, Ed25519Verifier)
     store = FilesystemCacheStore(cache_dir)
     adapter = HttpAdapter() if http else FilesystemAdapter()
-    result = _run_sync(base_url, store, adapter, verifier, close=http)
+    result = _run_sync(
+        base_url,
+        store,
+        adapter,
+        verifier,
+        close=http,
+        expected_bundle_id=expected_bundle_id,
+        expected_channel=expected_channel,
+    )
     if materialize_to is not None:
         _materialize_active(store, materialize_to)
     typer.echo(_render_sync(result, pretty=pretty))
@@ -112,13 +133,23 @@ def publish(
     key: Annotated[Path, typer.Option(help="Ed25519 raw private key to sign the pointer with.")],
     bundle_id: Annotated[str, typer.Option(help="Bundle identifier recorded in the manifest.")],
     version: Annotated[str, typer.Option(help="Bundle version recorded in the pointer.")],
+    channel: Annotated[
+        str | None, typer.Option(help="Release channel to BIND into the signed pointer.")
+    ] = None,
+    sequence: Annotated[
+        int | None, typer.Option(help="Monotonic freshness counter to bind into the pointer.")
+    ] = None,
+    bind_identity: Annotated[
+        bool, typer.Option(help="Bind bundle_id into the signed pointer (opt-in identity pin).")
+    ] = False,
     pretty: Annotated[bool, typer.Option(help="Print a human summary instead of JSON.")] = False,
 ) -> None:
     """Chunk + sign every file under ``--src`` into a content-addressed origin dir.
 
     The counterpart to ``sync``: produces the ``/latest`` + ``/manifest`` + ``/chunk``
-    an ``edgeproc sync`` consumes. A missing/invalid key or src fails closed (exit 1,
-    no traceback); exit 0 on success.
+    an ``edgeproc sync`` consumes. ``--bind-identity``/``--channel``/``--sequence`` are
+    opt-in: without them the signed pointer is byte-identical to the legacy format. A
+    missing/invalid key or src fails closed (exit 1, no traceback); exit 0 on success.
     """
     try:
         # Lazy: the bundles substrate is an optional extra, not a core dependency.
@@ -136,6 +167,9 @@ def publish(
         signer=signer,
         bundle_id=bundle_id,
         version=version,
+        channel=channel,
+        sequence=sequence,
+        bind_identity=bind_identity,
     )
     typer.echo(_render_pointer(pointer, pretty=pretty))
 
@@ -147,11 +181,45 @@ def keygen(
     """Write a raw ed25519 keypair (``private.key`` + ``public.key``) into ``--out``."""
     from edgeproc.bundles.signing import generate_keypair  # noqa: PLC0415
 
-    out.mkdir(parents=True, exist_ok=True)
     private, public = generate_keypair()
-    (out / "private.key").write_bytes(private.private_bytes_raw())
-    (out / "public.key").write_bytes(public.public_bytes_raw())
+    try:
+        _prepare_key_directory(out)
+        _write_secret(out / "private.key", private.private_bytes_raw())
+        _write_no_follow(out / "public.key", public.public_bytes_raw(), 0o644)
+    except OSError as exc:  # e.g. a pre-planted symlink at a key path (O_NOFOLLOW → ELOOP)
+        _fail(f"could not write key files under {out}: {exc}")
     typer.echo(f"wrote {out / 'private.key'} and {out / 'public.key'}")
+
+
+def _prepare_key_directory(path: Path) -> None:
+    """Create or tighten a key output directory to owner-only mode ``0700``."""
+    if path.is_symlink():
+        raise OSError("refusing symlinked key output directory")
+    path.mkdir(mode=0o700, parents=True, exist_ok=True)
+    path.chmod(0o700)
+
+
+def _write_secret(path: Path, data: bytes) -> None:
+    """Write a secret file readable/writable by its owner ONLY (mode ``0600``).
+
+    A signing key must never be world-readable: the file is created 0600 up front and
+    ``os.chmod`` re-asserts 0600 even if it pre-existed or an umask loosened it.
+    """
+    _write_no_follow(path, data, 0o600)
+    os.chmod(path, 0o600)
+
+
+def _write_no_follow(path: Path, data: bytes, mode: int) -> None:
+    """Create+write ``path`` refusing to follow a symlink at the final component.
+
+    ``O_NOFOLLOW`` makes ``os.open`` fail (ELOOP) when ``path`` is a symlink, so an
+    attacker-planted symlink at a key path cannot redirect the write onto a victim file.
+    Portable: on a platform lacking the flag ``getattr`` yields 0 (a no-op bit).
+    """
+    flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC | getattr(os, "O_NOFOLLOW", 0)
+    fd = os.open(path, flags, mode)
+    with os.fdopen(fd, "wb") as handle:
+        handle.write(data)
 
 
 @app.command()
@@ -254,6 +322,25 @@ def _resolve_trust_key(key: Path | None) -> Path:
     return resolved
 
 
+def _load_verifier(key: Path | None, verifier_cls: type[Ed25519Verifier]) -> Verifier:
+    """Load the pinned ed25519 trust-root pubkey into a ``Verifier``; fail closed if it can't.
+
+    Mirrors ``_load_signer``: a missing/unreadable key FILE (OSError) and a present-but-malformed
+    key (ValueError from ``from_public_bytes`` — wrong length / bad bytes) each fail closed with a
+    distinct, actionable message rather than leaking a traceback. No trust root AT ALL is already
+    refused upstream by ``_resolve_trust_key``, so the sync still never runs unverified.
+    """
+    path = _resolve_trust_key(key)
+    try:
+        raw = path.read_bytes()
+    except OSError as exc:
+        _fail(f"could not read trust-root key {path}: {exc}")
+    try:
+        return verifier_cls.from_public_bytes(raw)
+    except ValueError as exc:
+        _fail(f"malformed trust-root key {path}: {exc}")
+
+
 def _run_sync(
     base_url: str,
     store: CacheStore,
@@ -261,6 +348,8 @@ def _run_sync(
     verifier: Verifier,
     *,
     close: bool,
+    expected_bundle_id: str | None = None,
+    expected_channel: str | None = None,
 ) -> SyncResult:
     """Run ``sync_index``; map signature/integrity/fetch failures to exit 1, no traceback."""
     import httpx  # noqa: PLC0415
@@ -270,7 +359,14 @@ def _run_sync(
     from edgeproc.bundles.sync import sync_index  # noqa: PLC0415
 
     try:
-        return sync_index(base_url=base_url, store=store, adapter=adapter, verifier=verifier)
+        return sync_index(
+            base_url=base_url,
+            store=store,
+            adapter=adapter,
+            verifier=verifier,
+            expected_bundle_id=expected_bundle_id,
+            expected_channel=expected_channel,
+        )
     except (SignatureError, IntegrityError, httpx.HTTPError, OSError) as exc:
         _fail(f"sync failed: {exc}")
     finally:
@@ -283,7 +379,6 @@ def _run_sync(
 def _materialize_active(store: CacheStore, out: Path) -> None:
     """Reassemble every file in the active manifest into ``out/`` (fail-closed)."""
     from edgeproc.bundles.manifest import IndexManifest  # noqa: PLC0415
-    from edgeproc.bundles.sync import materialize_file  # noqa: PLC0415
 
     pointer = store.read_active()
     if pointer is None:  # pragma: no cover
@@ -291,8 +386,20 @@ def _materialize_active(store: CacheStore, out: Path) -> None:
         # materialize, so a None here means that invariant broke — fail closed, never None-deref.
         _fail("no active pointer to materialize")
     manifest = IndexManifest.model_validate_json(store.get_manifest(pointer.manifest_hash))
+    _materialize_files(store, manifest, out)
+
+
+def _materialize_files(store: CacheStore, manifest: IndexManifest, out: Path) -> None:
+    """Write each manifest file under ``out``, refusing any path that escapes it.
+
+    ``resolve_within`` runs BEFORE any write, so a traversal/absolute path can never
+    land bytes outside ``out`` — defense-in-depth behind the model-level path check.
+    """
+    from edgeproc.bundles.containment import resolve_within  # noqa: PLC0415
+    from edgeproc.bundles.sync import materialize_file  # noqa: PLC0415
+
     for entry in manifest.files:
-        target = out / entry.path
+        target = resolve_within(out, entry.path)
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(materialize_file(store, manifest, entry.path))
 

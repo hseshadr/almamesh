@@ -13,9 +13,8 @@
  */
 
 import { create, type StateCreator } from 'zustand';
-import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware';
+import { createJSONStorage, persist } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
-import { get as idbGet, set as idbSet, del as idbDel } from 'idb-keyval';
 import {
   MEMBER_RELATIONSHIPS,
   type MemberRelationship,
@@ -29,6 +28,7 @@ import {
   whenChartLibraryHydrated,
 } from './chartLibrary';
 import { assignOrphanChatThreads, whenChatHydrated } from './chat';
+import { deletionAwareIdbStorage } from './deletionTombstones';
 
 /** A named person on this device. No credentials — local-first by design. */
 export interface Profile {
@@ -127,25 +127,6 @@ function nextProfileId(): string {
   idFallbackCounter += 1;
   return `profile-${Date.now()}-${idFallbackCounter}`;
 }
-
-function hasIndexedDb(): boolean {
-  return typeof indexedDB !== 'undefined';
-}
-
-/** IndexedDB-backed zustand storage; benign no-op outside browsers (SSR/tests). */
-const idbStorage: StateStorage = {
-  getItem: async (name) => (hasIndexedDb() ? ((await idbGet<string>(name)) ?? null) : null),
-  setItem: async (name, value) => {
-    if (hasIndexedDb()) {
-      await idbSet(name, value);
-    }
-  },
-  removeItem: async (name) => {
-    if (hasIndexedDb()) {
-      await idbDel(name);
-    }
-  },
-};
 
 /** Typed outcome of `setAnchor` — a second self is rejected, never silent. */
 export type SetAnchorResult =
@@ -416,7 +397,7 @@ export const useProfilesStore = create<ProfilesStore>()(
     name: PERSIST_NAME,
     version: PROFILES_PERSIST_VERSION,
     migrate: migrateProfilesPersistedState,
-    storage: createJSONStorage(() => idbStorage),
+    storage: createJSONStorage(() => deletionAwareIdbStorage),
     partialize: (state) => ({
       profiles: state.profiles,
       activeProfileId: state.activeProfileId,

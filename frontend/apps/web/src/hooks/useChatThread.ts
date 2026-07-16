@@ -18,6 +18,7 @@
 
 import { useCallback, useState } from 'react';
 import { useChatStore } from '@almamesh/store';
+import { safeError } from '@almamesh/shared-types';
 import type { ChatMessage } from '@almamesh/shared-types';
 import type { ChatTurn, LlmRequestError } from '@almamesh/llm';
 
@@ -181,7 +182,7 @@ export function useChatThread(
           content: finalAnswer,
         });
       } catch (error) {
-        console.error('[useChatThread] stream failed:', error);
+        safeError('chat.stream_failed', error);
         // Flagged as an error turn: rendered as an error bubble, excluded from
         // the model-visible history (see `toHistory`), never indexed for RAG.
         store.appendMessage(tid, 'assistant', describeChatStreamError(error), { error: true });

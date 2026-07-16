@@ -32,7 +32,17 @@ function fakeMemory(): { memory: ChatMemoryFacade; index: ReturnType<typeof vi.f
   const retrieve = vi.fn().mockResolvedValue([
     { text: 'earlier: your Mars is in Scorpio', message_id: 'm0', thread_id: 't0', score: 0.8 },
   ]);
-  return { memory: { indexMessage: index, retrieve }, index, retrieve };
+  return {
+    memory: {
+      indexMessage: index,
+      retrieve,
+      deleteForProfile: vi.fn().mockResolvedValue(undefined),
+      deleteForThread: vi.fn().mockResolvedValue(undefined),
+      clear: vi.fn().mockResolvedValue(undefined),
+    },
+    index,
+    retrieve,
+  };
 }
 
 /** A stream function that yields a fixed answer token-by-token via onToken. */

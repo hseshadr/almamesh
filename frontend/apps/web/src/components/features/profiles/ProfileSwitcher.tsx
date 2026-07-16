@@ -9,6 +9,7 @@ import {
 } from '@almamesh/store';
 import { Button, Dialog, Input } from '../../ui';
 import { AvatarChip } from './AvatarChip';
+import { deleteProfileData } from '../../../lib/profileDataLifecycle';
 
 /**
  * ProfileSwitcher — the header control for named, password-less people sharing
@@ -17,9 +18,9 @@ import { AvatarChip } from './AvatarChip';
  * the chart view (invalidates the `primary-chart` query) and routes to the
  * dashboard or onboarding depending on whether the new person has a chart.
  *
- * Local-first: no account, no login. All state lives in `@almamesh/store`
- * (IndexedDB). Per-profile chat history is intentionally out of scope for now —
- * chat is ephemeral today.
+ * Local-first: no account, no login. Profile deletion goes through the lifecycle
+ * coordinator so charts, chat, events, rectification, readings, predictive data,
+ * mesh edges, and semantic-memory vectors disappear together.
  */
 export function ProfileSwitcher() {
   const navigate = useNavigate();
@@ -33,7 +34,6 @@ export function ProfileSwitcher() {
   const activeProfileId = useProfilesStore((s) => s.activeProfileId);
   const createProfile = useProfilesStore((s) => s.createProfile);
   const renameProfile = useProfilesStore((s) => s.renameProfile);
-  const deleteProfile = useProfilesStore((s) => s.deleteProfile);
   const setActiveProfile = useProfilesStore((s) => s.setActiveProfile);
 
   const profiles = useMemo(
@@ -49,6 +49,8 @@ export function ProfileSwitcher() {
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   /** Refresh the chart view + route to the right place for `profileId`. */
   const refreshForProfile = (profileId: string | null) => {
@@ -87,12 +89,19 @@ export function ProfileSwitcher() {
     setRenameValue('');
   };
 
-  const handleDelete = (id: string) => {
-    // The store cascades chart deletion and refuses the last profile (throws).
-    deleteProfile(id);
-    setConfirmDeleteId(null);
-    const nextActive = useProfilesStore.getState().activeProfileId;
-    refreshForProfile(nextActive);
+  const handleDelete = async (id: string) => {
+    setDeletingId(id);
+    setDeleteError(null);
+    try {
+      await deleteProfileData(id);
+      setConfirmDeleteId(null);
+      const nextActive = useProfilesStore.getState().activeProfileId;
+      refreshForProfile(nextActive);
+    } catch (error) {
+      setDeleteError(error instanceof Error ? error.message : t('profiles.delete_error'));
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   return (
@@ -177,7 +186,8 @@ export function ProfileSwitcher() {
                           size="sm"
                           variant="ghost"
                           className="text-status-error"
-                          onClick={() => handleDelete(p.id)}
+                          disabled={deletingId === p.id}
+                          onClick={() => void handleDelete(p.id)}
                         >
                           {t('profiles.delete')}
                         </Button>
@@ -225,6 +235,8 @@ export function ProfileSwitcher() {
               </li>
             )}
           </ul>
+
+          {deleteError && <p className="font-sans text-sm text-status-error">{deleteError}</p>}
 
           <div className="flex items-end gap-2 border-t border-ui-border pt-4">
             <label className="flex-1">

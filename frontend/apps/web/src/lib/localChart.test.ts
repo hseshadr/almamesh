@@ -2,10 +2,20 @@ import { describe, it, expect, afterEach, vi } from 'vitest';
 
 import { hasLocalChart, LOCAL_CHART_KEY } from './localChart';
 
+function installTestStorage(): void {
+  const values = new Map<string, string>();
+  vi.stubGlobal('localStorage', {
+    getItem: (key: string) => values.get(key) ?? null,
+    setItem: (key: string, value: string) => values.set(key, value),
+    removeItem: (key: string) => values.delete(key),
+    clear: () => values.clear(),
+  } satisfies Pick<Storage, 'getItem' | 'setItem' | 'removeItem' | 'clear'>);
+}
+
 describe('hasLocalChart', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
-    localStorage.removeItem(LOCAL_CHART_KEY);
+    installTestStorage();
   });
 
   it('is true when the chart-library flag is set', () => {
@@ -20,6 +30,11 @@ describe('hasLocalChart', () => {
 
   it('is false (not a crash) when localStorage is missing entirely — Node prerender', () => {
     vi.stubGlobal('localStorage', undefined);
+    expect(hasLocalChart()).toBe(false);
+  });
+
+  it('is false (not a crash) when an SSR host exposes a partial storage shell', () => {
+    vi.stubGlobal('localStorage', {});
     expect(hasLocalChart()).toBe(false);
   });
 

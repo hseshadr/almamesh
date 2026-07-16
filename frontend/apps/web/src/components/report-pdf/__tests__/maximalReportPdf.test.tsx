@@ -10,6 +10,7 @@ import type { ReportPdfAntarTable, ReportPdfData } from '../types';
 import {
   ALL_VARGA_IDS,
   buildMaximalReportPdfData,
+  CURRENT_SKY_SENTINEL,
   FINAL_MAHA_SENTINELS,
   FINAL_PLANET_SENTINEL,
   FINAL_PRATYANTAR_SENTINELS,
@@ -156,6 +157,7 @@ describe('maximal report PDF acceptance', () => {
     ).not.toHaveLength(0);
     expect(linesContainingAll(pdf, FINAL_MAHA_SENTINELS)).not.toHaveLength(0);
     expect(foldedText).toContain(FINAL_YOGA_SENTINEL.toLocaleUpperCase('en'));
+    expect(foldedText).toContain(CURRENT_SKY_SENTINEL.toLocaleUpperCase('en'));
     for (const table of data.dasha.antarTables) {
       const finalPeriod = table.periods.at(-1);
       expect(foldedText, `missing antar table heading ${table.heading}`).toContain(

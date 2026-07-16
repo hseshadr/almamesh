@@ -39,14 +39,12 @@ export default defineConfig({
 				"src/engine/fetchBytes.ts",
 				"src/engine/runtime.ts",
 			],
-			// Measured core-logic coverage: lines 97.3 / statements 97.3 /
-			// functions 97.5 / branches 88.4. lines/statements/functions hold the
-			// 90% project standard; branches sits at a realistic 85 floor.
+			// Every core-logic dimension meets the same 90% confidence floor.
 			thresholds: {
 				lines: 90,
 				statements: 90,
 				functions: 90,
-				branches: 85,
+				branches: 90,
 			},
 		},
 	},

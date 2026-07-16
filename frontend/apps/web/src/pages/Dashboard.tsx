@@ -30,6 +30,7 @@ import {
   useProfilesStore,
   useRectificationRecordsStore,
 } from "@almamesh/store";
+import { safeError } from "@almamesh/shared-types";
 
 import { Card, Spinner } from "../components/ui";
 import { ContentModeToggle } from "../components/ui/ContentModeToggle";
@@ -127,7 +128,7 @@ export default function DashboardPage() {
       }
       setIsLoading(false);
     } else if (queryError) {
-      console.error('[Dashboard] Chart fetch failed:', queryError);
+      safeError('dashboard.chart_fetch_failed', queryError);
       setIsLoading(false);
     } else if (queryData) {
       // Resolved but success:false — a genuinely chart-less device (the
@@ -341,7 +342,7 @@ export default function DashboardPage() {
     try {
       await streamInterpretation(chartId, { view_mode: sepViewMode });
     } catch (err) {
-      console.error('[Dashboard] Error generating interpretation:', err);
+      safeError('dashboard.interpretation_failed', err);
     }
   }, [cancelStreaming, chartId, streamInterpretation, viewMode]);
 

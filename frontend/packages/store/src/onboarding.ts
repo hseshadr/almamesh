@@ -8,6 +8,7 @@
 
 import { create, StateCreator } from 'zustand';
 import type { TimeConfidence } from '@almamesh/constants';
+import { safeError } from '@almamesh/shared-types';
 
 /**
  * Format a Date as YYYY-MM-DD in LOCAL timezone (not UTC)
@@ -146,7 +147,7 @@ export const onboardingStoreCreator: StateCreator<OnboardingStore> = (set, get) 
       set({ currentStep: currentStep + 1, error: null });
       // Fire and forget save - don't block navigation
       saveProgress().catch((err) => {
-        console.error('Failed to save onboarding progress:', err);
+        safeError('onboarding.progress_save_failed', err);
       });
     }
   },
@@ -225,7 +226,7 @@ export const onboardingStoreCreator: StateCreator<OnboardingStore> = (set, get) 
       await _saveCallback(data, currentStep);
       set({ lastSavedStep: currentStep, isSaving: false });
     } catch (error) {
-      console.error('Onboarding save failed:', error);
+      safeError('onboarding.save_failed', error);
       set({ isSaving: false });
       // Don't throw - save failures shouldn't block onboarding
     }

@@ -2,6 +2,8 @@
  * SSE Parsing and Streaming Utilities
  */
 
+import { safeWarn } from '@almamesh/shared-types';
+
 /** Token event data */
 export interface SSETokenData {
   t: string;
@@ -76,7 +78,7 @@ export async function* parseSSEStream(response: Response): AsyncGenerator<SSEEve
           const data = JSON.parse(dataStr);
           yield { event: eventType, data };
         } catch (e) {
-          console.warn('Failed to parse SSE data:', dataStr, e);
+          safeWarn('stream.invalid_event', e);
         }
       }
     }

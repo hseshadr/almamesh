@@ -87,6 +87,16 @@ describe('chartLibraryStore', () => {
     expect(flags.has('almamesh-chart')).toBe(false);
   });
 
+  it('ignores a partial SSR localStorage global instead of throwing during render cleanup', () => {
+    (globalThis as { localStorage?: Storage }).localStorage = {
+      getItem: () => null,
+    } as Storage;
+    const store = newStore();
+
+    expect(() => store.getState().saveChart(makeChart('ssr', true))).not.toThrow();
+    expect(() => store.getState().deleteChart('ssr')).not.toThrow();
+  });
+
   it('keeps exactly one primary chart', () => {
     const store = newStore();
     store.getState().saveChart(makeChart('a', true));
