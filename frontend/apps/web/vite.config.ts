@@ -6,6 +6,7 @@ import path from 'path'
 import { writeFileSync, readFileSync } from 'fs'
 import { createHash } from 'crypto'
 import { PUBLIC_ROUTE_PATHS, prerenderOutputFile } from './src/seo/routeHead'
+import { createBuildIdentity } from './src/lib/buildIdentity'
 
 // App version injected into the bundle (see `define` below) so client code can
 // report which release it is — e.g. submitFeedback's `X-App-Version` header.
@@ -31,7 +32,8 @@ quietLogger.warn = (msg, options) => {
   baseWarn(msg, options)
 }
 
-// Plugin to generate version.json for cache invalidation. Writes into the
+// Plugin to generate version.json for cache invalidation and build.json for
+// exact production provenance. Writes into the
 // RESOLVED build outDir (not a hardcoded `dist/`), so a non-default --outDir
 // (e.g. the exit-gate's dist-verify) works on a fresh checkout.
 function versionPlugin(): Plugin {
@@ -47,15 +49,15 @@ function versionPlugin(): Plugin {
         .digest('hex')
         .slice(0, 12)
 
-      const versionData = {
-        version,
-        buildTime: new Date().toISOString(),
-      }
+      const buildTime = new Date().toISOString()
+      const identity = createBuildIdentity(process.env.BUILD_COMMIT, version, buildTime)
+      const versionData = { version, buildTime, commit: identity.commit }
 
       writeFileSync(
         path.resolve(__dirname, outDir, 'version.json'),
         JSON.stringify(versionData)
       )
+      writeFileSync(path.resolve(__dirname, outDir, 'build.json'), JSON.stringify(identity))
       console.log(`✅ Generated version.json: ${version}`)
     },
   }

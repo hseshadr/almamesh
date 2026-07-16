@@ -18,7 +18,8 @@
 # --- Default: safe headers + revalidation + no edge body transforms. ----------
 # Everything not overridden below rides this: index.html, the SPA-fallback HTML
 # for client routes (/dashboard, /predictive, /mesh, …), sw.js, the
-# manifest.webmanifest, version.json, public.key, /bundle/latest, icons.
+# manifest.webmanifest, version.json, build.json, public.key, /bundle/latest,
+# icons.
 # `no-transform` prevents Cloudflare Web Analytics (or another proxy feature)
 # from injecting third-party scripts into the local-first application shell.
 /*
@@ -91,6 +92,9 @@
   ! Cache-Control
   Cache-Control: no-cache
 /version.json
+  ! Cache-Control
+  Cache-Control: no-cache
+/build.json
   ! Cache-Control
   Cache-Control: no-cache
 /manifest.webmanifest

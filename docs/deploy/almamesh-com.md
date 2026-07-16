@@ -117,7 +117,7 @@ green CI run on `main` auto-deploys. Until then nothing ships and main stays gre
 |---|---|---|
 | `index.html`, `/` + SPA routes | `no-cache` | app shell (SW precaches it) |
 | `assets/*` (hashed) | immutable, 1y | JS/CSS chunks |
-| `sw.js`, `manifest.webmanifest`, `version.json` | `no-cache` | update signals |
+| `sw.js`, `manifest.webmanifest`, `version.json`, `build.json` | `no-cache` | update and exact-build identity signals |
 | `workbox-*.js` (hashed) | immutable, 1y | SW runtime |
 | `public.key` | `no-cache` | pinned ed25519 verify key |
 | `bundle/latest` | `no-cache` | MUTABLE bundle pointer |
@@ -126,6 +126,11 @@ green CI run on `main` auto-deploys. Until then nothing ships and main stays gre
 | `models/*` | immutable, 1y | self-hosted MiniLM + ort wasm |
 | `fonts/*`, `planets/*` | 1y / 1d | self-hosted assets |
 | `_headers`, `_redirects` | n/a (parsed by Pages, not served) | this config |
+
+`build.json` is generated from the full `BUILD_COMMIT` SHA supplied by the
+deployment workflow. The deploy job polls the live file and fails closed unless
+Cloudflare serves the exact commit that passed CI; local builds intentionally
+use the explicit `local` marker.
 
 Size: ~189 MB / ~1,290 files (sourcemaps included), largest file ~23 MB
 (`models/Xenova/.../model_quantized.onnx`) — under the Pages **25 MiB/file**
