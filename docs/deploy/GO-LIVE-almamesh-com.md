@@ -252,14 +252,16 @@ gh run list --workflow="Deploy almamesh.com" --limit 3
 
 ## 🩹 Rollback
 
-Bundles are content-addressed + versioned and Cloudflare Pages keeps every
-deployment:
+Bundles are content-addressed, signed, and protected by a monotonic sequence.
+Cloudflare Pages keeps every deployment, but an old artifact must not be
+restored directly because its older pointer is intentionally rejected:
 
-- **App rollback:** Cloudflare dashboard → Workers & Pages → almamesh →
-  **Deployments** → pick a previous deployment → **Rollback**.
-- **Bundle rollback:** re-run `build-prod.sh` with the prior `--version` label (or
-  repoint `latest` to the previous manifest hash) and redeploy. Because chunks are
-  content-addressed, a stale client re-fetch is byte-identical.
+- **App or bundle rollback:** check out the prior source/content, then rebuild
+  and sign it as a **new release** whose `BUNDLE_SEQUENCE` is greater than the
+  current verified live pointer. Deploy and verify that new artifact.
+- **Never repoint `latest` or use Pages' one-click rollback by itself.** That
+  creates a split: cached clients reject the lower sequence while fresh clients
+  may accept the old artifact.
 
 ---
 

@@ -88,6 +88,13 @@ describe('repository truth', () => {
     expect(violations.map((path) => path.replace(`${root}/`, ''))).toEqual([]);
   });
 
+  it('publishes every production bundle with a signed monotonic sequence', () => {
+    const build = readRoot('frontend/apps/web/scripts/build-prod.sh');
+    expect(build).toContain('BUNDLE_SEQUENCE');
+    expect(build).toContain('rev-list --count HEAD');
+    expect(build).toContain('--sequence "${BUNDLE_SEQUENCE}"');
+  });
+
   it('records the complete PR 62 artifact and provenance behavior', () => {
     const unreleased = readSection(readRoot('CHANGELOG.md'), '## [Unreleased]');
     for (const claim of [

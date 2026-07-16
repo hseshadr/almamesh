@@ -151,6 +151,7 @@ def publish_bundle(
     version: str,
     staging_dir: Path | None = None,
     ephemeris_file: str | None = None,
+    sequence: int = 1,
 ) -> VersionPointer:
     """Gather constructs (+ optional staged binaries), stamp meta, sign, publish."""
     ephemeris_file = ephemeris_file or get_settings().EPHEMERIS_FILE
@@ -159,7 +160,7 @@ def publish_bundle(
         files = _merge_constructs(files, _read_staging_dir(staging_dir))
     meta = build_meta(version, constructs=list(files), ephemeris_file=ephemeris_file)
     files[_META_NAME] = meta.model_dump_json(indent=2).encode()
-    return publish_constructs(files, origin_dir, signer, version=version)
+    return publish_constructs(files, origin_dir, signer, version=version, sequence=sequence)
 
 
 def _default_skyfield_data_dir() -> Path:
@@ -183,6 +184,7 @@ def publish_offline_bundle(
     version: str,
     almamesh_wheel: Path | None = None,
     skyfield_data_dir: Path | None = None,
+    sequence: int = 1,
 ) -> VersionPointer:
     """Publish the full OFFLINE asset set: constructs + wheels + ephemeris + meta."""
     almamesh_wheel = almamesh_wheel or _default_almamesh_wheel()
@@ -192,7 +194,7 @@ def publish_offline_bundle(
     files = _merge_constructs(files, assets)
     meta = build_meta(version, constructs=list(files), ephemeris_file="de421.bsp")
     files[_META_NAME] = meta.model_dump_json(indent=2).encode()
-    return publish_constructs(files, origin_dir, signer, version=version)
+    return publish_constructs(files, origin_dir, signer, version=version, sequence=sequence)
 
 
 def publish_constructs(
@@ -201,6 +203,7 @@ def publish_constructs(
     signer: Signer,
     *,
     version: str,
+    sequence: int = 1,
 ) -> VersionPointer:
     """Chunk, store, and sign constructs into a content-addressed origin."""
     store = FilesystemCacheStore(origin_dir)
@@ -211,6 +214,9 @@ def publish_constructs(
         signer=signer,
         bundle_id=_BUNDLE_ID,
         version=version,
+        bind_identity=True,
+        channel="stable",
+        sequence=sequence,
     )
 
 
@@ -227,7 +233,14 @@ def sync_constructs(
     """
     adapter = HttpAdapter() if over_http else FilesystemAdapter()
     store = FilesystemCacheStore(cache_dir)
-    return sync_index(base_url=base_url, store=store, adapter=adapter, verifier=verifier)
+    return sync_index(
+        base_url=base_url,
+        store=store,
+        adapter=adapter,
+        verifier=verifier,
+        expected_bundle_id=_BUNDLE_ID,
+        expected_channel="stable",
+    )
 
 
 def read_synced_file(cache_dir: Path, result: SyncResult, path: str) -> bytes:

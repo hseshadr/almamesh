@@ -1,9 +1,10 @@
 # Deploying https://almamesh.com (Cloudflare Pages)
 
 **TL;DR** — almamesh.com is a static deploy of `frontend/apps/web/dist` to
-Cloudflare Pages. There is no server: the dist folder IS the product (PWA shell
-+ Pyodide engine + ed25519-signed chart bundle + self-hosted models/fonts, all
-same-origin). Build it with one script, upload it with one wrangler command:
+Cloudflare Pages. There is no account or chart-data backend: the dist folder is
+the chart product (PWA shell + Pyodide engine + signed chart bundle + self-hosted
+models/fonts). The optional feedback form is the separately disclosed
+same-origin function. Build with one script, upload with one wrangler command:
 
 ```bash
 # one-time: production signing key (READ "Key custody" below FIRST)
@@ -65,8 +66,10 @@ cd frontend && bun install
 bash apps/web/scripts/setup-dev-assets.sh     # pyodide dist + models + skyfield data
 
 # 1. build the artifact — signs the bundle with backend/keys-prod, labels it
-#    with the latest git tag (override: BUNDLE_VERSION=v9.9.9 …), then runs the
-#    REAL production build: VITE_API_URL empty, exit-gate hooks OFF.
+#    with the latest git tag and a signed monotonic sequence derived from the
+#    commit count. BUNDLE_VERSION may override the label. BUNDLE_SEQUENCE is
+#    recovery-only and MUST be greater than the live verified pointer.
+#    The script then runs the real production build with exit-gate hooks off.
 bash apps/web/scripts/build-prod.sh
 
 # 2. sanity: the script already asserts _headers/_redirects/public.key/bundle/
@@ -80,6 +83,12 @@ Bundle updates for already-installed clients flow through `/bundle/latest`
 (no-cache) → new manifest hash → content-addressed chunk sync into OPFS,
 verified against the pinned key. App-shell updates flow through `sw.js`
 (no-cache) → the in-app "update available" prompt.
+
+The signed sequence is the rollback/fork fence. Never deploy an older Pages
+artifact directly: that would restore an older `/bundle/latest`, which existing
+clients reject while fresh clients could accept. To roll back behavior, rebuild
+the prior source/content as a **new** release with a sequence greater than the
+live pointer, verify it, and deploy that newly signed artifact.
 
 ### CI variant (auto-deploy after CI, + manual GitHub Action)
 

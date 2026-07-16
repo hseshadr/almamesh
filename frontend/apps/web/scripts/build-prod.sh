@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 #
 # build-prod.sh — produce the PRODUCTION deploy artifact for https://almamesh.com
-# (Cloudflare Pages serves frontend/apps/web/dist as-is; there is no server).
+# (Cloudflare Pages serves the chart product from frontend/apps/web/dist; the
+# optional feedback function is the separately disclosed server touchpoint).
 #
 # What it does, in order:
 #   1. Rebuilds the almamesh wheel from the current checkout.
@@ -12,7 +13,7 @@
 #      (replacing whatever dev-signed bundle setup-dev-assets.sh put there;
 #      re-run setup-dev-assets.sh / `uv run poe demo-fresh` to get dev back).
 #   4. Runs the REAL production build: NO exit-gate hooks
-#      (VITE_EXIT_GATE_HOOKS empty) and VITE_API_URL empty (no backend exists).
+#      (VITE_EXIT_GATE_HOOKS empty) and VITE_API_URL empty (no chart-data API).
 #
 # Prereqs (fail-closed below):
 #   - bun install done; setup-dev-assets.sh run once (public/pyodide + public/models)
@@ -23,6 +24,8 @@
 #
 # Usage:  bash apps/web/scripts/build-prod.sh
 #         BUNDLE_VERSION=v9.9.9 bash apps/web/scripts/build-prod.sh   # override label
+#         BUNDLE_SEQUENCE=123 bash apps/web/scripts/build-prod.sh     # recovery only;
+#                                                                   must exceed live
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -50,7 +53,8 @@ if [[ ! -d "${PUBLIC_DIR}/models" ]]; then
 fi
 
 BUNDLE_VERSION="${BUNDLE_VERSION:-$(git -C "${REPO_ROOT}" describe --tags --abbrev=0 2>/dev/null || echo "0.0.0+$(git -C "${REPO_ROOT}" rev-parse --short HEAD)")}"
-echo "==> Production build for almamesh.com — bundle version ${BUNDLE_VERSION}"
+BUNDLE_SEQUENCE="${BUNDLE_SEQUENCE:-$(git -C "${REPO_ROOT}" rev-list --count HEAD)}"
+echo "==> Production build for almamesh.com — bundle version ${BUNDLE_VERSION}, sequence ${BUNDLE_SEQUENCE}"
 
 # --- 1. Fresh wheel from this checkout -----------------------------------------
 echo "==> Building almamesh wheel"
@@ -63,7 +67,8 @@ echo "    wheel: ${WHEEL}"
 rm -rf "${ORIGIN_DIR}"
 echo "==> Signing the production bundle into ${ORIGIN_DIR}"
 ( cd "${BACKEND_DIR}" && uv run almamesh-bundle bundle ./origin-prod ./keys-prod/private.key \
-    --version "${BUNDLE_VERSION}" --offline --almamesh-wheel "${WHEEL}" )
+    --version "${BUNDLE_VERSION}" --sequence "${BUNDLE_SEQUENCE}" --offline \
+    --almamesh-wheel "${WHEEL}" )
 
 # --- 3. Swap the production bundle + pinned public key into public/ ------------
 echo "==> Publishing production bundle + public.key into ${PUBLIC_DIR}"

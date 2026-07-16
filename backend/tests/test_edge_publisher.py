@@ -88,6 +88,24 @@ def test_publish_bundle_ships_constructs_and_signed_meta(tmp_path) -> None:
     assert "lahiri_ayanamsa.txt" in meta["constructs"]
 
 
+def test_should_bind_identity_channel_and_sequence_when_publishing(tmp_path) -> None:
+    # Given
+    private_key, _public_key = generate_keypair()
+
+    # When
+    pointer = publish_bundle(
+        tmp_path / "origin",
+        Ed25519Signer(private_key),
+        version="1.0.0",
+        sequence=17,
+    )
+
+    # Then
+    assert pointer.bundle_id == "almamesh-constructs"
+    assert pointer.channel == "stable"
+    assert pointer.sequence == 17
+
+
 def test_publish_bundle_stages_extra_binaries(tmp_path) -> None:
     private_key, public_key = generate_keypair()
     origin, cache = tmp_path / "origin", tmp_path / "cache"

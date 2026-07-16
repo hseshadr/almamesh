@@ -26,15 +26,40 @@ from __future__ import annotations
 import hashlib
 import os
 from pathlib import Path
-from typing import Protocol, runtime_checkable
+from typing import ClassVar, Protocol, runtime_checkable
 
 import zstandard
+from packaging.version import InvalidVersion, Version
 
-from edgeproc.bundles.manifest import IndexManifest, VersionPointer, canonical_bytes
+from edgeproc.bundles.containment import UnsafePathError, resolve_within
+from edgeproc.bundles.manifest import (
+    IndexManifest,
+    VersionPointer,
+    canonical_bytes,
+    validate_sha256_hex,
+)
+from edgeproc.core.settings import EdgeProcSettings
+from edgeproc.errors import BUNDLE_INTEGRITY_FAILED
 
 
 class IntegrityError(Exception):
-    """A stored object failed its content-address / decompress check (fail-closed)."""
+    """A stored object failed its content-address / decompress check (fail-closed).
+
+    Carries the canonical ``bundle.integrity_failed`` code (``shared_libs_python.errors``)
+    so a consumer can render it to RFC 9457 via :func:`edgeproc.errors.problem_details_for`.
+    The code is metadata only — the exception's type and message are unchanged, so every
+    existing ``except IntegrityError`` handler behaves exactly as before.
+    """
+
+    code: ClassVar[str] = BUNDLE_INTEGRITY_FAILED
+
+
+class RollbackError(IntegrityError):
+    """A promote would downgrade the active pointer to an OLDER version (fail-closed).
+
+    Subclasses :class:`IntegrityError` — an anti-rollback violation is a trust-boundary
+    failure, so every existing ``IntegrityError`` handler already refuses it.
+    """
 
 
 @runtime_checkable
@@ -56,10 +81,28 @@ def _sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
+def _validated_digest(digest: str) -> str:
+    try:
+        return validate_sha256_hex(digest)
+    except ValueError as exc:
+        raise IntegrityError(str(exc)) from exc
+
+
+def _open_exclusive_temp(path: Path) -> int:
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+    try:
+        return os.open(path, flags, 0o600)
+    except OSError as exc:
+        raise IntegrityError("atomic write refused an existing or unsafe temp path") from exc
+
+
 def _atomic_write(target: Path, data: bytes) -> None:
     """Write ``data`` to ``target`` atomically via a fsynced same-dir temp + replace."""
     tmp = target.with_name(f"{target.name}.tmp.{os.getpid()}")
-    with tmp.open("wb") as handle:
+    fd = _open_exclusive_temp(tmp)
+    with os.fdopen(fd, "wb") as handle:
         handle.write(data)
         handle.flush()
         os.fsync(handle.fileno())
@@ -69,23 +112,42 @@ def _atomic_write(target: Path, data: bytes) -> None:
 class FilesystemCacheStore:
     """Filesystem ``CacheStore``: ``chunks/<aa>/<hash>``, ``manifests/<hash>``, ``active``."""
 
-    def __init__(self, root: Path) -> None:
+    def __init__(self, root: Path, *, max_decompressed_bytes: int | None = None) -> None:
         self._root = root
+        self._root.mkdir(parents=True, exist_ok=True)
         # FROZEN CAS layout contract: a producer's origin dir and a consumer's cache both
         # address objects via these exact subdirs/names. Renaming any breaks existing stores.
-        self._chunks = root / "chunks"
-        self._manifests = root / "manifests"
-        self._active = root / "active"
-        self._chunks.mkdir(parents=True, exist_ok=True)
-        self._manifests.mkdir(parents=True, exist_ok=True)
+        self._prepare_directory("chunks")
+        self._prepare_directory("manifests")
+        # Decompression-bomb ceiling: a chunk that inflates past this is refused fail-closed.
+        self._max_decompressed_bytes = (
+            max_decompressed_bytes
+            if max_decompressed_bytes is not None
+            else EdgeProcSettings().max_decompressed_bytes
+        )
 
     @property
     def root(self) -> Path:
         """The store's root dir — also the origin dir a producer lays ``latest`` into."""
         return self._root
 
+    def _store_path(self, relpath: str) -> Path:
+        try:
+            return resolve_within(self._root, relpath)
+        except UnsafePathError as exc:
+            raise IntegrityError(str(exc)) from exc
+
+    def _prepare_directory(self, name: str) -> None:
+        (self._root / name).mkdir(parents=True, exist_ok=True)
+        self._store_path(name)
+
     def _chunk_path(self, chunk_hash: str) -> Path:
-        return self._chunks / chunk_hash[:2] / chunk_hash
+        digest = _validated_digest(chunk_hash)
+        return self._store_path(f"chunks/{digest[:2]}/{digest}")
+
+    def _manifest_path(self, manifest_hash: str) -> Path:
+        digest = _validated_digest(manifest_hash)
+        return self._store_path(f"manifests/{digest}")
 
     def has_chunk(self, chunk_hash: str) -> bool:
         return self._chunk_path(chunk_hash).is_file()
@@ -114,36 +176,54 @@ class FilesystemCacheStore:
 
     def _verify_or_remove(self, path: Path, chunk_hash: str) -> None:
         try:
-            if _sha256(_decompress(path.read_bytes())) != chunk_hash:
+            plaintext = _decompress(path.read_bytes(), self._max_decompressed_bytes)
+            if _sha256(plaintext) != chunk_hash:
                 raise IntegrityError(f"fetched chunk {chunk_hash} failed content-address check")
         except IntegrityError:
             path.unlink(missing_ok=True)
             raise
 
     def get_chunk(self, chunk_hash: str) -> bytes:
-        plaintext = _decompress(self._chunk_path(chunk_hash).read_bytes())
+        plaintext = _decompress(
+            self._chunk_path(chunk_hash).read_bytes(), self._max_decompressed_bytes
+        )
         if _sha256(plaintext) != chunk_hash:
             raise IntegrityError(f"chunk {chunk_hash} failed content-address check")
         return plaintext
 
     def put_manifest(self, manifest_bytes: bytes) -> str:
         manifest_hash = _sha256(manifest_bytes)
-        _atomic_write(self._manifests / manifest_hash, manifest_bytes)
+        _atomic_write(self._manifest_path(manifest_hash), manifest_bytes)
         return manifest_hash
 
     def get_manifest(self, manifest_hash: str) -> bytes:
-        raw = (self._manifests / manifest_hash).read_bytes()
+        raw = self._manifest_path(manifest_hash).read_bytes()
         if _sha256(raw) != manifest_hash:
             raise IntegrityError(f"manifest {manifest_hash} failed content-address check")
         return raw
 
     def read_active(self) -> VersionPointer | None:
-        if not self._active.is_file():
+        active = self._store_path("active")
+        if not active.is_file():
             return None
-        return VersionPointer.model_validate_json(self._active.read_bytes())
+        return VersionPointer.model_validate_json(active.read_bytes())
 
     def promote(self, pointer: VersionPointer) -> None:
-        _atomic_write(self._active, pointer.model_dump_json().encode("utf-8"))
+        self._reject_rollback(pointer)
+        _atomic_write(self._store_path("active"), pointer.model_dump_json().encode("utf-8"))
+
+    def _reject_rollback(self, pointer: VersionPointer) -> None:
+        """Refuse a promote whose version is provably OLDER than the active one.
+
+        Anti-rollback: a validly-signed but stale pointer (a replayed old ``/latest``)
+        must not downgrade a client that already promoted a newer version. Only a
+        *provable* downgrade is refused; an equal/newer version, a first promote, or a
+        version string neither side can parse is allowed — so no already-valid, signed
+        bundle is ever rejected.
+        """
+        active = self.read_active()
+        if active is not None and _is_downgrade(pointer, active):
+            raise RollbackError("refusing rollback or reuse of an active monotonic sequence")
 
     def gc(self) -> int:
         active = self.read_active()
@@ -162,7 +242,7 @@ class FilesystemCacheStore:
 
     def _sweep_chunks(self, keep: set[str]) -> int:
         removed = 0
-        for path in self._chunks.glob("*/*"):
+        for path in self._store_path("chunks").glob("*/*"):
             if path.is_file() and path.name not in keep:
                 path.unlink()
                 removed += 1
@@ -170,15 +250,55 @@ class FilesystemCacheStore:
 
     def _sweep_manifests(self, keep: str) -> int:
         removed = 0
-        for path in self._manifests.iterdir():
+        for path in self._store_path("manifests").iterdir():
             if path.is_file() and path.name != keep:
                 path.unlink()
                 removed += 1
         return removed
 
 
-def _decompress(stored: bytes) -> bytes:
+def _is_downgrade(incoming: VersionPointer, active: VersionPointer) -> bool:
+    """True iff ``incoming`` is provably older than ``active`` — by sequence OR version.
+
+    A lower monotonic ``sequence`` is a downgrade. An equal sequence is allowed only for
+    an exact idempotent re-promote; different content at that sequence is equivocation.
+    Legacy pointers still fall back to PEP 440, preserving their original behavior.
+    """
+    return _sequence_violation(incoming, active) or _version_downgrade(
+        incoming.version, active.version
+    )
+
+
+def _sequence_violation(incoming: VersionPointer, active: VersionPointer) -> bool:
+    """Reject lower counters and equal-counter equivocation; leave legacy behavior intact."""
+    if incoming.sequence is None or active.sequence is None:
+        return False
+    if incoming.sequence != active.sequence:
+        return incoming.sequence < active.sequence
+    return incoming != active
+
+
+def _version_downgrade(incoming: str, active: str) -> bool:
+    """True iff ``incoming`` is a provably-older PEP 440 version than ``active``."""
     try:
-        return zstandard.decompress(stored)
+        return Version(incoming) < Version(active)
+    except InvalidVersion:
+        return False
+
+
+def _decompress(stored: bytes, max_output_size: int) -> bytes:
+    """Decompress a stored chunk, refusing a decompression bomb (fail-closed).
+
+    Streams at most ``max_output_size`` bytes rather than trusting the frame's
+    (attacker-controlled) content-size header, so a small file that inflates past the
+    cap is rejected before it is ever materialized into memory.
+    """
+    decompressor = zstandard.ZstdDecompressor()
+    try:
+        with decompressor.stream_reader(stored) as reader:
+            plaintext = reader.read(max_output_size + 1)
     except zstandard.ZstdError as exc:
         raise IntegrityError("stored chunk failed to decompress") from exc
+    if len(plaintext) > max_output_size:
+        raise IntegrityError("stored chunk exceeds max decompressed size")
+    return plaintext

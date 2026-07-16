@@ -45,6 +45,7 @@ def bundle(
     origin_dir: Annotated[Path, typer.Argument(help="Output origin dir a device can sync")],
     private_key_path: Annotated[Path, typer.Argument(help="Raw ed25519 private key from keygen")],
     version: Annotated[str, typer.Option(help="Bundle version string")] = "v1",
+    sequence: Annotated[int, typer.Option(help="Monotonic signed release sequence")] = 1,
     ephemeris_file: Annotated[
         str | None, typer.Option(help="Ephemeris filename to record (default: settings)")
     ] = None,
@@ -70,6 +71,7 @@ def bundle(
             version=version,
             almamesh_wheel=almamesh_wheel,
             skyfield_data_dir=skyfield_data,
+            sequence=sequence,
         )
     else:
         pointer = publish_bundle(
@@ -78,5 +80,6 @@ def bundle(
             version=version,
             staging_dir=staging_dir,
             ephemeris_file=ephemeris_file,
+            sequence=sequence,
         )
     typer.echo(f"Built bundle {pointer.version} → {origin_dir}")
