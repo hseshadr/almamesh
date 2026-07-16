@@ -16,6 +16,7 @@ from edgeproc.bundles.signing import Ed25519Verifier, SignatureError
 _BUNDLE_ID = "almamesh-constructs"
 _CHANNEL = "stable"
 _TIMEOUT_SECONDS = 30
+_USER_AGENT = "AlmaMesh-ReleaseGuard/1.0"
 
 
 class ReleaseGuardError(ValueError):
@@ -56,12 +57,21 @@ def _read_pointer(path: Path) -> VersionPointer:
 
 def _live_url(url: str) -> str:
     parsed = urlsplit(url)
+    if parsed.scheme != "https":
+        raise ReleaseGuardError("live preflight requires HTTPS transport")
     query = urlencode({"release_guard": "1"})
     return urlunsplit((parsed.scheme, parsed.netloc, parsed.path, query, parsed.fragment))
 
 
 def _fetch_pointer(url: str) -> VersionPointer:
-    request = Request(_live_url(url), headers={"Cache-Control": "no-cache"})
+    request = Request(
+        _live_url(url),
+        headers={
+            "Accept": "application/json",
+            "Cache-Control": "no-cache",
+            "User-Agent": _USER_AGENT,
+        },
+    )
     with urlopen(request, timeout=_TIMEOUT_SECONDS) as response:
         return VersionPointer.model_validate_json(response.read())
 

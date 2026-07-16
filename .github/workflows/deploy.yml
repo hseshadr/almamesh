@@ -215,6 +215,41 @@ jobs:
           echo "::error::Cloudflare live build.json never reported expected commit $EXPECTED_SHA"
           exit 1
 
+      - name: Verify exact live bundle identity
+        working-directory: ${{ github.workspace }}
+        env:
+          BUNDLE_LIVE_URL: https://almamesh.com/bundle/latest
+        run: |
+          EXPECTED_BUNDLE_IDENTITY=$(node -e '
+            const fs = require("fs");
+            try {
+              const pointer = JSON.parse(fs.readFileSync("frontend/apps/web/dist/bundle/latest", "utf8"));
+              if (!pointer.manifest_hash || !Number.isInteger(pointer.sequence)) process.exit(2);
+              process.stdout.write(`${pointer.manifest_hash}:${pointer.sequence}`);
+            } catch { process.exit(2); }
+          ')
+          for attempt in $(seq 1 12); do
+            actual=$(curl -fsS --retry 2 --max-time 20 "${BUNDLE_LIVE_URL}?t=$(date +%s)" | node -e '
+              let input = "";
+              process.stdin.on("data", chunk => { input += chunk; });
+              process.stdin.on("end", () => {
+                try {
+                  const pointer = JSON.parse(input);
+                  if (!pointer.manifest_hash || !Number.isInteger(pointer.sequence)) process.stdout.write("");
+                  else process.stdout.write(`${pointer.manifest_hash}:${pointer.sequence}`);
+                } catch { process.stdout.write(""); }
+              });
+            ')
+            if [ "$actual" = "$EXPECTED_BUNDLE_IDENTITY" ]; then
+              echo "Cloudflare live bundle identity verified: $actual"
+              exit 0
+            fi
+            echo "Waiting for live bundle identity: attempt=$attempt expected=$EXPECTED_BUNDLE_IDENTITY actual=${actual:-missing}"
+            sleep 10
+          done
+          echo "::error::Cloudflare live /bundle/latest never reported expected identity $EXPECTED_BUNDLE_IDENTITY"
+          exit 1
+
       # Spec 064: tell IndexNow-consuming engines (Bing, Yandex, …) the public
       # pages changed. Key file ships in the build (public/<key>.txt). This is
       # best-effort by contract — `|| true` on every path so a search-engine

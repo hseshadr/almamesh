@@ -142,6 +142,11 @@ deployment workflow. The deploy job polls the live file and fails closed unless
 Cloudflare serves the exact commit that passed CI; local builds intentionally
 use the explicit `local` marker.
 
+The same deploy job polls `/bundle/latest` after upload and fails closed unless
+the live signed pointer's `manifest_hash:sequence` exactly matches the artifact
+that was built. This closes the CDN propagation window between the preflight and
+the Pages upload; both checks use cache-busting query parameters.
+
 Size: ~189 MB / ~1,290 files (sourcemaps included), largest file ~23 MB
 (`models/Xenova/.../model_quantized.onnx`) — under the Pages **25 MiB/file**
 cap; file count is far below the 20,000-file cap.

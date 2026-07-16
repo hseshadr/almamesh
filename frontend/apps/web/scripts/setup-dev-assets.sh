@@ -26,14 +26,16 @@ PUBLIC_DIR="${WEB_DIR}/public"
 # engine loads (numpy/pydantic/pyyaml + skyfield's pure-Python deps), pinned to
 # the `pyodide` npm dep version. We fetch them once from Pyodide's official CDN
 # (jsdelivr) so a fresh clone is fully reproducible; the RUNTIME stays offline
-# (these are served same-origin from public/pyodide/). The npm package ships only
-# the core files — the wheels are not in it — hence the CDN fetch.
+# (these are served same-origin from public/pyodide/). Core runtime files are
+# copied from the pinned npm package when available (byte integrity without a
+# second network hop); only the package wheels fall back to the CDN.
 #
 # To change the set: keep it in lockstep with chartWorker.ts LOAD_PACKAGES (+ the
 # lock's transitive closure) and the `pyodide` dep version. Override with a local
 # dir via PYODIDE_DIST=/path (skips the download).
 PYODIDE_VERSION="${PYODIDE_VERSION:-0.29.4}"
 PYODIDE_CDN="https://cdn.jsdelivr.net/pyodide/v${PYODIDE_VERSION}/full"
+PYODIDE_NPM_DIR="${REPO_ROOT}/frontend/packages/browser/node_modules/pyodide"
 PYODIDE_FILES=(
   pyodide.asm.js pyodide.asm.wasm pyodide.mjs pyodide-lock.json python_stdlib.zip
   micropip-0.11.1-py3-none-any.whl
@@ -57,8 +59,32 @@ if [[ -n "${PYODIDE_DIST:-}" ]]; then
 else
   echo "==> Fetching Pyodide ${PYODIDE_VERSION} dist (${#PYODIDE_FILES[@]} files) from ${PYODIDE_CDN}"
   for f in "${PYODIDE_FILES[@]}"; do
-    if [[ ! -f "${PUBLIC_DIR}/pyodide/${f}" ]]; then
-      curl -fsSL "${PYODIDE_CDN}/${f}" -o "${PUBLIC_DIR}/pyodide/${f}"
+    dest="${PUBLIC_DIR}/pyodide/${f}"
+    if [[ ! -s "${dest}" ]]; then
+      # CDN connections can reset while a large wasm file is streaming. Retry
+      # all transient curl failures so one edge blip cannot invalidate an
+      # otherwise deterministic exit-gate run. Download to a process-unique
+      # part file and publish atomically so a failed/terminated transfer can
+      # never masquerade as a complete asset on the next run.
+      part="${dest}.part.$$"
+      rm -f "${part}"
+      if [[ -f "${PYODIDE_NPM_DIR}/${f}" ]]; then
+        echo "    - ${f} (pinned npm package)"
+        cp "${PYODIDE_NPM_DIR}/${f}" "${part}"
+      elif curl -fsSL --retry 5 --retry-delay 4 --retry-all-errors \
+             --retry-max-time 900 --connect-timeout 30 --max-time 600 \
+             "${PYODIDE_CDN}/${f}" -o "${part}"; then
+        :
+      else
+        rm -f "${part}"
+        exit 1
+      fi
+      if [[ -s "${part}" ]]; then
+        mv "${part}" "${dest}"
+      else
+        rm -f "${part}"
+        exit 1
+      fi
     fi
   done
 fi
