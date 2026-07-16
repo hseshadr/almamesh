@@ -547,6 +547,47 @@ describe("bounded sync resources", () => {
 		expect(await store.readActive()).toBeNull();
 	});
 
+	it("reserves the aggregate cap before concurrent chunk downloads", async () => {
+		const zstd = await Zstd.load();
+		const bytes = ENCODER.encode("bounded");
+		const hash = await sha256Hex(bytes);
+		const refs = Array.from({ length: 8 }, () => ({ hash, size: bytes.byteLength }));
+		const fileBytes = new Uint8Array(bytes.length * refs.length);
+		for (let index = 0; index < refs.length; index += 1) {
+			fileBytes.set(bytes, index * bytes.length);
+		}
+		const manifest = emptyManifest({
+			files: [
+				{
+					path: "bounded.bin",
+					file_type: null,
+					size: bytes.byteLength * refs.length,
+					file_sha256: await sha256Hex(fileBytes),
+					chunks: refs,
+				},
+			],
+		});
+		const origin = await originFor(
+			manifest,
+			new Map([[hash, zstd.compress(bytes)]]),
+		);
+		const reservations: number[] = [];
+		const fetchBytes: FetchBytes = (url, options) => {
+			if (url.includes("/chunk/")) reservations.push(options?.maxBytes ?? 0);
+			return origin.fetchBytes(url, options);
+		};
+
+		await syncIndex({
+			baseUrl: "/o",
+			store: new MemoryCacheStore(),
+			fetchBytes,
+			verify: passVerify,
+			limits: { maxTotalFetchBytes: 256 },
+		});
+
+		expect(reservations.reduce((sum, value) => sum + value, 0)).toBeLessThanOrEqual(256);
+	});
+
 	it("rejects a non-positive injected aggregate cap", async () => {
 		const origin = await originFor(emptyManifest());
 

@@ -52,8 +52,8 @@ function toLocationResult(match: CityMatch): LocationResult {
  * Birth-location typeahead.
  *
  * Search is ONLINE-PRIMARY via the Open-Meteo geocoder (one of the two
- * owner-approved network egresses — only the typed city string leaves the
- * device), with a transparent OFFLINE FALLBACK to the bundled city list so it
+ * owner-approved network egresses — the typed city string and ordinary HTTPS
+ * request metadata leave the device), with a transparent OFFLINE FALLBACK to the bundled city list so it
  * keeps working with no network. A manual lat/long entry remains as a last
  * resort. The external contract (props + `LocationResult`) is unchanged; every
  * emitted result carries a valid IANA `timezone`, which the engine path requires.

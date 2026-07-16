@@ -365,29 +365,60 @@ async function fetchMissing(
 ): Promise<number> {
 	let next = 0;
 	let total = 0;
+	let remaining = maxTotalBytes;
+	let inFlight = 0;
+	let wakeBudgetWaiter: (() => void) | undefined;
 	let failure: unknown;
+	const reserve = async (): Promise<number> => {
+		while (remaining === 0 && inFlight > 0 && failure === undefined) {
+			await new Promise<void>((resolve) => {
+				wakeBudgetWaiter = resolve;
+			});
+		}
+		if (remaining === 0) return 0;
+		const reservation = Math.min(MAX_COMPRESSED_CHUNK_BYTES, remaining);
+		remaining -= reservation;
+		inFlight += 1;
+		return reservation;
+	};
+	const release = (reservation: number, consumed: number): void => {
+		remaining += reservation - consumed;
+		inFlight -= 1;
+		wakeBudgetWaiter?.();
+		wakeBudgetWaiter = undefined;
+	};
 	const worker = async (): Promise<void> => {
 		while (failure === undefined) {
 			const ref = missing[next];
 			next += 1;
 			if (ref === undefined) return;
+			const reservation = await reserve();
+			if (reservation === 0) {
+				failure = new SyncCapError(
+					`sync exceeded ${maxTotalBytes}-byte aggregate fetch cap`,
+				);
+				return;
+			}
+			let consumed = 0;
 			try {
 				const compressed = await fetchCapped(
 					fetchBytes,
 					`${baseUrl}/chunk/${ref.hash}`,
-					MAX_COMPRESSED_CHUNK_BYTES,
+					reservation,
 				);
 				if (failure !== undefined) return;
-				const updated = total + compressed.byteLength;
-				if (!Number.isSafeInteger(updated) || updated > maxTotalBytes) {
-					throw new SyncCapError(
-						`sync exceeded ${maxTotalBytes}-byte aggregate fetch cap`,
-					);
-				}
-				total = updated;
+				consumed = compressed.byteLength;
+				total += consumed;
 				await store.putChunkCompressed(ref.hash, compressed, ref.size);
 			} catch (error) {
-				failure ??= error;
+				failure ??=
+					error instanceof SyncCapError
+						? new SyncCapError(
+								`sync exceeded ${maxTotalBytes}-byte aggregate fetch cap`,
+							)
+						: error;
+			} finally {
+				release(reservation, consumed);
 			}
 		}
 	};
@@ -445,9 +476,15 @@ function distinctChunks(manifest: IndexManifest): number {
 async function syncFromCache(
 	store: CacheStore,
 	args: SyncArgs,
+	verify: Verify,
 ): Promise<SyncResult | null> {
 	const active = await store.readActive();
 	if (active === null) return null;
+	// Offline fallback is still a trust boundary: a cached pointer may have
+	// been corrupted or replaced while the tab was closed. Re-validate its
+	// shape, identity binding, and detached signature before serving it.
+	assertVersionPointer(active);
+	await verify(pointerSigningBytes(active), active.signature);
 	assertExpectedIdentity(active, args);
 	const raw = await store.getManifest(active.manifest_hash);
 	const manifest = parseJson(raw, "cached manifest");
@@ -469,7 +506,7 @@ export async function syncIndex(args: SyncArgs): Promise<SyncResult> {
 		pointer = await fetchPointer(baseUrl, fetchBytes, verify);
 	} catch (error) {
 		if (error instanceof NetworkError) {
-			const cached = await syncFromCache(store, args);
+			const cached = await syncFromCache(store, args, verify);
 			if (cached !== null) return cached;
 		}
 		throw error;

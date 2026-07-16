@@ -121,7 +121,7 @@ deterministic. The complete browser network inventory is:
 | Trigger | Destination | Data sent | Explicitly not sent |
 |---|---|---|---|
 | First load, signed engine sync, PWA update | `almamesh.com` | Asset URLs, normal HTTP request metadata | Names, birth data, charts, life events |
-| Birthplace search while online | Open-Meteo geocoding | City text you type | Name, birth date/time, chart; an offline city-list fallback is bundled |
+| Birthplace search while online | Open-Meteo geocoding | City text you type plus ordinary HTTPS/request metadata visible to the provider | Name, birth date/time, chart; an offline city-list fallback is bundled |
 | Optional interpretation or chat | Your configured OpenAI-compatible endpoint | PII-redacted chart facts and, for chat, the question you type | Profile name and birth date |
 | Optional life-event organization | Your configured OpenAI-compatible endpoint | The narrative you submit, as written, after the disclosure | Birth details and chart data |
 | OpenRouter model list or credit check in Settings | OpenRouter | API request plus the configured key; the credit response concerns that provider account | Chart, birth data, chat, life events |
@@ -324,7 +324,7 @@ the app tag.
 | PDF export | Deterministic report available after a chart exists (cover + D1/D9 + daśā + predictive sections VIII–XI + Birth Time Authority §XII); AI-written sections require current, provenance-matched interpretation | ✅ shipped |
 | Birth-time rectification | Per-profile rectified time + confidence in Settings; recomputes the chart | ✅ shipped |
 | Named profiles | Multiple password-less people per device, each owning its charts; rename + delete (chart cascade) | ✅ shipped |
-| Birthplace search | Online-primary Open-Meteo lookup with a bundled offline fallback; only the city query leaves the device | ✅ shipped |
+| Birthplace search | Online-primary Open-Meteo lookup with a bundled offline fallback; the city query and ordinary network metadata leave the device, never chart/profile data | ✅ shipped |
 | Internationalization | English / Spanish / Portuguese; react-i18next, offline bundled catalogs (zero-egress), persisted language + `<html lang>` sync, AI answers in-language; en authoritative, es/pt machine-translated | ✅ shipped |
 | PWA delivery | Service worker + offline reboot + provenance footer | ✅ shipped |
 

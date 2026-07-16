@@ -3,8 +3,9 @@
  * API (https://open-meteo.com/en/docs/geocoding-api).
  *
  * This is a DELIBERATE, owner-approved network egress recorded in the README's
- * network/data-flow inventory. Only the typed city string leaves the device — never the birth
- * date/time or the computed chart. The offline `cities.min.json` list remains as
+ * network/data-flow inventory. The typed city string and ordinary HTTPS request
+ * metadata leave the device — never the birth date/time or the computed chart.
+ * The offline `cities.min.json` list remains as
  * a fallback (see `searchCities` in cityLookup.ts) so search still works offline.
  *
  * Open-Meteo returns richer data than the offline list — real `admin1` (state /
