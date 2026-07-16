@@ -22,6 +22,8 @@ import { safeWarn } from '@almamesh/shared-types';
 
 /** One heal attempt per tab session, so a persistent fault can never loop-reload. */
 const HEAL_KEY = 'almamesh:sw-precache-heal';
+/** A restore owns the next reload; do not stack a SW-heal reload on top of it. */
+const RESTORE_RELOAD_KEY = 'almamesh:restore-reload';
 
 /** Separate one-shot budget for the global chunk-error recovery path. */
 const CHUNK_HEAL_KEY = 'almamesh:chunk-reload:global';
@@ -40,6 +42,30 @@ function markHealAttempted(key: string): void {
   } catch {
     // Best-effort: private-mode sessionStorage can throw; a missing guard only
     // risks one extra reload, never data loss.
+  }
+}
+
+/**
+ * Mark the next page boot as an intentional data-restore reload. The restore
+ * commit is already fenced and durable; a concurrent SW self-heal reload would
+ * race the fresh realm's hydration and can overwrite the restored snapshot with
+ * its empty initial Zustand state.
+ */
+export function suppressNextServiceWorkerHeal(): void {
+  try {
+    sessionStorage.setItem(RESTORE_RELOAD_KEY, '1');
+  } catch {
+    // Best-effort: a blocked sessionStorage only loses this race protection.
+  }
+}
+
+function consumeRestoreReloadMarker(): boolean {
+  try {
+    if (sessionStorage.getItem(RESTORE_RELOAD_KEY) !== '1') return false;
+    sessionStorage.removeItem(RESTORE_RELOAD_KEY);
+    return true;
+  } catch {
+    return false;
   }
 }
 
@@ -82,6 +108,12 @@ async function hasHealthyPrecache(): Promise<boolean> {
 export async function healStrandedServiceWorker(): Promise<void> {
   try {
     if (!('serviceWorker' in navigator) || typeof caches === 'undefined') {
+      return;
+    }
+    // Consume this marker even when the new page is not yet controlled (the
+    // normal first boot after registration). Otherwise it would leak into a
+    // later unrelated boot and suppress a legitimate heal.
+    if (consumeRestoreReloadMarker()) {
       return;
     }
     // Not controlled → the SW can't be the thing breaking navigations.

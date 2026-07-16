@@ -26,6 +26,7 @@ import {
   type StagedImport,
 } from '../../lib/backupService';
 import { pickBackupFile, saveBackupFile } from '../../lib/backupFile';
+import { suppressNextServiceWorkerHeal } from '../../lib/swSelfHeal';
 
 export default function DataSettings() {
   const { t } = useTranslation('settings');
@@ -133,6 +134,9 @@ export default function DataSettings() {
       await commitBackupImport(staged.envelope);
       setConfirmOpen(false);
       setStatus(t('backup.status_imported'));
+      // The restore owns the next reload. Prevent the SW self-heal check from
+      // stacking a second reload while the fresh realm hydrates its stores.
+      suppressNextServiceWorkerHeal();
       window.location.reload();
     } catch {
       setConfirmOpen(false);

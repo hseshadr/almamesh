@@ -7,6 +7,7 @@ import {
 } from '../swSelfHeal';
 
 const HEAL_KEY = 'almamesh:sw-precache-heal';
+const RESTORE_RELOAD_KEY = 'almamesh:restore-reload';
 
 const IMMUTABLE = ['almamesh-pyodide-immutable', 'almamesh-bundle-immutable'];
 const RUNTIME = ['almamesh-signals', 'almamesh-pubkey'];
@@ -85,6 +86,16 @@ describe('healStrandedServiceWorker', () => {
     const { reload } = stubEnv({ cacheNames: [...IMMUTABLE, ...RUNTIME], healFlagSet: true });
     await healStrandedServiceWorker();
     expect(reload).not.toHaveBeenCalled();
+  });
+
+  it('does not start a second recovery reload immediately after backup restore reload', async () => {
+    const { reload } = stubEnv({ cacheNames: [...IMMUTABLE, ...RUNTIME] });
+    sessionStorage.setItem(RESTORE_RELOAD_KEY, '1');
+
+    await healStrandedServiceWorker();
+
+    expect(reload).not.toHaveBeenCalled();
+    expect(sessionStorage.getItem(RESTORE_RELOAD_KEY)).toBeNull();
   });
 
   it('never throws (best-effort) even if caches access fails', async () => {
