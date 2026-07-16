@@ -1,7 +1,8 @@
+import { Zstd } from "@hpcc-js/wasm-zstd";
 import { describe, expect, it } from "vitest";
 import { sha256Hex } from "./crypto";
 import { catalogMetaChunkHash, chunkBytes } from "./fixtures";
-import { decompress } from "./zstd";
+import { decompress, decompressBounded } from "./zstd";
 
 // A real chunk hash from examples/catalog (catalog_meta.json's single chunk),
 // derived from the manifest so it survives every catalog rebuild.
@@ -20,5 +21,13 @@ describe("zstd decompress", () => {
 			unknown
 		>;
 		expect(typeof meta).toBe("object");
+	});
+
+	it("accepts an exactly empty signed chunk without allowing overflow", async () => {
+		const zstd = await Zstd.load();
+
+		await expect(
+			decompressBounded(zstd.compress(new Uint8Array()), 0),
+		).resolves.toEqual(new Uint8Array());
 	});
 });

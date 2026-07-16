@@ -42,6 +42,8 @@ export type OnStage = (stage: BootStage) => void;
 export interface RuntimeConfig {
   readonly bundleBaseUrl: string; // origin serving /latest, /manifest/*, /chunk/*
   readonly pubkeyUrl: string; // pinned ed25519 key, served same-origin as the app
+  readonly expectedBundleId: string; // signed publisher identity expected by this app
+  readonly expectedChannel: string; // signed release channel expected by this app
   readonly pyodideIndexUrl: string; // self-hosted Pyodide dist (same-origin app asset)
   // Wheel paths within the bundle, in install order (leaf-first; almamesh last).
   readonly wheelPaths: readonly string[];
@@ -51,7 +53,12 @@ export interface RuntimeConfig {
 
 /** The sync-Worker surface bootstrap needs: pull the bundle, read its files. */
 export interface EnginePort {
-  sync(baseUrl: string, pubkeyUrl: string): Promise<SyncResult>;
+  sync(
+    baseUrl: string,
+    pubkeyUrl: string,
+    expectedBundleId: string,
+    expectedChannel: string,
+  ): Promise<SyncResult>;
   readFile(path: string): Promise<Uint8Array>;
 }
 
@@ -169,7 +176,12 @@ export class AlmaMeshRuntime {
   async #build(config: RuntimeConfig, onStage: OnStage): Promise<ChartEngine> {
     const syncEngine = this.#deps.spawnSyncEngine();
     onStage({ kind: "syncing" });
-    const result = await syncEngine.sync(config.bundleBaseUrl, config.pubkeyUrl);
+    const result = await syncEngine.sync(
+      config.bundleBaseUrl,
+      config.pubkeyUrl,
+      config.expectedBundleId,
+      config.expectedChannel,
+    );
     onStage({ kind: "synced", result });
 
     onStage({ kind: "reassembling" });

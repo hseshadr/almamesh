@@ -12,6 +12,8 @@ import type { SyncResult } from "@edgeproc/browser/engine";
 const CONFIG: RuntimeConfig = {
   bundleBaseUrl: "https://cdn.test/almamesh",
   pubkeyUrl: "https://app.test/public.key",
+  expectedBundleId: "almamesh-constructs",
+  expectedChannel: "stable",
   pyodideIndexUrl: "https://app.test/pyodide/",
   wheelPaths: [
     "wheels/jplephem-2.23-py3-none-any.whl",
@@ -35,13 +37,18 @@ const SYNC_RESULT: SyncResult = {
 };
 
 class FakeSyncEngine implements EnginePort {
-  public readonly syncCalls: Array<readonly [string, string]> = [];
+  public readonly syncCalls: Array<readonly [string, string, string, string]> = [];
   public readonly readPaths: string[] = [];
 
   public constructor(private readonly files: Readonly<Record<string, Uint8Array>>) {}
 
-  public async sync(baseUrl: string, pubkeyUrl: string): Promise<SyncResult> {
-    this.syncCalls.push([baseUrl, pubkeyUrl]);
+  public async sync(
+    baseUrl: string,
+    pubkeyUrl: string,
+    expectedBundleId: string,
+    expectedChannel: string,
+  ): Promise<SyncResult> {
+    this.syncCalls.push([baseUrl, pubkeyUrl, expectedBundleId, expectedChannel]);
     return SYNC_RESULT;
   }
 
@@ -124,7 +131,14 @@ describe("AlmaMeshRuntime.bootstrap", () => {
 
     await runtime.bootstrap(CONFIG);
 
-    expect(sync.syncCalls).toEqual([[CONFIG.bundleBaseUrl, CONFIG.pubkeyUrl]]);
+    expect(sync.syncCalls).toEqual([
+      [
+        CONFIG.bundleBaseUrl,
+        CONFIG.pubkeyUrl,
+        CONFIG.expectedBundleId,
+        CONFIG.expectedChannel,
+      ],
+    ]);
   });
 
   it("reads the wheels + skyfield data from the synced bundle (order preserved) and boots with them", async () => {

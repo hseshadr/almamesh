@@ -36,4 +36,11 @@ describe('readRuntimeConfig pubkeyUrl', () => {
     expect(url.pathname).toBe('/public.key');
     expect(url.origin).toBe(window.location.origin);
   });
+
+  it('pins the signed AlmaMesh bundle identity and stable release channel', () => {
+    expect(readRuntimeConfig()).toMatchObject({
+      expectedBundleId: 'almamesh-constructs',
+      expectedChannel: 'stable',
+    });
+  });
 });

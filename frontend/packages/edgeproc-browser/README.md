@@ -30,9 +30,11 @@ const results = await engine.search("wireless headphones", { limit: 10 });
 const recs = engine.recommend({ limit: 10 }); // session-aware (folds in clicks)
 ```
 
-`configFromEnv()` reads `VITE_BUNDLE_BASE_URL` (the Caddy edge serving the
-signed bundle) and pins the public key to `<your-app-origin>/public.key` — the
-key is **never** fetched from the bundle origin (that would defeat pinning).
+`configFromEnv()` reads `VITE_BUNDLE_BASE_URL`, `VITE_BUNDLE_ID`, and optional
+`VITE_BUNDLE_CHANNEL` (`stable` by default). It pins the public key to
+`<your-app-origin>/public.key` — the key is **never** fetched from the bundle
+origin (that would defeat pinning). The signed pointer must match the configured
+bundle identity and channel before the runtime fetches an immutable manifest.
 
 ## Parity with the Python core
 
