@@ -29,6 +29,7 @@
  */
 
 import { chromium } from '@playwright/test'
+import { isActivePointerName } from './exitGateDurability.mjs'
 
 const BASE_URL = process.argv[2] ?? 'http://localhost:4199'
 const ORIGIN = new URL(BASE_URL).host
@@ -410,22 +411,27 @@ async function main() {
 
     // Durability probe: the synced engine DATA persists in OPFS across reload —
     // the chunk store + active version pointer are still present offline.
-    const opfs = await page.evaluate(async () => {
+    const activePointerNames = ['active', 'active.a', 'active.b'].filter(isActivePointerName)
+    const opfs = await page.evaluate(async (pointerNames) => {
       try {
         const root = await navigator.storage.getDirectory()
         let chunkCount = 0
         let hasActive = false
-        for await (const [name, handle] of root.entries?.() ?? []) {
-          if (name === 'chunk' && handle.kind === 'directory') {
-            for await (const _ of handle.entries()) chunkCount += 1
+        const chunkDir = await root.getDirectoryHandle('chunk')
+        for await (const _ of chunkDir.entries()) chunkCount += 1
+        for (const name of pointerNames) {
+          try {
+            await root.getFileHandle(name)
+            hasActive = true
+          } catch {
+            // A slot may not exist yet; the other crash-safe slot is sufficient.
           }
-          if (name === 'active') hasActive = true
         }
         return { chunkCount, hasActive }
       } catch (e) {
         return { error: String(e) }
       }
-    }).catch((e) => ({ error: String(e) }))
+    }, activePointerNames).catch((e) => ({ error: String(e) }))
 
     const chartReadable = !!savedChart && savedChart.count > 0
     const opfsDurable = (opfs?.chunkCount ?? 0) > 0 && opfs?.hasActive === true
@@ -440,7 +446,7 @@ async function main() {
     //       the offline reboot too, not just durability.
     offlinePass = chartReadable && opfsDurable && rebootedOffline
     offlineDetail =
-      `OPFS chunks=${opfs?.chunkCount ?? '?'} active=${opfs?.hasActive} | IndexedDB chart readable=${chartReadable} (saved=${savedChart?.count ?? 0}). ` +
+      `OPFS chunks=${opfs?.chunkCount ?? '?'} active=${opfs?.hasActive}${opfs?.error ? ` error="${opfs.error}"` : ''} | IndexedDB chart readable=${chartReadable} (saved=${savedChart?.count ?? 0}). ` +
       `OFFLINE-REBOOT: rebooted=${rebootedOffline} offlineStage=${offlineStage}${offlineErr ? ` err="${offlineErr}"` : ''} (sync fell back to the cached active version; bundle/pyodide refetch aborted).`
   } catch (e) {
     offlineDetail = `error: ${String(e)}`
