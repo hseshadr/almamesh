@@ -56,6 +56,7 @@ beforeEach(() => {
   // clearAllMocks (not reset) so the global matchMedia mock from setup.ts keeps
   // its implementation — framer-motion reads it when a dialog opens.
   vi.clearAllMocks();
+  sessionStorage.clear();
   vi.mocked(buildBackupExport).mockResolvedValue({
     filename: 'almamesh-backup-2026-07-01.json',
     text: 'BACKUP_TEXT',
@@ -147,6 +148,7 @@ describe('DataSettings — Backup & Restore panel', () => {
       'almamesh-backup-before-import.json',
       'BACKUP_TEXT',
     );
+    expect(sessionStorage.getItem('almamesh:restore-reload')).toBe('1');
     expect(reloadSpy).toHaveBeenCalled();
   });
 
