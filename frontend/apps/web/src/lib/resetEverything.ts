@@ -63,6 +63,18 @@ const RESET_IDB_KEYS = [
   'almamesh-interpretations',
 ] as const;
 
+function getUsableLocalStorage(): Pick<Storage, 'removeItem'> | null {
+  try {
+    const storage = (globalThis as { localStorage?: Partial<Storage> }).localStorage;
+    if (typeof storage?.removeItem !== 'function') {
+      return null;
+    }
+    return { removeItem: storage.removeItem };
+  } catch {
+    return null;
+  }
+}
+
 export interface ResetEverythingDeps {
   waitForHydration: () => Promise<void>;
   clearPersisted: (epoch?: number) => Promise<void>;
@@ -131,10 +143,9 @@ export async function resetEverything(deps: ResetEverythingDeps = DEFAULT_DEPS):
     useMeshStore.getState().reset();
 
     await deps.clearPersisted(epoch);
-    if (typeof localStorage !== 'undefined') {
-      localStorage.removeItem(CHART_LIBRARY_FLAG_KEY);
-      localStorage.removeItem(INTERPRETATIONS_KEY);
-    }
+    const storage = getUsableLocalStorage();
+    storage?.removeItem(CHART_LIBRARY_FLAG_KEY);
+    storage?.removeItem(INTERPRETATIONS_KEY);
     await (deps.finalizeDatasetReset ?? finalizeBackupRestore)(epoch);
     publishReset({ kind: 'dataset', operation: 'reset', phase: 'complete' });
   } catch (error) {

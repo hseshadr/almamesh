@@ -57,8 +57,8 @@ describe("llm settings — localStorage override layer", () => {
     expect(merged.VITE_LLM_API_BASE).toBe("http://localhost:11434/v1");
   });
 
-  it("is a no-op (returns {}) without localStorage", () => {
-    vi.unstubAllGlobals();
+  it("is a no-op when an SSR host exposes only a partial localStorage global", () => {
+    vi.stubGlobal("localStorage", {});
     expect(readLlmSettings()).toEqual({});
     expect(() => writeLlmSettings({ model: "x" })).not.toThrow();
   });

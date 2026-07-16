@@ -5,6 +5,49 @@ import '@testing-library/react';
 import { cleanup } from '@testing-library/react';
 import { afterEach, vi } from 'vitest';
 
+function isUsableStorage(value: unknown): value is Storage {
+  if (value === null || typeof value !== 'object') {
+    return false;
+  }
+  const storage = value as Partial<Storage>;
+  return (
+    typeof storage.getItem === 'function' &&
+    typeof storage.setItem === 'function' &&
+    typeof storage.removeItem === 'function' &&
+    typeof storage.clear === 'function'
+  );
+}
+
+function createMemoryStorage(): Storage {
+  const values = new Map<string, string>();
+  return {
+    get length() {
+      return values.size;
+    },
+    clear: () => values.clear(),
+    getItem: (key) => values.get(key) ?? null,
+    key: (index) => [...values.keys()][index] ?? null,
+    removeItem: (key) => values.delete(key),
+    setItem: (key, value) => values.set(key, String(value)),
+  };
+}
+
+// Node 25 exposes a partial `localStorage` shell when no
+// `--localstorage-file` is configured. Keep browser tests deterministic and
+// make direct test calls (`clear`, `setItem`, etc.) safe in both DOM and SSR
+// suites without changing real browser storage behavior.
+const hostStorage = typeof window !== 'undefined' ? window.localStorage : globalThis.localStorage;
+const testStorage = isUsableStorage(hostStorage) ? hostStorage : createMemoryStorage();
+if (!isUsableStorage(hostStorage)) {
+  vi.stubGlobal('localStorage', testStorage);
+  if (typeof window !== 'undefined') {
+    Object.defineProperty(window, 'localStorage', {
+      configurable: true,
+      value: testStorage,
+    });
+  }
+}
+
 // Automatically cleanup after each test
 afterEach(() => {
   cleanup();

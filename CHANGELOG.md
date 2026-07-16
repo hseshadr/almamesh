@@ -52,6 +52,10 @@ All notable changes to AlmaMesh are documented here. Format follows
   copy, with no i18n key changed.
 
 ### Fixed
+- **Storage capability detection under SSR and Node 25.** Partial native
+  `localStorage` shells are treated as unavailable by LLM settings and reset
+  paths; browser tests install a deterministic in-memory Web Storage substitute,
+  while real browser storage remains unchanged.
 - **Deterministic report-PDF pagination (PR #63).** Report PDFs paginate the same
   way every time.
 - **Rectification gated on current previews (PR #64).** Save and programmatic
@@ -72,6 +76,9 @@ All notable changes to AlmaMesh are documented here. Format follows
   with no runtime-behavior change. Added a `click>=8.3.3,<8.4` floor to
   `[tool.uv] constraint-dependencies` and re-locked; the weekly Security-Audit
   now passes.
+- **Re-locked vendored EdgeProc dependencies** to match its declared floors
+  (`faiss-cpu` 1.14.3, `rank-bm25` 0.2.2, and the sibling `pgvector` floor),
+  keeping the exact AlmaMesh gate reproducible.
 
 ## [0.4.0] - 2026-07-11
 

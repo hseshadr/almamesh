@@ -303,4 +303,16 @@ describe('resetEverything', () => {
   it('resolves cleanly so the caller can then navigate', async () => {
     await expect(resetEverything()).resolves.toBeUndefined();
   });
+
+  it('does not crash when an SSR host exposes a partial localStorage shell', async () => {
+    vi.stubGlobal('localStorage', {});
+    await expect(
+      resetEverything({
+        waitForHydration: () => Promise.resolve(),
+        clearPersisted: () => Promise.resolve(),
+        beginDatasetReset: () => Promise.resolve(1),
+        finalizeDatasetReset: () => Promise.resolve(),
+      }),
+    ).resolves.toBeUndefined();
+  });
 });
