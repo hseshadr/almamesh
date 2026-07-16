@@ -70,6 +70,19 @@ echo "==> Signing the production bundle into ${ORIGIN_DIR}"
     --version "${BUNDLE_VERSION}" --sequence "${BUNDLE_SEQUENCE}" --offline \
     --almamesh-wheel "${WHEEL}" )
 
+# Authenticate the candidate pointer and, in CI, compare it with the durable
+# release counter in the live signed /bundle/latest pointer. A true retry of
+# the exact same pointer is idempotent; rollback and equal-sequence forks fail.
+RELEASE_GUARD_ARGS=(
+  --candidate "${ORIGIN_DIR}/latest"
+  --public-key "${KEYS_DIR}/public.key"
+)
+if [[ -n "${BUNDLE_LIVE_URL:-}" ]]; then
+  RELEASE_GUARD_ARGS+=(--live-url "${BUNDLE_LIVE_URL}")
+fi
+echo "==> Verifying signed bundle release preflight"
+( cd "${BACKEND_DIR}" && uv run python -m almamesh.edge.release_guard "${RELEASE_GUARD_ARGS[@]}" )
+
 # --- 3. Swap the production bundle + pinned public key into public/ ------------
 echo "==> Publishing production bundle + public.key into ${PUBLIC_DIR}"
 rm -rf "${PUBLIC_DIR}/bundle"

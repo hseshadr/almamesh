@@ -93,6 +93,13 @@ describe('repository truth', () => {
     expect(build).toContain('BUNDLE_SEQUENCE');
     expect(build).toContain('rev-list --count HEAD');
     expect(build).toContain('--sequence "${BUNDLE_SEQUENCE}"');
+    expect(build).toContain('almamesh.edge.release_guard');
+    expect(build).toContain('BUNDLE_LIVE_URL');
+    expect(readRoot('.github/workflows/deploy.yml')).toContain(
+      'BUNDLE_LIVE_URL: https://almamesh.com/bundle/latest',
+    );
+    expect(readRoot('.github/workflows/deploy.yml')).toContain('Verify exact live bundle identity');
+    expect(readRoot('.github/workflows/deploy.yml')).toContain('EXPECTED_BUNDLE_IDENTITY');
   });
 
   it('records the complete PR 62 artifact and provenance behavior', () => {
