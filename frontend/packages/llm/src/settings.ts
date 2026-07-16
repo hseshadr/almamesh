@@ -89,14 +89,18 @@ export function describeLlmStatus(settings: LlmSettings = readLlmSettings()): Ll
 }
 
 function hasLocalStorage(): boolean {
-  if (typeof localStorage === "undefined") {
+  try {
+    if (typeof localStorage === "undefined") {
+      return false;
+    }
+    // Node/Bun SSR hosts can expose a partial `localStorage` global without the
+    // browser Storage methods. Treat that shell as unavailable instead of
+    // crashing prerender, tests, or command-line report generation.
+    const storage: Partial<Storage> = localStorage;
+    return typeof storage.getItem === "function" && typeof storage.setItem === "function";
+  } catch {
     return false;
   }
-  // Node/Bun SSR hosts can expose a partial `localStorage` global without the
-  // browser Storage methods. Treat that shell as unavailable instead of
-  // crashing prerender, tests, or command-line report generation.
-  const storage: Partial<Storage> = localStorage;
-  return typeof storage.getItem === "function" && typeof storage.setItem === "function";
 }
 
 /**
