@@ -586,12 +586,15 @@ async function driveRealOnboarding(page: Page): Promise<void> {
   await fillTimePicker(page, 'birth-time-input');
   await advanceStep(page, () => page.getByTestId('life-events-input'));
 
-  // Step 5 — life events: skip ("Skip for now" since the #44 warm-invitation
-  // reframe) -> generate the chart. The testid is copy/locale-proof — the same
-  // locator scripts/verify-real-onboarding.mjs uses.
-  const skip = page.getByTestId('skip-life-events-button');
-  await skip.waitFor({ state: 'visible', timeout: 15_000 });
-  await skip.click();
+  // Step 5 — turn a real free-form narrative into two typed rows with the
+  // deterministic, zero-egress fallback. This is the exact first-run path used
+  // when no AI provider has been configured.
+  await page
+    .getByTestId('life-events-input')
+    .fill('I got married in 2015. I changed careers in 2020.');
+  await page.getByTestId('extract-events-button').click();
+  await expect(page.getByText(/got married in 2015/i)).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText(/changed careers in 2020/i)).toBeVisible();
 
   // The generating screen now WAITS for the ~38MB engine bootstrap, then
   // navigates to /dashboard. Be patient (cold Pyodide boot + OPFS bundle sync).

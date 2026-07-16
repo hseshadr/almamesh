@@ -1,0 +1,49 @@
+/**
+ * Production diagnostics that remain useful without exposing user or provider data.
+ * Raw causes are accepted at this boundary but are intentionally never formatted,
+ * serialized, or sent to the console.
+ */
+export const SAFE_DIAGNOSTIC_CODES = [
+  'app.typed_error',
+  'backup.memory_rebuild_deferred',
+  'cache.query_not_found',
+  'chat.stream_failed',
+  'dashboard.chart_fetch_failed',
+  'dashboard.interpretation_failed',
+  'engine.prewarm_failed',
+  'engine.warming',
+  'error_boundary.caught',
+  'feedback.storage_binding_missing',
+  'feedback.storage_write_failed',
+  'feedback.turnstile_init_failed',
+  'geo.city_lookup_failed',
+  'geo.online_lookup_failed',
+  'interpretation.stream_failed',
+  'lifecycle.memory_drain_failed',
+  'lifecycle.remote_deletion_failed',
+  'memory.index_failed',
+  'memory.retrieve_failed',
+  'memory.search_failed',
+  'onboarding.progress_save_failed',
+  'onboarding.save_failed',
+  'people.add_failed',
+  'provider.connection_test_failed',
+  'provider.credits_failed',
+  'provider.disable_failed',
+  'provider.models_failed',
+  'provider.settings_save_failed',
+  'report.pdf_generation_failed',
+  'stream.invalid_event',
+  'sw.heal_failed',
+  'sw.shell_cleanup_failed',
+] as const;
+
+export type SafeDiagnosticCode = (typeof SAFE_DIAGNOSTIC_CODES)[number];
+
+export function safeError(code: SafeDiagnosticCode, _cause?: unknown): void {
+  console.error(`[almamesh:error:${code}]`);
+}
+
+export function safeWarn(code: SafeDiagnosticCode, _cause?: unknown): void {
+  console.warn(`[almamesh:warn:${code}]`);
+}

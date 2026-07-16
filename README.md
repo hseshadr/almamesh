@@ -9,8 +9,8 @@ charts** and a **live 3D planetary force-field** of the sky at your birth
 moment. **Your chart is pure calculation — no AI touches it by default.** AI
 interpretation and chat are strictly opt-in and **bring-your-own**: a one-click
 **OpenRouter** preset, or any **OpenAI-compatible endpoint** (including a local
-**Ollama**). Your key lives only in this browser, and the chart is PII-redacted
-before any prompt. No account, no server, no data harvesting. Install it as a
+**Ollama**). Your key lives only in this browser, and chart-derived AI prompts
+are PII-redacted. No account, no data harvesting. Install it as a
 PWA and it works offline after the first load.
 
 **▶ Try it live: [almamesh.com](https://almamesh.com)** — no install, no sign-up.
@@ -34,7 +34,8 @@ PWA and it works offline after the first load.
   rename / delete), deterministic (same input, same file every time) **PDF export**, optional AI interpretation + chat, the **mesh** (relationship
   readings between people) and the **Sky & Timing** predictive layer, and
   PWA/offline delivery all work today — see [Status](#status). There is **no
-  backend**: the Python side is a build-time bundle publisher plus the engine.
+  account or chart-data backend**: Python is a build-time bundle publisher plus
+  the engine; the optional feedback form is the isolated server touchpoint.
 
 ## Under the hood
 
@@ -61,10 +62,12 @@ PWA and it works offline after the first load.
   **OpenAI-compatible endpoint** you bring: a one-click **OpenRouter** preset for
   stronger models, or a local **Ollama**-style endpoint. Your API key lives only
   in the browser and is never bundled; saving runs a real **connectivity test**
-  so a bad key or model is reported immediately, not silently. The chart is
-  **PII-redacted** before any prompt, and `local_only` is **fail-closed** (a
-  cloud host is refused under the privacy gate). AI is **never required to draw a
-  chart**.
+  so a bad key or model is reported immediately, not silently. Chart-derived
+  prompts are **PII-redacted**. If you explicitly ask AI to organize a free-form
+  life-event narrative, that narrative is sent as written after an in-product
+  disclosure; birth details and the chart are not attached. `local_only` is
+  **fail-closed** (a cloud host is refused under the privacy gate). AI is **never
+  required to draw a chart**.
 - **D9 Navamsa divisional chart** — the engine computes the Navamsa (D9) and it
   renders alongside the rasi (D1) in both kundli styles (and in the print report).
   Reshaped by the same pure store adapter; the astrology stays in Python.
@@ -89,7 +92,9 @@ PWA and it works offline after the first load.
   same zero-egress, byte-identical determinism as the natal chart.
 - **Named profiles** — multiple people share one device with **no passwords**;
   each profile owns its own saved charts, switchable from the header. Profiles
-  can be renamed and deleted (deleting one cascade-removes its charts).
+  can be renamed and deleted. Deletion is generation-fenced across tabs and
+  cascade-removes that profile's charts, life events, chat, saved readings, and
+  derived search vectors without letting a stale tab resurrect them.
 - **Birth-time rectification** — set a rectified birth time and a confidence
   level per profile in Settings; the rectified instant recomputes the chart.
 - **PDF export** — once a chart exists, the deterministic report is available without AI:
@@ -97,6 +102,8 @@ PWA and it works offline after the first load.
   strength, and rectification sections. The dashboard shortcut remains tied to a
   completed reading; optional AI-written sections appear only when the stored
   interpretation provenance matches the current chart and predictive cache identity.
+  Free-form life histories are normalized into dated, categorized rows so long
+  narratives paginate as a readable evidence table instead of a prose blob.
 - **Languages (English / Spanish / Portuguese)** — the whole UI is
   internationalized with [react-i18next](https://react.i18next.com/). Switch language in **Settings →
   Preferences → Language**; the choice is persisted and `<html lang>` follows it.
@@ -106,19 +113,24 @@ PWA and it works offline after the first load.
   with zero extra network requests** — no runtime translation fetch. English is
   authoritative; **es/pt are machine-translated** and tracked against it.
 
-> **The chart engine is zero-egress; exactly two things reach the network.**
-> Charts, geometry, and the force-field never touch the network after the first
-> bundle sync. There are exactly two deliberate outbound requests: (1) **birthplace
-> search** — the city name you type is sent to the Open-Meteo geocoding API to
-> resolve coordinates + timezone (online-primary, with an offline fallback to a
-> bundled city list; never your birth date, time, name, or chart), and (2) the
-> optional **AI** calls you opt into — to whichever OpenAI-compatible endpoint you
-> configure (OpenRouter, or a local Ollama-style endpoint that stays on your
-> machine). The AI prompt is PII-redacted, and `local_only` fail-closes against a
-> cloud host.
+## Runtime network and data flow
 
-That is an online-primary birthplace search with a bundled offline fallback;
-chart computation remains local and deterministic.
+The chart engine is zero-egress: chart computation remains local and
+deterministic. The complete browser network inventory is:
+
+| Trigger | Destination | Data sent | Explicitly not sent |
+|---|---|---|---|
+| First load, signed engine sync, PWA update | `almamesh.com` | Asset URLs, normal HTTP request metadata | Names, birth data, charts, life events |
+| Birthplace search while online | Open-Meteo geocoding | City text you type | Name, birth date/time, chart; an offline city-list fallback is bundled |
+| Optional interpretation or chat | Your configured OpenAI-compatible endpoint | PII-redacted chart facts and, for chat, the question you type | Profile name and birth date |
+| Optional life-event organization | Your configured OpenAI-compatible endpoint | The narrative you submit, as written, after the disclosure | Birth details and chart data |
+| OpenRouter model list or credit check in Settings | OpenRouter | API request plus the configured key; the credit response concerns that provider account | Chart, birth data, chat, life events |
+| Opening feedback when Turnstile is configured | Cloudflare Turnstile | Normal anti-bot request metadata and a challenge token | Chart and birth data |
+| Sending feedback | Same-origin `/api/feedback` | Page identifier, thumbs sentiment, optional message as written, Turnstile token | Chart and birth data unless the user puts them in the optional message |
+
+`local_only` fail-closes if a configured AI endpoint is not local. Production
+diagnostics emit allowlisted codes only—never raw prompts, narratives, provider
+errors, city text, chart data, or profile names.
 
 ## Building from source — prerequisites
 
@@ -242,7 +254,7 @@ Browser (the product) ─ installable PWA, offline after first load
 ├─ frontend/packages/llm         optional interpretation + chat, NO AI by default;
 │                                opt-in, BYO OpenAI-compatible endpoint (one-click
 │                                OpenRouter preset or a local Ollama); save runs a
-│                                connectivity test; PII-redacted, fail-closed
+│                                connectivity test; chart prompts PII-redacted, fail-closed
 │                                local_only; mesh narration is role-anonymized
 │                                (no names leave the device)
 ├─ frontend/packages/shared-types      UI-facing TypeScript contracts
@@ -308,7 +320,7 @@ the app tag.
 | Predictive layer ("Sky & Timing") | Transits/Gochara + Sade Sati, dasha depth (antar/pratyantar), Ashtakavarga + Shadbala, per-life-domain forecasts; `/predictive` route (incl. a Periods explorer + Road Ahead) + report sections VIII–XI | ✅ shipped |
 | The mesh (relational astrology) | Per-pair relationship read of two whole charts: Ashtakoota Guna Milan + Mangal screening (cited classical tables, partner edges only), chart overlay, daśā synchrony, significators; role-anonymized AI narration, read-only by construction; `/mesh` constellation + `/mesh/:memberId` edge view | ✅ shipped |
 | Members | People you add to your mesh, with typed relationships (spouse/partner/family/friend/…), each owning a full chart; persisted with a versioned migration; managed in Settings → People | ✅ shipped |
-| AI interpretation + chat | Off by default (pure calculation); opt-in BYO OpenAI-compatible endpoint (one-click OpenRouter preset or a local Ollama); saving runs a connectivity test so a bad key/model is reported immediately; PII-redacted, fail-closed | ✅ shipped |
+| AI interpretation + chat | Off by default (pure calculation); opt-in BYO OpenAI-compatible endpoint (one-click OpenRouter preset or a local Ollama); saving runs a connectivity test so a bad key/model is reported immediately; chart prompts are PII-redacted and life-event prose is disclosed separately; fail-closed | ✅ shipped |
 | PDF export | Deterministic report available after a chart exists (cover + D1/D9 + daśā + predictive sections VIII–XI + Birth Time Authority §XII); AI-written sections require current, provenance-matched interpretation | ✅ shipped |
 | Birth-time rectification | Per-profile rectified time + confidence in Settings; recomputes the chart | ✅ shipped |
 | Named profiles | Multiple password-less people per device, each owning its charts; rename + delete (chart cascade) | ✅ shipped |
@@ -316,8 +328,10 @@ the app tag.
 | Internationalization | English / Spanish / Portuguese; react-i18next, offline bundled catalogs (zero-egress), persisted language + `<html lang>` sync, AI answers in-language; en authoritative, es/pt machine-translated | ✅ shipped |
 | PWA delivery | Service worker + offline reboot + provenance footer | ✅ shipped |
 
-The SaaS backend (FastAPI server, Postgres, Redis, Supabase auth) has been
-**removed** — AlmaMesh no longer runs a server. See [`CHANGELOG.md`](CHANGELOG.md).
+The old SaaS backend (FastAPI, Postgres, Redis, Supabase auth) has been
+**removed**. AlmaMesh has no account or chart-data API; only the optional
+same-origin feedback function stores the disclosed anonymous feedback record.
+See [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Development
 

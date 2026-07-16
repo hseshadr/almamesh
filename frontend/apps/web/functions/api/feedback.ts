@@ -3,9 +3,9 @@
 /**
  * POST /api/feedback — anonymous product-feedback collector.
  *
- * This is the ONE deliberate, isolated, NON-PERSONAL server touchpoint in an
- * otherwise zero-egress, local-first app. It records an anonymous "is this
- * valuable?" signal plus an optional "what's missing?" free-text suggestion.
+ * This is the isolated same-origin feedback touchpoint listed in the README
+ * network/data-flow inventory. It records an anonymous "is this valuable?"
+ * signal plus an optional "what's missing?" free-text suggestion.
  *
  * It stores ONLY: created_at, the page slug, a sentiment ('up'|'down'|null),
  * the optional free-text message, and an optional coarse app_version. It NEVER
@@ -18,6 +18,8 @@
  *   - env.TURNSTILE_SECRET: Turnstile secret key (Production). When absent
  *                           (local dev) Turnstile verification is skipped.
  */
+
+import { safeError } from '@almamesh/shared-types';
 
 interface Env {
   DB?: D1Database;
@@ -138,7 +140,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   // 4. Persist to D1. A missing binding is a deploy-config error, not user error.
   if (!env.DB) {
-    console.error('[feedback] D1 binding "DB" is not configured — see docs/feedback-setup.md');
+    safeError('feedback.storage_binding_missing');
     return json(500, { ok: false, error: 'storage_unavailable' });
   }
 
@@ -149,7 +151,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       .bind(new Date().toISOString(), result.page, result.sentiment, result.message, result.appVersion)
       .run();
   } catch (err) {
-    console.error('[feedback] D1 insert failed:', err);
+    safeError('feedback.storage_write_failed', err);
     return json(500, { ok: false, error: 'storage_error' });
   }
 

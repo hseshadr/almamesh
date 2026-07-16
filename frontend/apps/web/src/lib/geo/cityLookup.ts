@@ -2,9 +2,8 @@
  * City lookup for birthplace entry.
  *
  * `searchCities` is ONLINE-PRIMARY: it queries the Open-Meteo geocoding API
- * (see onlineGeocoder.ts) — a deliberate, owner-approved network egress, one of
- * exactly two things AlmaMesh sends over the network (the other is the optional
- * AI). Only the typed city string leaves the device. When the network is
+ * (see onlineGeocoder.ts) — a deliberate, owner-approved network egress.
+ * Only the typed city string leaves the device. When the network is
  * unreachable (or the browser is offline) it FALLS BACK to `searchCitiesOffline`,
  * which resolves a typed city to { latitude, longitude, timezone (IANA) }
  * entirely from bundled data — so birthplace search still works offline:
@@ -18,6 +17,7 @@
  * so every search result carries one.
  */
 import tzlookup from 'tz-lookup';
+import { safeWarn } from '@almamesh/shared-types';
 
 import { geocodeCitiesOnline } from './onlineGeocoder';
 
@@ -243,7 +243,7 @@ export async function searchCities(
       // list. Surface it in dev (this app is zero-egress, no telemetry) so a
       // systemic Open-Meteo outage isn't an invisible silent degradation.
       if (import.meta.env.DEV) {
-        console.warn('city geocode online failed; falling back to the offline list', err);
+        safeWarn('geo.online_lookup_failed', err);
       }
     }
   }

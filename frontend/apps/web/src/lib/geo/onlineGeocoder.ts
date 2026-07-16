@@ -2,9 +2,8 @@
  * Online city geocoding via Open-Meteo's free, keyless, CORS-enabled Geocoding
  * API (https://open-meteo.com/en/docs/geocoding-api).
  *
- * This is a DELIBERATE, owner-approved network egress: birthplace search is one
- * of exactly two things AlmaMesh sends over the network (the other is the
- * optional AI). Only the typed city string leaves the device — never the birth
+ * This is a DELIBERATE, owner-approved network egress recorded in the README's
+ * network/data-flow inventory. Only the typed city string leaves the device — never the birth
  * date/time or the computed chart. The offline `cities.min.json` list remains as
  * a fallback (see `searchCities` in cityLookup.ts) so search still works offline.
  *

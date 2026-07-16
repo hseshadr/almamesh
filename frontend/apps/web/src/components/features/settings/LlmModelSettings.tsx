@@ -17,6 +17,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { safeError } from '@almamesh/shared-types';
 import {
   CHAT_CLOUD_MODEL,
   describeLlmStatus,
@@ -137,7 +138,7 @@ export default function LlmModelSettings({
         if (controller.signal.aborted) return;
         // Never swallow: the balance is a nice-to-have, so we degrade to a muted
         // "unavailable" line, but the reason lands in the console for diagnosis.
-        console.error('[ai-settings] could not read OpenRouter credits:', err);
+        safeError('provider.credits_failed', err);
         setCredits({ phase: 'error' });
       });
   }, [fetchCredits, resolveConfig]);
@@ -181,7 +182,7 @@ export default function LlmModelSettings({
         if (controller.signal.aborted) return;
         // Never swallow: the picker is a nice-to-have, so we degrade to plain
         // free-text entry (the combobox with no options), but log the reason.
-        console.error('[ai-settings] could not read OpenRouter models:', err);
+        safeError('provider.models_failed', err);
         setModels({ phase: 'error' });
       });
   }, [fetchModels, modelsConfig]);
@@ -229,7 +230,7 @@ export default function LlmModelSettings({
       // The localStorage write can throw (quota / private mode). Surface it in
       // the console and bail rather than crash the click handler; the badge
       // stays "on" so the user can retry, never a swallowed no-op.
-      console.error('[ai-settings] could not turn AI off (storage write failed):', err);
+      safeError('provider.disable_failed', err);
       return;
     }
     setSettings(readLlmSettings());
@@ -253,7 +254,7 @@ export default function LlmModelSettings({
       // A localStorage write can throw (quota exceeded, Safari private mode) —
       // that's a silent Save no-op unless we surface it. Don't probe a config we
       // couldn't persist.
-      console.error('[ai-settings] could not save settings:', err);
+      safeError('provider.settings_save_failed', err);
       setConn({ phase: 'error', source, kind: 'storage' });
       return;
     }
@@ -275,7 +276,7 @@ export default function LlmModelSettings({
         return;
       }
       // Never swallow — the specific verdict below is all the user sees.
-      console.error('[ai-settings] connection test failed:', err);
+      safeError('provider.connection_test_failed', err);
       const kind = classifyConnectionError(err);
       // When the failure is otherwise unclassifiable (a 400/429/5xx, e.g. a model
       // rejecting a request param), surface the PROVIDER'S OWN reason so the user

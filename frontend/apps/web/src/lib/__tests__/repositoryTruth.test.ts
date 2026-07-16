@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -12,6 +12,13 @@ const readSection = (document: string, heading: string): string => {
   const end = document.indexOf('\n## ', start + heading.length);
   return document.slice(start, end < 0 ? undefined : end);
 };
+
+const sourceFiles = (directory: string): string[] =>
+  readdirSync(directory).flatMap((entry) => {
+    const path = resolve(directory, entry);
+    if (entry === '__tests__' || entry.includes('.test.') || entry.includes('.spec.')) return [];
+    return statSync(path).isDirectory() ? sourceFiles(path) : /\.[cm]?[jt]sx?$/.test(entry) ? [path] : [];
+  });
 
 describe('repository truth', () => {
   it('prints architecture paths that exist exactly as written', () => {
@@ -36,10 +43,49 @@ describe('repository truth', () => {
   it('describes PDF and network behavior without contradictions', () => {
     const readme = readRoot('README.md');
     expect(readme).toContain('deterministic report is available without AI');
-    expect(readme).toContain('online-primary birthplace search with a bundled offline fallback');
-    expect(readme).toContain('chart computation remains local and deterministic');
+    expect(readme).toContain('| Birthplace search while online | Open-Meteo geocoding |');
+    expect(readme).toContain('an offline city-list fallback is bundled');
+    expect(readme).toMatch(/chart computation remains local and\s+deterministic/);
     expect(readme).not.toContain('It stays disabled until a real interpretation has completed');
     expect(readme).not.toContain('birth location with zero network');
+    expect(readme).not.toMatch(/exactly two (?:runtime )?(?:egresses|network|outbound)/i);
+  });
+
+  it('maps every shipped runtime egress surface to the README data-flow table', () => {
+    const network = readSection(readRoot('README.md'), '## Runtime network and data flow');
+    const evidence = [
+      ['frontend/apps/web/src/lib/geo/onlineGeocoder.ts', 'geocoding-api.open-meteo.com', 'Open-Meteo'],
+      ['frontend/packages/llm/src/client.ts', '/chat/completions', 'configured OpenAI-compatible endpoint'],
+      ['frontend/packages/llm/src/client.ts', '/models', 'model list'],
+      ['frontend/packages/llm/src/client.ts', '/credits', 'credit check'],
+      ['frontend/apps/web/src/components/features/feedback/FeedbackWidget.tsx', 'challenges.cloudflare.com', 'Cloudflare Turnstile'],
+      ['frontend/apps/web/src/lib/submitFeedback.ts', '/api/feedback', '/api/feedback'],
+    ] as const;
+    for (const [path, implementationNeedle, documentationNeedle] of evidence) {
+      expect(readRoot(path), path).toContain(implementationNeedle);
+      expect(network, documentationNeedle).toContain(documentationNeedle);
+    }
+    for (const privateBoundary of [
+      'narrative you submit, as written',
+      'optional message as written',
+      'allowlisted codes only',
+    ]) expect(network).toContain(privateBoundary);
+  });
+
+  it('routes production warnings and errors through the code-only diagnostic boundary', () => {
+    const roots = [
+      'frontend/apps/web/src',
+      'frontend/apps/web/functions',
+      'frontend/packages/browser/src',
+      'frontend/packages/llm/src',
+      'frontend/packages/memory/src',
+      'frontend/packages/store/src',
+    ].flatMap((path) => sourceFiles(resolve(root, path)));
+    const violations = roots.filter((path) => {
+      if (path.endsWith('/safeDiagnostics.ts')) return false;
+      return /\bconsole\.(?:error|warn)\s*\(/.test(readFileSync(path, 'utf8'));
+    });
+    expect(violations.map((path) => path.replace(`${root}/`, ''))).toEqual([]);
   });
 
   it('records the complete PR 62 artifact and provenance behavior', () => {

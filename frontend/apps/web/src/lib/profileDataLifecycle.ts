@@ -24,6 +24,7 @@ import {
   useRectificationRecordsStore,
   type DeletionTombstoneAdditions,
 } from '@almamesh/store';
+import { safeError, safeWarn } from '@almamesh/shared-types';
 import type { IndexableMessage } from '@almamesh/memory';
 
 import {
@@ -223,7 +224,7 @@ export async function deleteProfileData(
     try {
       await withinDerivedMemoryDeleteSla(deps.deleteMemoryForProfile(profileId));
     } catch {
-      console.warn('Derived chat memory could not be drained before source deletion.');
+      safeWarn('lifecycle.memory_drain_failed');
     }
     assertDeletableProfile(profileId);
     useLifeEventsStore.getState().clearEvents(profileId);
@@ -269,7 +270,7 @@ export async function deleteChatThreadData(
     try {
       await withinDerivedMemoryDeleteSla(deps.deleteMemoryForThread(threadId));
     } catch {
-      console.warn('Derived chat memory could not be drained before source deletion.');
+      safeWarn('lifecycle.memory_drain_failed');
     }
     useChatStore.getState().deleteThread(threadId);
     await persistChatDeletion();
@@ -395,7 +396,7 @@ export async function applyRemoteDeletionNotice(
       try {
         await withinDerivedMemoryDeleteSla(deps.deleteMemoryForThread(notice.threadId));
       } catch {
-        console.warn('Derived chat memory could not be drained in this realm.');
+        safeWarn('lifecycle.memory_drain_failed');
       }
       useChatStore.getState().deleteThread(notice.threadId);
       await persistChatDeletion();
@@ -405,7 +406,7 @@ export async function applyRemoteDeletionNotice(
     try {
       await withinDerivedMemoryDeleteSla(deps.deleteMemoryForProfile(notice.profileId));
     } catch {
-      console.warn('Derived chat memory could not be drained in this realm.');
+      safeWarn('lifecycle.memory_drain_failed');
     }
     purgeLocalProfile(notice.profileId, notice.chartIds);
     await persistProfileDeletion();
@@ -413,7 +414,7 @@ export async function applyRemoteDeletionNotice(
 }
 
 function reportRemoteDeletionError(): void {
-  console.error('Cross-realm data deletion could not be applied.');
+  safeError('lifecycle.remote_deletion_failed');
 }
 
 async function reconcileDurableDeletionLedger(): Promise<void> {

@@ -320,9 +320,7 @@ describe('deleteProfileData', () => {
 
     expect(useProfilesStore.getState().profiles[target]).toBeUndefined();
     expect(useLifeEventsStore.getState().getEvents(target)).toHaveLength(0);
-    expect(warn).toHaveBeenCalledWith(
-      'Derived chat memory could not be drained before source deletion.',
-    );
+    expect(warn).toHaveBeenCalledWith('[almamesh:warn:lifecycle.memory_drain_failed]');
   });
 
   it('finishes source deletion within 10 seconds when derived-vector draining hangs', async () => {

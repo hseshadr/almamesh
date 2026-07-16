@@ -138,7 +138,7 @@
     "title": "Modelo de IA",
     "description": "La IA está desactivada por defecto — tu carta es puro cálculo. Actívala con una clave gratuita de OpenRouter para interpretaciones escritas y chat. Tu clave vive solo en este navegador, y la IA nunca es necesaria para trazar una carta.",
     "info_title": "El motor de la carta nunca usa la red",
-    "info_description": "Por defecto no hay IA configurada: tu carta es puro cálculo y nunca sale de tu dispositivo. Si conectas una IA, solo la narración y el chat opcionales la usan — y solo se envía una carta sin datos personales (sin nombre, sin fecha de nacimiento) al proveedor que elijas.",
+    "info_description": "Por defecto no hay IA configurada: tu carta es puro cálculo y nunca sale de tu dispositivo. Si conectas una IA, pueden usarla la narración, el chat y la organización de eventos vitales opcionales. Las solicitudes de la carta no incluyen nombre ni fecha de nacimiento; el relato vital se envía tal cual solo después de su aviso específico.",
     "step1_title": "1. Crea una clave de API gratuita",
     "step1_body": "OpenRouter te da un único endpoint con cientos de modelos. Regístrate y crea una clave — toma un minuto.",
     "step1_link": "Consigue una clave en openrouter.ai/keys",
@@ -150,7 +150,7 @@
     "error_auth": "Clave de API rechazada. Comprueba que pegaste correctamente tu clave de OpenRouter.",
     "error_model": "Ese modelo no está disponible. Revisa el id del modelo en Avanzado.",
     "error_credits": "La cuenta de tu proveedor no tiene créditos. Añade créditos e inténtalo de nuevo.",
-    "error_privacy": "Este endpoint no es local. Marca «Permitir un endpoint en la nube» en Avanzado para enviar la carta sin datos personales fuera del dispositivo.",
+    "error_privacy": "Este endpoint no es local. Marca «Permitir un endpoint en la nube» en Avanzado antes de enviar contenido opcional de IA fuera del dispositivo.",
     "error_network": "No se pudo contactar con el endpoint. Comprueba la URL y tu conexión a internet.",
     "error_unknown": "No se pudo conectar. Revisa tus ajustes e inténtalo de nuevo.",
     "error_rate_limited": "El proveedor está limitando las solicitudes. Espera un momento e inténtalo de nuevo.",
@@ -164,9 +164,9 @@
     "credits_note": "OpenRouter cobra créditos prepago en dólares estadounidenses, no en tokens.",
     "advanced_hint": "Introduce un endpoint arriba para activarlo.",
     "advanced_summary": "Avanzado: usa un endpoint personalizado compatible con OpenAI",
-    "advanced_body": "Apunta AlmaMesh a cualquier endpoint compatible con OpenAI — un modelo local (p. ej. Ollama) u otro proveedor. Solo se envía una carta sin datos personales.",
+    "advanced_body": "Apunta AlmaMesh a cualquier endpoint compatible con OpenAI — un modelo local (p. ej. Ollama) u otro proveedor. Las solicitudes de la carta no incluyen datos personales. El relato vital se envía tal cual solo cuando lo envías después del aviso.",
     "endpoint_label": "Endpoint (compatible con OpenAI)",
-    "allow_cloud_label": "Permitir un endpoint en la nube (envía la carta sin datos personales fuera del dispositivo)",
+    "allow_cloud_label": "Permitir un endpoint en la nube para contenido opcional de IA",
     "api_key_label": "Clave de API (guardada solo en este navegador)",
     "privacy_warning": "El modo de privacidad es solo local, pero el endpoint no es local — la conexión se rechazará hasta que uses un endpoint local o permitas un endpoint en la nube arriba."
   },
@@ -187,7 +187,7 @@
     "none_button": "Desactivar la IA",
     "active_badge": "Activo",
     "cloud_title": "Conectar IA",
-    "cloud_body": "Añade interpretaciones escritas y chat con una clave de OpenRouter (recomendado) o cualquier endpoint compatible con OpenAI. Solo una carta sin datos personales sale de tu dispositivo."
+    "cloud_body": "Añade interpretaciones escritas y chat con una clave de OpenRouter (recomendado) o cualquier endpoint compatible con OpenAI. Las solicitudes basadas en la carta no incluyen datos personales antes de salir de tu dispositivo. Si usas IA para organizar eventos vitales, el relato que escribas se envía tal cual después del aviso; no se adjuntan tus datos de nacimiento ni la carta."
   },
   "preferences": {
     "title": "Preferencias",

@@ -463,7 +463,7 @@ describe('commitBackupImport (full round-trip)', () => {
     ).resolves.toBeUndefined();
 
     expect(completeMemoryRebuild).not.toHaveBeenCalled();
-    expect(warn).toHaveBeenCalledWith('Restored chat search will rebuild on the next app load.');
+    expect(warn).toHaveBeenCalledWith('[almamesh:warn:backup.memory_rebuild_deferred]');
     expect(publishDatasetNotice).toHaveBeenLastCalledWith(
       expect.objectContaining({ kind: 'dataset', phase: 'complete' }),
     );

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { safeError } from '@almamesh/shared-types';
 import { searchCities, timezoneForCoordinates, type CityMatch } from '../../lib/geo/cityLookup';
 
 export interface LocationResult {
@@ -111,7 +112,7 @@ export function LocationSearch({
                 setSelectedIndex(-1);
             } catch (error) {
                 if (signal?.aborted) return; // an aborted search is expected, not a failure
-                console.error('City lookup failed:', error);
+                safeError('geo.city_lookup_failed', error);
                 setResults([]);
             } finally {
                 if (!signal?.aborted) setIsLoading(false);

@@ -8,6 +8,7 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
+import { safeError } from '@almamesh/shared-types';
 
 import { Button, cn } from '../../ui';
 import {
@@ -201,7 +202,7 @@ export function FeedbackWidget({ page, className, cooldownMs = DEFAULT_COOLDOWN_
       .catch((err) => {
         // A synchronous render() throw (or a load hiccup) must not become an
         // unhandled rejection; degrade to no-token (Turnstile fails soft).
-        console.error('[feedback] Turnstile init failed:', err);
+        safeError('feedback.turnstile_init_failed', err);
         setTurnstileToken(null);
       });
     return () => {

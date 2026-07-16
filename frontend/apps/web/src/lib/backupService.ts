@@ -35,6 +35,7 @@ import {
   type BackupDeps,
   type StorageTier,
 } from '@almamesh/store';
+import { safeWarn } from '@almamesh/shared-types';
 import type { BackupEnvelope, BackupEnvelopePlain } from '@almamesh/shared-types';
 import type { IndexableMessage } from '@almamesh/memory';
 import { clearMemory, rebuildMemory } from './chatMemory';
@@ -309,7 +310,7 @@ export async function commitBackupImport(
     await (override?.completeMemoryRebuild ??
       (browserEffects ? clearMemoryRebuildPending : async () => undefined))(epoch);
   } catch {
-    console.warn('Restored chat search will rebuild on the next app load.');
+    safeWarn('backup.memory_rebuild_deferred');
   }
   publish({ kind: 'dataset', operation: 'replace', phase: 'complete', presentStoreKeys });
 }

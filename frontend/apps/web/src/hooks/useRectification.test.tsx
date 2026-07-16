@@ -505,7 +505,7 @@ describe('useRectification — engine warming + recovery', () => {
       });
       renderHook(() => useRectification(PROFILE_ID), { wrapper: makeWrapper(ctx) });
       await waitFor(() => expect(warnSpy).toHaveBeenCalled());
-      expect(String(warnSpy.mock.calls[0]?.[0])).toContain('pre-warm');
+      expect(warnSpy).toHaveBeenCalledWith('[almamesh:warn:engine.prewarm_failed]');
     } finally {
       warnSpy.mockRestore();
     }

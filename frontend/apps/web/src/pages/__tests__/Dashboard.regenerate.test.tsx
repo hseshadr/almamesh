@@ -714,10 +714,7 @@ describe('Dashboard — regenerate reading', () => {
     expect(screen.getByTestId('reading-regen-error')).toBeTruthy();
     await settle();
     expect(mockedStream).toHaveBeenCalledTimes(1);
-    expect(errorSpy).toHaveBeenCalledWith(
-      '[interpretation] reading stream failed:',
-      expect.any(Error),
-    );
+    expect(errorSpy).toHaveBeenCalledWith('[almamesh:error:interpretation.stream_failed]');
     errorSpy.mockRestore();
   });
 

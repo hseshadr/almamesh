@@ -38,6 +38,7 @@ import {
   type InterpretationInputProvenance,
   type InterpretationStatus,
 } from '@almamesh/store';
+import { safeError } from '@almamesh/shared-types';
 import type { PredictiveContexts, SiderealChart } from '@almamesh/browser/types';
 import type { ProcessedBirthData, VedicInterpretation } from '@almamesh/shared-types';
 
@@ -295,13 +296,9 @@ function describeError(err: unknown): string {
     // (which endpoint was refused and why): show it verbatim.
     return err.message;
   }
-  // Every genuine failure past the by-design privacy sentinel above is logged raw
-  // (matching lib/errors.ts's contract) so a masked bug is never silently
-  // swallowed behind friendly copy. This is the developer breadcrumb; the
-  // classification below only decides what the USER sees. Logging to the dev
-  // console — never the returned string — keeps the endpoint-URL privacy fence
-  // intact.
-  console.error('[interpretation] reading stream failed:', err);
+  // Record only an allowlisted diagnostic code. Provider errors can contain
+  // endpoints or prompt-adjacent data and must never be serialized to console.
+  safeError('interpretation.stream_failed', err);
   // The reading surfaces a dead/typo'd model as a STABLE sentinel the dashboard
   // maps to its switch-model prompt (recommended-model button + AI settings
   // door). Every other failure shares the chat path's coded copy — the same

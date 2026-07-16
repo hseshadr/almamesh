@@ -7,7 +7,7 @@
  *   self-hosted MiniLM model) is created only on the FIRST index/retrieve call,
  *   NOT at page load, so opening the dashboard stays cheap.
  * - Every entry point is BEST-EFFORT: if the embedder fails (model missing, OOM,
- *   no GPU/WASM), we log and degrade gracefully. Memory is an enhancement —
+ *   no GPU/WASM), we log a stable code and degrade gracefully. Memory is an enhancement —
  *   it must NEVER block the chat from answering.
  *
  * The heavy `@huggingface/transformers` runtime lives only inside the embedder
@@ -23,6 +23,7 @@ import {
   type RetrievedChunk,
   type VectorStore,
 } from '@almamesh/memory';
+import { safeWarn } from '@almamesh/shared-types';
 
 /** The slice of `ChatMemory` the UI depends on — keeps tests honest + injectable. */
 export type ChatMemoryFacade = Pick<
@@ -135,7 +136,7 @@ export async function indexChatMessage(msg: IndexableMessage): Promise<void> {
   try {
     await getMemory().indexMessage(msg);
   } catch (error) {
-    console.warn('[chatMemory] indexMessage failed (continuing):', error);
+    safeWarn('memory.index_failed', error);
   }
 }
 
@@ -155,7 +156,7 @@ export async function retrieveContext(
     const chunks = await getMemory().retrieve(query, profileId);
     return chunks.map((c) => c.text);
   } catch (error) {
-    console.warn('[chatMemory] retrieveContext failed (degrading to none):', error);
+    safeWarn('memory.retrieve_failed', error);
     return [];
   }
 }
@@ -176,7 +177,7 @@ export async function searchMemory(
   try {
     return await getMemory().retrieve(query, profileId, k);
   } catch (error) {
-    console.warn('[chatMemory] searchMemory failed (degrading to none):', error);
+    safeWarn('memory.search_failed', error);
     return [];
   }
 }

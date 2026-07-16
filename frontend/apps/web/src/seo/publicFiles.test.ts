@@ -138,8 +138,14 @@ describe('Cloudflare Pages security headers', () => {
     expect(headers).toContain("script-src 'self' 'wasm-unsafe-eval' https://challenges.cloudflare.com");
     expect(headers).toContain("worker-src 'self' blob:");
     expect(headers).toContain("frame-src 'self' https://challenges.cloudflare.com");
-    expect(headers).toContain("connect-src 'self' https: http: ws: wss:");
+    expect(headers).toContain("connect-src 'self' https: http:");
+    expect(headers).not.toMatch(/connect-src[^\n]*\b(?:ws|wss):/);
     expect(headers).toContain("font-src 'self' data:");
+  });
+
+  it('does not expose the application shell through wildcard CORS', () => {
+    expect(catchAllBlock).toContain('! Access-Control-Allow-Origin');
+    expect(catchAllBlock).not.toMatch(/^\s*Access-Control-Allow-Origin:/m);
   });
 
   it('enforces HTTPS after first secure contact', () => {

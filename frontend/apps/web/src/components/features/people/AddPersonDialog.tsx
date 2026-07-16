@@ -13,6 +13,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { useProfilesStore } from '@almamesh/store';
+import { safeError } from '@almamesh/shared-types';
 import { MEMBER_RELATIONSHIPS, type MemberRelationship } from '@almamesh/shared-types';
 import { Button, Dialog, Input, Select } from '../../ui';
 
@@ -87,7 +88,7 @@ export function AddPersonDialog({ open, onClose }: AddPersonDialogProps): ReactE
     } catch (err) {
       // A store failure must never silently close the dialog or escape the
       // click handler: keep the typed entry, show a friendly retryable notice.
-      console.error('[AddPersonDialog] add person failed:', err);
+      safeError('people.add_failed', err);
       setSubmitError(t('people.add_failed'));
       return;
     }
