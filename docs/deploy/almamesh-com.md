@@ -67,8 +67,11 @@ bash apps/web/scripts/setup-dev-assets.sh     # pyodide dist + models + skyfield
 
 # 1. build the artifact — signs the bundle with backend/keys-prod, labels it
 #    with the latest git tag and a signed monotonic sequence derived from the
-#    commit count. BUNDLE_VERSION may override the label. BUNDLE_SEQUENCE is
-#    recovery-only and MUST be greater than the live verified pointer.
+#    commit count. Before copying anything into `dist/`, the script verifies the
+#    candidate pointer and (when `BUNDLE_LIVE_URL` is set in CI) compares its
+#    signed sequence to the live `/bundle/latest` pointer. BUNDLE_VERSION may
+#    override the label. BUNDLE_SEQUENCE is recovery-only and MUST be greater
+#    than the live verified pointer.
 #    The script then runs the real production build with exit-gate hooks off.
 bash apps/web/scripts/build-prod.sh
 
@@ -89,6 +92,13 @@ artifact directly: that would restore an older `/bundle/latest`, which existing
 clients reject while fresh clients could accept. To roll back behavior, rebuild
 the prior source/content as a **new** release with a sequence greater than the
 live pointer, verify it, and deploy that newly signed artifact.
+
+The live signed pointer is the durable release counter. CI authenticates both
+the candidate and live pointers with the production public key before upload;
+lower sequences and equal-sequence different manifests fail closed. An exact
+same-pointer retry is allowed, so a transient Pages failure can be retried
+without minting a new counter. A local build omits `BUNDLE_LIVE_URL` and still
+verifies the candidate's signature; production CI always sets it.
 
 ### CI variant (auto-deploy after CI, + manual GitHub Action)
 
