@@ -56,6 +56,10 @@ All notable changes to AlmaMesh are documented here. Format follows
   `localStorage` shells are treated as unavailable by LLM settings and reset
   paths; browser tests install a deterministic in-memory Web Storage substitute,
   while real browser storage remains unchanged.
+- **Compound life-event fallback extraction.** When AI is unavailable, dated
+  milestones in one sentence are split into independent typed rows instead of
+  collapsing onto the first detected category; the PDF can therefore render a
+  clean event table from ordinary prose.
 - **Deterministic report-PDF pagination (PR #63).** Report PDFs paginate the same
   way every time.
 - **Rectification gated on current previews (PR #64).** Save and programmatic

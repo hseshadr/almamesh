@@ -35,26 +35,43 @@ const CATEGORY_RULES: readonly CategoryRule[] = [
 
 const ISO_DATE = /\b((?:19|20)\d{2})-(0[1-9]|1[0-2])-([0-2]\d|3[01])\b/;
 const YEAR = /\b((?:19|20)\d{2})\b/;
+const DATE_TOKEN =
+  /\b(?:(?:19|20)\d{2}-(?:0[1-9]|1[0-2])-(?:[0-2]\d|3[01])|(?:19|20)\d{2})\b/g;
 
 function categoryOf(text: string): LifeEventCategory | undefined {
   const normalized = text.normalize('NFD').replace(/\p{Diacritic}/gu, '');
   return CATEGORY_RULES.find((rule) => rule.pattern.test(normalized))?.category;
 }
 
-function datedEvent(text: string): LifeEventInput | undefined {
-  const category = categoryOf(text);
-  const exact = ISO_DATE.exec(text);
-  const year = YEAR.exec(text);
-  if (!category || (!exact && !year)) return undefined;
-  const date = exact?.[0] ?? `${year?.[1]}-01-01`;
-  const summary = text.replace(/\s+/g, ' ').trim().slice(0, 120);
-  return {
-    description: summary,
-    summary,
-    date,
-    category,
-    precision: exact ? 'exact' : 'year',
-  };
+function datedEvents(text: string): readonly LifeEventInput[] {
+  const matches = [...text.matchAll(DATE_TOKEN)];
+  return matches.flatMap((match, index) => {
+    const token = match[0];
+    const tokenStart = match.index ?? 0;
+    const previous = matches[index - 1];
+    const start = previous ? (previous.index ?? 0) + previous[0].length : 0;
+    const next = matches[index + 1];
+    const nextStart = next?.index ?? text.length;
+    const beforeDate = text.slice(start, tokenStart).trim();
+    const afterDate = text.slice(tokenStart + token.length, nextStart).trim();
+    const beforeCategory = categoryOf(beforeDate);
+    const category = beforeCategory ?? categoryOf(afterDate);
+    const exact = ISO_DATE.test(token);
+    const year = YEAR.exec(token);
+    if (!category || (!exact && !year) || tokenStart < start) return [];
+    const date = exact ? token : `${year?.[1]}-01-01`;
+    const summary = `${beforeCategory ? beforeDate : token} ${beforeCategory ? token : afterDate}`
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 120);
+    return [{
+      description: summary,
+      summary,
+      date,
+      category,
+      precision: exact ? 'exact' : 'year',
+    }];
+  });
 }
 
 export function deterministicallyStructureNarrative(text: string): readonly LifeEventInput[] {
@@ -62,10 +79,7 @@ export function deterministicallyStructureNarrative(text: string): readonly Life
     .split(/(?:\r?\n)+|[.!?;]+/)
     .map((part) => part.trim())
     .filter(Boolean)
-    .flatMap((part) => {
-      const event = datedEvent(part);
-      return event ? [event] : [];
-    });
+    .flatMap((part) => datedEvents(part));
 }
 
 function typedRows(
