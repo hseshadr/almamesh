@@ -97,8 +97,9 @@ export async function geocodeCitiesOnline(
     const response = await fetch(`${ENDPOINT}?${params.toString()}`, {
       signal: controller.signal,
       headers: { accept: 'application/json' },
-      // Don't leak the app's Origin/Referer to the third-party geocoder — the
-      // only thing that should reach it is the typed city name (in the query).
+      // Don't leak the app's Origin/Referer to the third-party geocoder. The
+      // URL contains only the typed city name and benign query parameters;
+      // ordinary HTTPS/request metadata remains visible to the provider.
       referrerPolicy: 'no-referrer',
     });
     if (!response.ok) {

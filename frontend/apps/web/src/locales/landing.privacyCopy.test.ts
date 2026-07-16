@@ -17,8 +17,9 @@ import ptSettings from './pt/settings.json';
  * unqualified absolute like "Nothing leaves your browser" / "your data never
  * leaves your browser". Two features reach the network on the user's behalf:
  * the opt-in AI chat sends the user's typed questions to the configured
- * endpoint, and birthplace search sends the typed CITY NAME to a maps geocoder
- * (Open-Meteo). So we may NOT claim "birth data" as a whole stays local — the
+ * endpoint, and birthplace search sends the typed CITY NAME plus ordinary
+ * HTTPS/request metadata to a maps geocoder (Open-Meteo). So we may NOT claim
+ * "birth data" as a whole stays local — the
  * birthplace name is part of it. The only zero-egress guarantee we state is
  * scoped precisely to the BIRTH DATE, TIME, AND CHART (the chart engine makes no
  * network calls; the date/time and the computed chart never leave the device,

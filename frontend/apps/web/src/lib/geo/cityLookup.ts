@@ -3,8 +3,9 @@
  *
  * `searchCities` is ONLINE-PRIMARY: it queries the Open-Meteo geocoding API
  * (see onlineGeocoder.ts) — a deliberate, owner-approved network egress.
- * Only the typed city string leaves the device. When the network is
- * unreachable (or the browser is offline) it FALLS BACK to `searchCitiesOffline`,
+ * The typed city string and ordinary HTTPS/request metadata leave the device.
+ * When the network is unreachable (or the browser is offline) it FALLS BACK to
+ * `searchCitiesOffline`,
  * which resolves a typed city to { latitude, longitude, timezone (IANA) }
  * entirely from bundled data — so birthplace search still works offline:
  *

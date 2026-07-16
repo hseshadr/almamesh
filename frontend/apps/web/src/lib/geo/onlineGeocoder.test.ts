@@ -56,11 +56,13 @@ describe('geocodeCitiesOnline', () => {
     expect(url).toContain('format=json');
   });
 
-  it('privacy contract: the request carries ONLY the city name + benign params (no PII)', async () => {
+  it('privacy contract: the URL carries only the city name + benign params (no PII query fields)', async () => {
     const fetchMock = stubFetch({ results: [] });
     await geocodeCitiesOnline('Chennai', { language: 'en', limit: 8 });
     const url = new URL(String(fetchMock.mock.calls[0][0]));
-    // Exactly these four keys leave the device — never a birth date/time/coords/name field.
+    // Exactly these four query keys leave the device — never a birth date/time,
+    // coordinates, or profile-name field. Ordinary HTTPS/request metadata is
+    // visible to the provider separately from this URL contract.
     expect([...url.searchParams.keys()].sort()).toEqual(['count', 'format', 'language', 'name']);
     expect(url.searchParams.get('name')).toBe('Chennai');
   });
