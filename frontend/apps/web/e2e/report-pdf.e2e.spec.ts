@@ -395,6 +395,7 @@ async function seedSyntheticMaximalReport(page: Page): Promise<void> {
               sections: { current_sky: true },
               profileId: SYNTHETIC_PROFILE_ID,
               updatedAt: '2026-07-11T12:00:00Z',
+              inputProvenance: { predictiveRequestKey: requestKey },
               interpretation: {
                 summary: {
                   layman: 'A synthetic maximal-report reading.',
@@ -593,8 +594,9 @@ async function driveRealOnboarding(page: Page): Promise<void> {
     .getByTestId('life-events-input')
     .fill('I got married in 2015. I changed careers in 2020.');
   await page.getByTestId('extract-events-button').click();
-  await expect(page.getByText(/got married in 2015/i)).toBeVisible({ timeout: 10_000 });
-  await expect(page.getByText(/changed careers in 2020/i)).toBeVisible();
+  const capturedEvents = page.getByTestId('captured-life-events');
+  await expect(capturedEvents.getByText(/got married in 2015/i)).toBeVisible({ timeout: 10_000 });
+  await expect(capturedEvents.getByText(/changed careers in 2020/i)).toBeVisible();
 
   // The generating screen now WAITS for the ~38MB engine bootstrap, then
   // navigates to /dashboard. Be patient (cold Pyodide boot + OPFS bundle sync).

@@ -806,7 +806,7 @@ export default function OnboardingPage() {
 
             {/* Captured Events Display */}
             {extractedEvents.length > 0 && (
-              <div className="space-y-2">
+              <div className="space-y-2" data-testid="captured-life-events">
                 <p className="text-text-secondary text-sm">{t("life_events.saved_label")}</p>
                 <div className="flex flex-wrap gap-2">
                   {extractedEvents.map((event, index) => (
