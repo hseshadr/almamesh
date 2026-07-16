@@ -20,7 +20,7 @@ PWA and it works offline after the first load.
 ## Northstar status (verified 2026-07-16)
 
 **The shipped app is local-first by default, signed at the edge, and recoverable.**
-The current production build is commit `08d75db` (build `37f44149f5ca`). GitHub's
+At this verification, production reported commit `08d75db` (build `37f44149f5ca`). GitHub's
 hosted Test and deploy workflows passed for that exact commit. The live bundle
 pointer, immutable manifest bytes, SHA-256 hash, and Ed25519 signature were checked
 against the pinned public key; a fresh browser context imported a backup and restored
