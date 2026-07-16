@@ -143,7 +143,7 @@ def test_run_compares_the_candidate_with_the_verified_live_pointer(
 def test_fetch_pointer_adds_a_cache_buster(monkeypatch: pytest.MonkeyPatch) -> None:
     private_key, public_key = generate_keypair()
     pointer = _pointer(Ed25519Signer(private_key), sequence=2)
-    calls: list[str] = []
+    calls: list[tuple[str, dict[str, str]]] = []
 
     class Response:
         def __enter__(self) -> Response:
@@ -156,7 +156,7 @@ def test_fetch_pointer_adds_a_cache_buster(monkeypatch: pytest.MonkeyPatch) -> N
             return pointer.model_dump_json().encode()
 
     def fake_urlopen(request: object, *, timeout: int) -> Response:
-        calls.append(request.full_url)  # type: ignore[attr-defined]
+        calls.append((request.full_url, request.headers))  # type: ignore[attr-defined]
         assert timeout == 30
         return Response()
 
@@ -164,7 +164,16 @@ def test_fetch_pointer_adds_a_cache_buster(monkeypatch: pytest.MonkeyPatch) -> N
     fetched = release_guard._fetch_pointer("https://almamesh.com/bundle/latest")
 
     assert fetched == pointer
-    assert calls == ["https://almamesh.com/bundle/latest?release_guard=1"]
+    assert calls == [
+        (
+            "https://almamesh.com/bundle/latest?release_guard=1",
+            {
+                "Cache-control": "no-cache",
+                "User-agent": "AlmaMesh-ReleaseGuard/1.0",
+                "Accept": "application/json",
+            },
+        )
+    ]
 
 
 def test_live_preflight_requires_https_transport() -> None:
