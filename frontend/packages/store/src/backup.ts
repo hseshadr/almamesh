@@ -16,6 +16,7 @@
  */
 
 import { get as idbGet, set as idbSet, del as idbDel } from 'idb-keyval';
+import { safeWarn } from '@almamesh/shared-types';
 import type { BackupEnvelopePlain, BackupStoreSnapshot, BackupStores } from '@almamesh/shared-types';
 import { commitDatasetGeneration } from './deletionTombstones';
 
@@ -198,6 +199,28 @@ export async function applyBackup(envelope: BackupEnvelopePlain, deps: BackupDep
   ]);
 }
 
+/**
+ * Update the two synchronous browser mirrors after the authoritative IDB
+ * generation commits. They are routing/preferences conveniences, not source
+ * data. A quota or privacy-mode failure therefore reports `false` without
+ * turning a durable personal-data restore into a false failure.
+ */
+export async function applyLocalRestoreMirrors(
+  local: StorageTier,
+  languageSerialized: string | null,
+  hasCharts: boolean,
+): Promise<boolean> {
+  try {
+    if (languageSerialized === null) await local.del('almamesh-language');
+    else await local.set('almamesh-language', languageSerialized);
+    if (hasCharts) await local.set(CHART_FLAG_KEY, '1');
+    else await local.del(CHART_FLAG_KEY);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** Production Replace: commit every personal store and generation pointer atomically in IDB. */
 export async function applyBrowserBackupAtomically(
   envelope: BackupEnvelopePlain,
@@ -224,17 +247,16 @@ export async function applyBrowserBackupAtomically(
   });
 
   const language = envelope.stores['almamesh-language'];
-  if (language === undefined) {
-    await deps.tiers.local.del('almamesh-language');
-  } else {
-    await deps.tiers.local.set(
-      'almamesh-language',
-      JSON.stringify({ state: language.state, version: language.version }),
-    );
+  const mirrorsApplied = await applyLocalRestoreMirrors(
+    deps.tiers.local,
+    language === undefined
+      ? null
+      : JSON.stringify({ state: language.state, version: language.version }),
+    envelope.stores['almamesh-chart-library'] !== undefined,
+  );
+  if (!mirrorsApplied) {
+    safeWarn('backup.local_mirror_deferred');
   }
-  const hasCharts = envelope.stores['almamesh-chart-library'] !== undefined;
-  if (hasCharts) await deps.tiers.local.set(CHART_FLAG_KEY, '1');
-  else await deps.tiers.local.del(CHART_FLAG_KEY);
 }
 
 /**

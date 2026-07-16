@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { BackupEnvelopePlain, BackupStores } from '@almamesh/shared-types';
 import {
   applyBackup,
+  applyLocalRestoreMirrors,
   BACKUP_STORES,
   BackupError,
   CHART_FLAG_KEY,
@@ -432,5 +433,28 @@ describe('applyBackup', () => {
     });
     expect(idb.map.size).toBe(0);
     expect(local.map.size).toBe(0);
+  });
+});
+
+describe('applyLocalRestoreMirrors', () => {
+  it('reports a mirror failure without throwing after the authoritative IDB commit', async () => {
+    const local = makeTier();
+    local.set = async (key) => {
+      if (key === CHART_FLAG_KEY) throw new Error('localStorage quota exceeded');
+    };
+
+    await expect(
+      applyLocalRestoreMirrors(local, persisted({ language: 'es' }, 1), true),
+    ).resolves.toBe(false);
+  });
+
+  it('applies language and chart mirrors when the optional tier is healthy', async () => {
+    const local = makeTier();
+
+    await expect(
+      applyLocalRestoreMirrors(local, persisted({ language: 'pt' }, 1), true),
+    ).resolves.toBe(true);
+    expect(local.map.get('almamesh-language')).toBe(persisted({ language: 'pt' }, 1));
+    expect(local.map.get(CHART_FLAG_KEY)).toBe('1');
   });
 });

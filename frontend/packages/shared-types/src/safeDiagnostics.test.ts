@@ -9,10 +9,10 @@ describe('privacy-safe diagnostics', () => {
     const secret = new Error('Asha private narrative sk-live-secret');
 
     safeError('feedback.turnstile_init_failed', secret);
-    safeWarn('geo.online_lookup_failed', secret);
+    safeWarn('backup.local_mirror_deferred', secret);
 
     expect(error).toHaveBeenCalledWith('[almamesh:error:feedback.turnstile_init_failed]');
-    expect(warn).toHaveBeenCalledWith('[almamesh:warn:geo.online_lookup_failed]');
+    expect(warn).toHaveBeenCalledWith('[almamesh:warn:backup.local_mirror_deferred]');
     expect(JSON.stringify([...error.mock.calls, ...warn.mock.calls])).not.toMatch(
       /Asha|private narrative|sk-live-secret/,
     );

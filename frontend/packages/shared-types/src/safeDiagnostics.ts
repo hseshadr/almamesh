@@ -5,6 +5,7 @@
  */
 export const SAFE_DIAGNOSTIC_CODES = [
   'app.typed_error',
+  'backup.local_mirror_deferred',
   'backup.memory_rebuild_deferred',
   'cache.query_not_found',
   'chat.stream_failed',
