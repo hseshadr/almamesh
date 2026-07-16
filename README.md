@@ -17,6 +17,27 @@ PWA and it works offline after the first load.
 
 ![AlmaMesh landing — the Observatory PWA](docs/assets/landing.png)
 
+## Northstar status (verified 2026-07-16)
+
+**The shipped app is local-first by default, signed at the edge, and recoverable.**
+The current production build is commit `08d75db` (build `37f44149f5ca`). GitHub's
+hosted Test and deploy workflows passed for that exact commit. The live bundle
+pointer, immutable manifest bytes, SHA-256 hash, and Ed25519 signature were checked
+against the pinned public key; a fresh browser context imported a backup and restored
+both a profile and chart with no console or page errors.
+
+Verify the live identity yourself:
+
+```bash
+curl -fsSL https://almamesh.com/build.json
+curl -fsSL https://almamesh.com/version.json
+```
+
+The app still has honest boundaries: birthplace lookup is an optional external
+request, AI is opt-in and BYO endpoint, and the feedback form is the only production
+write path. Chart computation and saved chart data remain local; CSP's `http:`
+allowance exists only for a user-configured localhost Ollama endpoint.
+
 - **Why it exists:** astrology apps are riddled with paywalls, account walls, and
   quiet data harvesting. AlmaMesh is the opposite — auditable, gratis, private by
   construction, and the same on every OS because it's just a browser tab. The
