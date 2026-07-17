@@ -249,6 +249,13 @@ uv run almamesh-bundle bundle ./origin ./keys/private.key --version v1
 pinned into the client as the trust root. (`setup-dev-assets.sh` runs this for you
 to produce the local dev bundle.)
 
+One identity note for cold readers: the pinned key is per-environment and never
+committed. A local build uses a throwaway **dev** key that `setup-dev-assets.sh`
+generates into `frontend/apps/web/public/public.key` (git-ignored), while the
+production deploy injects the separate **prod** key from CI secrets — so the live
+`https://almamesh.com/public.key` will not match your local copy, by design.
+Verify live bundles against the live `/public.key`.
+
 ## Architecture
 
 Deeper dives: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) (the signed-bundle →

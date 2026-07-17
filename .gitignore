@@ -46,6 +46,9 @@ backend/keys-prod/
 backend/origin-prod/
 frontend/apps/web/public/pyodide/
 frontend/apps/web/public/bundle/
+# The pinned verify key is generated per-environment (dev key locally via
+# setup-dev-assets.sh; prod key injected by CI at deploy) — the live
+# /public.key differs from a local copy by design.
 frontend/apps/web/public/public.key
 
 # CI checks private sibling deps out here (edge-proc, shared-libs-python)
