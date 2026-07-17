@@ -7,6 +7,8 @@ import { writeFileSync, readFileSync } from 'fs'
 import { createHash } from 'crypto'
 import { PUBLIC_ROUTE_PATHS, prerenderOutputFile } from './src/seo/routeHead'
 import { createBuildIdentity } from './src/lib/buildIdentity'
+import { extractYogaWasm, isYogaWasmModuleId } from './src/lib/yogaWasmAsset'
+import { cspFromHeadersFile } from './src/lib/previewHeaders'
 
 // App version injected into the bundle (see `define` below) so client code can
 // report which release it is — e.g. submitFeedback's `X-App-Version` header.
@@ -63,6 +65,82 @@ function versionPlugin(): Plugin {
   }
 }
 
+// Report-PDF layout engine wasm — serve it as a real asset, not a data: URI.
+//
+// @react-pdf (the report-PDF pipeline) computes page layout with yoga-layout,
+// whose npm build embeds its wasm as a base64 `data:application/octet-stream`
+// URI (emscripten SINGLE_FILE) and fetch()es that URI at init. The production
+// CSP (public/_headers) rightly has no `data:` in connect-src, so every live
+// PDF generation logged blocked-fetch console errors and instantiated the
+// wasm through emscripten's slower synchronous base64 fallback. This plugin
+// lifts the embedded binary out of the JS into a content-hashed asset served
+// from OUR origin (pinned-asset policy — never a CDN) and rewrites the module
+// to point at it: WebAssembly.instantiateStreaming over an allowed 'self'
+// fetch, zero console noise, and ~120 KB less JS in the react-pdf chunk.
+//
+// Build-only on purpose: `vite dev` serves no _headers/CSP, so the upstream
+// data-URI path is harmless there, and vitest never bundles the binary.
+// Helpers + failure modes are unit-tested in src/lib/yogaWasmAsset.test.ts
+// against the REAL installed module (a yoga-layout upgrade that changes the
+// embedding fails the unit suite, never silently regresses production).
+function yogaWasmAssetPlugin(): Plugin {
+  return {
+    name: 'almamesh-yoga-wasm-asset',
+    apply: 'build',
+    load(id) {
+      const cleanPath = id.split('?', 1)[0]
+      if (!isYogaWasmModuleId(cleanPath)) return null
+      const source = readFileSync(cleanPath, 'utf-8')
+      const { quotedDataUri, bytes } = extractYogaWasm(source)
+      const referenceId = this.emitFile({
+        type: 'asset',
+        name: 'yoga-layout.wasm',
+        source: bytes,
+      })
+      // Inject the hashed BASENAME, not a full URL. For any non-data-URI
+      // value the emscripten loader prepends its scriptDirectory
+      // (`wasmBinaryFile = scriptDirectory + wasmBinaryFile`), so a full URL
+      // here double-prefixes into garbage
+      // (`/assets/http://…/assets/yoga-….wasm` → 404 → "both async and sync
+      // fetching of the wasm failed" → no PDF; the report-pdf e2e catches it).
+      // The bare basename resolves next to the emitting chunk — both live
+      // under assets/ — and String(…).split('/').pop() yields it however
+      // Vite/Rollup materialize ROLLUP_FILE_URL_ (URL object or href string).
+      return source.replace(
+        quotedDataUri,
+        `String(import.meta.ROLLUP_FILE_URL_${referenceId}).split('/').pop()`,
+      )
+    },
+  }
+}
+
+// Preview fidelity: serve the PRODUCTION Content-Security-Policy on every
+// `vite preview` response. In production Cloudflare Pages parses
+// public/_headers; plain `vite preview` serves NO CSP, so every
+// preview-driven e2e lane ran with a materially looser policy than production
+// — a CSP-blocked fetch (exactly the yoga-layout data:-URI wasm case above)
+// sailed through CI green and only surfaced as console errors on
+// almamesh.com. Applying the real header makes the clean-console e2e gates
+// enforce production behavior. CSP only: the other _headers entries (HSTS,
+// Cache-Control, …) don't change client-side JS behavior, and full Pages
+// merge/detach semantics stay Cloudflare's job. NOT applied to `vite dev` —
+// dev injects inline scripts (react-refresh preamble) the production
+// script-src would block. Parser tested in src/lib/previewHeaders.test.ts.
+function previewProdCspPlugin(): Plugin {
+  return {
+    name: 'almamesh-preview-prod-csp',
+    configurePreviewServer(server) {
+      const csp = cspFromHeadersFile(
+        readFileSync(path.resolve(__dirname, 'public/_headers'), 'utf-8'),
+      )
+      server.middlewares.use((_req, res, next) => {
+        res.setHeader('Content-Security-Policy', csp)
+        next()
+      })
+    },
+  }
+}
+
 // PWA + Service Worker (Workbox via vite-plugin-pwa).
 //
 // Cache discipline — the whole point of P6:
@@ -86,7 +164,12 @@ function pwaPlugin(): Plugin[] {
     // The 38 MB Pyodide + bundle live under public/ -> copied to dist root.
     // Keep them OUT of the precache manifest; they are runtime-cached below.
     workbox: {
-      globPatterns: ['**/*.{js,css,html,woff,woff2,ttf,otf}'],
+      // `wasm` covers ONLY the small hashed yoga-layout asset under /assets/
+      // (yogaWasmAssetPlugin, ~90 KB) so offline PDF export keeps working — it
+      // used to ride inside the precached react-pdf JS chunk as base64. The
+      // giant engine wasms stay out via the directory globIgnores below
+      // (pyodide/**, models/**).
+      globPatterns: ['**/*.{js,css,html,woff,woff2,ttf,otf,wasm}'],
       globIgnores: [
         'pyodide/**',
         'bundle/**',
@@ -98,6 +181,12 @@ function pwaPlugin(): Plugin[] {
         // it is runtime-cached (CacheFirst) below and fetched on first chat use,
         // so offline-after-first-use still holds.
         'models/**',
+        // The onnxruntime wasm ALSO lands in /assets/ as a Rollup emission
+        // artifact of the @huggingface/transformers import graph (21.6 MB).
+        // The runtime never fetches it from there — ort is configured to load
+        // from the runtime-cached /models/ort/** above — so keep it out of the
+        // precache (it would otherwise trip maximumFileSizeToCacheInBytes).
+        'assets/ort-*.wasm',
         // Spec 064: the build-time prerender entry chunk (vite-prerender-plugin
         // executes it in Node during `vite build`). Nothing in the browser ever
         // imports it — index.html carries no reference — so precaching it would
@@ -355,6 +444,8 @@ export default defineConfig({
   plugins: [
     react(),
     versionPlugin(),
+    yogaWasmAssetPlugin(),
+    previewProdCspPlugin(),
     ...prerenderPublicRoutesPlugin(),
     flattenPrerenderedRoutesPlugin(),
     previewPublicRoutesMiddleware(),

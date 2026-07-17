@@ -752,6 +752,28 @@ test('REAL onboarding -> rectify -> offline reload -> predictive PDF is correct'
   const { errors } = collectConsole(page);
   await mkdir(OUT_DIR, { recursive: true });
 
+  // The PDF layout engine (yoga, inside @react-pdf) must load its wasm from an
+  // own-origin hashed asset (yogaWasmAssetPlugin) — never by fetch()ing a
+  // data: URI, which production CSP blocks. Collect the evidence here; the
+  // assertion runs after the PDF download below.
+  const wasmAssetUrls: string[] = [];
+  page.on('response', (response) => {
+    if (/\/assets\/[^/]+\.wasm(\?|$)/.test(response.url()) && response.ok()) {
+      wasmAssetUrls.push(response.url());
+    }
+  });
+
+  // ---- 0. Production-fidelity guard: the preview server must serve the REAL
+  // Cloudflare CSP (previewProdCspPlugin in vite.config.ts). Without it this
+  // suite cannot catch CSP-blocked fetches — the yoga-layout data:-URI wasm
+  // fetch shipped console errors to production exactly that way while the
+  // clean-console gate below stayed vacuously green.
+  const bootResponse = await page.goto('/onboarding', { waitUntil: 'domcontentloaded' });
+  expect(
+    bootResponse?.headers()['content-security-policy'] ?? '',
+    'vite preview must serve the production Content-Security-Policy (previewProdCspPlugin)',
+  ).toContain("connect-src 'self'");
+
   // ---- 1. REAL onboarding through the live engine bootstrap to /dashboard ----
   await driveRealOnboarding(page);
   await waitForDashboardChart(page);
@@ -1032,6 +1054,15 @@ test('REAL onboarding -> rectify -> offline reload -> predictive PDF is correct'
   console.log('[report-pdf] generated-on date :', JSON.stringify(dateLine || generatedOnLong));
   console.log('[report-pdf] time-of-birth line:', JSON.stringify(timeOfBirthLine));
   console.log('[report-pdf] ascendant line    :', JSON.stringify(pdfAscendantLine(pdfText)));
+
+  // The PDF just generated, so yoga's wasm must have been served as an
+  // own-origin hashed asset (see the response collector at the top): the
+  // CSP-clean loading path actually executed, not a silent fallback.
+  expect(
+    wasmAssetUrls.length,
+    'the PDF layout wasm must load from an own-origin /assets/*.wasm asset',
+  ).toBeGreaterThan(0);
+  console.log('[report-pdf] yoga wasm asset   :', wasmAssetUrls[0]);
 
   // Final clean-console gate across the whole journey.
   expect(errors, `console errors during the full journey:\n${errors.join('\n')}`).toEqual([]);

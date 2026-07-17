@@ -56,7 +56,10 @@ pin (PWA + service worker + OPFS).
   throwaway and unrelated. Local dev keeps using it; `build-prod.sh` swaps the
   production bundle + production `public.key` into `public/` for the artifact
   (re-run `setup-dev-assets.sh` or `uv run poe demo-fresh` to restore the dev
-  bundle afterwards).
+  bundle afterwards). Consequence for anyone diffing: a local
+  `public/public.key` is the dev key, so it will never match the live
+  `https://almamesh.com/public.key` (the prod pin CI injects) — that mismatch
+  is expected, not a compromise.
 
 ## Rebuild → re-sign → redeploy (every release)
 
