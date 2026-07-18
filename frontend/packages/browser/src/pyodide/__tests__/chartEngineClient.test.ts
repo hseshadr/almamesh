@@ -11,6 +11,8 @@ import type {
   ChartWorkerResponse,
   MeshEdgeInput,
   PredictiveInput,
+  RectificationInput,
+  RectificationResultRaw,
   WorkerLike,
 } from "../protocol";
 
@@ -39,6 +41,27 @@ const PREDICTIVE_INPUT: PredictiveInput = {
 const STUB_PREDICTIVE = {
   transit_context: { instant: "2026-06-09T12:00:00+00:00" },
 } as unknown as PredictiveContexts;
+
+const RECTIFICATION_INPUT: RectificationInput = {
+  datetimeUtc: "1988-08-08T01:14:00+00:00",
+  latitude: 12.9716,
+  longitude: 77.5946,
+  utcOffsetMinutes: 330,
+  events: [{ date: "2015-02-14", category: "marriage" }],
+  mode: "window",
+  spanMinutes: 120,
+  referenceDate: "2025-01-01T00:00:00+00:00",
+};
+
+const STUB_RECTIFICATION = {
+  mode: "window",
+  candidates: [],
+  margin: 0,
+  band: "near_tie",
+  discriminating_event_count: 0,
+  recorded_time_sign: null,
+  honesty_note_key: "rectify.honesty.near_tie",
+} as unknown as RectificationResultRaw;
 
 const MESH_INPUT: MeshEdgeInput = {
   a: { datetimeUtc: "1990-01-15T12:00:00+00:00", latitude: 28.6139, longitude: 77.209 },
@@ -279,6 +302,37 @@ describe("ChartEngineClient", () => {
 			});
 
 			await expect(predictive).resolves.toBe(STUB_PREDICTIVE);
+			await expect(chart).resolves.toBe(STUB_CHART);
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it("does not expire a chart request while a rectification sweep occupies the worker", async () => {
+		vi.useFakeTimers();
+		try {
+			const client = new ChartEngineClient(worker);
+			const rectification = client.computeRectification(RECTIFICATION_INPUT);
+			const chart = client.generateChart(BIRTH);
+			const [rectificationRequest, chartRequest] = worker.posted;
+
+			vi.advanceTimersByTime(60_001);
+			expect(worker.terminated).toBe(false);
+
+			worker.respond({
+				ok: true,
+				kind: "computeRectification",
+				id: rectificationRequest.id,
+				rectification: STUB_RECTIFICATION,
+			});
+			worker.respond({
+				ok: true,
+				kind: "generateChart",
+				id: chartRequest.id,
+				chart: STUB_CHART,
+			});
+
+			await expect(rectification).resolves.toBe(STUB_RECTIFICATION);
 			await expect(chart).resolves.toBe(STUB_CHART);
 		} finally {
 			vi.useRealTimers();

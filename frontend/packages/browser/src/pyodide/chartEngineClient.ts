@@ -30,9 +30,13 @@ export const DEFAULT_REQUEST_TIMEOUT_MS = 60_000;
 /** Predictive contexts can occupy the serial Pyodide worker for several minutes. */
 export const DEFAULT_PREDICTIVE_REQUEST_TIMEOUT_MS = 180_000;
 
+/** Whole-day rectification sweeps can occupy the same worker for several minutes. */
+export const DEFAULT_RECTIFICATION_REQUEST_TIMEOUT_MS = 60_000;
+
 export interface ChartEngineClientOptions {
   readonly requestTimeoutMs?: number;
   readonly predictiveRequestTimeoutMs?: number;
+  readonly rectificationRequestTimeoutMs?: number;
 }
 
 export class ChartEngineClient {
@@ -40,15 +44,18 @@ export class ChartEngineClient {
   readonly #pending = new Map<number, Pending>();
   readonly #timeoutMs: number;
   readonly #predictiveTimeoutMs: number;
+  readonly #rectificationTimeoutMs: number;
   #nextId = 0;
   #closed: Error | null = null;
-  #predictivePending = 0;
+  #longPending = 0;
 
   public constructor(worker: WorkerLike, options: ChartEngineClientOptions = {}) {
     this.#worker = worker;
     this.#timeoutMs = options.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS;
     this.#predictiveTimeoutMs =
       options.predictiveRequestTimeoutMs ?? DEFAULT_PREDICTIVE_REQUEST_TIMEOUT_MS;
+    this.#rectificationTimeoutMs =
+      options.rectificationRequestTimeoutMs ?? DEFAULT_RECTIFICATION_REQUEST_TIMEOUT_MS;
     this.#worker.addEventListener("message", (event) => {
       this.#onMessage(event.data);
     });
@@ -140,13 +147,18 @@ export class ChartEngineClient {
       return Promise.reject(this.#closed);
     }
     return new Promise<ChartWorkerResponse>((resolve, reject) => {
-      const predictivePending = this.#predictivePending > 0;
+      const longRequest =
+        request.kind === "computePredictive" || request.kind === "computeRectification";
       const timeoutMs =
-        request.kind === "computePredictive" || predictivePending
+        request.kind === "computePredictive"
           ? this.#predictiveTimeoutMs
-          : this.#timeoutMs;
-      if (request.kind === "computePredictive") {
-        this.#predictivePending += 1;
+          : request.kind === "computeRectification"
+            ? this.#rectificationTimeoutMs
+            : this.#longPending > 0
+              ? Math.max(this.#predictiveTimeoutMs, this.#rectificationTimeoutMs)
+              : this.#timeoutMs;
+      if (longRequest) {
+        this.#longPending += 1;
       }
       const timer = setTimeout(() => {
         this.#close(
@@ -160,8 +172,8 @@ export class ChartEngineClient {
         this.#worker.postMessage(request);
       } catch (error) {
         this.#pending.delete(request.id);
-        if (request.kind === "computePredictive") {
-          this.#predictivePending -= 1;
+        if (longRequest) {
+          this.#longPending -= 1;
         }
         clearTimeout(timer);
         reject(error instanceof Error ? error : new Error(String(error)));
@@ -175,8 +187,8 @@ export class ChartEngineClient {
       return;
     }
     this.#pending.delete(response.id);
-    if (pending.kind === "computePredictive") {
-      this.#predictivePending -= 1;
+    if (pending.kind === "computePredictive" || pending.kind === "computeRectification") {
+      this.#longPending -= 1;
     }
     clearTimeout(pending.timer);
     pending.resolve(response);
@@ -192,7 +204,7 @@ export class ChartEngineClient {
       pending.reject(error);
     }
     this.#pending.clear();
-    this.#predictivePending = 0;
+    this.#longPending = 0;
     this.#worker.terminate();
   }
 }
