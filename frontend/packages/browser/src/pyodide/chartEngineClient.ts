@@ -31,7 +31,7 @@ export const DEFAULT_REQUEST_TIMEOUT_MS = 60_000;
 export const DEFAULT_PREDICTIVE_REQUEST_TIMEOUT_MS = 180_000;
 
 /** Whole-day rectification sweeps can occupy the same worker for several minutes. */
-export const DEFAULT_RECTIFICATION_REQUEST_TIMEOUT_MS = 60_000;
+export const DEFAULT_RECTIFICATION_REQUEST_TIMEOUT_MS = 180_000;
 
 export interface ChartEngineClientOptions {
   readonly requestTimeoutMs?: number;
