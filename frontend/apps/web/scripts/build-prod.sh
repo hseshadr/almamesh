@@ -6,8 +6,8 @@
 #
 # What it does, in order:
 #   1. Rebuilds the almamesh wheel from the current checkout.
-#   2. Signs the offline bundle with the PRODUCTION keypair (backend/keys-prod,
-#      gitignored — custody rules in docs/deploy/almamesh-com.md) into
+#   2. Signs the offline bundle with the PRODUCTION keypair (backend/keys-prod
+#      locally, or PRODUCTION_KEYS_DIR in CI) into
 #      backend/origin-prod, labeled with the latest git tag by default.
 #   3. Swaps the production bundle + production public.key into apps/web/public/
 #      (replacing whatever dev-signed bundle setup-dev-assets.sh put there;
@@ -17,7 +17,8 @@
 #
 # Prereqs (fail-closed below):
 #   - bun install done; setup-dev-assets.sh run once (public/pyodide + public/models)
-#   - backend/keys-prod/private.key exists:
+#   - the production keypair exists in PRODUCTION_KEYS_DIR when set, otherwise
+#     backend/keys-prod/private.key + public.key:
 #       cd backend && uv run almamesh-bundle keygen ./keys-prod
 #     (deliberately NOT auto-generated here: generating a fresh key would
 #      silently rotate the pin and orphan every installed client)
@@ -33,14 +34,21 @@ WEB_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"             # frontend/apps/web
 REPO_ROOT="$(cd "${WEB_DIR}/../../.." && pwd)"        # repo root (almamesh/)
 BACKEND_DIR="${REPO_ROOT}/backend"
 PUBLIC_DIR="${WEB_DIR}/public"
-KEYS_DIR="${BACKEND_DIR}/keys-prod"
+# CI supplies this from the runner's ephemeral temp directory so the private
+# signing key is never materialized inside the checkout. Local builds retain
+# the documented backend/keys-prod default.
+KEYS_DIR="${PRODUCTION_KEYS_DIR:-${BACKEND_DIR}/keys-prod}"
 ORIGIN_DIR="${BACKEND_DIR}/origin-prod"
 
 # --- Fail-closed preflight ----------------------------------------------------
 if [[ ! -f "${KEYS_DIR}/private.key" || ! -f "${KEYS_DIR}/public.key" ]]; then
   echo "!! Production keypair missing at ${KEYS_DIR}/" >&2
-  echo "!! Generate ONCE and back it up (docs/deploy/almamesh-com.md):" >&2
-  echo "!!   cd backend && uv run almamesh-bundle keygen ./keys-prod" >&2
+  if [[ -n "${PRODUCTION_KEYS_DIR:-}" ]]; then
+    echo "!! CI must restore private.key + public.key into PRODUCTION_KEYS_DIR." >&2
+  else
+    echo "!! Generate ONCE and back it up (docs/deploy/almamesh-com.md):" >&2
+    echo "!!   cd backend && uv run almamesh-bundle keygen ./keys-prod" >&2
+  fi
   exit 1
 fi
 if [[ ! -f "${PUBLIC_DIR}/pyodide/pyodide.asm.wasm" ]]; then
@@ -66,7 +74,7 @@ echo "    wheel: ${WHEEL}"
 # A clean origin dir so the artifact contains exactly one signed bundle.
 rm -rf "${ORIGIN_DIR}"
 echo "==> Signing the production bundle into ${ORIGIN_DIR}"
-( cd "${BACKEND_DIR}" && uv run almamesh-bundle bundle ./origin-prod ./keys-prod/private.key \
+( cd "${BACKEND_DIR}" && uv run almamesh-bundle bundle ./origin-prod "${KEYS_DIR}/private.key" \
     --version "${BUNDLE_VERSION}" --sequence "${BUNDLE_SEQUENCE}" --offline \
     --almamesh-wheel "${WHEEL}" )
 

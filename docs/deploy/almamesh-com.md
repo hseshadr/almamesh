@@ -33,8 +33,11 @@ The chart engine only runs bundles whose ed25519 signature verifies against the
 public key pinned in the build (`dist/public.key`). Installed clients keep that
 pin (PWA + service worker + OPFS).
 
-- **The production private key is `backend/keys-prod/private.key`** (gitignored;
-  the whole `backend/keys-prod/` + `backend/origin-prod/` dirs are ignored).
+- **The local production private key is `backend/keys-prod/private.key`**
+  (gitignored; the whole `backend/keys-prod/` + `backend/origin-prod/` dirs are
+  ignored). CI does not recreate that path: it decodes the secret only into
+  `${{ runner.temp }}/almamesh-keys-prod`, outside the checkout, and passes that
+  directory to `build-prod.sh` through `PRODUCTION_KEYS_DIR`.
 - **Losing it = every installed client stops accepting bundle updates** until
   they are re-onboarded against a new pin shipped in a new app build. Treat it
   like a release-signing key.
@@ -48,7 +51,8 @@ pin (PWA + service worker + OPFS).
 
 - **Never commit it, never print it into CI logs.** `.gitignore` covers
   `backend/keys-prod/`, plus `private.key` by name everywhere; CI restores it
-  from a secret and shreds it after the build.
+  from a secret, shreds the ephemeral file, and removes that temp directory
+  after the build. Only the public key is copied into the shipped artifact.
 - Generating a key is deliberately manual (`build-prod.sh` fails closed if the
   keypair is missing instead of minting one) — an accidental fresh key would
   silently rotate the pin and orphan every installed client.

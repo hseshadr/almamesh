@@ -160,21 +160,32 @@ jobs:
         run: bash apps/web/scripts/setup-dev-assets.sh
 
       - name: Restore the production signing keypair (from secrets)
-        working-directory: backend
+        working-directory: ${{ github.workspace }}
         env:
           KEY_PRIV: ${{ secrets.BUNDLE_PRIVATE_KEY_B64 }}
           KEY_PUB: ${{ secrets.BUNDLE_PUBLIC_KEY_B64 }}
+          PRODUCTION_KEYS_DIR: ${{ runner.temp }}/almamesh-keys-prod
         run: |
-          mkdir -p keys-prod
-          printf '%s' "$KEY_PRIV" | base64 -d > keys-prod/private.key
-          printf '%s' "$KEY_PUB" | base64 -d > keys-prod/public.key
-          chmod 600 keys-prod/private.key
+          set -euo pipefail
+          case "$PRODUCTION_KEYS_DIR" in
+            "$GITHUB_WORKSPACE"|"$GITHUB_WORKSPACE"/*)
+              echo "::error::Production signing keys must stay outside the checkout"
+              exit 1
+              ;;
+          esac
+          umask 077
+          rm -rf "$PRODUCTION_KEYS_DIR"
+          install -d -m 700 "$PRODUCTION_KEYS_DIR"
+          printf '%s' "$KEY_PRIV" | base64 -d > "$PRODUCTION_KEYS_DIR/private.key"
+          printf '%s' "$KEY_PUB" | base64 -d > "$PRODUCTION_KEYS_DIR/public.key"
+          chmod 600 "$PRODUCTION_KEYS_DIR/private.key"
 
       - name: Build the production artifact (prod-signed bundle, hooks OFF)
         env:
           BUNDLE_VERSION: ${{ inputs.bundle_version }}
           BUILD_COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
           BUNDLE_LIVE_URL: https://almamesh.com/bundle/latest
+          PRODUCTION_KEYS_DIR: ${{ runner.temp }}/almamesh-keys-prod
         run: |
           if [ -z "$BUNDLE_VERSION" ]; then unset BUNDLE_VERSION; fi
           bash apps/web/scripts/build-prod.sh
@@ -283,9 +294,16 @@ jobs:
           fi
 
       - name: Shred the restored private key
-        # `if: always()` means this can fire even when the job failed before
-        # checkout — so run from the workspace root (not `backend/`, which may
-        # not exist yet) and target the path. `rm -rf` is a no-op if absent.
+        # `if: always()` means this can fire after any build/deploy failure.
+        # The private key is restored outside the checkout and must be shredded
+        # before its ephemeral runner directory is removed.
         if: always()
         working-directory: ${{ github.workspace }}
-        run: rm -rf backend/keys-prod
+        env:
+          PRODUCTION_KEYS_DIR: ${{ runner.temp }}/almamesh-keys-prod
+        run: |
+          set -euo pipefail
+          if [[ -f "$PRODUCTION_KEYS_DIR/private.key" ]]; then
+            shred -f -n 3 -z --remove "$PRODUCTION_KEYS_DIR/private.key"
+          fi
+          rm -rf "$PRODUCTION_KEYS_DIR"

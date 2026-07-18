@@ -93,8 +93,11 @@ push to main ──► "Test" workflow (gates) ──► passes ──► deploy
 ```
 
 The deploy job signs the engine bundle **inside GitHub Actions** with your prod
-private key (restored from a secret, used, then shredded). This is why the key has
-to become a GitHub secret — and why protecting it matters (see Step 1).
+private key. It restores the secret only into the runner's ephemeral
+`${{ runner.temp }}/almamesh-keys-prod` directory outside the checkout, uses it
+through `PRODUCTION_KEYS_DIR`, then shreds the private file and removes that
+directory. This is why the key has to become a GitHub secret — and why protecting
+it matters (see Step 1).
 
 ---
 

@@ -102,6 +102,22 @@ describe('repository truth', () => {
     expect(readRoot('.github/workflows/deploy.yml')).toContain('EXPECTED_BUNDLE_IDENTITY');
   });
 
+  it('keeps the production private key outside the checkout and shreds it after deploy', () => {
+    const build = readRoot('frontend/apps/web/scripts/build-prod.sh');
+    const workflow = readRoot('.github/workflows/deploy.yml');
+
+    expect(build).toContain('PRODUCTION_KEYS_DIR');
+    expect(build).toContain('bundle ./origin-prod "${KEYS_DIR}/private.key"');
+    expect(build).toContain('--public-key "${KEYS_DIR}/public.key"');
+    expect(build).toContain('cp "${KEYS_DIR}/public.key" "${PUBLIC_DIR}/public.key"');
+    expect(workflow).toContain('PRODUCTION_KEYS_DIR: ${{ runner.temp }}/almamesh-keys-prod');
+    expect(workflow).toContain('if [[ -f "$PRODUCTION_KEYS_DIR/private.key" ]]');
+    expect(workflow).not.toContain('mkdir -p keys-prod');
+    expect(workflow).not.toContain('> keys-prod/private.key');
+    expect(workflow).toContain('shred -f -n 3 -z --remove');
+    expect(workflow).toContain('rm -rf "$PRODUCTION_KEYS_DIR"');
+  });
+
   it('records the complete PR 62 artifact and provenance behavior', () => {
     const unreleased = readSection(readRoot('CHANGELOG.md'), '## [Unreleased]');
     for (const claim of [
