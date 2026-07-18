@@ -172,6 +172,11 @@ export interface WorkerLike {
     type: "message",
     listener: (event: MessageEvent<ChartWorkerResponse>) => void,
   ): void;
+  addEventListener(
+    type: "error",
+    listener: (event: { message?: string }) => void,
+  ): void;
+  addEventListener(type: "messageerror", listener: () => void): void;
   terminate(): void;
 }
 

@@ -39,6 +39,7 @@ const SYNC_RESULT: SyncResult = {
 class FakeSyncEngine implements EnginePort {
   public readonly syncCalls: Array<readonly [string, string, string, string]> = [];
   public readonly readPaths: string[] = [];
+  public terminated = false;
 
   public constructor(private readonly files: Readonly<Record<string, Uint8Array>>) {}
 
@@ -60,11 +61,16 @@ class FakeSyncEngine implements EnginePort {
     }
     return bytes;
   }
+
+  public terminate(): void {
+    this.terminated = true;
+  }
 }
 
 class FakeChartEngine implements ChartEnginePort {
   public bootConfig: BootConfig | undefined;
   public bootCount = 0;
+  public terminated = false;
 
   public async boot(config: BootConfig): Promise<void> {
     this.bootConfig = config;
@@ -100,6 +106,10 @@ class FakeChartEngine implements ChartEnginePort {
       recorded_time_sign: null,
       honesty_note_key: "rectify.honesty.leans",
     } as RectificationResultRaw;
+  }
+
+  public terminate(): void {
+    this.terminated = true;
   }
 }
 
@@ -261,5 +271,57 @@ describe("AlmaMeshRuntime.bootstrap", () => {
 
     await expect(runtime.bootstrap(CONFIG)).rejects.toThrow();
     await expect(runtime.bootstrap(CONFIG)).resolves.toBeDefined();
+  });
+
+  it("terminates both workers when chart boot fails", async () => {
+    const sync = new FakeSyncEngine(FILES);
+    const chart = new FakeChartEngine();
+    chart.boot = async () => {
+      throw new Error("pyodide failed");
+    };
+    const runtime = new AlmaMeshRuntime({
+      spawnSyncEngine: () => sync,
+      spawnChartEngine: () => chart,
+    });
+
+    await expect(runtime.bootstrap(CONFIG)).rejects.toThrow("pyodide failed");
+    expect(sync.terminated).toBe(true);
+    expect(chart.terminated).toBe(true);
+  });
+
+  it("dispose releases workers and clears the ready engine", async () => {
+    const { runtime, sync, chart } = makeRuntime();
+
+    await runtime.bootstrap(CONFIG);
+    await runtime.dispose();
+
+    expect(runtime.engine()).toBeNull();
+    expect(sync.terminated).toBe(true);
+    expect(chart.terminated).toBe(true);
+  });
+
+  it("does not publish a late engine after dispose supersedes an in-flight boot", async () => {
+    let releaseSync!: () => void;
+    const sync = new FakeSyncEngine(FILES);
+    const originalSync = sync.sync.bind(sync);
+    sync.sync = async (...args) => {
+      await new Promise<void>((resolve) => {
+        releaseSync = resolve;
+      });
+      return originalSync(...args);
+    };
+    const chart = new FakeChartEngine();
+    const runtime = new AlmaMeshRuntime({
+      spawnSyncEngine: () => sync,
+      spawnChartEngine: () => chart,
+    });
+
+    const pending = runtime.bootstrap(CONFIG);
+    await runtime.dispose();
+    releaseSync();
+
+    await expect(pending).rejects.toThrow(/superseded|terminated/);
+    expect(runtime.engine()).toBeNull();
+    expect(chart.bootCount).toBe(0);
   });
 });

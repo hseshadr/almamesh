@@ -60,6 +60,8 @@ export interface EnginePort {
     expectedChannel: string,
   ): Promise<SyncResult>;
   readFile(path: string): Promise<Uint8Array>;
+  /** Stop the sync Worker and release its OPFS/wasm resources. */
+  terminate?(): void;
 }
 
 /** The Pyodide-Worker surface bootstrap needs: boot the engine, compute charts. */
@@ -69,6 +71,8 @@ export interface ChartEnginePort {
   computePredictive(input: PredictiveInput): Promise<PredictiveContexts>;
   computeMeshEdge(input: MeshEdgeInput): Promise<MeshEdgeContext>;
   computeRectification(input: RectificationInput): Promise<RectificationResultRaw>;
+  /** Stop the chart Worker and release Pyodide resources. */
+  terminate?(): void;
 }
 
 /**
@@ -152,6 +156,9 @@ export class AlmaMeshRuntime {
   readonly #deps: RuntimeDeps;
   #enginePromise: Promise<ChartEngine> | null = null;
   #ready: ChartEngine | null = null;
+  #syncEngine: EnginePort | null = null;
+  #chartEngine: ChartEnginePort | null = null;
+  #generation = 0;
 
   public constructor(deps: RuntimeDeps = defaultDeps) {
     this.#deps = deps;
@@ -162,48 +169,99 @@ export class AlmaMeshRuntime {
     return this.#ready;
   }
 
+  /** Stop all Workers, invalidate an in-flight build, and clear the ready engine. */
+  public dispose(): void {
+    this.#generation += 1;
+    this.#enginePromise = null;
+    this.#ready = null;
+    this.#syncEngine?.terminate?.();
+    this.#chartEngine?.terminate?.();
+    this.#syncEngine = null;
+    this.#chartEngine = null;
+  }
+
   /** Sync the bundle, boot Pyodide, and return the in-tab chart engine. Idempotent. */
   public bootstrap(config: RuntimeConfig, onStage: OnStage = () => {}): Promise<ChartEngine> {
     if (this.#enginePromise === null) {
-      this.#enginePromise = this.#build(config, onStage).catch((error: unknown) => {
-        this.#enginePromise = null; // let a failed bootstrap be retried
-        throw error;
-      });
+      const generation = this.#generation;
+      this.#enginePromise = this.#build(config, onStage, generation).catch(
+        (error: unknown) => {
+          // A superseded build must not clear state belonging to a newer boot.
+          if (this.#generation === generation) {
+            this.#generation += 1;
+            this.#enginePromise = null;
+            this.#ready = null;
+            this.#syncEngine = null;
+            this.#chartEngine = null;
+          }
+          throw error;
+        },
+      );
     }
     return this.#enginePromise;
   }
 
-  async #build(config: RuntimeConfig, onStage: OnStage): Promise<ChartEngine> {
+  async #build(
+    config: RuntimeConfig,
+    onStage: OnStage,
+    generation: number,
+  ): Promise<ChartEngine> {
     const syncEngine = this.#deps.spawnSyncEngine();
-    onStage({ kind: "syncing" });
-    const result = await syncEngine.sync(
-      config.bundleBaseUrl,
-      config.pubkeyUrl,
-      config.expectedBundleId,
-      config.expectedChannel,
-    );
-    onStage({ kind: "synced", result });
+    this.#syncEngine = syncEngine;
+    let chartEngine: ChartEnginePort | null = null;
+    try {
+      this.#assertCurrent(generation);
+      onStage({ kind: "syncing" });
+      const result = await syncEngine.sync(
+        config.bundleBaseUrl,
+        config.pubkeyUrl,
+        config.expectedBundleId,
+        config.expectedChannel,
+      );
+      this.#assertCurrent(generation);
+      onStage({ kind: "synced", result });
 
-    onStage({ kind: "reassembling" });
-    const [bootConfig, meta] = await Promise.all([
-      this.#assembleBootConfig(syncEngine, config),
-      readMeta(syncEngine),
-    ]);
+      onStage({ kind: "reassembling" });
+      const [bootConfig, meta] = await Promise.all([
+        this.#assembleBootConfig(syncEngine, config),
+        readMeta(syncEngine),
+      ]);
+      this.#assertCurrent(generation);
 
-    onStage({ kind: "booting-engine" });
-    const chartEngine = this.#deps.spawnChartEngine();
-    await chartEngine.boot(bootConfig);
+      // The sync Worker is only needed to materialize the boot assets. Release
+      // it before Pyodide starts so OPFS handles and wasm memory do not overlap.
+      syncEngine.terminate?.();
+      if (this.#syncEngine === syncEngine) this.#syncEngine = null;
 
-    const engine: ChartEngine = {
-      generateChart: (birth) => chartEngine.generateChart(birth),
-      computePredictive: (input) => chartEngine.computePredictive(input),
-      computeMeshEdge: (input) => chartEngine.computeMeshEdge(input),
-      computeRectification: (input) => chartEngine.computeRectification(input),
-      meta: () => meta,
-    };
-    this.#ready = engine;
-    onStage({ kind: "ready" });
-    return engine;
+      onStage({ kind: "booting-engine" });
+      chartEngine = this.#deps.spawnChartEngine();
+      this.#chartEngine = chartEngine;
+      await chartEngine.boot(bootConfig);
+      this.#assertCurrent(generation);
+
+      const engine: ChartEngine = {
+        generateChart: (birth) => chartEngine!.generateChart(birth),
+        computePredictive: (input) => chartEngine!.computePredictive(input),
+        computeMeshEdge: (input) => chartEngine!.computeMeshEdge(input),
+        computeRectification: (input) => chartEngine!.computeRectification(input),
+        meta: () => meta,
+      };
+      this.#ready = engine;
+      onStage({ kind: "ready" });
+      return engine;
+    } catch (error) {
+      syncEngine.terminate?.();
+      chartEngine?.terminate?.();
+      if (this.#syncEngine === syncEngine) this.#syncEngine = null;
+      if (this.#chartEngine === chartEngine) this.#chartEngine = null;
+      throw error;
+    }
+  }
+
+  #assertCurrent(generation: number): void {
+    if (this.#generation !== generation) {
+      throw new Error("AlmaMesh engine boot superseded");
+    }
   }
 
   async #assembleBootConfig(engine: EnginePort, config: RuntimeConfig): Promise<BootConfig> {

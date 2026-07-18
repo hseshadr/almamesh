@@ -8,29 +8,58 @@ import type { SyncResult } from "./types";
 interface Pending {
 	readonly resolve: (response: EngineResponse) => void;
 	readonly reject: (error: Error) => void;
+	readonly timer: ReturnType<typeof setTimeout>;
+}
+
+/** The maximum time one Worker request may remain unresolved. */
+export const DEFAULT_REQUEST_TIMEOUT_MS = 30_000;
+
+interface WorkerLike {
+	postMessage(message: EngineRequest): void;
+	addEventListener(
+		type: "message" | "error" | "messageerror",
+		listener:
+			| ((event: MessageEvent<EngineResponse>) => void)
+			| ((event: { message?: string }) => void)
+			| (() => void),
+	): void;
+	terminate(): void;
+}
+
+export interface EngineClientOptions {
+	readonly requestTimeoutMs?: number;
 }
 
 export class EngineClient {
-	readonly #worker: Worker;
+	readonly #worker: WorkerLike;
 	readonly #pending = new Map<number, Pending>();
+	readonly #timeoutMs: number;
 	#nextId = 0;
+	#closed: Error | null = null;
 
-	public constructor(worker: Worker) {
+	public constructor(worker: WorkerLike, options: EngineClientOptions = {}) {
 		this.#worker = worker;
+		this.#timeoutMs = options.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS;
 		this.#worker.addEventListener(
 			"message",
 			(event: MessageEvent<EngineResponse>) => {
 				this.#onMessage(event.data);
 			},
 		);
+		this.#worker.addEventListener("error", (event: { message?: string }) => {
+			this.#close(new Error(`engine worker failed: ${event.message ?? "unknown error"}`));
+		});
+		this.#worker.addEventListener("messageerror", () => {
+			this.#close(new Error("engine worker failed: messageerror"));
+		});
 	}
 
 	/** Spawn the bundled engine Worker (module worker). */
-	public static spawn(): EngineClient {
+	public static spawn(options?: EngineClientOptions): EngineClient {
 		const worker = new Worker(new URL("./worker.ts", import.meta.url), {
 			type: "module",
 		});
-		return new EngineClient(worker);
+		return new EngineClient(worker as unknown as WorkerLike, options);
 	}
 
 	/** Sync the signed bundle at `baseUrl`, pinning the raw pubkey at `pubkeyUrl`. */
@@ -68,7 +97,7 @@ export class EngineClient {
 	}
 
 	public terminate(): void {
-		this.#worker.terminate();
+		this.#close(new Error("engine worker terminated"));
 	}
 
 	#allocId(): number {
@@ -81,9 +110,25 @@ export class EngineClient {
 	}
 
 	#send(request: EngineRequest): Promise<EngineResponse> {
+		if (this.#closed !== null) {
+			return Promise.reject(this.#closed);
+		}
 		return new Promise<EngineResponse>((resolve, reject) => {
-			this.#pending.set(request.id, { resolve, reject });
-			this.#worker.postMessage(request);
+			const timer = setTimeout(() => {
+				this.#close(
+					new Error(
+						`engine request ${request.id} (${request.kind}) timed out after ${this.#timeoutMs}ms`,
+					),
+				);
+			}, this.#timeoutMs);
+			this.#pending.set(request.id, { resolve, reject, timer });
+			try {
+				this.#worker.postMessage(request);
+			} catch (error) {
+				this.#pending.delete(request.id);
+				clearTimeout(timer);
+				reject(error instanceof Error ? error : new Error(String(error)));
+			}
 		});
 	}
 
@@ -93,6 +138,20 @@ export class EngineClient {
 			return;
 		}
 		this.#pending.delete(response.id);
+		clearTimeout(pending.timer);
 		pending.resolve(response);
+	}
+
+	#close(error: Error): void {
+		if (this.#closed !== null) {
+			return;
+		}
+		this.#closed = error;
+		for (const pending of this.#pending.values()) {
+			clearTimeout(pending.timer);
+			pending.reject(error);
+		}
+		this.#pending.clear();
+		this.#worker.terminate();
 	}
 }

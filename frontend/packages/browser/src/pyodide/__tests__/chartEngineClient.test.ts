@@ -62,9 +62,11 @@ const STUB_MESH_EDGE = {
  * so the client's id-correlation and promise plumbing are exercised for real.
  */
 class FakeChartWorker implements WorkerLike {
-  public readonly posted: ChartWorkerRequest[] = [];
-  public terminated = false;
-  #listener: ((event: MessageEvent<ChartWorkerResponse>) => void) | undefined;
+	public readonly posted: ChartWorkerRequest[] = [];
+	public terminated = false;
+	#listener: ((event: MessageEvent<ChartWorkerResponse>) => void) | undefined;
+	#errorListener: ((event: { message?: string }) => void) | undefined;
+	#messageErrorListener: (() => void) | undefined;
 
   public constructor(
     private readonly reply: (req: ChartWorkerRequest) => ChartWorkerResponse | null,
@@ -80,16 +82,33 @@ class FakeChartWorker implements WorkerLike {
     }
   }
 
-  public addEventListener(
-    _type: "message",
-    listener: (event: MessageEvent<ChartWorkerResponse>) => void,
-  ): void {
-    this.#listener = listener;
+	public addEventListener(
+		type: "message" | "error" | "messageerror",
+		listener:
+			| ((event: MessageEvent<ChartWorkerResponse>) => void)
+			| ((event: { message?: string }) => void)
+			| (() => void),
+	): void {
+		if (type === "message") {
+			this.#listener = listener as (event: MessageEvent<ChartWorkerResponse>) => void;
+		} else if (type === "error") {
+			this.#errorListener = listener as (event: { message?: string }) => void;
+		} else {
+			this.#messageErrorListener = listener as () => void;
+		}
   }
 
-  public terminate(): void {
-    this.terminated = true;
-  }
+	public terminate(): void {
+		this.terminated = true;
+	}
+
+	public emitError(message: string): void {
+		this.#errorListener?.({ message });
+	}
+
+	public emitMessageError(): void {
+		this.#messageErrorListener?.();
+	}
 }
 
 describe("ChartEngineClient", () => {
@@ -202,11 +221,39 @@ describe("ChartEngineClient", () => {
     expect(first.ayanamsa_value).not.toBe(second.ayanamsa_value);
   });
 
-  it("terminates the underlying worker", () => {
+	it("terminates the underlying worker", () => {
     const client = withReply(() => null);
 
     client.terminate();
 
-    expect(worker.terminated).toBe(true);
-  });
+		expect(worker.terminated).toBe(true);
+	});
+
+	it("rejects every pending request when the worker crashes", async () => {
+		const client = withReply(() => null);
+		const pending = client.generateChart(BIRTH);
+		worker.emitError("Pyodide initialization failed");
+		await expect(pending).rejects.toThrow(/Pyodide initialization failed/);
+	});
+
+	it("rejects pending requests when a worker reply cannot be deserialized", async () => {
+		const client = withReply(() => null);
+		const pending = client.computePredictive(PREDICTIVE_INPUT);
+		worker.emitMessageError();
+		await expect(pending).rejects.toThrow(/messageerror/);
+	});
+
+	it("bounds a silent request and terminates the worker", async () => {
+		const client = new ChartEngineClient(worker, { requestTimeoutMs: 5 });
+		const pending = client.generateChart(BIRTH);
+		await expect(pending).rejects.toThrow(/timed out/);
+		expect(worker.terminated).toBe(true);
+	});
+
+	it("terminate rejects pending requests instead of leaving them hanging", async () => {
+		const client = withReply(() => null);
+		const pending = client.boot(BOOT_CONFIG);
+		client.terminate();
+		await expect(pending).rejects.toThrow(/terminated/);
+	});
 });

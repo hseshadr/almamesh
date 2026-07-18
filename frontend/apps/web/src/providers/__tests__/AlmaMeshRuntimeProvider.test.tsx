@@ -48,6 +48,7 @@ function makeFakeEngine(tag: string): ChartEngine {
 interface FakeRuntime {
   bootstrap(config: RuntimeConfig, onStage?: OnStage): Promise<ChartEngine>;
   bootstrapCalls: number;
+  dispose?: () => void;
 }
 
 function makeFakeRuntime(behaviors: Behavior[]): FakeRuntime {
@@ -241,6 +242,25 @@ describe('AlmaMeshRuntimeProvider — retryable bootstrap', () => {
     });
 
     await waitFor(() => expect(screen.getByTestId('error').textContent).toBe('second fail'));
+  });
+
+  it('disposes the runtime and resets lifecycle refs on unmount', async () => {
+    const runtime = makeFakeRuntime([(onStage) => {
+      onStage({ kind: 'ready' } as BootStage);
+      return Promise.resolve(makeFakeEngine('cleanup'));
+    }]);
+    runtime.dispose = vi.fn();
+
+    const view = render(
+      <AlmaMeshRuntimeProvider runtime={runtime}>
+        <Probe capture={() => {}} />
+      </AlmaMeshRuntimeProvider>,
+    );
+
+    await waitFor(() => expect(screen.getByTestId('engine').textContent).toBe('engine-ready'));
+    view.unmount();
+
+    expect(runtime.dispose).toHaveBeenCalledOnce();
   });
 });
 

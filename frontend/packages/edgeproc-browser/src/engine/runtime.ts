@@ -66,6 +66,8 @@ export interface EnginePort {
 		expectedChannel: string,
 	): Promise<SyncResult>;
 	readFile(path: string): Promise<Uint8Array>;
+	/** Stop the sync Worker and release OPFS resources. */
+	terminate?(): void;
 }
 
 /** The seams bootstrap depends on; defaulted to the real Workers, faked in tests. */
@@ -176,6 +178,9 @@ export class EngineRuntime {
 	readonly #deps: RuntimeDeps;
 	#enginePromise: Promise<SearchEngine> | null = null;
 	#ready: SearchEngine | null = null;
+	#engineClient: EnginePort | null = null;
+	#embedder: Embedder | null = null;
+	#generation = 0;
 
 	public constructor(deps: RuntimeDeps = defaultDeps) {
 		this.#deps = deps;
@@ -186,54 +191,99 @@ export class EngineRuntime {
 		return this.#ready;
 	}
 
+	/** Stop Workers, invalidate an in-flight build, and clear the ready engine. */
+	public dispose(): void {
+		this.#generation += 1;
+		this.#enginePromise = null;
+		this.#ready = null;
+		this.#engineClient?.terminate?.();
+		this.#embedder?.dispose?.();
+		this.#engineClient = null;
+		this.#embedder = null;
+	}
+
 	/** Build (or reuse) the engine over the synced bundle, reporting progress. */
 	public bootstrap(
 		config: RuntimeConfig,
 		onStage: OnStage = () => {},
 	): Promise<SearchEngine> {
 		if (this.#enginePromise === null) {
-			this.#enginePromise = this.#build(config, onStage).catch((error) => {
-				// Let a failed bootstrap be retried by clearing the memo.
-				this.#enginePromise = null;
+			const generation = this.#generation;
+			this.#enginePromise = this.#build(config, onStage, generation).catch((error) => {
+				if (this.#generation === generation) {
+					this.#generation += 1;
+					this.#enginePromise = null;
+					this.#ready = null;
+					this.#engineClient = null;
+					this.#embedder = null;
+				}
 				throw error;
 			});
 		}
 		return this.#enginePromise;
 	}
 
-	async #build(config: RuntimeConfig, onStage: OnStage): Promise<SearchEngine> {
+	async #build(
+		config: RuntimeConfig,
+		onStage: OnStage,
+		generation: number,
+	): Promise<SearchEngine> {
 		const engineClient = this.#deps.spawnEngine();
-		onStage({ kind: "syncing" });
-		const result = await engineClient.sync(
-			config.bundleBaseUrl,
-			config.pubkeyUrl,
-			config.expectedBundleId,
-			config.expectedChannel,
-		);
-		onStage({ kind: "synced", result });
+		this.#engineClient = engineClient;
+		let embedder: Embedder | null = null;
+		try {
+			this.#assertCurrent(generation);
+			onStage({ kind: "syncing" });
+			const result = await engineClient.sync(
+				config.bundleBaseUrl,
+				config.pubkeyUrl,
+				config.expectedBundleId,
+				config.expectedChannel,
+			);
+			this.#assertCurrent(generation);
+			onStage({ kind: "synced", result });
 
-		onStage({ kind: "reassembling" });
-		const [files, rankingConfig, cooccurrence] = await Promise.all([
-			readBundleFiles(engineClient),
-			readRankingConfig(engineClient),
-			readCooccurrence(engineClient),
-		]);
+			onStage({ kind: "reassembling" });
+			const [files, rankingConfig, cooccurrence] = await Promise.all([
+				readBundleFiles(engineClient),
+				readRankingConfig(engineClient),
+				readCooccurrence(engineClient),
+			]);
+			this.#assertCurrent(generation);
+			engineClient.terminate?.();
+			if (this.#engineClient === engineClient) this.#engineClient = null;
 
-		onStage({ kind: "loading-model" });
-		const embedder = this.#deps.makeEmbedder();
-		// Force the ~25 MB model download/compile now so "loading-model" reflects
-		// real work and the first user query is fast.
-		await embedder.embed(WARMUP_PROMPT);
+			onStage({ kind: "loading-model" });
+			embedder = this.#deps.makeEmbedder();
+			this.#embedder = embedder;
+			// Force the ~25 MB model download/compile now so "loading-model" reflects
+			// real work and the first user query is fast.
+			await embedder.embed(WARMUP_PROMPT);
+			this.#assertCurrent(generation);
 
-		const engine = await createSearchEngine(
-			files,
-			embedder,
-			rankingConfig,
-			cooccurrence,
-		);
-		this.#ready = engine;
-		onStage({ kind: "ready" });
-		return engine;
+			const engine = await createSearchEngine(
+				files,
+				embedder,
+				rankingConfig,
+				cooccurrence,
+			);
+			this.#assertCurrent(generation);
+			this.#ready = engine;
+			onStage({ kind: "ready" });
+			return engine;
+		} catch (error) {
+			engineClient.terminate?.();
+			embedder?.dispose?.();
+			if (this.#engineClient === engineClient) this.#engineClient = null;
+			if (this.#embedder === embedder) this.#embedder = null;
+			throw error;
+		}
+	}
+
+	#assertCurrent(generation: number): void {
+		if (this.#generation !== generation) {
+			throw new Error("edge-proc engine boot superseded");
+		}
 	}
 }
 

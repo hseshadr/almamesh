@@ -105,6 +105,7 @@ const EXIT_GATE_HOOKS =
  */
 export interface BootstrapRuntime {
   bootstrap(config: RuntimeConfig, onStage?: OnStage): Promise<ChartEngine>
+  dispose?(): Promise<void> | void
 }
 
 interface ProviderProps {
@@ -221,6 +222,14 @@ export function AlmaMeshRuntimeProvider({ children, runtime }: ProviderProps) {
     if (window.location.pathname === '/' && !hasLocalChart()) return
     startBootstrap()
   }, [startBootstrap])
+
+  // Workers and Pyodide hold substantial resources outside React's tree. Stop
+  // them on unmount, and reset the refs so a StrictMode remount can boot again.
+  useEffect(() => () => {
+    startedRef.current = false
+    inFlightRef.current = null
+    void runtimeRef.current?.dispose?.()
+  }, [])
 
   const value = useMemo(
     () => ({ engine, stage, error, meta, reboot, whenReady, startBootstrap }),

@@ -19,17 +19,35 @@ import type { RectificationInput, RectificationResultRaw } from "./rectification
 
 interface Pending {
   readonly resolve: (response: ChartWorkerResponse) => void;
+  readonly reject: (error: Error) => void;
+  readonly timer: ReturnType<typeof setTimeout>;
+}
+
+/** Maximum time a chart-worker request may remain unresolved. */
+export const DEFAULT_REQUEST_TIMEOUT_MS = 60_000;
+
+export interface ChartEngineClientOptions {
+  readonly requestTimeoutMs?: number;
 }
 
 export class ChartEngineClient {
   readonly #worker: WorkerLike;
   readonly #pending = new Map<number, Pending>();
+  readonly #timeoutMs: number;
   #nextId = 0;
+  #closed: Error | null = null;
 
-  public constructor(worker: WorkerLike) {
+  public constructor(worker: WorkerLike, options: ChartEngineClientOptions = {}) {
     this.#worker = worker;
+    this.#timeoutMs = options.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS;
     this.#worker.addEventListener("message", (event) => {
       this.#onMessage(event.data);
+    });
+    this.#worker.addEventListener("error", (event) => {
+      this.#close(new Error(`chart worker failed: ${event.message ?? "unknown error"}`));
+    });
+    this.#worker.addEventListener("messageerror", () => {
+      this.#close(new Error("chart worker failed: messageerror"));
     });
   }
 
@@ -38,7 +56,7 @@ export class ChartEngineClient {
     const worker = new Worker(new URL("./chartWorker.ts", import.meta.url), {
       type: "module",
     });
-    return new ChartEngineClient(worker);
+    return new ChartEngineClient(worker as unknown as WorkerLike);
   }
 
   /** Boot Pyodide and load the AlmaMesh engine + ephemeris from `config`. */
@@ -100,7 +118,7 @@ export class ChartEngineClient {
   }
 
   public terminate(): void {
-    this.#worker.terminate();
+    this.#close(new Error("chart worker terminated"));
   }
 
   #allocId(): number {
@@ -109,9 +127,25 @@ export class ChartEngineClient {
   }
 
   #send(request: ChartWorkerRequest): Promise<ChartWorkerResponse> {
-    return new Promise<ChartWorkerResponse>((resolve) => {
-      this.#pending.set(request.id, { resolve });
-      this.#worker.postMessage(request);
+    if (this.#closed !== null) {
+      return Promise.reject(this.#closed);
+    }
+    return new Promise<ChartWorkerResponse>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this.#close(
+          new Error(
+            `chart worker request ${request.id} (${request.kind}) timed out after ${this.#timeoutMs}ms`,
+          ),
+        );
+      }, this.#timeoutMs);
+      this.#pending.set(request.id, { resolve, reject, timer });
+      try {
+        this.#worker.postMessage(request);
+      } catch (error) {
+        this.#pending.delete(request.id);
+        clearTimeout(timer);
+        reject(error instanceof Error ? error : new Error(String(error)));
+      }
     });
   }
 
@@ -121,6 +155,20 @@ export class ChartEngineClient {
       return;
     }
     this.#pending.delete(response.id);
+    clearTimeout(pending.timer);
     pending.resolve(response);
+  }
+
+  #close(error: Error): void {
+    if (this.#closed !== null) {
+      return;
+    }
+    this.#closed = error;
+    for (const pending of this.#pending.values()) {
+      clearTimeout(pending.timer);
+      pending.reject(error);
+    }
+    this.#pending.clear();
+    this.#worker.terminate();
   }
 }
