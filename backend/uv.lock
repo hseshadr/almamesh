@@ -1075,7 +1075,7 @@ requires-dist = [
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=4.1.0" },
     { name = "radon", marker = "extra == 'dev'", specifier = ">=6.0.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.1.6" },
-    { name = "sqlalchemy", extras = ["asyncio"], marker = "extra == 'pgvector'", specifier = ">=2.0.23" },
+    { name = "sqlalchemy", extras = ["asyncio"], marker = "extra == 'pgvector'", specifier = ">=2.0.51" },
     { name = "xenon", marker = "extra == 'dev'", specifier = ">=0.9.0" },
 ]
 provides-extras = ["pgvector", "dev"]
