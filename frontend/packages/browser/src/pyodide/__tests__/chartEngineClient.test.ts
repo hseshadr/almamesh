@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ChartEngineClient } from "../chartEngineClient";
 import type { SiderealChart } from "../chart";
@@ -108,6 +108,10 @@ class FakeChartWorker implements WorkerLike {
 
 	public emitMessageError(): void {
 		this.#messageErrorListener?.();
+	}
+
+	public respond(response: ChartWorkerResponse): void {
+		this.#listener?.(new MessageEvent("message", { data: response }));
 	}
 }
 
@@ -248,6 +252,37 @@ describe("ChartEngineClient", () => {
 		const pending = client.generateChart(BIRTH);
 		await expect(pending).rejects.toThrow(/timed out/);
 		expect(worker.terminated).toBe(true);
+	});
+
+	it("does not expire a chart request while a heavy predictive request occupies the worker", async () => {
+		vi.useFakeTimers();
+		try {
+			const client = new ChartEngineClient(worker);
+			const predictive = client.computePredictive(PREDICTIVE_INPUT);
+			const chart = client.generateChart(BIRTH);
+			const [predictiveRequest, chartRequest] = worker.posted;
+
+			vi.advanceTimersByTime(60_001);
+			expect(worker.terminated).toBe(false);
+
+			worker.respond({
+				ok: true,
+				kind: "computePredictive",
+				id: predictiveRequest.id,
+				predictive: STUB_PREDICTIVE,
+			});
+			worker.respond({
+				ok: true,
+				kind: "generateChart",
+				id: chartRequest.id,
+				chart: STUB_CHART,
+			});
+
+			await expect(predictive).resolves.toBe(STUB_PREDICTIVE);
+			await expect(chart).resolves.toBe(STUB_CHART);
+		} finally {
+			vi.useRealTimers();
+		}
 	});
 
 	it("terminate rejects pending requests instead of leaving them hanging", async () => {

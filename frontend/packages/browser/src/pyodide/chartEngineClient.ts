@@ -18,28 +18,37 @@ import type {
 import type { RectificationInput, RectificationResultRaw } from "./rectification";
 
 interface Pending {
+  readonly kind: ChartWorkerRequest["kind"];
   readonly resolve: (response: ChartWorkerResponse) => void;
   readonly reject: (error: Error) => void;
   readonly timer: ReturnType<typeof setTimeout>;
 }
 
-/** Maximum time a chart-worker request may remain unresolved. */
+/** Maximum time a normal chart-worker request may remain unresolved. */
 export const DEFAULT_REQUEST_TIMEOUT_MS = 60_000;
+
+/** Predictive contexts can occupy the serial Pyodide worker for several minutes. */
+export const DEFAULT_PREDICTIVE_REQUEST_TIMEOUT_MS = 180_000;
 
 export interface ChartEngineClientOptions {
   readonly requestTimeoutMs?: number;
+  readonly predictiveRequestTimeoutMs?: number;
 }
 
 export class ChartEngineClient {
   readonly #worker: WorkerLike;
   readonly #pending = new Map<number, Pending>();
   readonly #timeoutMs: number;
+  readonly #predictiveTimeoutMs: number;
   #nextId = 0;
   #closed: Error | null = null;
+  #predictivePending = 0;
 
   public constructor(worker: WorkerLike, options: ChartEngineClientOptions = {}) {
     this.#worker = worker;
     this.#timeoutMs = options.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS;
+    this.#predictiveTimeoutMs =
+      options.predictiveRequestTimeoutMs ?? DEFAULT_PREDICTIVE_REQUEST_TIMEOUT_MS;
     this.#worker.addEventListener("message", (event) => {
       this.#onMessage(event.data);
     });
@@ -131,18 +140,29 @@ export class ChartEngineClient {
       return Promise.reject(this.#closed);
     }
     return new Promise<ChartWorkerResponse>((resolve, reject) => {
+      const predictivePending = this.#predictivePending > 0;
+      const timeoutMs =
+        request.kind === "computePredictive" || predictivePending
+          ? this.#predictiveTimeoutMs
+          : this.#timeoutMs;
+      if (request.kind === "computePredictive") {
+        this.#predictivePending += 1;
+      }
       const timer = setTimeout(() => {
         this.#close(
           new Error(
-            `chart worker request ${request.id} (${request.kind}) timed out after ${this.#timeoutMs}ms`,
+            `chart worker request ${request.id} (${request.kind}) timed out after ${timeoutMs}ms`,
           ),
         );
-      }, this.#timeoutMs);
-      this.#pending.set(request.id, { resolve, reject, timer });
+      }, timeoutMs);
+      this.#pending.set(request.id, { kind: request.kind, resolve, reject, timer });
       try {
         this.#worker.postMessage(request);
       } catch (error) {
         this.#pending.delete(request.id);
+        if (request.kind === "computePredictive") {
+          this.#predictivePending -= 1;
+        }
         clearTimeout(timer);
         reject(error instanceof Error ? error : new Error(String(error)));
       }
@@ -155,6 +175,9 @@ export class ChartEngineClient {
       return;
     }
     this.#pending.delete(response.id);
+    if (pending.kind === "computePredictive") {
+      this.#predictivePending -= 1;
+    }
     clearTimeout(pending.timer);
     pending.resolve(response);
   }
@@ -169,6 +192,7 @@ export class ChartEngineClient {
       pending.reject(error);
     }
     this.#pending.clear();
+    this.#predictivePending = 0;
     this.#worker.terminate();
   }
 }
