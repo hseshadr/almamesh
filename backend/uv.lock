@@ -429,7 +429,7 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.13.4" },
     { name = "pydantic-settings", specifier = ">=2.5" },
     { name = "rank-bm25", marker = "extra == 'localvec'", specifier = ">=0.2.2" },
-    { name = "sentence-transformers", marker = "extra == 'localvec'", specifier = ">=3.3" },
+    { name = "sentence-transformers", marker = "extra == 'localvec'", specifier = ">=5.6.0" },
     { name = "shared-libs-python", editable = "vendor/shared-libs-python" },
     { name = "structlog", marker = "extra == 'bundles'", specifier = ">=24.4" },
     { name = "typer", specifier = ">=0.15" },
