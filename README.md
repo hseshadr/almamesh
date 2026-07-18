@@ -17,14 +17,16 @@ PWA and it works offline after the first load.
 
 ![AlmaMesh landing — the Observatory PWA](docs/assets/landing.png)
 
-## Northstar status (verified 2026-07-16)
+## Northstar status (verified 2026-07-18)
 
 **The shipped app is local-first by default, signed at the edge, and recoverable.**
-At this verification, production reported commit `08d75db` (build `37f44149f5ca`). GitHub's
-hosted Test and deploy workflows passed for that exact commit. The live bundle
-pointer, immutable manifest bytes, SHA-256 hash, and Ed25519 signature were checked
-against the pinned public key; a fresh browser context imported a backup and restored
-both a profile and chart with no console or page errors.
+The prior 2026-07-16 snapshot recorded `08d75db`; the current live production
+identity is commit `6e5153f080dd1a1fbade96d66faccfee1c3e651b`, deployed by GitHub
+run `29659416313`. Hosted Test and deploy workflows passed for that exact commit.
+The live bundle pointer, immutable manifest bytes, SHA-256 hash, and Ed25519
+signature were checked against the pinned public key; a fresh browser context
+imported a backup and restored both a profile and chart with no console or page
+errors.
 
 Verify the live identity yourself:
 
