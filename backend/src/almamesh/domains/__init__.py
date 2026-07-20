@@ -15,6 +15,16 @@ the LLM narrates later. See ``almamesh.domains.recipes`` for the closed
 significator registry and ``backend/docs/predictive-engine-plan.md`` (Phase 4).
 """
 
+from almamesh.domains.strength_receipt import (
+    DomainStrengthSubject,
+    sign_domain_strength,
+    verify_domain_strength,
+)
 from almamesh.domains.synthesis import compute_life_domains
 
-__all__ = ["compute_life_domains"]
+__all__ = [
+    "DomainStrengthSubject",
+    "compute_life_domains",
+    "sign_domain_strength",
+    "verify_domain_strength",
+]
