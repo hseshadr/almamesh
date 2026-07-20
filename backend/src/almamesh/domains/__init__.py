@@ -15,12 +15,18 @@ the LLM narrates later. See ``almamesh.domains.recipes`` for the closed
 significator registry and ``backend/docs/predictive-engine-plan.md`` (Phase 4).
 """
 
-from almamesh.domains.strength_receipt import (
-    DomainStrengthSubject,
-    sign_domain_strength,
-    verify_domain_strength,
-)
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from almamesh.domains.synthesis import compute_life_domains
+
+if TYPE_CHECKING:
+    from almamesh.domains.strength_receipt import (
+        DomainStrengthSubject,
+        sign_domain_strength,
+        verify_domain_strength,
+    )
 
 __all__ = [
     "DomainStrengthSubject",
@@ -28,3 +34,20 @@ __all__ = [
     "sign_domain_strength",
     "verify_domain_strength",
 ]
+
+# The strength-receipt helpers pull the ``avow`` trust envelope and its ``pynacl``
+# Ed25519 backend. The in-browser Pyodide predictive engine imports this package to
+# compute the Life Atlas but never signs, so eager loading would force a WASM crypto
+# dylib into the hot path (and break offline boots) for nothing.
+_RECEIPT_EXPORTS = frozenset(
+    {"DomainStrengthSubject", "sign_domain_strength", "verify_domain_strength"}
+)
+
+
+def __getattr__(name: str) -> object:
+    """Resolve the signing helpers lazily, on first access (PEP 562)."""
+    if name in _RECEIPT_EXPORTS:
+        from almamesh.domains import strength_receipt
+
+        return getattr(strength_receipt, name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
