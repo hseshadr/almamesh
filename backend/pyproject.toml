@@ -30,7 +30,7 @@ dependencies = [
     # so numpy/scipy/scikit-learn would be dead weight — and must stay OUT of the
     # Pyodide runtime (the browser loads only pynacl + pydantic). Same Python
     # kernel runs unmodified in-browser via micropip (pynacl is in the Pyodide lock).
-    "avow>=0.1.0",
+    "avow>=0.1.0,<0.2",
 ]
 
 [project.optional-dependencies]
@@ -71,11 +71,6 @@ constraint-dependencies = ["cryptography>=48.0.1,<49", "click>=8.3.3,<8.4"]
 [tool.uv.sources]
 edge-proc = { path = "vendor/edge-proc", editable = true }
 shared-libs-python = { path = "vendor/shared-libs-python", editable = true }
-# Dev path source to the local avow/assay kernel (repo ~/dev/oss/assay). This is
-# the P-wire dev seam; unlike the vendored substrate above it points OUTSIDE the
-# clone, so a fresh single-clone build needs the sibling repo until publish.
-# TODO(publish): replace with the PyPI `avow>=0.1.0` version once assay is released.
-avow = { path = "../../assay", editable = true }
 
 # The backend quality gate (ENGINEERING-STANDARDS §3): `uv run poe gate`.
 # CI's backend job runs exactly this command — gate and CI mirror both ways.
