@@ -2,7 +2,7 @@
 
 The signed bundle must carry everything the browser loads OFFLINE after first
 sync: the skyfield-stack pure-Python wheels (`jplephem`, `sgp4`, `skyfield`),
-the `avow` strength-receipt envelope + its `rfc8785` dep, the almamesh wheel,
+the almamesh wheel,
 the DE421 ephemeris, `finals2000A.all`, and signed meta.
 (Pyodide's runtime + numpy ship as app static assets, NOT in this bundle.)
 
@@ -27,8 +27,6 @@ _VENDORED_WHEELS = (
     "wheels/jplephem-2.23-py3-none-any.whl",
     "wheels/sgp4-2.25-py3-none-any.whl",
     "wheels/skyfield-1.53-py3-none-any.whl",
-    "wheels/rfc8785-0.1.4-py3-none-any.whl",
-    "wheels/avow-0.1.0-py3-none-any.whl",
 )
 
 

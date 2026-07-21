@@ -18,7 +18,6 @@ name = "almamesh"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
-    { name = "avow" },
     { name = "edge-proc", extra = ["bundles"] },
     { name = "httpx" },
     { name = "pydantic" },
@@ -34,6 +33,7 @@ dependencies = [
 
 [package.optional-dependencies]
 dev = [
+    { name = "avow" },
     { name = "mypy" },
     { name = "poethepoet" },
     { name = "pytest" },
@@ -50,7 +50,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "avow", specifier = ">=0.1.0,<0.2" },
+    { name = "avow", marker = "extra == 'dev'", specifier = ">=0.1.0,<0.2" },
     { name = "edge-proc", extras = ["bundles"], editable = "vendor/edge-proc" },
     { name = "httpx", specifier = ">=0.28.0" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=2.3.0" },

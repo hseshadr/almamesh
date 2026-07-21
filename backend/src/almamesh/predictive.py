@@ -9,6 +9,12 @@ and its golden stay untouched.
 This module is deliberately free of any ``edgeproc`` dependency so the Pyodide
 chart Worker (which installs only the skyfield stack + the almamesh wheel) can
 import it directly; ``edge/chart_runtime.py`` wraps it for task payloads.
+
+CRYPTO-FREE BY DESIGN. This module computes; it does not sign. Each domain's
+``StrengthSummary`` is sealed into an Ed25519 receipt by the Worker's TypeScript
+(``@edgeproc/avow``), outside Pyodide — see
+``frontend/packages/browser/src/pyodide/strengthReceipt.ts`` for why, and
+``tests/test_engine_is_crypto_free.py`` for the guard that keeps it that way.
 """
 
 from __future__ import annotations
@@ -32,7 +38,10 @@ class PredictiveContexts(BaseModel):
     """The four additive predictive contexts for one chart + instant.
 
     ``model_dump(mode="json")`` of this model IS the wire payload the browser
-    receives: each top-level key carries the bare dump of its context.
+    receives: each top-level key carries the bare dump of its context. The Worker
+    then seals each domain's ``StrengthSummary`` into a signed receipt and adds
+    ``domain_strength_receipts`` alongside these four keys before the payload
+    reaches app code.
     """
 
     model_config = ConfigDict(frozen=True)
@@ -52,7 +61,8 @@ def compute_predictive_contexts(
     """All four predictive contexts at one EXPLICIT instant (no silent now()).
 
     ``reference_instant`` pins BOTH the natal "current" dasha and the transit
-    "now", keeping the whole payload coherent and reproducible.
+    "now", keeping the whole payload coherent and reproducible — which is what
+    makes the CPython<->Pyodide byte-parity gate meaningful.
     """
     natal = calculate_sidereal_context(
         birth_dt, latitude, longitude, reference_date=reference_instant
@@ -60,11 +70,12 @@ def compute_predictive_contexts(
     transits = calculate_transit_context(natal, birth_dt, transit_instant=reference_instant)
     vargas = compute_varga_context(natal)
     strength = compute_strength_context(natal, birth_dt, latitude, longitude)
+    domains = compute_life_domains(natal, transits, vargas, strength)
     return PredictiveContexts(
         transit_context=transits,
         varga_context_full=vargas,
         strength_context=strength,
-        domains_context=compute_life_domains(natal, transits, vargas, strength),
+        domains_context=domains,
     )
 
 

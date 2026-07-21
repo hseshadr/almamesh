@@ -16,6 +16,8 @@
 // typed as literal unions so the contract is self-describing. Datetimes are
 // ISO-8601 UTC strings. Dict-keyed collections serialize with string keys.
 
+import type { DomainStrengthReceipt } from "./strengthReceipt";
+
 // --- closed-set enum values (serialized `.value`s of the Python enums) ---
 
 export type SadeSatiPhase = "rising" | "peak" | "setting" | "none";
@@ -356,15 +358,35 @@ export interface LifeDomainsContext {
 
 // --- the LAZY predictive payload: backend almamesh/predictive.py ---
 
+export type { DomainStrengthReceipt } from "./strengthReceipt";
+
 /**
- * The four contexts returned by the lazy `computePredictive` runtime call —
- * the exact `model_dump(mode="json")` of the backend `PredictiveContexts`
- * model. Computed SEPARATELY from the natal chart (transits take ~35s under
- * Pyodide) at one EXPLICIT reference instant.
+ * EXACTLY what the Python engine returns — the `model_dump(mode="json")` of the
+ * backend `PredictiveContexts` model. Four contexts, no crypto: the engine
+ * computes, it does not sign. Computed SEPARATELY from the natal chart (transits
+ * take ~35s under Pyodide) at one EXPLICIT reference instant.
  */
-export interface PredictiveContexts {
+export interface EnginePredictiveContexts {
   readonly transit_context: TransitContext;
   readonly varga_context_full: VargaContextFull;
   readonly strength_context: StrengthContext;
   readonly domains_context: LifeDomainsContext;
+}
+
+/**
+ * What the Worker hands to app code: the engine's four contexts plus the sealed
+ * per-domain strength receipts, minted in TypeScript by `@edgeproc/avow` (see
+ * `strengthReceipt.ts` for why signing is not done inside Pyodide).
+ *
+ * A receipt introduces NO new number — `payload.summary` is the SAME
+ * `StrengthSummary` already carried in `domains_context`. It makes a stored or
+ * exported summary TAMPER-EVIDENT, nothing more: `strength_signer_public_key` is
+ * generated per Worker boot and does not survive a reload, so a receipt proves
+ * the summary was not altered after sealing — never who computed it.
+ */
+export interface PredictiveContexts extends EnginePredictiveContexts {
+  /** Keyed by life domain; one receipt per `domains_context.forecasts` entry. */
+  readonly domain_strength_receipts: Readonly<Record<string, DomainStrengthReceipt>>;
+  /** The device-local, per-boot signer these receipts were sealed under. */
+  readonly strength_signer_public_key: string;
 }

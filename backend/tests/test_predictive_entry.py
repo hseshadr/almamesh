@@ -28,7 +28,12 @@ LONGITUDE = 77.2090
 REFERENCE_INSTANT = datetime(2026, 6, 9, 12, 0, 0, tzinfo=UTC)
 
 PAYLOAD_KEYS = frozenset(
-    {"transit_context", "varga_context_full", "strength_context", "domains_context"}
+    {
+        "transit_context",
+        "varga_context_full",
+        "strength_context",
+        "domains_context",
+    }
 )
 
 
@@ -65,6 +70,11 @@ def test_contexts_match_the_standalone_pipeline(contexts: PredictiveContexts) ->
 
 
 def test_payload_has_exactly_the_four_context_keys(payload: dict[str, object]) -> None:
+    """The four contexts and NOTHING else — the engine computes, it does not sign.
+
+    Strength receipts are added by the browser Worker's TypeScript after this
+    payload crosses the runtime boundary, so this CPython path and the Pyodide
+    path emit identical bytes."""
     assert set(payload) == PAYLOAD_KEYS
 
 

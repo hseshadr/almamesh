@@ -25,6 +25,13 @@ from almamesh.predictive import PredictiveContexts, compute_predictive_contexts
 # MUST match parity.mjs:PREDICTIVE_REFERENCE_INSTANT.
 FIXED_REFERENCE_INSTANT = datetime(2026, 6, 9, 12, 0, 0, tzinfo=UTC)
 
+# NOTE: this golden pins the ENGINE's four contexts only. Domain-strength
+# receipts are minted by the browser Worker's TypeScript (@edgeproc/avow), not
+# here, so they are not part of the CPython<->Pyodide byte-parity surface. Their
+# cross-language byte-compatibility is proven separately by the shared golden
+# vectors in testdata/vectors/ (backend/tests/test_strength_receipt_vectors.py
+# and the @almamesh/browser strengthReceipt suite).
+
 # (iso birth, lat, lon) — parity-clean subset; MUST match parity.mjs:PREDICTIVE_FIXTURES.
 FIXTURES: list[tuple[str, float, float]] = [
     ("1990-01-15T12:00:00+00:00", 28.6139, 77.2090),  # Delhi

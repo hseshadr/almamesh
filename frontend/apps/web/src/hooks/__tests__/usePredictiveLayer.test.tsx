@@ -29,6 +29,7 @@ import {
   predictiveRequestKey,
 } from '@almamesh/store';
 import type { TransitCtx } from '@almamesh/shared-types';
+import type { PredictiveContexts } from '@almamesh/browser/types';
 
 import { ChartEngineContext, type ChartEngineContextValue } from '../../providers/chartEngineContext';
 import { usePredictiveLayer } from '../usePredictiveLayer';
@@ -339,5 +340,63 @@ describe('usePredictiveLayer({ auto: true })', () => {
     });
 
     expect(ensure).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('usePredictiveLayer — raw engine contexts passthrough', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-12T12:00:00Z'));
+    useChartLibraryStore.setState({ charts: { 'chart-1': storedChart() }, hydrated: true });
+    useProfilesStore.setState({ activeProfileId: 'chart-1' });
+    usePredictiveStore.getState().reset();
+  });
+  afterEach(() => {
+    vi.clearAllTimers();
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  it('surfaces rawContexts (Spec 062 delta) once cached for the exact input', () => {
+    const rawContexts = { domains_context: { instant: 'raw' } } as unknown as PredictiveContexts;
+    usePredictiveStore.setState({
+      status: 'ready',
+      profileKey: 'chart-1',
+      requestKey: predictiveRequestKey({
+        profileKey: 'chart-1',
+        datetimeUtc: '1990-03-30T06:30:00Z',
+        latitude: 12.97,
+        longitude: 77.59,
+        referenceInstant: '2026-07-12T00:00:00Z',
+      }),
+      rawContexts,
+    });
+
+    const { result } = renderHook(() => usePredictiveLayer(), {
+      wrapper: makeWrapper(engineCtx()),
+    });
+
+    expect(result.current.rawContexts).toBe(rawContexts);
+  });
+
+  it('withholds rawContexts from a stale cache (mismatched request key)', () => {
+    usePredictiveStore.setState({
+      status: 'ready',
+      profileKey: 'chart-1',
+      requestKey: predictiveRequestKey({
+        profileKey: 'chart-1',
+        datetimeUtc: '1990-03-30T06:15:00Z', // does not match storedChart()'s birth time
+        latitude: 12.97,
+        longitude: 77.59,
+        referenceInstant: '2026-07-12T00:00:00Z',
+      }),
+      rawContexts: { domains_context: { instant: 'stale' } } as unknown as PredictiveContexts,
+    });
+
+    const { result } = renderHook(() => usePredictiveLayer(), {
+      wrapper: makeWrapper(engineCtx()),
+    });
+
+    expect(result.current.rawContexts).toBeUndefined();
   });
 });

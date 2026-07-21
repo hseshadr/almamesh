@@ -77,6 +77,10 @@ def compute_predictive(payload: Mapping[str, object]) -> dict[str, JsonValue]:
     is no silent wall-clock fallback. The caller pins the instant, which pins
     both the "current" dasha and the transit "now", so the payload is
     reproducible (and byte-parity-testable) by construction.
+
+    No signing happens here. The four contexts ARE the engine's output; the
+    browser Worker seals each domain's strength summary into a receipt in
+    TypeScript, so this CPython path and the Pyodide path emit identical bytes.
     """
     contexts = compute_predictive_contexts(
         datetime.fromisoformat(str(payload["datetime_utc"])),

@@ -77,6 +77,14 @@ const TRANSIT_FIXTURES = [
 // backend/tests/test_predictive_golden.py.
 const PREDICTIVE_GOLDEN_PATH = join(REPO_ROOT, "backend/tests/fixtures/predictive_golden_de421.json");
 const PREDICTIVE_REFERENCE_INSTANT = "2026-06-09T12:00:00+00:00";
+// NOTE: this gate compares the ENGINE's four contexts. It does NOT cover strength
+// receipts — those are minted in TypeScript by @edgeproc/avow, outside Pyodide.
+// Their CPython<->TypeScript byte-compatibility is proven by the shared golden
+// vectors in testdata/vectors/, not here.
+//
+// This harness runs Pyodide under NODE. It is evidence about engine determinism,
+// NOT about the browser: a package can load here and still fail to register in a
+// real browser boot (which is exactly what pynacl's `_sodium` did).
 const PREDICTIVE_FIXTURES = [
   { iso: "1990-01-15T12:00:00+00:00", lat: 28.6139, lon: 77.209, label: "Delhi" },
   { iso: "2000-12-31T23:59:00+00:00", lat: 40.7128, lon: -74.006, label: "NYC" },
@@ -118,23 +126,20 @@ const MESH_PAIRS = [
 ];
 
 // Bundle wheels, installed leaf-first: the skyfield stack (jplephem, sgp4 ->
-// skyfield) then the avow strength-receipt envelope (rfc8785 -> avow), all
-// before the almamesh engine wheel that imports them. Must live in WHEEL_DIR.
+// skyfield) before the almamesh engine wheel that imports them. Must live in
+// WHEEL_DIR. No avow/rfc8785 — the engine is crypto-free.
 const SKYFIELD_STACK = [
   "jplephem-2.23-py3-none-any.whl",
   "sgp4-2.25-py3-none-any.whl",
   "skyfield-1.53-py3-none-any.whl",
-  "rfc8785-0.1.4-py3-none-any.whl",
-  "avow-0.1.0-py3-none-any.whl",
 ];
 
 // Pyodide-shipped base packages (all in the self-hosted lock — no PyPI).
-// pynacl is avow's Ed25519 backend; loadPackage pulls cffi/pycparser with it.
+// Mirrors chartWorker.ts LOAD_PACKAGES — no pynacl: signing is TypeScript-side.
 const LOAD_PACKAGES = [
   "micropip",
   "numpy",
   "pydantic",
-  "pynacl",
   "pyyaml",
   "python-dateutil",
   "pytz",

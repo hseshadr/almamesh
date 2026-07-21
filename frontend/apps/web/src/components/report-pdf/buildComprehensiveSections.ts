@@ -26,6 +26,7 @@ import type {
   ZodiacSign,
 } from '@almamesh/shared-types';
 import { buildVargaGeometry } from '@almamesh/store';
+import type { StrengthProvenance } from '../../lib/strengthProvenance';
 import { formatDegree } from '../../lib/reportData';
 import { formatPct, formatPredictiveDate, formatRupas, toVargaChart } from '../../lib/predictive';
 import {
@@ -397,27 +398,65 @@ function emphasisLine(forecast: LifeDomainForecastData, tp: TFunction): string {
   return line;
 }
 
+/**
+ * True when THIS domain's strength receipt was PRESENT but failed to verify
+ * against the pinned signer — the only condition under which a domain's
+ * numeric percentages are withheld. Absent `provenance` (no receipts, older
+ * persisted payload) never withholds anything: `undefined` is not "failed".
+ */
+function isStrengthUnverified(domain: string, provenance: StrengthProvenance | undefined): boolean {
+  return provenance !== undefined && provenance.failed.includes(domain);
+}
+
+/**
+ * The band line for one domain. When its receipt failed verification the
+ * numeric `strength_pct` is WITHHELD — never guessed, never re-derived —
+ * leaving only the non-numeric band/tier label; happy path (no provenance, or
+ * a verified domain) is byte-identical to before this existed.
+ */
+function domainBand(
+  strength: LifeDomainForecastData['strength_summary'],
+  unverified: boolean,
+  tp: TFunction,
+): string {
+  const label = `${tp(`domains.band.${strength.band}`)}${strength.approximated ? ' ≈' : ''}`;
+  return unverified ? label : `${formatPct(strength.strength_pct)} · ${label}`;
+}
+
+/**
+ * The Śaḍbala/Aṣṭakavarga axes line. When unverified this becomes the honest
+ * withheld-note instead of the two percentages — the report never fabricates
+ * a substitute number and never re-labels a withheld figure as "verified".
+ */
+function domainStrengthAxes(
+  strength: LifeDomainForecastData['strength_summary'],
+  unverified: boolean,
+  { tr, tp }: ReportPdfTranslators,
+): string {
+  if (unverified) {
+    return tr('domains.strength_withheld_note');
+  }
+  return `${tp('domains.strength_axes', {
+    shadbala: formatPct(strength.shadbala_pct),
+    sav: formatPct(strength.sav_pct),
+  })} · ${tp('domains.strength_tier_model')}`;
+}
+
 /** Reshape the engine DomainsCtx into the seven pre-formatted domain blocks. */
 export function buildDomainsSection(
   ctx: DomainsCtx,
-  { tr, tp }: ReportPdfTranslators,
+  translators: ReportPdfTranslators,
+  provenance?: StrengthProvenance,
 ): ReportPdfDomains {
+  const { tr, tp } = translators;
   const blocks = DOMAIN_ORDER.map((domain) => {
     const forecast = ctx.forecasts[domain];
     const strength = forecast.strength_summary;
+    const unverified = isStrengthUnverified(domain, provenance);
     return {
       name: glyphSafe(tp(`domains.names.${domain}`)),
-      band: glyphSafe(
-        `${formatPct(strength.strength_pct)} · ${tp(`domains.band.${strength.band}`)}${
-          strength.approximated ? ' ≈' : ''
-        }`,
-      ),
-      strengthAxes: glyphSafe(
-        `${tp('domains.strength_axes', {
-          shadbala: formatPct(strength.shadbala_pct),
-          sav: formatPct(strength.sav_pct),
-        })} · ${tp('domains.strength_tier_model')}`,
-      ),
+      band: glyphSafe(domainBand(strength, unverified, tp)),
+      strengthAxes: glyphSafe(domainStrengthAxes(strength, unverified, translators)),
       strengthLine: glyphSafe(
         tp('domains.strength_line', {
           graha: grahaName(tp, strength.key_graha),

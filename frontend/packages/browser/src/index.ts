@@ -39,6 +39,9 @@ export type {
   RuntimeDeps,
 } from "./pyodide/runtime";
 
+// --- domain-strength receipts (tamper-evidence layer, see ./pyodide/strengthReceipt) ---
+export { signDomainStrength, verifyDomainStrength } from "./pyodide/strengthReceipt";
+
 // --- the Pyodide chart engine (compute layer) ---
 export { ChartEngineClient } from "./pyodide/chartEngineClient";
 export type {

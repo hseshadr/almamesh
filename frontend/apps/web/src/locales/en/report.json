@@ -168,7 +168,8 @@
   "domains": {
     "heading": "Life-Domain Forecasts",
     "windows_heading": "Upcoming windows",
-    "windows_empty": "No dated windows inside the next twelve months."
+    "windows_empty": "No dated windows inside the next twelve months.",
+    "strength_withheld_note": "Stored figure could not be confirmed unchanged — withheld from this report."
   },
   "rectification": {
     "heading": "Birth Time Authority",

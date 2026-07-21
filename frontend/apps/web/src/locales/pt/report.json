@@ -171,7 +171,8 @@
   "domains": {
     "heading": "Previsões por áreas da vida",
     "windows_heading": "Janelas próximas",
-    "windows_empty": "Nenhuma janela datada nos próximos doze meses."
+    "windows_empty": "Nenhuma janela datada nos próximos doze meses.",
+    "strength_withheld_note": "Não foi possível confirmar que o valor salvo permaneceu inalterado — omitido deste relatório."
   },
   "rectification": {
     "heading": "Autoridade da hora de nascimento",
