@@ -27,11 +27,15 @@ const SKYFIELD_DATA_DIR = "/home/pyodide/.skyfield-data";
 
 // Resolved offline from the self-hosted Pyodide lock (no PyPI/CDN). dateutil,
 // pytz, and certifi ship in Pyodide's own lock, so skyfield's pure-Python deps
-// need no network — only jplephem/sgp4/skyfield wheels travel in the bundle.
+// need no network. `pynacl` is the Ed25519 engine behind the `avow` trust
+// envelope (strength receipts); loadPackage pulls its compiled deps (cffi ->
+// pycparser) from the same lock. Only the pure-Python bundle wheels
+// (jplephem/sgp4/skyfield, rfc8785, avow, almamesh) travel in the signed bundle.
 const LOAD_PACKAGES = [
   "micropip",
   "numpy",
   "pydantic",
+  "pynacl",
   "pyyaml",
   "python-dateutil",
   "pytz",

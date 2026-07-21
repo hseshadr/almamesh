@@ -6,7 +6,7 @@
 # apps/web/public/{pyodide,bundle,public.key} is .gitignored.
 #
 # What it produces:
-#   apps/web/public/pyodide/   — self-hosted Pyodide dist (offline, 17 files)
+#   apps/web/public/pyodide/   — self-hosted Pyodide dist (offline, 20 files)
 #   apps/web/public/bundle/    — signed dev edge-proc bundle (origin layout)
 #   apps/web/public/public.key — pinned ed25519 verify key for that bundle
 #   apps/web/public/models/    — self-hosted RAG embedding model (MiniLM q8 ONNX)
@@ -23,7 +23,8 @@ BACKEND_DIR="${REPO_ROOT}/backend"
 PUBLIC_DIR="${WEB_DIR}/public"
 
 # The self-hosted Pyodide dist: the core runtime + ONLY the package wheels our
-# engine loads (numpy/pydantic/pyyaml + skyfield's pure-Python deps), pinned to
+# engine loads (numpy/pydantic/pyyaml + skyfield's pure-Python deps + pynacl for
+# the avow strength-receipt envelope, with cffi/pycparser), pinned to
 # the `pyodide` npm dep version. We fetch them once from Pyodide's official CDN
 # (jsdelivr) so a fresh clone is fully reproducible; the RUNTIME stays offline
 # (these are served same-origin from public/pyodide/). Core runtime files are
@@ -50,6 +51,11 @@ PYODIDE_FILES=(
   pytz-2025.2-py2.py3-none-any.whl
   certifi-2026.1.4-py3-none-any.whl
   six-1.17.0-py2.py3-none-any.whl
+  # avow's Ed25519 backend (pynacl) + its compiled deps, loaded via loadPackage
+  # from the lock so `import avow` works in the in-browser predictive engine.
+  pynacl-1.6.2-cp313-cp313-pyemscripten_2025_0_wasm32.whl
+  cffi-1.17.1-cp313-cp313-pyemscripten_2025_0_wasm32.whl
+  pycparser-2.22-py3-none-any.whl
 )
 
 mkdir -p "${PUBLIC_DIR}/pyodide"

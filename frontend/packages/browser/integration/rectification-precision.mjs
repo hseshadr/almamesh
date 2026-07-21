@@ -43,8 +43,11 @@ const SKYFIELD_STACK = [
   "jplephem-2.23-py3-none-any.whl",
   "sgp4-2.25-py3-none-any.whl",
   "skyfield-1.53-py3-none-any.whl",
+  "rfc8785-0.1.4-py3-none-any.whl",
+  "avow-0.1.0-py3-none-any.whl",
 ];
-const LOAD_PACKAGES = ["micropip", "numpy", "pydantic", "pyyaml", "python-dateutil", "pytz", "certifi"];
+// pynacl (avow's Ed25519 backend) loads from the lock with cffi/pycparser.
+const LOAD_PACKAGES = ["micropip", "numpy", "pydantic", "pynacl", "pyyaml", "python-dateutil", "pytz", "certifi"];
 
 // --- Extract the REAL chart-Worker glue (no `${}` interpolation in it) --------
 function extractPyBootstrap() {

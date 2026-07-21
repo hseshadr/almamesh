@@ -117,18 +117,24 @@ const MESH_PAIRS = [
   { a: fixtureByLabel.Sydney, b: fixtureByLabel.Tokyo, relationship: "friend" },
 ];
 
-// skyfield-stack wheels, installed leaf-first (jplephem, sgp4 -> skyfield).
+// Bundle wheels, installed leaf-first: the skyfield stack (jplephem, sgp4 ->
+// skyfield) then the avow strength-receipt envelope (rfc8785 -> avow), all
+// before the almamesh engine wheel that imports them. Must live in WHEEL_DIR.
 const SKYFIELD_STACK = [
   "jplephem-2.23-py3-none-any.whl",
   "sgp4-2.25-py3-none-any.whl",
   "skyfield-1.53-py3-none-any.whl",
+  "rfc8785-0.1.4-py3-none-any.whl",
+  "avow-0.1.0-py3-none-any.whl",
 ];
 
 // Pyodide-shipped base packages (all in the self-hosted lock — no PyPI).
+// pynacl is avow's Ed25519 backend; loadPackage pulls cffi/pycparser with it.
 const LOAD_PACKAGES = [
   "micropip",
   "numpy",
   "pydantic",
+  "pynacl",
   "pyyaml",
   "python-dateutil",
   "pytz",
