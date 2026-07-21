@@ -17,7 +17,7 @@ PWA and it works offline after the first load.
 
 ![AlmaMesh landing — the Observatory PWA](docs/assets/landing.png)
 
-## Northstar status (verified 2026-07-18)
+## Status (verified 2026-07-18)
 
 **The shipped app is local-first by default, signed at the edge, and recoverable.**
 The prior 2026-07-16 snapshot recorded `08d75db`; the current live production
