@@ -6,7 +6,7 @@
  * saves `AlmaMesh — <Name> (<date>).pdf`. No astrology is computed here.
  */
 
-import type { LagnaData, SiderealChart } from '@almamesh/browser/types';
+import type { DomainStrengthReceipt, LagnaData, SiderealChart } from '@almamesh/browser/types';
 import type {
   DomainsCtx,
   ProcessedBirthData,
@@ -25,6 +25,7 @@ import type {
 import type { ReportAudience } from './reportSelectors';
 import type { ReportChartFields } from './reportData';
 import type { RectificationDelta } from './rectification';
+import { verifyStrengthProvenance, type StrengthProvenance } from './strengthProvenance';
 
 /** All localized chrome strings the document needs (passed from React/i18n). */
 export interface ReportPdfChrome {
@@ -74,6 +75,18 @@ export interface DownloadReportPdfInput {
     readonly vargaCtxFull?: VargaCtxFull;
     readonly strengthCtx?: StrengthCtx;
     readonly domainsCtx?: DomainsCtx;
+    /**
+     * Every domain's sealed strength receipt + the signer that sealed them
+     * (see `pyodide/strengthReceipt.ts`). OPTIONAL: an older persisted
+     * payload, or predictive not yet computed, legitimately lacks these —
+     * `downloadReportPdf` then verifies nothing and the export behaves
+     * exactly as before this check existed. The signing key is generated
+     * fresh per Worker boot and never leaves the device, so a receipt is
+     * TAMPER-EVIDENCE for the stored figure, never an attestation of who
+     * computed it.
+     */
+    readonly domainStrengthReceipts?: Readonly<Record<string, DomainStrengthReceipt>>;
+    readonly strengthSignerPublicKey?: string;
   };
   /** Pre-localized Birth Time Authority slice (when a rectification exists). */
   readonly rectification?: ReportPdfRectification;
@@ -81,6 +94,24 @@ export interface DownloadReportPdfInput {
   readonly assumptions?: ReportPdfAssumptions;
   /** The download file name (without extension). */
   readonly fileBaseName: string;
+}
+
+/**
+ * Verify every domain-strength receipt BEFORE the PDF data is built, so a
+ * tampered or cross-signer figure never reaches the render. Runs ONLY when
+ * BOTH the receipts and the signer key are present; an older payload (either
+ * missing) is left untouched — no verification, no withheld figures, no
+ * layout change, exactly as before this check existed.
+ */
+async function resolveStrengthProvenance(
+  comprehensive: DownloadReportPdfInput['comprehensive'],
+): Promise<StrengthProvenance | undefined> {
+  const receipts = comprehensive?.domainStrengthReceipts;
+  const signerPublicKey = comprehensive?.strengthSignerPublicKey;
+  if (!receipts || !signerPublicKey) {
+    return undefined;
+  }
+  return verifyStrengthProvenance(receipts, signerPublicKey);
 }
 
 /** Build the document, render to a Blob, and click a temporary download link. */
@@ -91,6 +122,8 @@ export async function downloadReportPdf(input: DownloadReportPdfInput): Promise<
   );
 
   registerReportFonts();
+
+  const provenance = await resolveStrengthProvenance(input.comprehensive);
 
   const data = buildReportPdfData({
     personName: input.chrome.personName,
@@ -110,7 +143,16 @@ export async function downloadReportPdf(input: DownloadReportPdfInput): Promise<
     formatPratyantarHeading: input.chrome.formatPratyantarHeading,
     detailLabels: input.chrome.detailLabels,
     chromeLabels: input.chrome.chromeLabels,
-    comprehensive: input.comprehensive,
+    comprehensive: input.comprehensive
+      ? {
+          translators: input.comprehensive.translators,
+          transitCtx: input.comprehensive.transitCtx,
+          vargaCtxFull: input.comprehensive.vargaCtxFull,
+          strengthCtx: input.comprehensive.strengthCtx,
+          domainsCtx: input.comprehensive.domainsCtx,
+          provenance,
+        }
+      : undefined,
     rectification: input.rectification,
     assumptions: input.assumptions,
   });

@@ -8,11 +8,13 @@
 // Exercised end-to-end by the P2.6 harness; the main-thread client that drives
 // it (ChartEngineClient) is unit-tested separately against a fake worker.
 
+import { generateSeedHex, publicKeyHex } from "@edgeproc/avow";
 import { loadPyodide, type PyodideInterface } from "pyodide";
 
 import type { SiderealChart } from "./chart";
 import type { MeshEdgeContext } from "./mesh";
-import type { PredictiveContexts } from "./predictive";
+import type { EnginePredictiveContexts, PredictiveContexts } from "./predictive";
+import { sealDomainStrengths } from "./strengthReceipt";
 import type {
   BirthInput,
   BootConfig,
@@ -27,15 +29,18 @@ const SKYFIELD_DATA_DIR = "/home/pyodide/.skyfield-data";
 
 // Resolved offline from the self-hosted Pyodide lock (no PyPI/CDN). dateutil,
 // pytz, and certifi ship in Pyodide's own lock, so skyfield's pure-Python deps
-// need no network. `pynacl` is the Ed25519 engine behind the `avow` trust
-// envelope (strength receipts); loadPackage pulls its compiled deps (cffi ->
-// pycparser) from the same lock. Only the pure-Python bundle wheels
-// (jplephem/sgp4/skyfield, rfc8785, avow, almamesh) travel in the signed bundle.
+// need no network. Only the pure-Python bundle wheels (jplephem/sgp4/skyfield,
+// almamesh) travel in the signed bundle.
+//
+// NO `pynacl`. Strength receipts are signed in TypeScript by `@edgeproc/avow`
+// (see ./strengthReceipt.ts), so the Ed25519 WASM dylib — and its cffi ->
+// pycparser chain — is off EVERY boot, including natal-only sessions that never
+// compute a Life Atlas. It is also the one package that would not register under
+// this app's Pyodide boot at all.
 const LOAD_PACKAGES = [
   "micropip",
   "numpy",
   "pydantic",
-  "pynacl",
   "pyyaml",
   "python-dateutil",
   "pytz",
@@ -64,46 +69,24 @@ def _almamesh_generate_chart(birth_json):
     )
     return json.dumps(ctx.model_dump(mode="json"))
 
-_almamesh_device_signer_key = None
-
-def _almamesh_device_signer():
-    # THIS DEVICE's strength-receipt signer: generated once per worker boot and
-    # reused for every predictive compute in the session.
-    #
-    # WHY device-local rather than a shipped key: a browser cannot keep a secret
-    # from its own operator, so embedding one shared private key in the bundle
-    # would manufacture a forgeable identity that merely LOOKS authoritative. A
-    # device-generated key is the honest local-first primitive — the receipt makes
-    # a stored or exported strength summary TAMPER-EVIDENT (mutate the % after the
-    # fact and verification fails) and carries its own public key so a holder can
-    # check it offline. That is integrity, not attestation of who computed it.
-    #
-    # avow is imported here, not at bootstrap, so the natal boot path never pays
-    # for the pynacl Ed25519 WASM dylib.
-    global _almamesh_device_signer_key
-    if _almamesh_device_signer_key is None:
-        from avow import generate_signing_key
-        _almamesh_device_signer_key = generate_signing_key()
-    return _almamesh_device_signer_key
-
 def _almamesh_compute_predictive(input_json):
-    # The LAZY predictive superset (transits + vargas + strength + domains), with
-    # every domain's strength summary sealed into a verifiable receipt.
+    # The LAZY predictive superset (transits + vargas + strength + domains).
     # referenceInstant is REQUIRED — no silent now(); a KeyError here is a
     # caller bug, surfaced through the worker's error envelope.
     # Imported lazily so booting an OLDER bundled wheel (without the
     # predictive module) still serves natal charts.
+    #
+    # This returns the engine's four contexts and NOTHING else. Sealing each
+    # domain's strength summary into a signed receipt happens in TypeScript,
+    # after this call returns — the Python side stays crypto-free.
     from almamesh.predictive import compute_predictive_contexts
     data = json.loads(input_json)
     dt = datetime.fromisoformat(data["datetimeUtc"])
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=UTC)
     reference = datetime.fromisoformat(data["referenceInstant"])
-    # signing_key is a REQUIRED argument on the entry point — there is no unsealed
-    # mode for this call to fall back into.
     ctx = compute_predictive_contexts(
         dt, data["latitude"], data["longitude"], reference,
-        signing_key=_almamesh_device_signer(),
     )
     return json.dumps(ctx.model_dump(mode="json"))
 
@@ -251,16 +234,51 @@ function generateChart(birth: BirthInput): SiderealChart {
   }
 }
 
-function computePredictive(input: PredictiveInput): PredictiveContexts {
+function computePredictive(input: PredictiveInput): EnginePredictiveContexts {
   if (enginePyodide === undefined) {
     throw new Error("chart worker not booted");
   }
   const fn = enginePyodide.globals.get("_almamesh_compute_predictive") as unknown as PyPredictiveFn;
   try {
-    return JSON.parse(fn(JSON.stringify(input))) as PredictiveContexts;
+    return JSON.parse(fn(JSON.stringify(input))) as EnginePredictiveContexts;
   } finally {
     fn.destroy();
   }
+}
+
+// THIS DEVICE's strength-receipt signing seed: generated once per Worker boot and
+// reused for every predictive compute in the session.
+//
+// WHY device-local rather than a shipped key: a browser cannot keep a secret from
+// its own operator, so embedding one shared private key in the bundle would
+// manufacture a forgeable identity that merely LOOKS authoritative. A
+// device-generated key is the honest local-first primitive — the receipt makes a
+// stored or exported strength summary TAMPER-EVIDENT (mutate the % after the fact
+// and verification fails) and carries its own public key so a holder can check it
+// offline. It does NOT survive a reload, and it attests nothing about WHO computed
+// the summary. Integrity, not identity.
+let deviceSeedHex: string | undefined;
+
+function deviceSeed(): string {
+  deviceSeedHex ??= generateSeedHex();
+  return deviceSeedHex;
+}
+
+/**
+ * Compute the predictive superset, then seal every domain's strength summary.
+ *
+ * Sealing is unconditional and total — there is no unsealed mode and no feature
+ * flag — so the receipt seam can never silently go dead. It adds no number: each
+ * receipt payload is the engine's `StrengthSummary` verbatim.
+ */
+async function computeSealedPredictive(input: PredictiveInput): Promise<PredictiveContexts> {
+  const engine = computePredictive(input);
+  const seed = deviceSeed();
+  return {
+    ...engine,
+    domain_strength_receipts: await sealDomainStrengths(engine.domains_context, seed),
+    strength_signer_public_key: await publicKeyHex(seed),
+  };
 }
 
 function computeMeshEdge(input: MeshEdgeInput): MeshEdgeContext {
@@ -298,7 +316,7 @@ async function handle(request: ChartWorkerRequest): Promise<ChartWorkerResponse>
         ok: true,
         kind: "computePredictive",
         id: request.id,
-        predictive: computePredictive(request.input),
+        predictive: await computeSealedPredictive(request.input),
       };
     }
     if (request.kind === "computeMeshEdge") {

@@ -1,0 +1,68 @@
+{
+  "_comment": [
+    "Cross-language golden vectors for the domain strength receipt.",
+    "",
+    "WHY: the strength summary is computed by the Python engine (under Pyodide) but",
+    "SIGNED in TypeScript by @edgeproc/avow. That split is only sound if both sides",
+    "canonicalize a subject to the SAME bytes. These vectors are the proof, not an",
+    "assertion: they were produced by the Python `avow` kernel (RFC 8785 via rfc8785",
+    "+ Ed25519 via PyNaCl) over a REAL DomainStrengthSubject shape.",
+    "",
+    "Both suites consume this one file:",
+    "  backend/tests/test_strength_receipt_vectors.py  re-derives them with Python avow",
+    "  frontend/packages/browser/src/pyodide/__tests__/strengthReceipt.test.ts  with TS avow",
+    "",
+    "The subjects deliberately stress JCS number formatting, where a naive JSON",
+    "encoder diverges: 60.0 -> 60, 5.0 -> 5, 1e-07 -> 1e-7, and a 12-significant-digit",
+    "float that needs shortest-round-trip encoding.",
+    "",
+    "The seed is 0x02*32, deliberately distinct from the assay repo's own envelope",
+    "vectors (0x01*32) so the two conformance suites can never alias."
+  ],
+  "seed_hex": "0202020202020202020202020202020202020202020202020202020202020202",
+  "public_key": "8139770ea87d175f56a35466c34c7ecccb8d8a91b4ee37a25df60f5b8fc9b394",
+  "receipts": [
+    {
+      "subject": {
+        "domain": "career",
+        "summary": {
+          "key_graha": "saturn",
+          "key_graha_rupas": 7.234567890123,
+          "key_graha_meets_minimum": true,
+          "sav_bindus": 31,
+          "band": "moderate",
+          "shadbala_pct": 60.0,
+          "sav_pct": 55.357142857142854,
+          "strength_pct": 55.357142857142854,
+          "strength_tier": "model",
+          "approximated": true,
+          "note": "band = AlmaMesh heuristic over exact Shadbala Rupas + SAV bindus; inputs are BPHS-rigorous, the threshold mapping is a coarse synthesis."
+        }
+      },
+      "canonical_hex": "7b22646f6d61696e223a22636172656572222c2273756d6d617279223a7b22617070726f78696d61746564223a747275652c2262616e64223a226d6f646572617465222c226b65795f6772616861223a2273617475726e222c226b65795f67726168615f6d656574735f6d696e696d756d223a747275652c226b65795f67726168615f7275706173223a372e3233343536373839303132332c226e6f7465223a2262616e64203d20416c6d614d65736820686575726973746963206f766572206578616374205368616462616c61205275706173202b205341562062696e6475733b20696e707574732061726520425048532d7269676f726f75732c20746865207468726573686f6c64206d617070696e67206973206120636f617273652073796e7468657369732e222c227361765f62696e647573223a33312c227361765f706374223a35352e3335373134323835373134323835342c227368616462616c615f706374223a36302c22737472656e6774685f706374223a35352e3335373134323835373134323835342c22737472656e6774685f74696572223a226d6f64656c227d7d",
+      "payload_hash": "sha256:fdeef1074fc8d37346c3a597cb0ff9ab911b3117b6ae9f1c316acd2061aeb48e",
+      "signature": "43fa3d7e27ffef95fcee8e9f9489deec95aa43081aea3473d66f88cb7a0eff035ffce08905be00181f02821230c5f6d3fad6c86b359c152552d34097c0bc3e03"
+    },
+    {
+      "subject": {
+        "domain": "finances",
+        "summary": {
+          "key_graha": "jupiter",
+          "key_graha_rupas": 5.0,
+          "key_graha_meets_minimum": false,
+          "sav_bindus": 0,
+          "band": "weak",
+          "shadbala_pct": 0.0,
+          "sav_pct": 1e-7,
+          "strength_pct": 0.0,
+          "strength_tier": "model",
+          "approximated": true,
+          "note": "zero-bindu edge case"
+        }
+      },
+      "canonical_hex": "7b22646f6d61696e223a2266696e616e636573222c2273756d6d617279223a7b22617070726f78696d61746564223a747275652c2262616e64223a227765616b222c226b65795f6772616861223a226a757069746572222c226b65795f67726168615f6d656574735f6d696e696d756d223a66616c73652c226b65795f67726168615f7275706173223a352c226e6f7465223a227a65726f2d62696e647520656467652063617365222c227361765f62696e647573223a302c227361765f706374223a31652d372c227368616462616c615f706374223a302c22737472656e6774685f706374223a302c22737472656e6774685f74696572223a226d6f64656c227d7d",
+      "payload_hash": "sha256:16f14721742d450b81b2b53727f949312b59a898e980f9c9b850a6d0cd4bd084",
+      "signature": "fc8da6962e67fe7357692c65dc15d33687f41549cbb94ab88302ee6fd00b043f7727668cc3653fb16e02f286d1de16d26e69aa39e912fbb27dec3138ca9c7007"
+    }
+  ]
+}

@@ -9,18 +9,23 @@ and its golden stay untouched.
 This module is deliberately free of any ``edgeproc`` dependency so the Pyodide
 chart Worker (which installs only the skyfield stack + the almamesh wheel) can
 import it directly; ``edge/chart_runtime.py`` wraps it for task payloads.
+
+CRYPTO-FREE BY DESIGN. This module computes; it does not sign. Each domain's
+``StrengthSummary`` is sealed into an Ed25519 receipt by the Worker's TypeScript
+(``@edgeproc/avow``), outside Pyodide — see
+``frontend/packages/browser/src/pyodide/strengthReceipt.ts`` for why, and
+``tests/test_engine_is_crypto_free.py`` for the guard that keeps it that way.
 """
 
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, ConfigDict
 
 from almamesh.calculations import calculate_sidereal_context
 from almamesh.domains import compute_life_domains
-from almamesh.schemas.domains import LifeDomain, LifeDomainsContext
+from almamesh.schemas.domains import LifeDomainsContext
 from almamesh.schemas.strength import StrengthContext
 from almamesh.schemas.transits import TransitContext
 from almamesh.schemas.vargas import VargaContext
@@ -28,62 +33,23 @@ from almamesh.strength import compute_strength_context
 from almamesh.transits import calculate_transit_context
 from almamesh.vargas import compute_varga_context
 
-if TYPE_CHECKING:
-    from avow import SignedReceipt
-    from nacl.signing import SigningKey
-
-    from almamesh.domains.strength_receipt import DomainStrengthSubject
-
 
 class PredictiveContexts(BaseModel):
-    """The four additive predictive contexts for one chart + instant, SEALED.
+    """The four additive predictive contexts for one chart + instant.
 
     ``model_dump(mode="json")`` of this model IS the wire payload the browser
-    receives: each top-level key carries the bare dump of its context.
-
-    ``domain_strength_receipts`` seals what was already computed — one Ed25519
-    receipt per life domain over that domain's existing ``StrengthSummary``. It
-    introduces NO new number: the receipt payload is the summary verbatim, so the
-    no-fake-precision covenant gains a proof without gaining a claim.
-
-    ``defer_build`` is LOAD-BEARING, not a tuning knob. ``SignedReceipt`` is an
-    ``avow`` type, and ``avow`` pulls the ``pynacl`` Ed25519 WASM dylib — so
-    resolving this annotation at class-creation time would make merely IMPORTING
-    this module a crypto import. The Pyodide chart Worker imports it on the
-    online Life Atlas path, so that is exactly the defect
-    ``tests/test_pyodide_worker_avow_free.py`` pins shut. The annotation is
-    resolved on first seal instead (``_seal_domain_receipts``), which is the only
-    moment ``avow`` is genuinely needed.
+    receives: each top-level key carries the bare dump of its context. The Worker
+    then seals each domain's ``StrengthSummary`` into a signed receipt and adds
+    ``domain_strength_receipts`` alongside these four keys before the payload
+    reaches app code.
     """
 
-    model_config = ConfigDict(frozen=True, defer_build=True)
+    model_config = ConfigDict(frozen=True)
 
     transit_context: TransitContext
     varga_context_full: VargaContext
     strength_context: StrengthContext
     domains_context: LifeDomainsContext
-    domain_strength_receipts: dict[LifeDomain, SignedReceipt[DomainStrengthSubject]]
-
-
-def _seal_domain_receipts(
-    domains: LifeDomainsContext, *, signing_key: SigningKey
-) -> dict[LifeDomain, SignedReceipt[DomainStrengthSubject]]:
-    """Seal every domain summary, importing the crypto seam only at this point.
-
-    The two imports are function-scoped ON PURPOSE: they are what keeps
-    ``import almamesh.predictive`` free of ``avow``/``nacl``. They also bind the
-    names ``model_rebuild`` needs — Pydantic resolves the deferred annotation
-    from this frame's locals plus the module globals.
-    """
-    from avow import SignedReceipt  # noqa: F401 - binds the deferred annotation
-
-    from almamesh.domains.strength_receipt import (  # noqa: F401
-        DomainStrengthSubject,
-        seal_domain_strengths,
-    )
-
-    PredictiveContexts.model_rebuild()
-    return seal_domain_strengths(domains, signing_key=signing_key)
 
 
 def compute_predictive_contexts(
@@ -91,19 +57,12 @@ def compute_predictive_contexts(
     latitude: float,
     longitude: float,
     reference_instant: datetime,
-    *,
-    signing_key: SigningKey,
 ) -> PredictiveContexts:
-    """All four predictive contexts at one EXPLICIT instant (no silent now()), sealed.
+    """All four predictive contexts at one EXPLICIT instant (no silent now()).
 
     ``reference_instant`` pins BOTH the natal "current" dasha and the transit
-    "now", keeping the whole payload coherent and reproducible.
-
-    ``signing_key`` is REQUIRED and injected — there is no ambient lookup, no env
-    var and no feature flag. Sealing is therefore unconditional: every caller
-    supplies a signer, so the receipt seam can never silently go dead. Identical
-    facts under an identical key sign to identical bytes (the subject carries no
-    timestamp), which is what keeps CPython<->Pyodide byte-parity provable.
+    "now", keeping the whole payload coherent and reproducible — which is what
+    makes the CPython<->Pyodide byte-parity gate meaningful.
     """
     natal = calculate_sidereal_context(
         birth_dt, latitude, longitude, reference_date=reference_instant
@@ -117,7 +76,6 @@ def compute_predictive_contexts(
         varga_context_full=vargas,
         strength_context=strength,
         domains_context=domains,
-        domain_strength_receipts=_seal_domain_receipts(domains, signing_key=signing_key),
     )
 
 

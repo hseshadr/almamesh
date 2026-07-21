@@ -61,6 +61,7 @@
       },
       "devDependencies": {
         "@cloudflare/workers-types": "^4.20240605.0",
+        "@edgeproc/avow": "0.1.0",
         "@eslint/js": "^9.39.1",
         "@playwright/test": "^1.49.1",
         "@resvg/resvg-js": "^2.6.2",
@@ -100,6 +101,7 @@
       "name": "@almamesh/browser",
       "version": "0.0.1",
       "dependencies": {
+        "@edgeproc/avow": "0.1.0",
         "@edgeproc/browser": "workspace:*",
         "@hpcc-js/wasm-zstd": "^1.12.6",
         "@noble/ed25519": "^3.1.0",
@@ -509,6 +511,8 @@
     "@csstools/css-syntax-patches-for-csstree": ["@csstools/css-syntax-patches-for-csstree@1.1.5", "", { "peerDependencies": { "css-tree": "^3.2.1" }, "optionalPeers": ["css-tree"] }, "sha512-oNjBvzLq2GPZtJphCjLqXow/cHySHSgtxvKZb7OqSZ/xHgw6NWNhfad+6AB9cLeVm6eA9d/qMll3JdEHjy6M+A=="],
 
     "@csstools/css-tokenizer": ["@csstools/css-tokenizer@4.0.0", "", {}, "sha512-QxULHAm7cNu72w97JUNCBFODFaXpbDg+dP8b/oWFAZ2MTRppA3U00Y2L1HqaS4J6yBqxwa/Y3nMBaxVKbB/NsA=="],
+
+    "@edgeproc/avow": ["@edgeproc/avow@0.1.0", "", { "dependencies": { "@noble/ed25519": "^3.1.0", "canonicalize": "^3.0.0" } }, "sha512-oPbnzyFIzfBBTQjXtnxqdmSXuWFIfVKKkGBayBBVbxyCvOFAhODvXmvhqJsDTMos/aV060DwcQYijUmGnAaiGQ=="],
 
     "@edgeproc/browser": ["@edgeproc/browser@workspace:packages/edgeproc-browser"],
 
@@ -1383,6 +1387,8 @@
     "camera-controls": ["camera-controls@3.1.2", "", { "peerDependencies": { "three": ">=0.126.1" } }, "sha512-xkxfpG2ECZ6Ww5/9+kf4mfg1VEYAoe9aDSY+IwF0UEs7qEzwy0aVRfs2grImIECs/PoBtWFrh7RXsQkwG922JA=="],
 
     "caniuse-lite": ["caniuse-lite@1.0.30001799", "", {}, "sha512-hG1bReV+OUU+MOqK4t/ZWI0tZOyz3rqS9XuhOUz1cIcbwBKjOyJEJuw9ER5JuNyqxNk8u/JUVbGibBOL1yrjFw=="],
+
+    "canonicalize": ["canonicalize@3.0.0", "", { "bin": { "canonicalize": "bin/canonicalize.js" } }, "sha512-yYLfHyDMIXRyRqsKBRLX023riFLpXY2YOfdtqKXZRZy9qsfOJ9U+4F9YZL7MEzL5+ziN2x2nlBvY/Voi3EBljA=="],
 
     "ccount": ["ccount@2.0.1", "", {}, "sha512-eyrF0jiFpY+3drT6383f1qhkbGsLSifNAjA61IUjZjmLCWjItY6LB9ft9YhoDgwfmclB2zhu51Lc7+95b8NRAg=="],
 

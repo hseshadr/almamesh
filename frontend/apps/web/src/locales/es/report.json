@@ -171,7 +171,8 @@
   "domains": {
     "heading": "Pronósticos por áreas de vida",
     "windows_heading": "Ventanas próximas",
-    "windows_empty": "No hay ventanas con fecha en los próximos doce meses."
+    "windows_empty": "No hay ventanas con fecha en los próximos doce meses.",
+    "strength_withheld_note": "No se pudo confirmar que la cifra guardada no fue modificada — se omite en este informe."
   },
   "rectification": {
     "heading": "Autoridad de la hora de nacimiento",

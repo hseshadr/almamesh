@@ -30,7 +30,7 @@ import type {
   TransitCtx,
   VargaCtxFull,
 } from '@almamesh/shared-types';
-import type { VimshottariDasha } from '@almamesh/browser/types';
+import type { PredictiveContexts, VimshottariDasha } from '@almamesh/browser/types';
 import { useOptionalChartEngine } from '../providers/chartEngineContext';
 import {
   buildEnsurePredictiveInput,
@@ -103,6 +103,13 @@ export interface PredictiveLayer {
   readonly vargaCtxFull?: VargaCtxFull;
   readonly strengthCtx?: StrengthCtx;
   readonly domainsCtx?: DomainsCtx;
+  /**
+   * The RAW engine contexts verbatim (Spec 062 delta 1) — e.g. the domain-
+   * strength receipts + their signer key, used by the report-PDF export to
+   * verify tamper-evidence before rendering. Same cache-match gating as the
+   * adapted contexts above: undefined for a stale or not-yet-computed cache.
+   */
+  readonly rawContexts?: PredictiveContexts;
   /** The booted Pyodide engine is available. */
   readonly engineReady: boolean;
   /** The stored chart carries the birth fields the engine needs. */
@@ -134,6 +141,7 @@ export function usePredictiveLayer({ auto = false }: UsePredictiveLayerOptions =
   const vargaCtxFull = usePredictiveStore((s) => s.vargaCtxFull);
   const strengthCtx = usePredictiveStore((s) => s.strengthCtx);
   const domainsCtx = usePredictiveStore((s) => s.domainsCtx);
+  const rawContexts = usePredictiveStore((s) => s.rawContexts);
   const loadedProfileKey = usePredictiveStore((s) => s.profileKey);
   const loadedRequestKey = usePredictiveStore((s) => s.requestKey);
   const ensurePredictive = usePredictiveStore((s) => s.ensurePredictive);
@@ -220,6 +228,7 @@ export function usePredictiveLayer({ auto = false }: UsePredictiveLayerOptions =
     vargaCtxFull: cacheMatchesInput ? vargaCtxFull : undefined,
     strengthCtx: cacheMatchesInput ? strengthCtx : undefined,
     domainsCtx: cacheMatchesInput ? domainsCtx : undefined,
+    rawContexts: cacheMatchesInput ? rawContexts : undefined,
     engineReady: engine !== null,
     hasBirthData: input !== null,
     canCompute: engine !== null && input !== null,

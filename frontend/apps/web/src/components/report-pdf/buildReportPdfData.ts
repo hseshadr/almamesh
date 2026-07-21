@@ -25,6 +25,7 @@ import {
 } from '../../lib/reportData';
 import type { ReportAudience } from '../../lib/reportSelectors';
 import { rectificationDelta, type RectificationDelta } from '../../lib/rectification';
+import type { StrengthProvenance } from '../../lib/strengthProvenance';
 import type {
   ReportPdfAssumptions,
   ReportPdfData,
@@ -112,6 +113,15 @@ export interface BuildReportPdfDataInput {
     readonly vargaCtxFull?: VargaCtxFull;
     readonly strengthCtx?: StrengthCtx;
     readonly domainsCtx?: DomainsCtx;
+    /**
+     * The ALREADY-VERIFIED split of the domain-strength receipts (see
+     * `verifyStrengthProvenance`), or absent when no receipts/signer were
+     * supplied. `buildDomainsSection` withholds a domain's numeric percentages
+     * only for the domains named in `provenance.failed` — every other domain,
+     * and every domain when `provenance` itself is absent, renders exactly as
+     * it does today.
+     */
+    readonly provenance?: StrengthProvenance;
   };
   /**
    * The pre-localized Birth Time Authority slice (see `buildRectificationPdf`).
@@ -236,7 +246,7 @@ export function buildReportPdfData(input: BuildReportPdfDataInput): ReportPdfDat
         : undefined,
     domains:
       comprehensive?.domainsCtx !== undefined
-        ? buildDomainsSection(comprehensive.domainsCtx, comprehensive.translators)
+        ? buildDomainsSection(comprehensive.domainsCtx, comprehensive.translators, comprehensive.provenance)
         : undefined,
     rectification: input.rectification,
     assumptions: buildAssumptions(input),

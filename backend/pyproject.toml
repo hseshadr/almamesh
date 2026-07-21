@@ -23,15 +23,16 @@ dependencies = [
     "edge-proc[bundles]>=0.1.0",
     # Bundle-publisher CLI (almamesh-bundle).
     "typer>=0.26.8",
-    # Trust envelope: sign the calibrated strength % into an offline-verifiable
-    # Ed25519 ScoreReceipt (the no-fake-precision covenant, now signed). We depend
-    # on the ENVELOPE ONLY (`avow`), NOT the `avow[assay]` scientific-stack extra:
-    # the strength receipt signs a custom frozen subject via `avow.sign_payload`,
-    # so numpy/scipy/scikit-learn would be dead weight — and must stay OUT of the
-    # Pyodide runtime (the browser loads only pynacl + pydantic). Same Python
-    # kernel runs unmodified in-browser via micropip (pynacl is in the Pyodide lock).
-    "avow>=0.1.0,<0.2",
 ]
+
+# NOTE: `avow` is deliberately NOT a runtime dependency. The engine computes
+# strength summaries; the browser Worker SIGNS them in TypeScript
+# (`@edgeproc/avow`), because PyNaCl's compiled `_sodium` extension does not
+# register under this app's Pyodide boot. Keeping the engine crypto-free is what
+# lets the browser drop `pynacl` (and its cffi/pycparser chain) from every boot.
+# `avow` survives below as a TEST-ONLY conformance oracle: it mints the golden
+# vectors in `testdata/vectors/` that the TypeScript signer must reproduce
+# byte-for-byte. See tests/test_engine_is_crypto_free.py.
 
 [project.optional-dependencies]
 dev = [
@@ -44,6 +45,11 @@ dev = [
     "xenon>=0.9.3",
     # Task runner: `uv run poe gate` is THE backend gate (CI runs exactly it).
     "poethepoet>=0.30",
+    # Cross-language conformance ORACLE only (see the note above `[project]`
+    # dependencies): the Python Avow kernel that produced testdata/vectors/.
+    # Never imported by `src/almamesh` — tests/test_engine_is_crypto_free.py
+    # fails the build if it ever is.
+    "avow>=0.1.0,<0.2",
 ]
 
 [project.scripts]

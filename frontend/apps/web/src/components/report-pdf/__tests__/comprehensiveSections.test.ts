@@ -37,6 +37,7 @@ import {
   TRANSIT_CTX,
   VARGA_CTX_FULL,
 } from '../../../test/predictiveFixtures';
+import type { StrengthProvenance } from '../../../lib/strengthProvenance';
 
 function collectText(node: ReactNode): readonly string[] {
   if (typeof node === 'string' || typeof node === 'number') {
@@ -403,6 +404,55 @@ describe('buildReportPdfData — comprehensive slices mirror the web report', ()
     const data = buildReportPdfData({ ...baseInput(), comprehensive: COMPREHENSIVE });
     expect(data.domains?.blocks).toHaveLength(7);
     expect(data.domains?.blocks.every((b) => b.windows.length === 2)).toBe(true);
+  });
+});
+
+describe('buildReportPdfData — domain-strength provenance withholds tampered %s', () => {
+  it('renders every domain\'s numeric percentages when no provenance is supplied', () => {
+    const data = buildReportPdfData({ ...baseInput(), comprehensive: COMPREHENSIVE });
+    const career = data.domains?.blocks.find((b) => b.name === 'Career');
+    expect(career?.band).toMatch(/%/);
+    expect(career?.strengthAxes).toMatch(/%/);
+  });
+
+  it("withholds ONLY the failed domain's %s, with an honest note — others untouched", () => {
+    const provenance: StrengthProvenance = {
+      verified: new Set(['finances', 'health', 'relationships', 'spiritual', 'education', 'family']),
+      failed: ['career'],
+      signerPublicKey: 'test-signer',
+    };
+    const data = buildReportPdfData({
+      ...baseInput(),
+      comprehensive: { ...COMPREHENSIVE, provenance },
+    });
+    const career = data.domains?.blocks.find((b) => b.name === 'Career');
+    const finances = data.domains?.blocks.find((b) => b.name === 'Finances');
+
+    // The withheld domain: no digits anywhere (no fabricated-looking % left
+    // behind), but the band/tier label survives and an honest note is present.
+    expect(career?.band).not.toMatch(/\d/);
+    expect(career?.strengthAxes).not.toMatch(/\d/);
+    expect(career?.band).toContain('Strong');
+    expect(career?.strengthAxes.length).toBeGreaterThan(0);
+
+    // An unrelated verified domain keeps its normal numeric rendering.
+    expect(finances?.band).toMatch(/%/);
+    expect(finances?.strengthAxes).toMatch(/%/);
+  });
+
+  it('is byte-identical to the no-provenance path when every domain verifies', () => {
+    const allVerified: StrengthProvenance = {
+      verified: new Set(Object.keys(DOMAINS_CTX.forecasts)),
+      failed: [],
+      signerPublicKey: 'test-signer',
+    };
+    const withProvenance = buildReportPdfData({
+      ...baseInput(),
+      comprehensive: { ...COMPREHENSIVE, provenance: allVerified },
+    });
+    const withoutProvenance = buildReportPdfData({ ...baseInput(), comprehensive: COMPREHENSIVE });
+
+    expect(withProvenance.domains).toEqual(withoutProvenance.domains);
   });
 });
 

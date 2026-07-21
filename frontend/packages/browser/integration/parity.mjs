@@ -77,14 +77,14 @@ const TRANSIT_FIXTURES = [
 // backend/tests/test_predictive_golden.py.
 const PREDICTIVE_GOLDEN_PATH = join(REPO_ROOT, "backend/tests/fixtures/predictive_golden_de421.json");
 const PREDICTIVE_REFERENCE_INSTANT = "2026-06-09T12:00:00+00:00";
-// The pinned FIXTURE signer for the sealed domain-strength receipts. Injecting a
-// FIXED 32-byte seed on both sides upgrades what this gate proves: not merely
-// that CPython and Pyodide COMPUTE the same strength numbers, but that they SIGN
-// them to identical Ed25519 bytes (the signed subject carries no timestamp, so
-// signing is deterministic). Production callers inject their own signer.
-// MUST match backend/tests/test_predictive_golden.py:FIXTURE_KEY_SEED_HEX.
-const PREDICTIVE_FIXTURE_KEY_SEED_HEX =
-  "616c6d616d6573682d7061726974792d666978747572652d7369676e65723030";
+// NOTE: this gate compares the ENGINE's four contexts. It does NOT cover strength
+// receipts — those are minted in TypeScript by @edgeproc/avow, outside Pyodide.
+// Their CPython<->TypeScript byte-compatibility is proven by the shared golden
+// vectors in testdata/vectors/, not here.
+//
+// This harness runs Pyodide under NODE. It is evidence about engine determinism,
+// NOT about the browser: a package can load here and still fail to register in a
+// real browser boot (which is exactly what pynacl's `_sodium` did).
 const PREDICTIVE_FIXTURES = [
   { iso: "1990-01-15T12:00:00+00:00", lat: 28.6139, lon: 77.209, label: "Delhi" },
   { iso: "2000-12-31T23:59:00+00:00", lat: 40.7128, lon: -74.006, label: "NYC" },
@@ -126,23 +126,20 @@ const MESH_PAIRS = [
 ];
 
 // Bundle wheels, installed leaf-first: the skyfield stack (jplephem, sgp4 ->
-// skyfield) then the avow strength-receipt envelope (rfc8785 -> avow), all
-// before the almamesh engine wheel that imports them. Must live in WHEEL_DIR.
+// skyfield) before the almamesh engine wheel that imports them. Must live in
+// WHEEL_DIR. No avow/rfc8785 — the engine is crypto-free.
 const SKYFIELD_STACK = [
   "jplephem-2.23-py3-none-any.whl",
   "sgp4-2.25-py3-none-any.whl",
   "skyfield-1.53-py3-none-any.whl",
-  "rfc8785-0.1.4-py3-none-any.whl",
-  "avow-0.1.0-py3-none-any.whl",
 ];
 
 // Pyodide-shipped base packages (all in the self-hosted lock — no PyPI).
-// pynacl is avow's Ed25519 backend; loadPackage pulls cffi/pycparser with it.
+// Mirrors chartWorker.ts LOAD_PACKAGES — no pynacl: signing is TypeScript-side.
 const LOAD_PACKAGES = [
   "micropip",
   "numpy",
   "pydantic",
-  "pynacl",
   "pyyaml",
   "python-dateutil",
   "pytz",
@@ -299,17 +296,11 @@ def _parity_transit(iso_dt, lat, lon):
 # Worker's computePredictive uses, at one pinned EXPLICIT reference instant
 # (it pins both the "current" dasha and the transit "now"; no silent now()).
 from almamesh.predictive import compute_predictive_contexts
-from nacl.signing import SigningKey
 _PREDICTIVE_INSTANT = datetime.fromisoformat("${PREDICTIVE_REFERENCE_INSTANT}")
-# The pinned fixture signer — see PREDICTIVE_FIXTURE_KEY_SEED_HEX above. Loading
-# it here also proves pynacl's Ed25519 backend really works under Pyodide.
-_PREDICTIVE_SIGNER = SigningKey(bytes.fromhex("${PREDICTIVE_FIXTURE_KEY_SEED_HEX}"))
 
 def _parity_predictive(iso_dt, lat, lon):
     dt = datetime.fromisoformat(iso_dt)
-    ctx = compute_predictive_contexts(
-        dt, lat, lon, _PREDICTIVE_INSTANT, signing_key=_PREDICTIVE_SIGNER
-    )
+    ctx = compute_predictive_contexts(dt, lat, lon, _PREDICTIVE_INSTANT)
     return json.dumps(_canonicalize(ctx.model_dump(mode="json")), sort_keys=True)
 
 # Mesh-edge parity — the relational bundle between two charts, with the SAME

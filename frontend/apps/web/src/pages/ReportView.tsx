@@ -354,6 +354,12 @@ export default function ReportView(): ReactElement {
               vargaCtxFull: predictive.vargaCtxFull,
               strengthCtx: predictive.strengthCtx,
               domainsCtx: predictive.domainsCtx,
+              // Sealed domain-strength receipts + their signer (Spec 062
+              // delta N): absent on an older persisted payload, in which case
+              // downloadReportPdf verifies nothing and renders exactly as
+              // before this existed.
+              domainStrengthReceipts: predictive.rawContexts?.domain_strength_receipts,
+              strengthSignerPublicKey: predictive.rawContexts?.strength_signer_public_key,
             }
           : undefined,
       // Birth Time Authority (Section XII) — only when a confirmed record

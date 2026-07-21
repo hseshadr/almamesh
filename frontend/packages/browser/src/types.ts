@@ -73,6 +73,9 @@ export type {
   VargottamaFlag,
   VimshopakaScore,
 } from "./pyodide/predictive";
+// The Ed25519-sealed strength-summary receipt (tamper-evidence, not
+// attestation — see ./pyodide/strengthReceipt for the honesty covenant).
+export type { DomainStrengthReceipt, DomainStrengthSubject } from "./pyodide/strengthReceipt";
 // The relational MESH edge between two charts — the exact serialized shape of
 // the worker's `computeMeshEdge` result (backend schemas/mesh.py).
 export type {
