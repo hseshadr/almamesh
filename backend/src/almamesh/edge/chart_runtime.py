@@ -12,6 +12,7 @@ import math
 import time
 from collections.abc import Mapping, Sequence
 from datetime import UTC, date, datetime
+from typing import TYPE_CHECKING
 
 from edgeproc import (
     CapabilityVerdict,
@@ -36,6 +37,9 @@ from almamesh.rectification.models import (
 )
 from almamesh.schemas.astrology import SiderealContext
 from almamesh.schemas.mesh import MatchRole, Relationship
+
+if TYPE_CHECKING:
+    from nacl.signing import SigningKey
 
 _RUNTIME_VERSION = "almamesh-chart/0.1.0"
 
@@ -70,19 +74,27 @@ def _compute_chart(payload: Mapping[str, object]) -> dict[str, JsonValue]:
     ).model_dump(mode="json")
 
 
-def compute_predictive(payload: Mapping[str, object]) -> dict[str, JsonValue]:
-    """The LAZY predictive payload (transits + vargas + strength + domains).
+def compute_predictive(
+    payload: Mapping[str, object], *, signing_key: SigningKey
+) -> dict[str, JsonValue]:
+    """The LAZY predictive payload (transits + vargas + strength + domains), sealed.
 
     Unlike the natal chart, ``reference_instant`` (ISO 8601) is REQUIRED — there
     is no silent wall-clock fallback. The caller pins the instant, which pins
     both the "current" dasha and the transit "now", so the payload is
     reproducible (and byte-parity-testable) by construction.
+
+    ``signing_key`` is likewise REQUIRED and injected: it seals each domain's
+    already-computed strength summary into an offline-verifiable receipt. Keeping
+    it a parameter (never an ambient or env lookup) means this wrapper has no
+    unsealed mode to fall back to.
     """
     contexts = compute_predictive_contexts(
         datetime.fromisoformat(str(payload["datetime_utc"])),
         _parse_payload_number(payload["latitude"], field="latitude"),
         _parse_payload_number(payload["longitude"], field="longitude"),
         datetime.fromisoformat(str(payload["reference_instant"])),
+        signing_key=signing_key,
     )
     return contexts.model_dump(mode="json")
 

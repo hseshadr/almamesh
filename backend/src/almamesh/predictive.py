@@ -14,12 +14,15 @@ import it directly; ``edge/chart_runtime.py`` wraps it for task payloads.
 from __future__ import annotations
 
 from datetime import datetime
+from typing import TYPE_CHECKING
 
+from avow import SignedReceipt
 from pydantic import BaseModel, ConfigDict
 
 from almamesh.calculations import calculate_sidereal_context
 from almamesh.domains import compute_life_domains
-from almamesh.schemas.domains import LifeDomainsContext
+from almamesh.domains.strength_receipt import DomainStrengthSubject, seal_domain_strengths
+from almamesh.schemas.domains import LifeDomain, LifeDomainsContext
 from almamesh.schemas.strength import StrengthContext
 from almamesh.schemas.transits import TransitContext
 from almamesh.schemas.vargas import VargaContext
@@ -27,12 +30,20 @@ from almamesh.strength import compute_strength_context
 from almamesh.transits import calculate_transit_context
 from almamesh.vargas import compute_varga_context
 
+if TYPE_CHECKING:
+    from nacl.signing import SigningKey
+
 
 class PredictiveContexts(BaseModel):
-    """The four additive predictive contexts for one chart + instant.
+    """The four additive predictive contexts for one chart + instant, SEALED.
 
     ``model_dump(mode="json")`` of this model IS the wire payload the browser
     receives: each top-level key carries the bare dump of its context.
+
+    ``domain_strength_receipts`` seals what was already computed — one Ed25519
+    receipt per life domain over that domain's existing ``StrengthSummary``. It
+    introduces NO new number: the receipt payload is the summary verbatim, so the
+    no-fake-precision covenant gains a proof without gaining a claim.
     """
 
     model_config = ConfigDict(frozen=True)
@@ -41,6 +52,7 @@ class PredictiveContexts(BaseModel):
     varga_context_full: VargaContext
     strength_context: StrengthContext
     domains_context: LifeDomainsContext
+    domain_strength_receipts: dict[LifeDomain, SignedReceipt[DomainStrengthSubject]]
 
 
 def compute_predictive_contexts(
@@ -48,11 +60,19 @@ def compute_predictive_contexts(
     latitude: float,
     longitude: float,
     reference_instant: datetime,
+    *,
+    signing_key: SigningKey,
 ) -> PredictiveContexts:
-    """All four predictive contexts at one EXPLICIT instant (no silent now()).
+    """All four predictive contexts at one EXPLICIT instant (no silent now()), sealed.
 
     ``reference_instant`` pins BOTH the natal "current" dasha and the transit
     "now", keeping the whole payload coherent and reproducible.
+
+    ``signing_key`` is REQUIRED and injected — there is no ambient lookup, no env
+    var and no feature flag. Sealing is therefore unconditional: every caller
+    supplies a signer, so the receipt seam can never silently go dead. Identical
+    facts under an identical key sign to identical bytes (the subject carries no
+    timestamp), which is what keeps CPython<->Pyodide byte-parity provable.
     """
     natal = calculate_sidereal_context(
         birth_dt, latitude, longitude, reference_date=reference_instant
@@ -60,11 +80,13 @@ def compute_predictive_contexts(
     transits = calculate_transit_context(natal, birth_dt, transit_instant=reference_instant)
     vargas = compute_varga_context(natal)
     strength = compute_strength_context(natal, birth_dt, latitude, longitude)
+    domains = compute_life_domains(natal, transits, vargas, strength)
     return PredictiveContexts(
         transit_context=transits,
         varga_context_full=vargas,
         strength_context=strength,
-        domains_context=compute_life_domains(natal, transits, vargas, strength),
+        domains_context=domains,
+        domain_strength_receipts=seal_domain_strengths(domains, signing_key=signing_key),
     )
 
 

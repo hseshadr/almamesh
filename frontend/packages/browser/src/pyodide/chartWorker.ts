@@ -64,8 +64,31 @@ def _almamesh_generate_chart(birth_json):
     )
     return json.dumps(ctx.model_dump(mode="json"))
 
+_almamesh_device_signer_key = None
+
+def _almamesh_device_signer():
+    # THIS DEVICE's strength-receipt signer: generated once per worker boot and
+    # reused for every predictive compute in the session.
+    #
+    # WHY device-local rather than a shipped key: a browser cannot keep a secret
+    # from its own operator, so embedding one shared private key in the bundle
+    # would manufacture a forgeable identity that merely LOOKS authoritative. A
+    # device-generated key is the honest local-first primitive — the receipt makes
+    # a stored or exported strength summary TAMPER-EVIDENT (mutate the % after the
+    # fact and verification fails) and carries its own public key so a holder can
+    # check it offline. That is integrity, not attestation of who computed it.
+    #
+    # avow is imported here, not at bootstrap, so the natal boot path never pays
+    # for the pynacl Ed25519 WASM dylib.
+    global _almamesh_device_signer_key
+    if _almamesh_device_signer_key is None:
+        from avow import generate_signing_key
+        _almamesh_device_signer_key = generate_signing_key()
+    return _almamesh_device_signer_key
+
 def _almamesh_compute_predictive(input_json):
-    # The LAZY predictive superset (transits + vargas + strength + domains).
+    # The LAZY predictive superset (transits + vargas + strength + domains), with
+    # every domain's strength summary sealed into a verifiable receipt.
     # referenceInstant is REQUIRED — no silent now(); a KeyError here is a
     # caller bug, surfaced through the worker's error envelope.
     # Imported lazily so booting an OLDER bundled wheel (without the
@@ -76,7 +99,12 @@ def _almamesh_compute_predictive(input_json):
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=UTC)
     reference = datetime.fromisoformat(data["referenceInstant"])
-    ctx = compute_predictive_contexts(dt, data["latitude"], data["longitude"], reference)
+    # signing_key is a REQUIRED argument on the entry point — there is no unsealed
+    # mode for this call to fall back into.
+    ctx = compute_predictive_contexts(
+        dt, data["latitude"], data["longitude"], reference,
+        signing_key=_almamesh_device_signer(),
+    )
     return json.dumps(ctx.model_dump(mode="json"))
 
 def _almamesh_compute_mesh(input_json):

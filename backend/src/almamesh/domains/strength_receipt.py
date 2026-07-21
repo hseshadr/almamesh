@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING
 from avow import SignedReceipt, sign_payload, verify_receipt
 from pydantic import BaseModel, ConfigDict
 
-from almamesh.schemas.domains import LifeDomain, StrengthSummary
+from almamesh.schemas.domains import LifeDomain, LifeDomainsContext, StrengthSummary
 
 if TYPE_CHECKING:
     from nacl.signing import SigningKey
@@ -45,6 +45,19 @@ def sign_domain_strength(
     """Freeze the domain + summary into a subject and Ed25519-sign it."""
     subject = DomainStrengthSubject(domain=domain, summary=summary)
     return sign_payload(subject, signing_key)
+
+
+def seal_domain_strengths(
+    domains: LifeDomainsContext, *, signing_key: SigningKey
+) -> dict[LifeDomain, SignedReceipt[DomainStrengthSubject]]:
+    """Seal EVERY computed domain summary — no domain may ship unsealed.
+
+    Sealing is total by construction (one receipt per ``forecasts`` entry) so a
+    caller can never quietly narrow which strength claims are provable."""
+    return {
+        domain: sign_domain_strength(domain, forecast.strength_summary, signing_key=signing_key)
+        for domain, forecast in domains.forecasts.items()
+    }
 
 
 def verify_domain_strength(

@@ -77,6 +77,14 @@ const TRANSIT_FIXTURES = [
 // backend/tests/test_predictive_golden.py.
 const PREDICTIVE_GOLDEN_PATH = join(REPO_ROOT, "backend/tests/fixtures/predictive_golden_de421.json");
 const PREDICTIVE_REFERENCE_INSTANT = "2026-06-09T12:00:00+00:00";
+// The pinned FIXTURE signer for the sealed domain-strength receipts. Injecting a
+// FIXED 32-byte seed on both sides upgrades what this gate proves: not merely
+// that CPython and Pyodide COMPUTE the same strength numbers, but that they SIGN
+// them to identical Ed25519 bytes (the signed subject carries no timestamp, so
+// signing is deterministic). Production callers inject their own signer.
+// MUST match backend/tests/test_predictive_golden.py:FIXTURE_KEY_SEED_HEX.
+const PREDICTIVE_FIXTURE_KEY_SEED_HEX =
+  "616c6d616d6573682d7061726974792d666978747572652d7369676e65723030";
 const PREDICTIVE_FIXTURES = [
   { iso: "1990-01-15T12:00:00+00:00", lat: 28.6139, lon: 77.209, label: "Delhi" },
   { iso: "2000-12-31T23:59:00+00:00", lat: 40.7128, lon: -74.006, label: "NYC" },
@@ -291,11 +299,17 @@ def _parity_transit(iso_dt, lat, lon):
 # Worker's computePredictive uses, at one pinned EXPLICIT reference instant
 # (it pins both the "current" dasha and the transit "now"; no silent now()).
 from almamesh.predictive import compute_predictive_contexts
+from nacl.signing import SigningKey
 _PREDICTIVE_INSTANT = datetime.fromisoformat("${PREDICTIVE_REFERENCE_INSTANT}")
+# The pinned fixture signer — see PREDICTIVE_FIXTURE_KEY_SEED_HEX above. Loading
+# it here also proves pynacl's Ed25519 backend really works under Pyodide.
+_PREDICTIVE_SIGNER = SigningKey(bytes.fromhex("${PREDICTIVE_FIXTURE_KEY_SEED_HEX}"))
 
 def _parity_predictive(iso_dt, lat, lon):
     dt = datetime.fromisoformat(iso_dt)
-    ctx = compute_predictive_contexts(dt, lat, lon, _PREDICTIVE_INSTANT)
+    ctx = compute_predictive_contexts(
+        dt, lat, lon, _PREDICTIVE_INSTANT, signing_key=_PREDICTIVE_SIGNER
+    )
     return json.dumps(_canonicalize(ctx.model_dump(mode="json")), sort_keys=True)
 
 # Mesh-edge parity — the relational bundle between two charts, with the SAME

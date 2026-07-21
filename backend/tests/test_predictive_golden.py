@@ -19,11 +19,21 @@ import json
 from datetime import UTC, datetime
 from pathlib import Path
 
+from nacl.signing import SigningKey
+
 from almamesh.predictive import PredictiveContexts, compute_predictive_contexts
 
 # The single pinned instant: natal reference_date AND transit "now".
 # MUST match parity.mjs:PREDICTIVE_REFERENCE_INSTANT.
 FIXED_REFERENCE_INSTANT = datetime(2026, 6, 9, 12, 0, 0, tzinfo=UTC)
+
+# The pinned FIXTURE signer for the sealed domain-strength receipts. Ed25519 is
+# deterministic and the signed subject carries no timestamp, so a fixed 32-byte
+# seed makes every receipt byte-reproducible — which is exactly what lets this
+# golden PROVE that CPython and Pyodide sign identically, not merely compute
+# identically. TEST fixture material only; production callers inject their own
+# signer. MUST match parity.mjs:PREDICTIVE_FIXTURE_KEY_SEED_HEX.
+FIXTURE_KEY_SEED_HEX = "616c6d616d6573682d7061726974792d666978747572652d7369676e65723030"
 
 # (iso birth, lat, lon) — parity-clean subset; MUST match parity.mjs:PREDICTIVE_FIXTURES.
 FIXTURES: list[tuple[str, float, float]] = [
@@ -50,7 +60,13 @@ def _canonicalize(value: object) -> object:
 def _compute(iso_dt: str, lat: float, lon: float) -> PredictiveContexts:
     """The composed predictive payload for one fixture at the pinned instant."""
     birth = datetime.fromisoformat(iso_dt)
-    return compute_predictive_contexts(birth, lat, lon, FIXED_REFERENCE_INSTANT)
+    return compute_predictive_contexts(
+        birth,
+        lat,
+        lon,
+        FIXED_REFERENCE_INSTANT,
+        signing_key=SigningKey(bytes.fromhex(FIXTURE_KEY_SEED_HEX)),
+    )
 
 
 def _canonical_predictive(iso_dt: str, lat: float, lon: float) -> object:

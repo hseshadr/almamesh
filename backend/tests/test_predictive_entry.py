@@ -13,6 +13,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 import pytest
+from nacl.signing import SigningKey
 
 from almamesh.calculations import calculate_sidereal_context
 from almamesh.domains import compute_life_domains
@@ -27,15 +28,27 @@ LATITUDE = 28.6139
 LONGITUDE = 77.2090
 REFERENCE_INSTANT = datetime(2026, 6, 9, 12, 0, 0, tzinfo=UTC)
 
+# A pinned fixture signer: Ed25519 over a timestamp-free subject is deterministic,
+# so a fixed seed keeps the sealed payload byte-reproducible across reruns.
+SIGNING_KEY = SigningKey(bytes(range(32)))
+
 PAYLOAD_KEYS = frozenset(
-    {"transit_context", "varga_context_full", "strength_context", "domains_context"}
+    {
+        "transit_context",
+        "varga_context_full",
+        "strength_context",
+        "domains_context",
+        "domain_strength_receipts",
+    }
 )
 
 
 @pytest.fixture(scope="module")
 def contexts() -> PredictiveContexts:
     birth = datetime.fromisoformat(BIRTH_ISO)
-    return compute_predictive_contexts(birth, LATITUDE, LONGITUDE, REFERENCE_INSTANT)
+    return compute_predictive_contexts(
+        birth, LATITUDE, LONGITUDE, REFERENCE_INSTANT, signing_key=SIGNING_KEY
+    )
 
 
 @pytest.fixture(scope="module")
@@ -46,7 +59,8 @@ def payload() -> dict[str, object]:
             "latitude": LATITUDE,
             "longitude": LONGITUDE,
             "reference_instant": REFERENCE_INSTANT.isoformat(),
-        }
+        },
+        signing_key=SIGNING_KEY,
     )
 
 
@@ -64,7 +78,8 @@ def test_contexts_match_the_standalone_pipeline(contexts: PredictiveContexts) ->
     assert contexts.domains_context.model_dump_json() == domains.model_dump_json()
 
 
-def test_payload_has_exactly_the_four_context_keys(payload: dict[str, object]) -> None:
+def test_payload_has_exactly_the_context_keys_plus_receipts(payload: dict[str, object]) -> None:
+    """The four contexts, plus the sealed per-domain strength receipts."""
     assert set(payload) == PAYLOAD_KEYS
 
 
@@ -88,7 +103,8 @@ def test_reference_instant_is_required_no_silent_now() -> None:
     """Omitting the reference instant must raise — the engine never reads the clock."""
     with pytest.raises(KeyError):
         compute_predictive(
-            {"datetime_utc": BIRTH_ISO, "latitude": LATITUDE, "longitude": LONGITUDE}
+            {"datetime_utc": BIRTH_ISO, "latitude": LATITUDE, "longitude": LONGITUDE},
+            signing_key=SIGNING_KEY,
         )
 
 
@@ -99,6 +115,7 @@ def test_payload_is_deterministic(payload: dict[str, object]) -> None:
             "latitude": LATITUDE,
             "longitude": LONGITUDE,
             "reference_instant": REFERENCE_INSTANT.isoformat(),
-        }
+        },
+        signing_key=SIGNING_KEY,
     )
     assert rerun == payload

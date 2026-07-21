@@ -357,14 +357,35 @@ export interface LifeDomainsContext {
 // --- the LAZY predictive payload: backend almamesh/predictive.py ---
 
 /**
- * The four contexts returned by the lazy `computePredictive` runtime call —
- * the exact `model_dump(mode="json")` of the backend `PredictiveContexts`
- * model. Computed SEPARATELY from the natal chart (transits take ~35s under
- * Pyodide) at one EXPLICIT reference instant.
+ * One domain's calibrated strength summary, Ed25519-sealed by the engine — the
+ * `model_dump` of a backend `avow` `SignedReceipt[DomainStrengthSubject]`.
+ *
+ * The receipt introduces NO new number: `payload.summary` is the SAME
+ * `StrengthSummary` already carried in `domains_context`, frozen so that
+ * mutating a stored or exported strength % is detectable. `public_key` is the
+ * signer, so a holder can verify offline without contacting anything.
+ */
+export interface DomainStrengthReceipt {
+  readonly payload: {
+    readonly domain: string;
+    readonly summary: StrengthSummary;
+  };
+  readonly payload_hash: string;
+  readonly public_key: string;
+  readonly signature: string;
+}
+
+/**
+ * The four contexts returned by the lazy `computePredictive` runtime call, plus
+ * the sealed per-domain strength receipts — the exact `model_dump(mode="json")`
+ * of the backend `PredictiveContexts` model. Computed SEPARATELY from the natal
+ * chart (transits take ~35s under Pyodide) at one EXPLICIT reference instant.
  */
 export interface PredictiveContexts {
   readonly transit_context: TransitContext;
   readonly varga_context_full: VargaContextFull;
   readonly strength_context: StrengthContext;
   readonly domains_context: LifeDomainsContext;
+  /** Keyed by life domain; one receipt per `domains_context.forecasts` entry. */
+  readonly domain_strength_receipts: Readonly<Record<string, DomainStrengthReceipt>>;
 }

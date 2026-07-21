@@ -1,5 +1,154 @@
 {
   "1990-01-15T12:00:00+00:00": {
+    "domain_strength_receipts": {
+      "career": {
+        "payload": {
+          "domain": "career",
+          "summary": {
+            "approximated": true,
+            "band": "moderate",
+            "key_graha": "saturn",
+            "key_graha_meets_minimum": true,
+            "key_graha_rupas": 6.903508,
+            "note": "band = AlmaMesh heuristic over exact Shadbala Rupas + SAV bindus; inputs are BPHS-rigorous, the threshold mapping is a coarse synthesis.",
+            "sav_bindus": 27,
+            "sav_pct": 48.214286,
+            "shadbala_pct": 75.228064,
+            "strength_pct": 48.214286,
+            "strength_tier": "model"
+          }
+        },
+        "payload_hash": "sha256:a51a76a3456c8d1e330e5381a77a5e61a54e4d0fef4d39462543066ca2616658",
+        "public_key": "1654bf7c83a0b3a63922299237330c681c4e3a7f1ad3e4cc0e6d00a234993b96",
+        "signature": "850ad6c195e20b57fbcb397eb7846a61322cd217a1060663ff7e01b4d069bd08e46d8f465358479c94cf5704a4a2874961116e775820bf6d03c077358d45830c"
+      },
+      "education": {
+        "payload": {
+          "domain": "education",
+          "summary": {
+            "approximated": true,
+            "band": "strong",
+            "key_graha": "mercury",
+            "key_graha_meets_minimum": true,
+            "key_graha_rupas": 7.591796,
+            "note": "band = AlmaMesh heuristic over exact Shadbala Rupas + SAV bindus; inputs are BPHS-rigorous, the threshold mapping is a coarse synthesis.",
+            "sav_bindus": 66,
+            "sav_pct": 58.928571,
+            "shadbala_pct": 63.381689,
+            "strength_pct": 58.928571,
+            "strength_tier": "model"
+          }
+        },
+        "payload_hash": "sha256:e4bf29d33d0e134067811b3cc09c96d38fe379acafa24953b225298b3ba7cc0b",
+        "public_key": "1654bf7c83a0b3a63922299237330c681c4e3a7f1ad3e4cc0e6d00a234993b96",
+        "signature": "9bb917268b1a5db6f470920fdcd678df8dcae2cba171fc6ebd054d164cba39529835dc8278120daf0b6bc9559927c1fc7dc1744cb492ea649fefaec7c6d9980e"
+      },
+      "family": {
+        "payload": {
+          "domain": "family",
+          "summary": {
+            "approximated": true,
+            "band": "strong",
+            "key_graha": "jupiter",
+            "key_graha_meets_minimum": true,
+            "key_graha_rupas": 9.784421,
+            "note": "band = AlmaMesh heuristic over exact Shadbala Rupas + SAV bindus; inputs are BPHS-rigorous, the threshold mapping is a coarse synthesis.",
+            "sav_bindus": 113,
+            "sav_pct": 50.446429,
+            "shadbala_pct": 80.21182,
+            "strength_pct": 50.446429,
+            "strength_tier": "model"
+          }
+        },
+        "payload_hash": "sha256:9fc4b93a1a7002530c85b77b5aa6b57103f05bf97ad4502f71803383c796ec27",
+        "public_key": "1654bf7c83a0b3a63922299237330c681c4e3a7f1ad3e4cc0e6d00a234993b96",
+        "signature": "5288441f93cf2bd5f4ffe5a857f60df34cbd8eac6a15bb630f64d19879c2b8c5a9e56a35ef8fa66eaec454623b3dc4bafbcebbb8df1785fd9e31095b01552005"
+      },
+      "finances": {
+        "payload": {
+          "domain": "finances",
+          "summary": {
+            "approximated": true,
+            "band": "strong",
+            "key_graha": "jupiter",
+            "key_graha_meets_minimum": true,
+            "key_graha_rupas": 9.784421,
+            "note": "band = AlmaMesh heuristic over exact Shadbala Rupas + SAV bindus; inputs are BPHS-rigorous, the threshold mapping is a coarse synthesis.",
+            "sav_bindus": 57,
+            "sav_pct": 50.892857,
+            "shadbala_pct": 80.21182,
+            "strength_pct": 50.892857,
+            "strength_tier": "model"
+          }
+        },
+        "payload_hash": "sha256:39414cbf7487ac0e9556cf7f43426d0e7e9cf6ef4e9648ddee56c52f3ec32483",
+        "public_key": "1654bf7c83a0b3a63922299237330c681c4e3a7f1ad3e4cc0e6d00a234993b96",
+        "signature": "edd94588d0284ef7987ea13b27f8d553686ae833a67a238f259399e484628aad800d0a36da06b1d48ede4a17c4283699910643d15cbbd84a12b60e0b3473cd0f"
+      },
+      "health": {
+        "payload": {
+          "domain": "health",
+          "summary": {
+            "approximated": true,
+            "band": "moderate",
+            "key_graha": "sun",
+            "key_graha_meets_minimum": false,
+            "key_graha_rupas": 4.866937,
+            "note": "band = AlmaMesh heuristic over exact Shadbala Rupas + SAV bindus; inputs are BPHS-rigorous, the threshold mapping is a coarse synthesis.",
+            "sav_bindus": 84,
+            "sav_pct": 50.0,
+            "shadbala_pct": 44.925574,
+            "strength_pct": 44.925574,
+            "strength_tier": "model"
+          }
+        },
+        "payload_hash": "sha256:65c7d37e0184d9817a10117c877d7dbe18f0a4731f3ef2cef8ff102ca35c6559",
+        "public_key": "1654bf7c83a0b3a63922299237330c681c4e3a7f1ad3e4cc0e6d00a234993b96",
+        "signature": "833ba7ba8179fe39c743e2b7260778bf56bf93810f150dc4d1889ff462511799369242a364958897a4869ddb207447cad3b66aefe3021aa3a56caa78cc51ce00"
+      },
+      "relationships": {
+        "payload": {
+          "domain": "relationships",
+          "summary": {
+            "approximated": true,
+            "band": "moderate",
+            "key_graha": "venus",
+            "key_graha_meets_minimum": true,
+            "key_graha_rupas": 7.224748,
+            "note": "band = AlmaMesh heuristic over exact Shadbala Rupas + SAV bindus; inputs are BPHS-rigorous, the threshold mapping is a coarse synthesis.",
+            "sav_bindus": 21,
+            "sav_pct": 37.5,
+            "shadbala_pct": 72.543624,
+            "strength_pct": 37.5,
+            "strength_tier": "model"
+          }
+        },
+        "payload_hash": "sha256:049d0146a6d96327ad890966979cfe9dabfbb8a22dd276f05c0ff7303d818e4a",
+        "public_key": "1654bf7c83a0b3a63922299237330c681c4e3a7f1ad3e4cc0e6d00a234993b96",
+        "signature": "a18a823155a71759dccbf8795cd4de56d351b478fa1657589280a30c2be21a586d56748ef54f431e08850e398db267390a7be7a82fb6b789278d199f4907e00b"
+      },
+      "spiritual": {
+        "payload": {
+          "domain": "spiritual",
+          "summary": {
+            "approximated": true,
+            "band": "strong",
+            "key_graha": "jupiter",
+            "key_graha_meets_minimum": true,
+            "key_graha_rupas": 9.784421,
+            "note": "band = AlmaMesh heuristic over exact Shadbala Rupas + SAV bindus; inputs are BPHS-rigorous, the threshold mapping is a coarse synthesis.",
+            "sav_bindus": 84,
+            "sav_pct": 50.0,
+            "shadbala_pct": 80.21182,
+            "strength_pct": 50.0,
+            "strength_tier": "model"
+          }
+        },
+        "payload_hash": "sha256:92b2934393d2fc92c402e2ddf6c5178a2e87382eb46da5af52b932b63b7e88f0",
+        "public_key": "1654bf7c83a0b3a63922299237330c681c4e3a7f1ad3e4cc0e6d00a234993b96",
+        "signature": "f8bccf76a957ef92ae53bf75fddfdbf99615056f6ea65d57ab040946030afa504661d81398aa29f85d797dc7e60c461e578634e7117a713af0c8304d8ad09306"
+      }
+    },
     "domains_context": {
       "forecasts": {
         "career": {
@@ -2951,6 +3100,155 @@
     }
   },
   "2000-12-31T23:59:00+00:00": {
+    "domain_strength_receipts": {
+      "career": {
+        "payload": {
+          "domain": "career",
+          "summary": {
+            "approximated": true,
+            "band": "strong",
+            "key_graha": "saturn",
+            "key_graha_meets_minimum": true,
+            "key_graha_rupas": 6.532915,
+            "note": "band = AlmaMesh heuristic over exact Shadbala Rupas + SAV bindus; inputs are BPHS-rigorous, the threshold mapping is a coarse synthesis.",
+            "sav_bindus": 30,
+            "sav_pct": 53.571429,
+            "shadbala_pct": 72.263318,
+            "strength_pct": 53.571429,
+            "strength_tier": "model"
+          }
+        },
+        "payload_hash": "sha256:e2394595c49328de0f22cad7774e40d77677b9624e59c29306fd1529414c0369",
+        "public_key": "1654bf7c83a0b3a63922299237330c681c4e3a7f1ad3e4cc0e6d00a234993b96",
+        "signature": "54f53cb0410b667ddf233880971b537435e62a71670eddb825cff0946e2e0f77c18665619d68922b7ba61af66174a58f50534f1a51a424ff97f691f18d123408"
+      },
+      "education": {
+        "payload": {
+          "domain": "education",
+          "summary": {
+            "approximated": true,
+            "band": "moderate",
+            "key_graha": "mercury",
+            "key_graha_meets_minimum": false,
+            "key_graha_rupas": 6.120784,
+            "note": "band = AlmaMesh heuristic over exact Shadbala Rupas + SAV bindus; inputs are BPHS-rigorous, the threshold mapping is a coarse synthesis.",
+            "sav_bindus": 59,
+            "sav_pct": 52.678571,
+            "shadbala_pct": 52.463866,
+            "strength_pct": 52.463866,
+            "strength_tier": "model"
+          }
+        },
+        "payload_hash": "sha256:d2a69d5cb31679e4091e27a1e87168bd91e871dde75f3a16fbc4983406645a28",
+        "public_key": "1654bf7c83a0b3a63922299237330c681c4e3a7f1ad3e4cc0e6d00a234993b96",
+        "signature": "f831c7d4fd3cf72dd17baf90d58854530955c4367e291720a3ad8094d66974d657127cb4a168361a67d995e270ffb6c95f885fb0cf94b33cd95fb1f94f48a809"
+      },
+      "family": {
+        "payload": {
+          "domain": "family",
+          "summary": {
+            "approximated": true,
+            "band": "strong",
+            "key_graha": "jupiter",
+            "key_graha_meets_minimum": true,
+            "key_graha_rupas": 8.536183,
+            "note": "band = AlmaMesh heuristic over exact Shadbala Rupas + SAV bindus; inputs are BPHS-rigorous, the threshold mapping is a coarse synthesis.",
+            "sav_bindus": 116,
+            "sav_pct": 51.785714,
+            "shadbala_pct": 72.53036,
+            "strength_pct": 51.785714,
+            "strength_tier": "model"
+          }
+        },
+        "payload_hash": "sha256:0cdccf455024bc68b311d7480e90b7b4e54b3e3beaf82f7dc4bcb9e49e9e9c77",
+        "public_key": "1654bf7c83a0b3a63922299237330c681c4e3a7f1ad3e4cc0e6d00a234993b96",
+        "signature": "ab135a6a92a1e424f51d54a987f6124a03651bd3edc081fbd6fcb0e280d265eee92fd34ca33d31af82a642c42370778e0687d83b37b92c177dd48f53d144080b"
+      },
+      "finances": {
+        "payload": {
+          "domain": "finances",
+          "summary": {
+            "approximated": true,
+            "band": "strong",
+            "key_graha": "jupiter",
+            "key_graha_meets_minimum": true,
+            "key_graha_rupas": 8.536183,
+            "note": "band = AlmaMesh heuristic over exact Shadbala Rupas + SAV bindus; inputs are BPHS-rigorous, the threshold mapping is a coarse synthesis.",
+            "sav_bindus": 58,
+            "sav_pct": 51.785714,
+            "shadbala_pct": 72.53036,
+            "strength_pct": 51.785714,
+            "strength_tier": "model"
+          }
+        },
+        "payload_hash": "sha256:5c84b62f2e087089f449ac982ed77b3df6125b276144ad67d64b0b64e31b78f0",
+        "public_key": "1654bf7c83a0b3a63922299237330c681c4e3a7f1ad3e4cc0e6d00a234993b96",
+        "signature": "3b0ee7931a9c8d11072977fdb406db6dc4d7f9d0a6e794d85ce9b07dfa8a5beaf65bdc7528d68bdc2b5c1d09141bdd5df7dbd8bca68bc2d5523016137b43820e"
+      },
+      "health": {
+        "payload": {
+          "domain": "health",
+          "summary": {
+            "approximated": true,
+            "band": "moderate",
+            "key_graha": "sun",
+            "key_graha_meets_minimum": false,
+            "key_graha_rupas": 5.989445,
+            "note": "band = AlmaMesh heuristic over exact Shadbala Rupas + SAV bindus; inputs are BPHS-rigorous, the threshold mapping is a coarse synthesis.",
+            "sav_bindus": 93,
+            "sav_pct": 55.357143,
+            "shadbala_pct": 55.287182,
+            "strength_pct": 55.287182,
+            "strength_tier": "model"
+          }
+        },
+        "payload_hash": "sha256:a35a07c46eb856d9050643450e4652e45209cef19466bad64962bdd1b71b0f60",
+        "public_key": "1654bf7c83a0b3a63922299237330c681c4e3a7f1ad3e4cc0e6d00a234993b96",
+        "signature": "f00778ee7966628c5a79b0fcb0ab28af82d1c0891bf0bf8f625bb3c3d8592899d74891c7d96070df0aafb6dda6e027247f27c13d65781092bfae68dfe173c603"
+      },
+      "relationships": {
+        "payload": {
+          "domain": "relationships",
+          "summary": {
+            "approximated": true,
+            "band": "moderate",
+            "key_graha": "venus",
+            "key_graha_meets_minimum": true,
+            "key_graha_rupas": 6.252448,
+            "note": "band = AlmaMesh heuristic over exact Shadbala Rupas + SAV bindus; inputs are BPHS-rigorous, the threshold mapping is a coarse synthesis.",
+            "sav_bindus": 19,
+            "sav_pct": 33.928571,
+            "shadbala_pct": 65.472351,
+            "strength_pct": 33.928571,
+            "strength_tier": "model"
+          }
+        },
+        "payload_hash": "sha256:4c44e69608ad6ab5850a078dedf20820778e8b2e7d2716404f2f0aa9c5991388",
+        "public_key": "1654bf7c83a0b3a63922299237330c681c4e3a7f1ad3e4cc0e6d00a234993b96",
+        "signature": "2368aa573e46922bad5248e950916b752aa64344034e495256f355c127bb9e7acc3df861b55684154cfdcd685b1633faea878741f2c133b263a75357ecdd7006"
+      },
+      "spiritual": {
+        "payload": {
+          "domain": "spiritual",
+          "summary": {
+            "approximated": true,
+            "band": "moderate",
+            "key_graha": "jupiter",
+            "key_graha_meets_minimum": true,
+            "key_graha_rupas": 8.536183,
+            "note": "band = AlmaMesh heuristic over exact Shadbala Rupas + SAV bindus; inputs are BPHS-rigorous, the threshold mapping is a coarse synthesis.",
+            "sav_bindus": 72,
+            "sav_pct": 42.857143,
+            "shadbala_pct": 72.53036,
+            "strength_pct": 42.857143,
+            "strength_tier": "model"
+          }
+        },
+        "payload_hash": "sha256:903f1b18ff2c7a6737770c025c29ab59708d944ac32b9d7a6e779128ff132cfc",
+        "public_key": "1654bf7c83a0b3a63922299237330c681c4e3a7f1ad3e4cc0e6d00a234993b96",
+        "signature": "ee8f403962298105f39b5c0f24ef526f5c96044467df33df45eb03e1afb815778e17be52df83a1c00741bb441f6220a3d78ebdd4fb70417405d3ddf9ad225e0b"
+      }
+    },
     "domains_context": {
       "forecasts": {
         "career": {
