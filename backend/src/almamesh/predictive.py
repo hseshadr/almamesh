@@ -16,12 +16,10 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from avow import SignedReceipt
 from pydantic import BaseModel, ConfigDict
 
 from almamesh.calculations import calculate_sidereal_context
 from almamesh.domains import compute_life_domains
-from almamesh.domains.strength_receipt import DomainStrengthSubject, seal_domain_strengths
 from almamesh.schemas.domains import LifeDomain, LifeDomainsContext
 from almamesh.schemas.strength import StrengthContext
 from almamesh.schemas.transits import TransitContext
@@ -31,7 +29,10 @@ from almamesh.transits import calculate_transit_context
 from almamesh.vargas import compute_varga_context
 
 if TYPE_CHECKING:
+    from avow import SignedReceipt
     from nacl.signing import SigningKey
+
+    from almamesh.domains.strength_receipt import DomainStrengthSubject
 
 
 class PredictiveContexts(BaseModel):
@@ -44,15 +45,45 @@ class PredictiveContexts(BaseModel):
     receipt per life domain over that domain's existing ``StrengthSummary``. It
     introduces NO new number: the receipt payload is the summary verbatim, so the
     no-fake-precision covenant gains a proof without gaining a claim.
+
+    ``defer_build`` is LOAD-BEARING, not a tuning knob. ``SignedReceipt`` is an
+    ``avow`` type, and ``avow`` pulls the ``pynacl`` Ed25519 WASM dylib — so
+    resolving this annotation at class-creation time would make merely IMPORTING
+    this module a crypto import. The Pyodide chart Worker imports it on the
+    online Life Atlas path, so that is exactly the defect
+    ``tests/test_pyodide_worker_avow_free.py`` pins shut. The annotation is
+    resolved on first seal instead (``_seal_domain_receipts``), which is the only
+    moment ``avow`` is genuinely needed.
     """
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, defer_build=True)
 
     transit_context: TransitContext
     varga_context_full: VargaContext
     strength_context: StrengthContext
     domains_context: LifeDomainsContext
     domain_strength_receipts: dict[LifeDomain, SignedReceipt[DomainStrengthSubject]]
+
+
+def _seal_domain_receipts(
+    domains: LifeDomainsContext, *, signing_key: SigningKey
+) -> dict[LifeDomain, SignedReceipt[DomainStrengthSubject]]:
+    """Seal every domain summary, importing the crypto seam only at this point.
+
+    The two imports are function-scoped ON PURPOSE: they are what keeps
+    ``import almamesh.predictive`` free of ``avow``/``nacl``. They also bind the
+    names ``model_rebuild`` needs — Pydantic resolves the deferred annotation
+    from this frame's locals plus the module globals.
+    """
+    from avow import SignedReceipt  # noqa: F401 - binds the deferred annotation
+
+    from almamesh.domains.strength_receipt import (  # noqa: F401
+        DomainStrengthSubject,
+        seal_domain_strengths,
+    )
+
+    PredictiveContexts.model_rebuild()
+    return seal_domain_strengths(domains, signing_key=signing_key)
 
 
 def compute_predictive_contexts(
@@ -86,7 +117,7 @@ def compute_predictive_contexts(
         varga_context_full=vargas,
         strength_context=strength,
         domains_context=domains,
-        domain_strength_receipts=seal_domain_strengths(domains, signing_key=signing_key),
+        domain_strength_receipts=_seal_domain_receipts(domains, signing_key=signing_key),
     )
 
 
