@@ -1,9 +1,10 @@
-# Offline wheels (skyfield stack)
+# Offline wheels (skyfield stack + avow envelope)
 
 Pure-Python (`py3-none-any`) wheels vendored so the in-browser Pyodide engine can
-boot the skyfield stack **offline** after first sync. They are shipped inside the
-signed edge-proc bundle under `wheels/<filename>.whl` (see
-`src/almamesh/edge/bundle.py::gather_offline_wheels`).
+boot the engine's Python deps **offline** after first sync. They are shipped inside
+the signed edge-proc bundle under `wheels/<filename>.whl` (see
+`src/almamesh/edge/bundle.py::gather_offline_wheels`) and installed leaf-first
+(deps:false) before the almamesh wheel that imports them.
 
 Pinned versions:
 
@@ -12,11 +13,16 @@ Pinned versions:
 | `jplephem` | 2.23 | `py3-none-any` |
 | `sgp4` | 2.25 | `py3-none-any` (MUST be the pure wheel, not a platform binary) |
 | `skyfield` | 1.53 | `py3-none-any` |
+| `rfc8785` | 0.1.4 | `py3-none-any` (JCS canonicalization for the avow envelope) |
+| `avow` | 0.1.0 | `py3-none-any` (offline-verifiable strength-receipt envelope) |
 
 `sgp4` publishes platform-specific binary wheels (e.g. `cp313-*-macosx`). Pyodide
 cannot load those — it needs the pure `py3-none-any` wheel. Always confirm the tag.
 
-Pyodide's own runtime + numpy ship as app static assets, NOT in this bundle.
+`avow`'s Ed25519 backend (`pynacl`, compiled) is NOT vendored here — it loads from
+the self-hosted Pyodide lock via `loadPackage` (with `cffi`/`pycparser`), fetched
+into `public/pyodide/` by `setup-dev-assets.sh`. Only the pure-Python deps travel
+in the bundle. Pyodide's own runtime + numpy also ship as app static assets.
 
 ## Refresh
 
@@ -24,7 +30,7 @@ Pyodide's own runtime + numpy ship as app static assets, NOT in this bundle.
 pip download --no-deps --only-binary=:all: \
   --python-version 3.13 --implementation py --abi none --platform any \
   -d backend/offline_wheels \
-  skyfield==1.53 jplephem==2.23 sgp4==2.25
+  skyfield==1.53 jplephem==2.23 sgp4==2.25 rfc8785==0.1.4 avow==0.1.0
 ```
 
 `--platform any --abi none --implementation py` forces the pure-Python wheels.

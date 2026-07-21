@@ -23,6 +23,14 @@ dependencies = [
     "edge-proc[bundles]>=0.1.0",
     # Bundle-publisher CLI (almamesh-bundle).
     "typer>=0.26.8",
+    # Trust envelope: sign the calibrated strength % into an offline-verifiable
+    # Ed25519 ScoreReceipt (the no-fake-precision covenant, now signed). We depend
+    # on the ENVELOPE ONLY (`avow`), NOT the `avow[assay]` scientific-stack extra:
+    # the strength receipt signs a custom frozen subject via `avow.sign_payload`,
+    # so numpy/scipy/scikit-learn would be dead weight — and must stay OUT of the
+    # Pyodide runtime (the browser loads only pynacl + pydantic). Same Python
+    # kernel runs unmodified in-browser via micropip (pynacl is in the Pyodide lock).
+    "avow>=0.1.0,<0.2",
 ]
 
 [project.optional-dependencies]

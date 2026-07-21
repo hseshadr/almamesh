@@ -45,6 +45,11 @@ const WHEEL_PATHS = [
   'wheels/jplephem-2.23-py3-none-any.whl',
   'wheels/sgp4-2.25-py3-none-any.whl',
   'wheels/skyfield-1.53-py3-none-any.whl',
+  // avow (the offline-verifiable strength-receipt envelope) + its pure-Python
+  // dep rfc8785, installed leaf-first before the engine wheel that imports them.
+  // pynacl (avow's Ed25519 backend) loads from the Pyodide lock, not the bundle.
+  'wheels/rfc8785-0.1.4-py3-none-any.whl',
+  'wheels/avow-0.1.0-py3-none-any.whl',
   'wheels/almamesh-0.1.0-py3-none-any.whl',
 ] as const
 

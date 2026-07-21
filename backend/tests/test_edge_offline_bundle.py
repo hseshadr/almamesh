@@ -2,7 +2,8 @@
 
 The signed bundle must carry everything the browser loads OFFLINE after first
 sync: the skyfield-stack pure-Python wheels (`jplephem`, `sgp4`, `skyfield`),
-the almamesh wheel, the DE421 ephemeris, `finals2000A.all`, and signed meta.
+the `avow` strength-receipt envelope + its `rfc8785` dep, the almamesh wheel,
+the DE421 ephemeris, `finals2000A.all`, and signed meta.
 (Pyodide's runtime + numpy ship as app static assets, NOT in this bundle.)
 
 The real `de421.bsp` is 16 MB; the CLI stages it at publish time from
@@ -26,6 +27,8 @@ _VENDORED_WHEELS = (
     "wheels/jplephem-2.23-py3-none-any.whl",
     "wheels/sgp4-2.25-py3-none-any.whl",
     "wheels/skyfield-1.53-py3-none-any.whl",
+    "wheels/rfc8785-0.1.4-py3-none-any.whl",
+    "wheels/avow-0.1.0-py3-none-any.whl",
 )
 
 
@@ -33,7 +36,7 @@ def _verifier(public_key: object) -> Ed25519Verifier:
     return Ed25519Verifier.from_public_bytes(public_key.public_bytes_raw())  # type: ignore[attr-defined]
 
 
-def test_gather_offline_wheels_returns_three_pinned_wheels() -> None:
+def test_gather_offline_wheels_returns_pinned_wheels() -> None:
     wheels = gather_offline_wheels()
     assert set(wheels) == set(_VENDORED_WHEELS)
     assert all(blob[:2] == b"PK" for blob in wheels.values())  # real zip wheels
