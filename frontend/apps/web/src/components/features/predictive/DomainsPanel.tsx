@@ -16,11 +16,13 @@ import type {
   LifeDomain,
   LifeDomainForecastData,
 } from '@almamesh/shared-types';
+import type { DomainStrengthReceipt } from '@almamesh/browser/types';
 import { Card, Disclosure } from '../../ui';
 import { LIFE_DOMAINS } from '../../../lib/lifeAtlas';
 import { formatPredictiveDate, formatRupas } from '../../../lib/predictive';
 import { domainWindowLabel, grahaName, signName } from '../../../lib/predictiveEventCopy';
 import { BandBadge, SeverityBadge } from './PredictiveBadges';
+import { StrengthReceiptBadge } from './StrengthReceiptBadge';
 
 /** Stable render order for the seven domains (single source: lib/lifeAtlas). */
 export const DOMAIN_ORDER: readonly LifeDomain[] = LIFE_DOMAINS;
@@ -175,9 +177,15 @@ export function WorkingBlock({ forecast }: { forecast: LifeDomainForecastData })
 export function DomainCard({
   forecast,
   maxWindows = 3,
+  receipt,
+  signerPublicKey,
 }: {
   forecast: LifeDomainForecastData;
   maxWindows?: number;
+  /** The domain's sealed strength receipt, when the compute produced one. */
+  receipt?: DomainStrengthReceipt;
+  /** The per-boot signer to verify the receipt against. */
+  signerPublicKey?: string;
 }): ReactElement {
   const { t } = useTranslation('predictive');
   const strength = forecast.strength_summary;
@@ -202,6 +210,14 @@ export function DomainCard({
       data-testid={`domain-card-${forecast.domain}`}
     >
       <div className="space-y-4">
+        {/* On-screen, user-verifiable proof the shown band was not altered since
+            it was sealed (the same check the PDF export runs silently). Absent
+            for a domain with no receipt (older payload) — the card is unchanged. */}
+        {receipt && signerPublicKey ? (
+          <div data-testid={`domain-receipt-${forecast.domain}`}>
+            <StrengthReceiptBadge receipt={receipt} expectedPublicKey={signerPublicKey} />
+          </div>
+        ) : null}
         <EmphasisBlock forecast={forecast} />
         <WindowsBlock forecast={forecast} maxWindows={maxWindows} />
         <Disclosure
@@ -221,14 +237,33 @@ export interface DomainsPanelProps {
   readonly domainsCtx: DomainsCtx;
   /** Cap the timed windows per card (dashboard uses a tighter cut). */
   readonly maxWindows?: number;
+  /**
+   * Sealed per-domain strength receipts (Spec 062), keyed by domain. When
+   * present with `signerPublicKey`, each domain that has a receipt shows an
+   * on-screen VERIFIED/NOT-VERIFIED badge; domains without one render unchanged.
+   */
+  readonly receipts?: Readonly<Record<string, DomainStrengthReceipt>>;
+  /** The per-boot signer the receipts are verified against. */
+  readonly signerPublicKey?: string;
 }
 
 /** All seven life-domain forecast cards. */
-export function DomainsPanel({ domainsCtx, maxWindows = 3 }: DomainsPanelProps): ReactElement {
+export function DomainsPanel({
+  domainsCtx,
+  maxWindows = 3,
+  receipts,
+  signerPublicKey,
+}: DomainsPanelProps): ReactElement {
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2" data-testid="domains-panel">
       {DOMAIN_ORDER.map((domain) => (
-        <DomainCard key={domain} forecast={domainsCtx.forecasts[domain]} maxWindows={maxWindows} />
+        <DomainCard
+          key={domain}
+          forecast={domainsCtx.forecasts[domain]}
+          maxWindows={maxWindows}
+          receipt={receipts?.[domain]}
+          signerPublicKey={signerPublicKey}
+        />
       ))}
     </div>
   );

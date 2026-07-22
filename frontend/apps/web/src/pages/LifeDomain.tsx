@@ -20,6 +20,7 @@ import { Link, Navigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useChartLibraryStore, useInterpretationStore, useProfilesStore } from '@almamesh/store';
 import type { LifeDomain, LifeDomainForecastData } from '@almamesh/shared-types';
+import type { DomainStrengthReceipt } from '@almamesh/browser/types';
 
 import { Button, Card, Disclosure, Spinner } from '../components/ui';
 import { ContentModeToggle } from '../components/ui/ContentModeToggle';
@@ -30,6 +31,7 @@ import {
   WorkingBlock,
 } from '../components/features/predictive/DomainsPanel';
 import { BandBadge } from '../components/features/predictive/PredictiveBadges';
+import { StrengthReceiptPanel } from '../components/features/predictive/StrengthReceiptBadge';
 import { useElapsedSeconds, formatElapsed } from '../hooks/useElapsedSeconds';
 import { usePredictiveLayer, type PredictiveLayer } from '../hooks/usePredictiveLayer';
 import { currentInterpretationForChart } from '../hooks/useStreamingInterpretation';
@@ -109,7 +111,15 @@ function StrengthLine({ forecast }: { forecast: LifeDomainForecastData }): React
   );
 }
 
-function EngineSection({ forecast }: { forecast: LifeDomainForecastData }): ReactElement {
+function EngineSection({
+  forecast,
+  receipt,
+  signerPublicKey,
+}: {
+  forecast: LifeDomainForecastData;
+  receipt?: DomainStrengthReceipt;
+  signerPublicKey?: string;
+}): ReactElement {
   const { t } = useTranslation(['life', 'predictive']);
   return (
     <section className="space-y-5" data-testid="life-domain-engine">
@@ -118,6 +128,15 @@ function EngineSection({ forecast }: { forecast: LifeDomainForecastData }): Reac
         <div className="space-y-5">
           <EmphasisBlock forecast={forecast} />
           <WindowsBlock forecast={forecast} maxWindows={12} />
+          {/* On-screen proof the strength band shown for this domain has not been
+              altered since it was sealed — the same tamper-evidence check the PDF
+              export runs silently. Present only when the compute produced a
+              receipt + signer; otherwise the section is unchanged. */}
+          {receipt && signerPublicKey ? (
+            <div data-testid={`domain-receipt-detail-${forecast.domain}`}>
+              <StrengthReceiptPanel receipt={receipt} expectedPublicKey={signerPublicKey} />
+            </div>
+          ) : null}
           <Disclosure
             toggleLabel={t('predictive:domains.details_show')}
             toggleLabelOpen={t('predictive:domains.details_hide')}
@@ -167,6 +186,10 @@ function LifeDomainContent({ domain }: { domain: LifeDomain }): ReactElement {
   const layer = usePredictiveLayer({ auto: true });
   const elapsed = useElapsedSeconds(layer.status === 'loading');
   const forecast = layer.status === 'ready' ? layer.domainsCtx?.forecasts[domain] : undefined;
+  // The sealed strength receipt for THIS domain + its per-boot signer (Spec 062).
+  // Absent on an older persisted payload — the page renders exactly as before.
+  const receipt = layer.rawContexts?.domain_strength_receipts?.[domain];
+  const signerPublicKey = layer.rawContexts?.strength_signer_public_key;
 
   return (
     <div className="space-y-8" data-testid="life-domain-page">
@@ -201,7 +224,11 @@ function LifeDomainContent({ domain }: { domain: LifeDomain }): ReactElement {
         <ContentModeToggle />
       </header>
 
-      {forecast ? <EngineSection forecast={forecast} /> : <DomainGate layer={layer} elapsed={elapsed} />}
+      {forecast ? (
+        <EngineSection forecast={forecast} receipt={receipt} signerPublicKey={signerPublicKey} />
+      ) : (
+        <DomainGate layer={layer} elapsed={elapsed} />
+      )}
 
       <AiSection domain={domain} />
 
