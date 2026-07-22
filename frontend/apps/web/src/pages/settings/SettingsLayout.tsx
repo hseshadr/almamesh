@@ -98,6 +98,12 @@ function MobileSettingsNav() {
         {t('nav.profile')}
       </Link>
       <Link
+        to="/settings/people"
+        className="flex-shrink-0 px-4 py-2 rounded-lg text-sm font-medium transition-colors bg-background-secondary border border-ui-border text-text-secondary hover:text-text-primary"
+      >
+        {t('nav.people')}
+      </Link>
+      <Link
         to="/settings/ai"
         className="flex-shrink-0 px-4 py-2 rounded-lg text-sm font-medium transition-colors bg-background-secondary border border-ui-border text-text-secondary hover:text-text-primary"
       >

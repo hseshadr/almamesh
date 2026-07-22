@@ -25,6 +25,7 @@
     "test:e2e:wizard": "playwright test --config=playwright.wizard-phase2.config.ts",
     "test:e2e:report:pdf": "playwright test --config=playwright.report-pdf.config.ts",
     "test:e2e:dual-voice": "playwright test --config=playwright.dual-voice-life-atlas.config.ts",
+    "test:e2e:mesh": "playwright test --config=playwright.mesh-this-is-me.config.ts",
     "test:unit": "vitest run",
     "test:unit:watch": "vitest",
     "test:unit:coverage": "vitest run --coverage",
