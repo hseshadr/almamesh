@@ -1,10 +1,30 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen, within, fireEvent } from '@testing-library/react';
+import { generateSeedHex, publicKeyHex } from '@edgeproc/avow';
+import { signDomainStrength } from '@almamesh/browser';
+import type { StrengthSummary } from '@almamesh/browser/types';
 import { useLanguageStore } from '@almamesh/store';
 
 import '../../../../i18n/config';
 import { DomainsPanel, DOMAIN_ORDER } from '../DomainsPanel';
 import { DOMAINS_CTX } from '../../../../test/predictiveFixtures';
+
+function receiptSummary(overrides: Partial<StrengthSummary> = {}): StrengthSummary {
+  return {
+    key_graha: 'saturn',
+    key_graha_rupas: 7.5,
+    key_graha_meets_minimum: true,
+    sav_bindus: 31,
+    band: 'moderate',
+    shadbala_pct: 60,
+    sav_pct: 55,
+    strength_pct: 55,
+    strength_tier: 'model',
+    approximated: true,
+    note: 'fixture',
+    ...overrides,
+  } as StrengthSummary;
+}
 
 describe('DomainsPanel', () => {
   beforeEach(() => {
@@ -61,5 +81,34 @@ describe('DomainsPanel', () => {
     fireEvent.click(toggle);
     expect(within(career).getByText(/House 10/)).toBeTruthy();
     expect(within(career).getByText(/Kārakas/)).toBeTruthy();
+  });
+
+  it('renders no receipt badge when no receipts/signer are provided (unchanged)', () => {
+    render(<DomainsPanel domainsCtx={DOMAINS_CTX} />);
+    for (const domain of DOMAIN_ORDER) {
+      expect(screen.queryByTestId(`domain-receipt-${domain}`)).toBeNull();
+    }
+  });
+
+  it('surfaces a per-domain VERIFIED receipt badge only for domains that have a receipt', async () => {
+    const seed = generateSeedHex();
+    const key = await publicKeyHex(seed);
+    const receipts = {
+      career: await signDomainStrength('career', receiptSummary(), seed),
+      health: await signDomainStrength('health', receiptSummary({ band: 'weak' }), seed),
+    };
+
+    render(<DomainsPanel domainsCtx={DOMAINS_CTX} receipts={receipts} signerPublicKey={key} />);
+
+    // A domain WITH a receipt shows a per-domain badge that verifies on screen —
+    // fail-closed, icon+text (not colour alone) via the shared receipt view.
+    for (const domain of ['career', 'health']) {
+      const badge = await screen.findByTestId(`domain-receipt-${domain}`);
+      expect(await within(badge).findByText('Verified')).toBeTruthy();
+      expect(within(badge).getByRole('status').getAttribute('data-status')).toBe('verified');
+    }
+    // Domains WITHOUT a receipt render exactly as before — no badge.
+    expect(screen.queryByTestId('domain-receipt-family')).toBeNull();
+    expect(screen.queryByTestId('domain-receipt-finances')).toBeNull();
   });
 });

@@ -84,7 +84,9 @@ export default function PredictivePage(): ReactElement {
             </TabsTrigger>
             <TabsTrigger value="vargas">{t('tabs.vargas')}</TabsTrigger>
             <TabsTrigger value="strength">{t('tabs.strength')}</TabsTrigger>
-            <TabsTrigger value="domains">{t('tabs.domains')}</TabsTrigger>
+            <TabsTrigger value="domains" data-testid="domains-tab">
+              {t('tabs.domains')}
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="timing">
@@ -120,7 +122,15 @@ export default function PredictivePage(): ReactElement {
             {ready && layer.domainsCtx ? (
               <div className="space-y-4">
                 <p className="max-w-2xl text-sm text-text-secondary">{t('domains.subtitle')}</p>
-                <DomainsPanel domainsCtx={layer.domainsCtx} />
+                {/* Surface the sealed per-domain strength receipts + their per-boot
+                    signer (Spec 062) so each band carries an on-screen, verifiable
+                    tamper-evidence badge — the same check the PDF export runs
+                    silently. Absent on an older payload → cards render unchanged. */}
+                <DomainsPanel
+                  domainsCtx={layer.domainsCtx}
+                  receipts={layer.rawContexts?.domain_strength_receipts}
+                  signerPublicKey={layer.rawContexts?.strength_signer_public_key}
+                />
               </div>
             ) : (
               <PredictiveStatusCard layer={layer} auto />
