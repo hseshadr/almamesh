@@ -17,12 +17,15 @@ PWA and it works offline after the first load.
 
 ![AlmaMesh landing — the Observatory PWA](docs/assets/landing.png)
 
-## Status (verified 2026-07-21)
+## Status (verified 2026-07-22)
 
 **The shipped app is local-first by default, signed at the edge, and recoverable.**
-The prior 2026-07-18 snapshot recorded `6e5153f0`; the current live production
-identity is commit `3d9fa36a5bf27bc85f592b00f54ef648c53b4367`, deployed by GitHub
-run `29885495046`. Hosted Test and deploy workflows passed for that exact commit.
+The live production identity is whatever
+[`almamesh.com/build.json`](https://almamesh.com/build.json) reports — it serves
+the deployed commit and build time directly, so this README never has to chase a
+SHA (compare it with `git rev-parse main`). At the 2026-07-22 verification the
+hosted Test, Deploy, and 11-flow nightly E2E workflows were all green on the
+deployed commit.
 The live bundle pointer, immutable manifest bytes, SHA-256 hash, and Ed25519
 signature were checked against the pinned public key; a fresh browser context
 imported a backup and restored both a profile and chart with no console or page
