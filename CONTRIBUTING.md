@@ -79,6 +79,16 @@ A change is not done until all of these are green:
 CI runs these gates; the repo also has git hooks (`bun install` in `frontend/`
 activates them). Do not bypass hooks with `--no-verify`.
 
+### Known maintenance backlog (owned, not silent)
+
+- **knip symbol-level cleanup** (recorded 2026-07-21): `knip` reports
+  **283 unused exports, 86 unused exported types, and 24 duplicate exports**
+  across the frontend workspace. These are symbol-level findings (unused
+  *exports*, not unused files) and carry refactor risk, so they are being
+  burned down deliberately in follow-up passes rather than in one sweep.
+  When touching a module, prefer removing or de-exporting its dead symbols
+  as part of the change.
+
 ## Non-negotiable project rules
 
 1. **Local-first, no server.** No FastAPI/DB/auth. Compute stays on-device; the

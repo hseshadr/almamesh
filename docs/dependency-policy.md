@@ -19,6 +19,7 @@ without one is a bug in this file.
 | `three` (+ `@types/three`) | `^0.172` | `frontend/apps/web/package.json` | three's 0.x minors are de-facto majors; a bump must be validated live against `@react-three/fiber` in the 3D force-field hero, not just typechecked. |
 | `pyodide` | `^0.29` | `frontend/packages/browser/package.json` (mirrored by `PYODIDE_VERSION` in `frontend/apps/web/scripts/setup-dev-assets.sh`) | The version-pinned WASM runtime inside the signed bundle: a bump must re-pass the Pyodide==CPython byte-parity gate and re-ships the immutable `pyodide/*` CDN assets — see `docs/deploy/almamesh-com.md`. |
 | `cryptography` (Python) | `>=48.0.1,<49` | `backend/pyproject.toml` `[tool.uv]` `constraint-dependencies` | Security floor for the transitive ed25519 bundle-signing dep, capped below the untested major — rationale lives in-file next to the pin (bundle signing only; chart math and byte-determinism are unaffected). |
+| `tailwindcss` | `^3.4` | `frontend/apps/web/package.json` | The v3→v4 migration replaces the config model (JS `tailwind.config` → CSS-first `@theme`) and the build integration (PostCSS plugin → `@tailwindcss/vite`), and this app's theme rides a shared preset (`@almamesh/constants` `tailwind.preset.js`); the whole visual surface must be re-validated live on its own branch, not ride into auto-deploy. |
 
 ## How to lift a hold
 

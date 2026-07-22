@@ -17,12 +17,12 @@ PWA and it works offline after the first load.
 
 ![AlmaMesh landing — the Observatory PWA](docs/assets/landing.png)
 
-## Status (verified 2026-07-18)
+## Status (verified 2026-07-21)
 
 **The shipped app is local-first by default, signed at the edge, and recoverable.**
-The prior 2026-07-16 snapshot recorded `08d75db`; the current live production
-identity is commit `6e5153f080dd1a1fbade96d66faccfee1c3e651b`, deployed by GitHub
-run `29659416313`. Hosted Test and deploy workflows passed for that exact commit.
+The prior 2026-07-18 snapshot recorded `6e5153f0`; the current live production
+identity is commit `3d9fa36a5bf27bc85f592b00f54ef648c53b4367`, deployed by GitHub
+run `29885495046`. Hosted Test and deploy workflows passed for that exact commit.
 The live bundle pointer, immutable manifest bytes, SHA-256 hash, and Ed25519
 signature were checked against the pinned public key; a fresh browser context
 imported a backup and restored both a profile and chart with no console or page
@@ -162,7 +162,7 @@ The three formerly-private dependencies are **vendored in-repo**, each with
 provenance, license, and re-vendor policy documented in a `VENDORED.md` next to
 the code:
 
-- `backend/vendor/edge-proc` — the signed-bundle / Task-Runtime substrate (Python)
+- `backend/vendor/edge-proc` — the signed local-data engine (Python)
 - `backend/vendor/shared-libs-python` — its transitive dependency (Python)
 - `frontend/packages/edgeproc-browser` — `@edgeproc/browser`, the in-browser
   bundle-sync tier (a regular Bun workspace package)
