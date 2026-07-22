@@ -7,14 +7,14 @@ PAT). Do not edit by hand — re-vendor from upstream (policy below).
 | | |
 |---|---|
 | Source repo | `https://github.com/hseshadr/edge-proc.git` (public) |
-| Commit vendored | Base `3dabffa61e8063e4781f8c9ae4bedc24656c130c` (tag `v0.1.2`); bundle trust-boundary, CLI, settings, and their tests refreshed byte-for-byte from `f2d1b755eee1a0ee265a5f704a9050ecdfbef800` |
-| Vendored on | 2026-07-15 |
-| Upstream tree state | clean at both recorded commits |
+| Commit vendored | `e3bfb570feb8619c823df63b6c012fd8c8c6a9b6` (tag `v0.1.4`, released 2026-07-13) |
+| Vendored on | 2026-07-21 |
+| Upstream tree state | clean at the recorded commit |
 | License | MIT — Copyright (c) 2026 Harish Seshadri (`LICENSE`, copied verbatim) |
 
 ## What was copied
 
-`edgeproc/` (the package), `tests/` (its own 151-test suite), `pyproject.toml`,
+`edgeproc/` (the package), `tests/` (its own 229-test suite), `pyproject.toml`,
 `uv.lock`, `LICENSE`, `README.md`, `CHANGELOG.md` — byte-identical to upstream
 (`__pycache__`/`.DS_Store` excluded). NOT copied (upstream repo meta, not
 package source): `docs/`, `examples/`, `.github/`, `.gitignore`, `.env.example`,
@@ -25,7 +25,7 @@ package source): `docs/`, `examples/`, `.github/`, `.gitignore`, `.env.example`,
 
 - `backend/pyproject.toml` consumes this via
   `[tool.uv.sources] edge-proc = { path = "vendor/edge-proc", editable = true }`.
-- **Recorded local adaptation (the only diffs from upstream `v0.1.2`):** upstream's
+- **Recorded local adaptation (the only diffs from upstream `v0.1.4`):** upstream's
   `pyproject.toml` ships the `shared-libs-python` source as a git-tag pin
   (`tag = "v0.1.3"`) with a commented path-source override for co-development.
   This snapshot flips that upstream-documented toggle so `[tool.uv.sources]`
@@ -43,12 +43,15 @@ package source): `docs/`, `examples/`, `.github/`, `.gitignore`, `.env.example`,
   `extra="forbid"` occurrences in `edgeproc/bundles/manifest.py` are plain
   pydantic `ConfigDict` on signed-manifest models — strict schema validation,
   intentional, NOT env settings.
-- The security refresh updates only `edgeproc/bundles/`, `edgeproc/cli/`,
-  `edgeproc/core/settings.py`, `edgeproc/errors.py`, and their bundle/error tests.
-  It brings signed identity/channel/sequence binding, anti-rollback promotion,
-  path containment, and fetch/decompression/sync ceilings without changing the
-  unrelated local-vector runtime. `edgeproc/errors.py` consumes the separately
-  recorded shared-libs canonical-error refresh.
+- **History note (2026-07-21 re-vendor, v0.1.2-hybrid → v0.1.4):** the previous
+  snapshot was base `v0.1.2` with security files refreshed byte-for-byte from the
+  then-unreleased upstream commit `f2d1b755` — including `edgeproc/errors.py`
+  (canonical bundle-integrity error codes), which upstream introduced *after*
+  tag `v0.1.4`. This re-vendor returns the snapshot to a released tag (policy:
+  vendor released states only), so `edgeproc/errors.py`, `tests/test_errors.py`,
+  and the `cas.py` canonical-code metadata leave the tree until they ship in the
+  next upstream release. Verified before removal: nothing in almamesh's own
+  code imports `edgeproc.errors`, `IntegrityError`, or `RollbackError`.
 
 ## Run its test suite
 

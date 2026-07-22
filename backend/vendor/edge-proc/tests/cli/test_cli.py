@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import importlib
 import json
+import os
 from pathlib import Path
 
 import pytest
@@ -35,6 +36,123 @@ def test_list_runtimes_reports_extra_availability() -> None:
     result = runner.invoke(app, ["list-runtimes"])
     assert result.exit_code == 0
     assert "localvec" in result.stdout
+
+
+def test_keygen_writes_private_key_owner_only(tmp_path: Path) -> None:
+    # A signing key on a shared box must not be world-readable: `private.key` is a secret,
+    # so keygen writes it 0600 (owner rw only), never the default world-readable 0644.
+    result = runner.invoke(app, ["keygen", "--out", str(tmp_path)])
+    assert result.exit_code == 0
+    private = tmp_path / "private.key"
+    assert private.is_file()
+    mode = private.stat().st_mode & 0o777
+    assert oct(mode) == "0o600", f"private key mode is {oct(mode)}, expected 0o600"
+    # The public key is not a secret — it stays readable so a verifier can pin it.
+    assert (tmp_path / "public.key").is_file()
+
+
+def test_keygen_creates_output_directory_owner_only(tmp_path: Path) -> None:
+    # Given
+    out = tmp_path / "keys"
+    previous_umask = os.umask(0)
+
+    # When
+    try:
+        result = runner.invoke(app, ["keygen", "--out", str(out)])
+    finally:
+        os.umask(previous_umask)
+
+    # Then
+    assert result.exit_code == 0
+    assert out.stat().st_mode & 0o777 == 0o700
+
+
+def test_keygen_tightens_existing_output_directory(tmp_path: Path) -> None:
+    # Given
+    out = tmp_path / "keys"
+    out.mkdir(mode=0o755)
+    out.chmod(0o755)
+
+    # When
+    result = runner.invoke(app, ["keygen", "--out", str(out)])
+
+    # Then
+    assert result.exit_code == 0
+    assert out.stat().st_mode & 0o777 == 0o700
+
+
+def test_keygen_refuses_symlinked_output_directory(tmp_path: Path) -> None:
+    # Given
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    out = tmp_path / "keys"
+    out.symlink_to(outside, target_is_directory=True)
+
+    # When
+    result = runner.invoke(app, ["keygen", "--out", str(out)])
+
+    # Then
+    assert result.exit_code != 0
+    assert not (outside / "private.key").exists()
+    assert not (outside / "public.key").exists()
+
+
+def test_keygen_refuses_symlinked_key_path(tmp_path: Path) -> None:
+    # An attacker pre-plants a symlink where private.key will be written, aimed at a victim
+    # file. keygen must NOT follow it (O_NOFOLLOW): it fails closed and the victim is intact.
+    victim = tmp_path / "victim.txt"
+    victim.write_bytes(b"SECRET-ORIGINAL")
+    out = tmp_path / "keys"
+    out.mkdir()
+    (out / "private.key").symlink_to(victim)
+
+    result = runner.invoke(app, ["keygen", "--out", str(out)])
+
+    assert result.exit_code == 1
+    assert "Traceback" not in result.stderr
+    assert victim.read_bytes() == b"SECRET-ORIGINAL"  # the symlink target was NOT clobbered
+
+
+def test_sync_missing_trust_key_fails_closed(tmp_path: Path) -> None:
+    # A pinned trust-root pubkey path that does not exist must fail CLOSED with a clean
+    # message, never a raw traceback: an unreadable key file is operator error, not a crash.
+    result = runner.invoke(
+        app,
+        [
+            "sync",
+            "--base-url",
+            str(tmp_path / "origin"),
+            "--cache-dir",
+            str(tmp_path / "cache"),
+            "--key",
+            str(tmp_path / "absent.key"),
+        ],
+    )
+    assert result.exit_code == 1
+    assert "Traceback" not in result.stderr
+    assert "trust-root key" in result.stderr
+
+
+def test_sync_malformed_trust_key_fails_closed(tmp_path: Path) -> None:
+    # A present but wrong-length pubkey (not 32 raw ed25519 bytes) must fail CLOSED cleanly,
+    # mirroring how `publish` handles a malformed signing key — no traceback escapes.
+    bad = tmp_path / "public.key"
+    bad.write_bytes(b"short")  # not a 32-byte raw ed25519 public key
+    result = runner.invoke(
+        app,
+        [
+            "sync",
+            "--base-url",
+            str(tmp_path / "origin"),
+            "--cache-dir",
+            str(tmp_path / "cache"),
+            "--key",
+            str(bad),
+        ],
+    )
+    assert result.exit_code == 1
+    assert "Traceback" not in result.stderr
+    assert "malformed trust-root key" in result.stderr
 
 
 def _save_catalog_index(directory: Path) -> None:
@@ -145,3 +263,24 @@ def test_route_missing_index_dir_fails_closed(
 
     assert result.exit_code == 1
     assert '"success"' not in result.stdout
+
+
+def test_materialize_refuses_traversal_before_writing(tmp_path: Path) -> None:
+    # Defense-in-depth: even if a manifest with a traversal path somehow reached the
+    # write loop (bypassing model validation via model_construct here), the loop must
+    # refuse it BEFORE any write — nothing lands outside the output dir.
+    from edgeproc.bundles.containment import UnsafePathError  # noqa: PLC0415
+    from edgeproc.bundles.manifest import FileEntry, IndexManifest  # noqa: PLC0415
+
+    out = tmp_path / "out"
+    evil = FileEntry.model_construct(
+        path="../evil.txt", file_type=None, size=0, file_sha256="00" * 32, chunks=[]
+    )
+    manifest = IndexManifest.model_construct(
+        bundle_id="b", version="1.0.0", files=[evil], metadata={}
+    )
+
+    with pytest.raises(UnsafePathError):
+        _cli_app_module._materialize_files(object(), manifest, out)
+
+    assert not (tmp_path / "evil.txt").exists()

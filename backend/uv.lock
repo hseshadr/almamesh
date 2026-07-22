@@ -420,7 +420,6 @@ wheels = [
 
 [[package]]
 name = "edge-proc"
-version = "0.1.2"
 source = { editable = "vendor/edge-proc" }
 dependencies = [
     { name = "pydantic" },
@@ -433,6 +432,7 @@ dependencies = [
 bundles = [
     { name = "cryptography" },
     { name = "httpx" },
+    { name = "packaging" },
     { name = "structlog" },
     { name = "zstandard" },
 ]
@@ -442,27 +442,28 @@ requires-dist = [
     { name = "cryptography", marker = "extra == 'bundles'", specifier = ">=44" },
     { name = "faiss-cpu", marker = "extra == 'localvec'", specifier = ">=1.14.3" },
     { name = "httpx", marker = "extra == 'bundles'", specifier = ">=0.27" },
-    { name = "numpy", marker = "extra == 'localvec'", specifier = ">=2.0" },
-    { name = "pydantic", specifier = ">=2.13.4" },
+    { name = "numpy", marker = "extra == 'localvec'", specifier = ">=2.5.1" },
+    { name = "packaging", marker = "extra == 'bundles'", specifier = ">=24" },
+    { name = "pydantic", specifier = ">=2.9" },
     { name = "pydantic-settings", specifier = ">=2.5" },
-    { name = "rank-bm25", marker = "extra == 'localvec'", specifier = ">=0.2.2" },
-    { name = "sentence-transformers", marker = "extra == 'localvec'", specifier = ">=3.3" },
+    { name = "rank-bm25", marker = "extra == 'localvec'", specifier = ">=0.2" },
+    { name = "sentence-transformers", marker = "extra == 'localvec'", specifier = ">=5.6.0" },
     { name = "shared-libs-python", editable = "vendor/shared-libs-python" },
-    { name = "structlog", marker = "extra == 'bundles'", specifier = ">=24.4" },
-    { name = "typer", specifier = ">=0.15" },
+    { name = "structlog", marker = "extra == 'bundles'", specifier = ">=26.1.0" },
+    { name = "typer", specifier = ">=0.26.8" },
     { name = "zstandard", marker = "extra == 'bundles'", specifier = ">=0.25" },
 ]
-provides-extras = ["localvec", "bundles"]
+provides-extras = ["bundles", "localvec"]
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "mypy", specifier = ">=1.11" },
-    { name = "poethepoet", specifier = ">=0.30" },
-    { name = "pytest", specifier = ">=8.3" },
+    { name = "mypy", specifier = ">=2.2.0" },
+    { name = "poethepoet", specifier = ">=0.48.0" },
+    { name = "pytest", specifier = ">=9.1.1" },
     { name = "pytest-asyncio", specifier = ">=0.24" },
     { name = "pytest-cov", specifier = ">=6.0" },
     { name = "radon", specifier = ">=6.0" },
-    { name = "ruff", specifier = ">=0.6" },
+    { name = "ruff", specifier = ">=0.15.21" },
     { name = "xenon", specifier = ">=0.9" },
 ]
 
@@ -1188,11 +1189,11 @@ wheels = [
 
 [[package]]
 name = "structlog"
-version = "25.5.0"
+version = "26.1.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/ef/52/9ba0f43b686e7f3ddfeaa78ac3af750292662284b3661e91ad5494f21dbc/structlog-25.5.0.tar.gz", hash = "sha256:098522a3bebed9153d4570c6d0288abf80a031dfdb2048d59a49e9dc2190fc98", size = 1460830, upload-time = "2025-10-27T08:28:23.028Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/5e/89/b4a0bcfdf4f71a3dea31379f095929613d7e4528a0996bca6aa964cd0dca/structlog-26.1.0.tar.gz", hash = "sha256:f63a716cbd1b1291cf7661de7794b455acfa4c43c5bcf1630e6ad5ddc1adb3b7", size = 1459881, upload-time = "2026-06-06T07:33:39.348Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a8/45/a132b9074aa18e799b891b91ad72133c98d8042c70f6240e4c5f9dabee2f/structlog-25.5.0-py3-none-any.whl", hash = "sha256:a8453e9b9e636ec59bd9e79bbd4a72f025981b3ba0f5837aebf48f02f37a7f9f", size = 72510, upload-time = "2025-10-27T08:28:21.535Z" },
+    { url = "https://files.pythonhosted.org/packages/a9/18/489c97b834dfff9cf2fc2507cede4bcd4b11e67f84bc462acd1992496f86/structlog-26.1.0-py3-none-any.whl", hash = "sha256:e081a26d6c373e6d201eca24eede26d8ffab07f88f477822e679183428d3d91e", size = 73764, upload-time = "2026-06-06T07:33:38.046Z" },
 ]
 
 [[package]]
