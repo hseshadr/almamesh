@@ -12,6 +12,8 @@
  *
  * Growth lives IN the constellation: the ghost "+" star and the invitation CTA
  * both open the shared AddPersonDialog in place — no detour to Settings.
+ * The invitation still links to Settings → People, because that is where the
+ * "this is me" (anchor) control its own instructions point at lives.
  */
 
 import { useState, type ReactElement } from 'react';
@@ -63,6 +65,14 @@ function MeshInvitation({ onAddPerson }: { onAddPerson: () => void }): ReactElem
           {t('invitation.cta')}
         </button>
         <p className="text-xs text-text-tertiary">{t('invitation.hint')}</p>
+        {/* The body says to mark "this is me" — link to where that control lives. */}
+        <Link
+          to="/settings/people"
+          className="inline-block text-sm text-accent-gold transition-colors hover:text-accent-gold-bright"
+          data-testid="mesh-invitation-manage-link"
+        >
+          {t('page.manage')}
+        </Link>
       </div>
     </div>
   );

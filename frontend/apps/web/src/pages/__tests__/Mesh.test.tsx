@@ -120,6 +120,18 @@ describe('MeshPage', () => {
     expect(useProfilesStore.getState().activeProfileId).toBe(created?.id);
   });
 
+  it('the invitation routes to Settings → People, where "this is me" lives', () => {
+    // The live-repro shape: a member exists but nobody is marked "this is me".
+    // The invitation's body instructs marking "this is me" — the control lives
+    // in Settings → People, so the invitation must link there.
+    useProfilesStore.setState({ profiles: { [FRIEND.id]: FRIEND } });
+    renderMesh();
+    expect(screen.getByTestId('mesh-invitation')).toBeTruthy();
+
+    fireEvent.click(screen.getByTestId('mesh-invitation-manage-link'));
+    expect(screen.getByTestId('people-stub')).toBeTruthy();
+  });
+
   it('lights a new star in place: the constellation add node opens the same dialog', () => {
     useProfilesStore.setState({
       profiles: { [ANCHOR.id]: ANCHOR, [SPOUSE.id]: SPOUSE },
