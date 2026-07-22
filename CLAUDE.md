@@ -84,13 +84,12 @@ verification are also available — prefer them over grep / manual coding.)
 | `almamesh-frontend` | React/TypeScript: components, styling, state, in-browser engine wiring |
 | `testing` | Running tests, debugging failures, test infrastructure |
 | `deployment` | CI/CD, env vars, cloud deployment |
-| `frontend-design` | High-quality UI design and implementation |
+
+These four are the only project-local skills (`.claude/skills/`); there are no
+project-local agents. For agents, use the harness-provided types:
 
 | Agent | Use For |
 |-------|---------|
-| `code-quality-backend` | Python validation: ruff, mypy, pytest |
-| `code-quality-frontend` | TypeScript validation: ESLint, type checks |
-| `architecture-advisor` | System design, D2 diagrams, trade-offs |
 | `Explore` / `Plan` | Codebase exploration / implementation planning |
 | `github-actions-agent` | CI/CD, PRs, workflow runs |
 

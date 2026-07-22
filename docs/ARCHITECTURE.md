@@ -40,7 +40,7 @@ house diagram format).*
 | Area | Path | Notes |
 |---|---|---|
 | Python engine + bundle publisher | `backend/src/almamesh/` | Pydantic models, Skyfield astronomy, dasha/yoga/mesh/rectification engines |
-| Vendored substrate | `backend/vendor/{edge-proc,shared-libs-python}` | signed-bundle delivery core; see each `VENDORED.md` |
+| Vendored dependencies | `backend/vendor/{edge-proc,shared-libs-python}` | signed-bundle delivery core; see each `VENDORED.md` |
 | Browser engine + PWA | `frontend/` (Bun workspace) | packages table in [CLAUDE.md](../CLAUDE.md#frontend-monorepo-packages-frontendpackages) |
 | Specs (numbered) | `docs/specs/` | feature design records |
 | Deploy | `.github/workflows/deploy.yml` → Cloudflare Pages | key custody in the workflow header + `docs/deploy/` |

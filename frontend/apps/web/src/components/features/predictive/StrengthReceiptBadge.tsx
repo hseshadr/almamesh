@@ -37,8 +37,20 @@ type JsonReceipt = SignedReceipt<JsonValue>;
 const asJsonReceipt = (receipt: DomainStrengthReceipt): JsonReceipt =>
   receipt as unknown as JsonReceipt;
 
-/** Inject almamesh's fail-closed domain verifier into the generic view. */
-const verify = verifyDomainStrength as unknown as VerifyFn<JsonValue>;
+/** The inverse view: the JSON receipt handed back by the generic component IS
+ * the domain receipt `asJsonReceipt` fed it. */
+const asDomainReceipt = (receipt: JsonReceipt): DomainStrengthReceipt =>
+  receipt as unknown as DomainStrengthReceipt;
+
+/**
+ * Inject almamesh's fail-closed domain verifier into the generic view.
+ * A typed adapter, not a function-wide cast: the arrow's signature is checked
+ * against `VerifyFn<JsonValue>` (argument order, arity, `Promise<void>` return
+ * all enforced by the compiler), and the only unchecked step left is narrowing
+ * the JSON envelope back to the domain receipt via `asDomainReceipt`.
+ */
+const verify: VerifyFn<JsonValue> = (receipt, expectedPublicKey) =>
+  verifyDomainStrength(asDomainReceipt(receipt), expectedPublicKey);
 
 export interface StrengthReceiptViewProps {
   readonly receipt: DomainStrengthReceipt;
