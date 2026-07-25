@@ -158,6 +158,17 @@ deterministic. The complete browser network inventory is:
 diagnostics emit allowlisted codes only—never raw prompts, narratives, provider
 errors, city text, chart data, or profile names.
 
+**The browser enforces that table.** This inventory is not a promise you have to
+take on trust: the deployed `Content-Security-Policy` (see
+`frontend/apps/web/public/_headers`) restricts `connect-src` to a closed
+allowlist—this origin, `openrouter.ai`, `geocoding-api.open-meteo.com`, and
+loopback (`localhost` / `127.0.0.1`, any port, for a local model). Any other
+destination is refused by the browser itself, so code that tried to send your
+data somewhere else could not, even if it wanted to. A consequence worth knowing:
+a custom AI endpoint on a **non-loopback** address—a LAN machine like
+`http://192.168.1.10:11434`, or a third-party proxy—is blocked by that policy;
+use a loopback endpoint or OpenRouter.
+
 ## Building from source — prerequisites
 
 **TL;DR: this repo is self-contained — a single `git clone` builds everything.**

@@ -27,7 +27,9 @@ describe('cspFromHeadersFile', () => {
     expect(csp.startsWith("default-src 'self'")).toBe(true);
     // The clause whose absence of `data:` makes the yoga wasm regression
     // reproducible under preview — the whole point of applying CSP there.
-    expect(csp).toContain("connect-src 'self' https: http:");
+    // (The exact allowlist is pinned in __tests__/securityHeaders.test.ts; here
+    // we only assert the parser lifted a real, closed connect-src.)
+    expect(csp).toContain("connect-src 'self' https://openrouter.ai");
     expect(csp).not.toContain('\n');
   });
 

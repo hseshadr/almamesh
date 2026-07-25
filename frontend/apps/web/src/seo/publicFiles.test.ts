@@ -11,6 +11,7 @@ import { fileURLToPath } from 'node:url';
 
 import { describe, it, expect } from 'vitest';
 
+import { cspFromHeadersFile } from '../lib/previewHeaders';
 import { PUBLIC_ROUTE_HEADS, PRIVATE_ROUTE_PREFIXES, SITE_ORIGIN } from './routeHead';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -132,15 +133,63 @@ describe('Cloudflare Pages security headers', () => {
   const headers = readFileSync(path.join(publicDir, '_headers'), 'utf-8');
 
   const catchAllBlock = headers.match(/^\/\*\r?\n((?:[ \t]+.*(?:\r?\n|$))+)/m)?.[1] ?? '';
+  // The catch-all policy, parsed with the SAME helper `vite preview` uses, so a
+  // policy these assertions accept is exactly the policy the browser is served.
+  const csp = cspFromHeadersFile(headers);
 
   it('enforces a Pyodide, worker, Turnstile, and BYO-endpoint compatible CSP', () => {
     expect(headers).toContain('Content-Security-Policy:');
     expect(headers).toContain("script-src 'self' 'wasm-unsafe-eval' https://challenges.cloudflare.com");
     expect(headers).toContain("worker-src 'self' blob:");
     expect(headers).toContain("frame-src 'self' https://challenges.cloudflare.com");
-    expect(headers).toContain("connect-src 'self' https: http:");
     expect(headers).not.toMatch(/connect-src[^\n]*\b(?:ws|wss):/);
     expect(headers).toContain("font-src 'self' data:");
+  });
+
+  // --- connect-src IS the privacy claim ---------------------------------------
+  // "Your data never leaves the device" is only true if the browser refuses to
+  // send it anywhere else. `connect-src` was `'self' https: http:`, which allows
+  // a fetch to ANY origin (cleartext included) — present, but measuring nothing.
+  // These assertions pin the CLOSED allowlist so a future edit cannot quietly
+  // reopen it. Adding a destination is a deliberate act: extend `allowed` here,
+  // extend the rationale block in public/_headers, and extend the README egress
+  // table (repositoryTruth.test.ts holds that end).
+  it('confines connect-src to a closed allowlist of declared destinations', () => {
+    const connectSrc = csp.match(/connect-src ([^;]+)/)?.[1].trim();
+    expect(connectSrc, 'the catch-all CSP must declare connect-src').toBeDefined();
+
+    const allowed = [
+      "'self'", //                              own origin: engine assets, /api/feedback
+      'https://openrouter.ai', //               opt-in BYO-key cloud LLM
+      'https://geocoding-api.open-meteo.com', // declared city-typeahead egress
+      'http://localhost:*', //                  loopback LLM, any port (still on-device)
+      'http://127.0.0.1:*', //                  same, explicit IPv4 form
+    ];
+    expect(connectSrc!.split(/\s+/)).toEqual(allowed);
+  });
+
+  // The finding this file exists to close. A wildcard scheme or host in ANY
+  // fetch-directive re-opens arbitrary egress even if connect-src looks tidy.
+  it('permits no wildcard scheme or host in any egress directive', () => {
+    for (const directive of ['connect-src', 'default-src', 'script-src', 'frame-src', 'img-src']) {
+      const value = csp.match(new RegExp(`${directive} ([^;]+)`))?.[1] ?? '';
+      expect(value, `${directive} must not allow a bare scheme`).not.toMatch(
+        /(?:^|\s)(?:https?|ws|wss|ftp):(?:\s|$)/,
+      );
+      expect(value, `${directive} must not allow a wildcard host`).not.toMatch(/(?:^|\s)\*(?:\s|$)/);
+    }
+  });
+
+  it('upgrades any stray cleartext subresource', () => {
+    expect(csp).toContain('upgrade-insecure-requests');
+  });
+
+  // Cross-origin isolation needs COOP:same-origin AND COEP:require-corp. COOP
+  // alone is safe here and severs window.opener for cross-origin popups; COEP
+  // would break the Pyodide module workers (docs/deploy/almamesh-com.md).
+  it('isolates the browsing-context group without cross-origin isolation', () => {
+    expect(catchAllBlock).toMatch(/^\s*Cross-Origin-Opener-Policy:\s*same-origin\s*$/m);
+    expect(headers).not.toMatch(/^\s*Cross-Origin-Embedder-Policy:/m);
   });
 
   it('does not expose the application shell through wildcard CORS', () => {
@@ -162,6 +211,39 @@ describe('Cloudflare Pages security headers', () => {
   it('prevents edge transforms from injecting third-party scripts into app HTML', () => {
     expect(catchAllBlock).not.toBe('');
     expect(catchAllBlock).toContain('Cache-Control: public, no-cache, no-transform');
+  });
+});
+
+// RFC 9116. Lives in public/.well-known/ so Vite copies it verbatim and Pages
+// serves it at /.well-known/security.txt (build-prod.sh asserts it reached dist,
+// which is what proves Vite copies the DOTFILE directory at all).
+describe('security.txt', () => {
+  const securityTxt = readFileSync(path.join(publicDir, '.well-known/security.txt'), 'utf-8');
+  const field = (name: string): string | undefined =>
+    securityTxt.match(new RegExp(`^${name}:\\s*(.+)$`, 'm'))?.[1].trim();
+
+  it('publishes a reachable contact and the policy it points at', () => {
+    expect(field('Contact')).toBe('mailto:harish.seshadri@gmail.com');
+    expect(readFileSync(path.join(repoRoot, 'SECURITY.md'), 'utf-8')).toContain(
+      'harish.seshadri@gmail.com',
+    );
+    expect(field('Policy')).toBe('https://github.com/hseshadr/almamesh/blob/main/SECURITY.md');
+    expect(field('Canonical')).toBe(`${SITE_ORIGIN}/.well-known/security.txt`);
+  });
+
+  // Deliberate tripwire: RFC 9116 makes `Expires` mandatory, and an expired
+  // security.txt is a contact nobody is required to honour. This test goes red
+  // when the date passes — that is the renewal reminder, not a flake. Bump the
+  // date in public/.well-known/security.txt by a year to clear it.
+  it('carries an Expires date that has not passed', () => {
+    const expires = field('Expires');
+    expect(expires, 'RFC 9116 requires an Expires field').toBeDefined();
+    const expiry = new Date(expires!);
+    expect(Number.isNaN(expiry.getTime()), `Expires must be ISO-8601, got ${expires}`).toBe(false);
+    expect(
+      expiry.getTime() > Date.now(),
+      `security.txt expired on ${expires} — re-confirm the contact and bump it a year`,
+    ).toBe(true);
   });
 });
 
