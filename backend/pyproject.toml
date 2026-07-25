@@ -17,12 +17,12 @@ dependencies = [
     "python-dotenv>=1.0.0",
     # YAML loading for the predictive rule packs (src/almamesh/rules/*.yaml).
     "pyyaml>=6.0.2",
-    "types-pyyaml>=6.0.12.20260518",
+    "types-pyyaml>=6.0.12.20260724",
     # Local-first substrate: signed content-addressed bundle delivery + the
     # Task/Runtime/Router core. Only [bundles] — no FAISS/vector extras needed.
     "edge-proc[bundles]>=0.1.0",
     # Bundle-publisher CLI (almamesh-bundle).
-    "typer>=0.26.8",
+    "typer>=0.27.0",
 ]
 
 # NOTE: `avow` is deliberately NOT a runtime dependency. The engine computes
@@ -39,7 +39,7 @@ dev = [
     "pytest>=8.3.0",
     "pytest-asyncio>=1.4.0",
     "pytest-cov>=7.1.0",
-    "ruff>=0.15.21",
+    "ruff>=0.16.0",
     "mypy>=2.3.0",
     # Complexity gate (radon-based) — see [tool.poe.tasks.lint].
     "xenon>=0.9.3",
@@ -49,7 +49,7 @@ dev = [
     # dependencies): the Python Avow kernel that produced testdata/vectors/.
     # Never imported by `src/almamesh` — tests/test_engine_is_crypto_free.py
     # fails the build if it ever is.
-    "avow>=0.1.0,<0.2",
+    "avow>=0.1.1,<0.2",
 ]
 
 [project.scripts]
