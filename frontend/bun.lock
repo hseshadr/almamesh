@@ -62,7 +62,7 @@
       },
       "devDependencies": {
         "@cloudflare/workers-types": "^4.20240605.0",
-        "@edgeproc/avow": "0.1.0",
+        "@edgeproc/avow": "0.1.1",
         "@eslint/js": "^9.39.1",
         "@playwright/test": "^1.49.1",
         "@resvg/resvg-js": "^2.6.2",
@@ -102,7 +102,7 @@
       "name": "@almamesh/browser",
       "version": "0.0.1",
       "dependencies": {
-        "@edgeproc/avow": "0.1.0",
+        "@edgeproc/avow": "0.1.1",
         "@edgeproc/browser": "workspace:*",
         "@hpcc-js/wasm-zstd": "^1.12.6",
         "@noble/ed25519": "^3.1.0",
@@ -518,7 +518,7 @@
 
     "@csstools/css-tokenizer": ["@csstools/css-tokenizer@4.0.0", "", {}, "sha512-QxULHAm7cNu72w97JUNCBFODFaXpbDg+dP8b/oWFAZ2MTRppA3U00Y2L1HqaS4J6yBqxwa/Y3nMBaxVKbB/NsA=="],
 
-    "@edgeproc/avow": ["@edgeproc/avow@0.1.0", "", { "dependencies": { "@noble/ed25519": "^3.1.0", "canonicalize": "^3.0.0" } }, "sha512-oPbnzyFIzfBBTQjXtnxqdmSXuWFIfVKKkGBayBBVbxyCvOFAhODvXmvhqJsDTMos/aV060DwcQYijUmGnAaiGQ=="],
+    "@edgeproc/avow": ["@edgeproc/avow@0.1.1", "", { "dependencies": { "@noble/ed25519": "^3.1.0", "canonicalize": "^3.0.0" } }, "sha512-BgqgxPox/PpLSNL7gKN8tovrOBSuLBVk2uAnYu8+5ZXq7KKQBPvSZCA/qF9vkAVE6ubRXm4TcOPJBicy51sALg=="],
 
     "@edgeproc/browser": ["@edgeproc/browser@workspace:packages/edgeproc-browser"],
 

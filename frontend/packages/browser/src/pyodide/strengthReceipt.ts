@@ -105,8 +105,21 @@ export async function sealDomainStrengths(
 
 /**
  * Verify a strength receipt offline against a pinned signer. Throws a coded
- * `avow` error on any failure: tampered content (`ReplayMismatch`), or an
- * unpinned signer / bad signature (`SignatureInvalid`).
+ * `avow` error on any failure, naming WHICH of the three gates rejected it:
+ *
+ * - `ReplayMismatch` — the payload was edited, so its recomputed content-hash
+ *   no longer matches the hash stored in the receipt.
+ * - `SignerMismatch` — a PROVENANCE failure: the receipt's embedded key is not
+ *   the key the caller pinned, so the signature is never even checked.
+ * - `SignatureBytesInvalid` — a TAMPER failure: the right signer, but the
+ *   Ed25519 check rejected the signature bytes.
+ *
+ * The latter two both extend `SignatureInvalid`, so a caller that only needs
+ * "did not verify, for any reason" still catches a single base class and
+ * nothing about WHICH receipts are rejected changes. The distinction matters
+ * for testing as much as for alerting: the first two cases short-circuit
+ * BEFORE the signature check, so only `SignatureBytesInvalid` can prove
+ * Ed25519 actually ran (see `__tests__/strengthReceipt.test.ts`).
  */
 export async function verifyDomainStrength(
   receipt: DomainStrengthReceipt,
