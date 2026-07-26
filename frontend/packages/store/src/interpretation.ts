@@ -25,6 +25,31 @@ import { deletionAwareIdbStorage } from './deletionTombstones';
 export type InterpretationStatus = 'idle' | 'generating' | 'complete' | 'error';
 
 /**
+ * WHY an interpretation failed, machine-readable.
+ *
+ * The companion to the human-readable `error` sentence — never a replacement.
+ * The sentence is already localized prose, so a UI that wants to treat
+ * "the provider is out of credits" differently from "the app hit a defect"
+ * would otherwise have to re-parse translated text. This records the verdict
+ * once, at the point of failure, so consumers can switch on it.
+ *
+ * The provider-side kinds mirror the shared `@edgeproc/errors` classification
+ * (credits / auth / model / privacy / rate_limited / server / network /
+ * unknown); `needs_regeneration` is the app-state failure where a stored chart
+ * carries no raw engine output to interpret.
+ */
+export type InterpretationErrorKind =
+  | 'credits'
+  | 'auth'
+  | 'model'
+  | 'privacy'
+  | 'rate_limited'
+  | 'server'
+  | 'network'
+  | 'needs_regeneration'
+  | 'unknown';
+
+/**
  * Deterministic inputs that may have shaped a generated reading.
  *
  * A string means the LLM received predictive facts computed for that exact
@@ -44,6 +69,11 @@ export interface ChartInterpretationEntry {
   readonly interpretation?: VedicInterpretation;
   /** Failure message; present once `status === 'error'`. */
   readonly error?: string;
+  /**
+   * The typed reason behind `error`. Optional so entries persisted before this
+   * field existed hydrate unchanged; consumers treat a missing kind as unknown.
+   */
+  readonly errorKind?: InterpretationErrorKind;
   /** Section key -> completed. Lets the dashboard show progressive progress. */
   readonly sections: Readonly<Record<string, boolean>>;
   /**
@@ -112,8 +142,16 @@ export interface InterpretationStore {
     inputProvenance?: InterpretationInputProvenance,
     runToken?: InterpretationRunToken,
   ) => Promise<void>;
-  /** Record a failure: status -> 'error'. */
-  setError: (chartId: string, error: string, runToken?: InterpretationRunToken) => void;
+  /**
+   * Record a failure: status -> 'error'. `kind` is the typed verdict behind the
+   * message (omitted by legacy callers, which consumers read as unknown).
+   */
+  setError: (
+    chartId: string,
+    error: string,
+    kind?: InterpretationErrorKind,
+    runToken?: InterpretationRunToken,
+  ) => void;
   /** Read one chart's entry, or `undefined` if none exists. */
   getEntry: (chartId: string) => ChartInterpretationEntry | undefined;
   /** Drop one chart's entry entirely. */
@@ -200,7 +238,7 @@ function healInterruptedEntry(
     return entry;
   }
   if (entry.interpretation) {
-    const { error: _staleError, ...kept } = entry;
+    const { error: _staleError, errorKind: _staleKind, ...kept } = entry;
     return { ...kept, status: 'complete' };
   }
   return undefined;
@@ -392,14 +430,19 @@ export const interpretationStoreCreator: StateCreator<InterpretationStore> = (se
       await persistInterpretationSnapshot(get());
     },
 
-    setError: (chartId, error, runToken) => {
+    setError: (chartId, error, kind, runToken) => {
       set((state) => {
         if (!acceptsRun(chartId, runToken)) {
           return state;
         }
         const current = entryOf(state.byChart, chartId);
         return {
-          byChart: withEntry(state.byChart, chartId, { ...current, status: 'error', error }),
+          byChart: withEntry(state.byChart, chartId, {
+            ...current,
+            status: 'error',
+            error,
+            ...(kind !== undefined ? { errorKind: kind } : {}),
+          }),
         };
       });
     },

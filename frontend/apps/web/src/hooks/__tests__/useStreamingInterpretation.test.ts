@@ -634,4 +634,97 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
     await waitFor(() => expect(result.current.status).toBe('idle'));
     expect(result.current.interpretation).toBeUndefined();
   });
+
+  // =========================================================================
+  // The MACHINE-READABLE failure kind.
+  //
+  // `error` is a pre-localized sentence — useful to render, useless to switch
+  // on. The reading panel has to tell "out of credits" from "the provider is
+  // down" from "a genuine defect" to degrade gracefully instead of shouting,
+  // so the hook exposes the typed kind ALONGSIDE the sentence (never instead
+  // of it).
+  // =========================================================================
+  describe('errorKind (typed companion to the localized error sentence)', () => {
+    it('is null while nothing has failed', () => {
+      const { result } = renderHook(() => useStreamingInterpretation('chart-123'));
+      expect(result.current.errorKind).toBeNull();
+    });
+
+    it('reports an exhausted balance as `credits`, keeping the billing sentence', async () => {
+      mockedStream.mockImplementation(
+        failingStream(
+          new LlmRequestError('LLM endpoint returned 402 Payment Required: Insufficient credits', {
+            status: 402,
+          }),
+        ),
+      );
+
+      const { result } = renderHook(() => useStreamingInterpretation('chart-123'));
+      await act(async () => {
+        await result.current.streamInterpretation('chart-123');
+      });
+
+      await waitFor(() => expect(result.current.status).toBe('error'));
+      expect(result.current.errorKind).toBe('credits');
+      expect(result.current.error).toMatch(/credit/i);
+    });
+
+    it('reports a provider outage as `server` and an unreachable endpoint as `network`', async () => {
+      mockedStream.mockImplementation(
+        failingStream(
+          new LlmRequestError('LLM endpoint returned 500 Internal Server Error', { status: 500 }),
+        ),
+      );
+      const outage = renderHook(() => useStreamingInterpretation('chart-123'));
+      await act(async () => {
+        await outage.result.current.streamInterpretation('chart-123');
+      });
+      await waitFor(() => expect(outage.result.current.errorKind).toBe('server'));
+
+      mockedStream.mockImplementation(failingStream(new TypeError('Failed to fetch')));
+      const unreachable = renderHook(() => useStreamingInterpretation('chart-456'));
+      await act(async () => {
+        await unreachable.result.current.streamInterpretation('chart-456');
+      });
+      await waitFor(() => expect(unreachable.result.current.errorKind).toBe('network'));
+    });
+
+    it('reports a dead model as `model` and a privacy refusal as `privacy`', async () => {
+      mockedStream.mockImplementation(
+        failingStream(
+          new LlmRequestError('HTTP 404: No endpoints found for test-org/retired-model', {
+            status: 404,
+          }),
+        ),
+      );
+      const dead = renderHook(() => useStreamingInterpretation('chart-123'));
+      await act(async () => {
+        await dead.result.current.streamInterpretation('chart-123');
+      });
+      await waitFor(() => expect(dead.result.current.errorKind).toBe('model'));
+      // The sentinel sentence is unchanged — the dashboard still maps it.
+      expect(dead.result.current.error).toBe(READING_MODEL_UNAVAILABLE);
+
+      mockedStream.mockImplementation(
+        failingStream(new PrivacyViolationError('refusing to send chart data')),
+      );
+      const refused = renderHook(() => useStreamingInterpretation('chart-789'));
+      await act(async () => {
+        await refused.result.current.streamInterpretation('chart-789');
+      });
+      await waitFor(() => expect(refused.result.current.errorKind).toBe('privacy'));
+    });
+
+    it('reports a chart with no raw engine output as `needs_regeneration` (an app fault, not a provider outage)', async () => {
+      getChart.mockReturnValue({ chart_id: 'chart-123' }); // no sidereal_chart
+
+      const { result } = renderHook(() => useStreamingInterpretation('chart-123'));
+      await act(async () => {
+        await result.current.streamInterpretation('chart-123');
+      });
+
+      await waitFor(() => expect(result.current.status).toBe('error'));
+      expect(result.current.errorKind).toBe('needs_regeneration');
+    });
+  });
 });

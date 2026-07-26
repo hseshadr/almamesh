@@ -21,15 +21,26 @@
     "title": "Unable to Load Chart",
     "body": "We couldn't load your chart data. This might be a temporary connection issue."
   },
-  "cta": {
-    "title": "Connect an AI model to generate your interpretation",
-    "body": "Your chart is calculated on-device. To turn it into a personalized reading, connect an AI model — use the one-click OpenRouter preset or point AlmaMesh at a local model (e.g. Ollama)."
+  "narration": {
+    "chart_complete_title": "Your chart is complete",
+    "chart_complete_body": "Your ascendant, moon, dasha periods and Life Atlas are all calculated on-device — they are complete and correct. Only the written interpretation, an optional AI extra, is missing.",
+    "kept_title": "Your reading is unchanged",
+    "kept_body": "Your chart and the reading below are exactly as they were. Only the refresh of the written interpretation didn't go through.",
+    "reason_no_key": "No AI provider is connected yet.",
+    "next_no_key": "Connect an AI model whenever you'd like a written interpretation — nothing else on this page changes.",
+    "reason_credits": "Your AI provider is out of credits.",
+    "next_credits": "Add credits with your provider (for OpenRouter: openrouter.ai → Credits), or pick a cheaper model in AI settings.",
+    "reason_provider_down": "Your AI provider isn't responding right now.",
+    "next_provider_down": "Nothing is wrong with your chart — try again shortly.",
+    "reason_auth": "Your AI provider rejected the saved API key.",
+    "next_auth": "Check or replace the key in AI settings.",
+    "reason_model": "The AI model saved in your settings is no longer available.",
+    "next_model": "Switch to the recommended model, or pick another one in AI settings."
   },
   "generation": {
     "title_generating": "Generating your personalized interpretation",
     "title_failed": "Interpretation could not be generated",
     "elapsed": "Generating from your model — {{elapsed}} elapsed. A full reading can take 1–3 minutes on a cloud model.",
-    "model_unavailable": "The AI model in your settings isn't available on your endpoint — so the reading couldn't be generated. Switch to the recommended model and try again.",
     "partial_failure": "Some sections could not be generated this time: {{sections}}. The rest of the reading is complete — regenerate to fill the gap.",
     "regen_failed": "The reading could not be regenerated ({{error}}). Your previous reading is kept below."
   },
