@@ -154,7 +154,11 @@ the live signed pointer's `manifest_hash:sequence` exactly matches the artifact
 that was built. This closes the CDN propagation window between the preflight and
 the Pages upload; both checks use cache-busting query parameters.
 
-Size: ~189 MB / ~1,290 files (sourcemaps included), largest file ~23 MB
+Size: ~153 MB / ~1,377 files (**no sourcemaps** — `build.sourcemap: false`;
+Pages serves every file in the output directory, so an emitted `.map` is a
+published copy of the original TypeScript source and no `_headers` rule can
+un-serve it. Enforced by the `almamesh-no-sourcemaps` build plugin and a
+`find -name '*.map'` check in `build-prod.sh`), largest file ~23 MB
 (`models/Xenova/.../model_quantized.onnx`) — under the Pages **25 MiB/file**
 cap; file count is far below the 20,000-file cap.
 
@@ -174,9 +178,15 @@ production) — re-run the probe if Cloudflare semantics are ever in doubt:
    `no-cache, public, max-age=…, immutable` (browsers then treat it as
    no-cache). Every specific rule therefore detaches first (`! Cache-Control`)
    before setting its own. Do not remove the `!` lines.
-3. **No COOP/COEP** — deliberate. The app runs non-cross-origin-isolated
-   (Pyodide module workers; the embedder pins `numThreads=1` accordingly).
-   Adding them changes worker/embedder behavior. Don't.
+3. **No COEP — ever. COOP `same-origin` is set and is safe.** The app runs
+   non-cross-origin-isolated (Pyodide module workers; the embedder pins
+   `numThreads=1` accordingly). Cross-origin isolation requires
+   COOP `same-origin` **and** COEP `require-corp` *together*, so
+   `Cross-Origin-Embedder-Policy` is the one that must stay absent — adding it
+   changes worker/embedder behavior. Don't. COOP alone leaves
+   `self.crossOriginIsolated === false` (asserted by the security-headers e2e)
+   and only severs `window.opener` for cross-origin popups, which this app never
+   opens.
 4. Content types: Pages serves `.wasm` as `application/wasm`, `.js` as
    `application/javascript`; extensionless bundle files (`latest`, sha256
    chunks) come back as octet-stream and are consumed via `fetch()` — fine.

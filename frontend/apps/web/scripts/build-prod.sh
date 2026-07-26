@@ -105,12 +105,21 @@ echo "==> Building the app (tsc -b && vite build) — hooks OFF, VITE_API_URL em
 # --- Artifact sanity ------------------------------------------------------------
 DIST="${WEB_DIR}/dist"
 for must in index.html sw.js manifest.webmanifest _headers _redirects public.key \
-            bundle/latest pyodide/pyodide.asm.wasm; do
+            bundle/latest pyodide/pyodide.asm.wasm .well-known/security.txt; do
   if [[ ! -f "${DIST}/${must}" ]]; then
     echo "!! dist is missing ${must}" >&2
     exit 1
   fi
 done
+# Production sourcemaps must never reach Pages: it serves every file in the
+# output directory, so a `.map` here IS a published copy of the original
+# TypeScript source (a `_headers` rule cannot un-serve it). vite.config.ts sets
+# `build.sourcemap: false` and the almamesh-no-sourcemaps plugin fails the build
+# on emission; this is the last check, against the bytes actually being deployed.
+if maps="$(find "${DIST}" -name '*.map' -print -quit)" && [[ -n "${maps}" ]]; then
+  echo "!! dist would publish sourcemaps (first: ${maps}) — build.sourcemap must be false" >&2
+  exit 1
+fi
 # The deployed bundle must verify against the PRODUCTION key, not the dev key.
 if ! cmp -s "${DIST}/public.key" "${KEYS_DIR}/public.key"; then
   echo "!! dist/public.key is not the production key" >&2

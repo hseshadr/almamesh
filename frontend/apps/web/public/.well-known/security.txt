@@ -1,0 +1,15 @@
+# AlmaMesh security contact — RFC 9116 (https://www.rfc-editor.org/rfc/rfc9116).
+#
+# Served from public/.well-known/ so Vite copies it verbatim into dist/ and
+# Cloudflare Pages serves it at https://almamesh.com/.well-known/security.txt.
+#
+# `Expires` is REQUIRED by RFC 9116 and SHOULD be less than a year out. That is
+# a deliberate tripwire: src/lib/__tests__/securityHeaders.test.ts fails once
+# this date passes, so the file can never rot into an expired, ignored contact.
+# When it trips, re-confirm the contact and bump the date by a year.
+
+Contact: mailto:harish.seshadri@gmail.com
+Expires: 2027-07-25T00:00:00.000Z
+Policy: https://github.com/hseshadr/almamesh/blob/main/SECURITY.md
+Canonical: https://almamesh.com/.well-known/security.txt
+Preferred-Languages: en

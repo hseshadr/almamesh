@@ -3,12 +3,13 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import { vitePrerenderPlugin } from 'vite-prerender-plugin'
 import path from 'path'
-import { writeFileSync, readFileSync } from 'fs'
+import { writeFileSync, readFileSync, readdirSync } from 'fs'
 import { createHash } from 'crypto'
 import { PUBLIC_ROUTE_PATHS, prerenderOutputFile } from './src/seo/routeHead'
 import { createBuildIdentity } from './src/lib/buildIdentity'
 import { extractYogaWasm, isYogaWasmModuleId } from './src/lib/yogaWasmAsset'
 import { cspFromHeadersFile } from './src/lib/previewHeaders'
+import { selectSourcemapArtifacts, sourcemapLeakMessage } from './src/lib/noSourcemaps'
 
 // App version injected into the bundle (see `define` below) so client code can
 // report which release it is — e.g. submitFeedback's `X-App-Version` header.
@@ -114,6 +115,46 @@ function yogaWasmAssetPlugin(): Plugin {
   }
 }
 
+// Un-bypassable check that the build publishes no original source.
+//
+// `build.sourcemap: false` below is a flag; this is the property. Cloudflare
+// Pages serves every file in the output directory, so a `_headers` rule cannot
+// un-serve a `.map` — the only enforcement point is "never emit one". Runs in
+// generateBundle (before anything is written) on every lane that builds:
+// `bun run gate`, CI, and build-prod.sh. Helpers + red cases are unit-tested in
+// src/lib/noSourcemaps.test.ts.
+function noSourcemapsPlugin(): Plugin {
+  let outDir = 'dist'
+  return {
+    name: 'almamesh-no-sourcemaps',
+    apply: 'build',
+    enforce: 'post',
+    configResolved(config) {
+      outDir = config.build.outDir
+    },
+    // closeBundle, scanning the WRITTEN directory — not generateBundle over the
+    // Rollup bundle. Two of the three map producers here never appear in that
+    // bundle: vite-plugin-pwa writes `sw.js.map` / `workbox-*.js.map` itself,
+    // and vite-prerender-plugin deletes its map entries in its own
+    // generateBundle. Checking the bytes that will actually be uploaded is both
+    // the honest property and immune to plugin-ordering surprises.
+    closeBundle() {
+      const dir = path.resolve(__dirname, outDir)
+      const walk = (current: string): string[] =>
+        readdirSync(current, { withFileTypes: true }).flatMap((entry) => {
+          const child = path.join(current, entry.name)
+          return entry.isDirectory() ? walk(child) : [path.relative(dir, child)]
+        })
+      const leaks = selectSourcemapArtifacts(
+        walk(dir).map((fileName) => ({ fileName, carriesSourcemap: false })),
+      )
+      if (leaks.length > 0) {
+        this.error(sourcemapLeakMessage(leaks))
+      }
+    },
+  }
+}
+
 // Preview fidelity: serve the PRODUCTION Content-Security-Policy on every
 // `vite preview` response. In production Cloudflare Pages parses
 // public/_headers; plain `vite preview` serves NO CSP, so every
@@ -164,6 +205,15 @@ function pwaPlugin(): Plugin[] {
     // The 38 MB Pyodide + bundle live under public/ -> copied to dist root.
     // Keep them OUT of the precache manifest; they are runtime-cached below.
     workbox: {
+      // No service-worker sourcemaps. MUST be explicit: vite-plugin-pwa derives
+      // `workbox.sourcemap` from `viteConfig.build.sourcemap`, and
+      // vite-prerender-plugin force-sets `build.sourcemap = true` in its
+      // `config()` hook (to make prerender stack traces readable). It cleans up
+      // the ROLLUP maps afterwards, but the SW is written by workbox outside
+      // that bundle — so `build.sourcemap: false` alone still shipped
+      // `sw.js.map` (20 KB) and `workbox-<hash>.js.map` (228 KB). Pinning it
+      // here is what actually stops them.
+      sourcemap: false,
       // `wasm` covers ONLY the small hashed yoga-layout asset under /assets/
       // (yogaWasmAssetPlugin, ~90 KB) so offline PDF export keeps working — it
       // used to ride inside the precached react-pdf JS chunk as base64. The
@@ -445,6 +495,7 @@ export default defineConfig({
     react(),
     versionPlugin(),
     yogaWasmAssetPlugin(),
+    noSourcemapsPlugin(),
     previewProdCspPlugin(),
     ...prerenderPublicRoutesPlugin(),
     flattenPrerenderedRoutesPlugin(),
@@ -500,7 +551,21 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    sourcemap: true,
+    // NO production sourcemaps. Cloudflare Pages serves whatever is in the
+    // output directory, so an emitted `.map` IS a served asset — a `_headers`
+    // rule cannot un-serve it. almamesh.com was publishing
+    // `assets/index-*.js.map` (2.76 MB, content-type: application/json) with
+    // `sourcesContent` for 334 sources including 51 first-party TypeScript
+    // files, i.e. the complete original app source plus a precise map of the
+    // attack surface. (A credential scan of the live maps came back clean, so
+    // this was source/attack-surface exposure, not secret exposure.)
+    //
+    // `false` rather than `'hidden'` + a delete step on purpose: nothing here
+    // consumes maps (no Sentry/upload lane), and not EMITTING them cannot
+    // regress, whereas a delete step silently stops working the moment a new
+    // build lane forgets it. The workbox `**/*.map` globIgnore above is kept as
+    // harmless defence-in-depth. Pinned by src/lib/__tests__/securityHeaders.test.ts.
+    sourcemap: false,
     // The largest legitimate lazy chunks are intentional and code-split, so the
     // 500 kB default warning is pure noise: the offline geocoder city DB
     // (~2 MB, loaded only in onboarding's location search) and the React/vendor

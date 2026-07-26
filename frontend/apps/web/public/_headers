@@ -9,11 +9,15 @@
 #     So each Cache-Control override below DETACHES the catch-all value first
 #     with "! Cache-Control" before setting its own.
 #
-# DELIBERATELY NO COOP/COEP: the app runs non-cross-origin-isolated by design
+# DELIBERATELY NO COEP: the app runs NON-cross-origin-isolated by design
 # (Pyodide module Workers + the embedding/worker behavior depend on it; the
-# in-browser embedder even pins numThreads=1 for non-isolated hosts). Adding
-# Cross-Origin-Opener-Policy / Cross-Origin-Embedder-Policy would change that
-# contract — do not "harden" this file with them.
+# in-browser embedder even pins numThreads=1 for non-isolated hosts).
+# Cross-origin isolation requires COOP:same-origin *AND* COEP:require-corp
+# together — so `Cross-Origin-Embedder-Policy` is the one that must stay absent.
+# COOP alone leaves `self.crossOriginIsolated === false` (asserted by the
+# security-headers e2e), so it is set below: it puts this document in its own
+# browsing-context group, severing `window.opener` from any cross-origin popup.
+# DO NOT add Cross-Origin-Embedder-Policy.
 
 # --- Default: safe headers + revalidation + no edge body transforms. ----------
 # Everything not overridden below rides this: index.html, the SPA-fallback HTML
@@ -22,10 +26,51 @@
 # icons.
 # `no-transform` prevents Cloudflare Web Analytics (or another proxy feature)
 # from injecting third-party scripts into the local-first application shell.
+#
+# --- connect-src is THE enforcement of the privacy claim ----------------------
+# "Your data never leaves the device" has to be structurally true, not merely
+# asserted. `connect-src` used to read `'self' https: http:`, which permits a
+# fetch/XHR/WebSocket to ANY origin on the internet (cleartext included) — the
+# header was present but measured nothing. It is now a CLOSED allowlist of the
+# only destinations the shipped code can reach. Every entry is justified:
+#
+#   'self'                              every engine asset, /bundle/*, /models/*,
+#                                       /pyodide/*, public.key, version.json and
+#                                       the /api/feedback Pages Function.
+#   https://openrouter.ai               opt-in BYO-key cloud LLM. The one-click
+#                                       preset (packages/llm/src/config.ts
+#                                       OPENROUTER_API_BASE) and normalizeKnownBase
+#                                       force every openrouter.ai host to
+#                                       https://openrouter.ai/api/v1.
+#   https://geocoding-api.open-meteo.com  city typeahead — the ONE declared,
+#                                       owner-approved egress (see the README
+#                                       network inventory and the header comment
+#                                       in src/lib/geo/onlineGeocoder.ts). Only a
+#                                       typed city string leaves; never birth data.
+#   http://localhost:*  http://127.0.0.1:*
+#                                       LOOPBACK ONLY = still on-device. Any port,
+#                                       because a local OpenAI-compatible server is
+#                                       Ollama (11434), LM Studio (1234) or
+#                                       llama.cpp (8080) depending on the user.
+#                                       Loopback is "potentially trustworthy" per
+#                                       W3C secure-contexts, so upgrade-insecure-
+#                                       requests does NOT rewrite it to https —
+#                                       verified by the security-headers e2e.
+#
+# DELIBERATE BEHAVIOUR CHANGE, recorded so nobody "fixes" it by accident: a
+# custom endpoint on a NON-loopback host — a LAN box (http://192.168.1.10:11434)
+# or a third-party OpenAI-compatible proxy — is now blocked by this policy.
+# `isLocalEndpoint` in packages/llm/src/config.ts still accepts RFC-1918 hosts
+# (it mirrors the backend privacy gate), but CSP has no syntax for an IP range,
+# and a private-network host genuinely does leave the device. If the owner wants
+# a specific extra endpoint back, add THAT ONE ORIGIN here. Never restore bare
+# `https:` / `http:` — that is the finding this file exists to close.
+# The allowlist is pinned by src/lib/__tests__/securityHeaders.test.ts.
 /*
   ! Access-Control-Allow-Origin
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://challenges.cloudflare.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https: http:; frame-src 'self' https://challenges.cloudflare.com; manifest-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://challenges.cloudflare.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://openrouter.ai https://geocoding-api.open-meteo.com http://localhost:* http://127.0.0.1:*; frame-src 'self' https://challenges.cloudflare.com; manifest-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; upgrade-insecure-requests
   Strict-Transport-Security: max-age=63072000; includeSubDomains
+  Cross-Origin-Opener-Policy: same-origin
   Permissions-Policy: camera=(), geolocation=(), microphone=(), payment=(), usb=()
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
