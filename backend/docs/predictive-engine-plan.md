@@ -80,126 +80,154 @@ from almamesh.constants.astrology import PlanetName, ZodiacSign
 
 # ---- enums (closed sets; serialize as their .value) ----
 
+
 class SadeSatiPhase(str, Enum):
-    RISING = "rising"      # Saturn in 12th from natal Moon sign
-    PEAK = "peak"          # Saturn in 1st from natal Moon sign (over the Moon)
-    SETTING = "setting"    # Saturn in 2nd from natal Moon sign
-    NONE = "none"          # not currently in Sade Sati
+    RISING = "rising"  # Saturn in 12th from natal Moon sign
+    PEAK = "peak"  # Saturn in 1st from natal Moon sign (over the Moon)
+    SETTING = "setting"  # Saturn in 2nd from natal Moon sign
+    NONE = "none"  # not currently in Sade Sati
+
 
 class TransitReference(str, Enum):
-    MOON = "moon"          # gochara read from natal Moon (Chandra Lagna)
-    LAGNA = "lagna"        # gochara read from natal Ascendant
+    MOON = "moon"  # gochara read from natal Moon (Chandra Lagna)
+    LAGNA = "lagna"  # gochara read from natal Ascendant
+
 
 class TransitEventKind(str, Enum):
-    SIGN_INGRESS = "sign_ingress"          # slow graha enters a new rasi
-    SADE_SATI_PHASE = "sade_sati_phase"    # entry into rising/peak/setting/none
-    RETURN = "return"                      # Saturn (~29.5y) or Jupiter (~12y) return
-    DASHA_CHANGE = "dasha_change"          # maha/antar lord handover
-    STATION = "station"                    # retrograde/direct station (slow grahas)
+    SIGN_INGRESS = "sign_ingress"  # slow graha enters a new rasi
+    SADE_SATI_PHASE = "sade_sati_phase"  # entry into rising/peak/setting/none
+    RETURN = "return"  # Saturn (~29.5y) or Jupiter (~12y) return
+    DASHA_CHANGE = "dasha_change"  # maha/antar lord handover
+    STATION = "station"  # retrograde/direct station (slow grahas)
+
 
 class TransitSeverity(str, Enum):
     SUPPORTIVE = "supportive"
     NEUTRAL = "neutral"
     CHALLENGING = "challenging"
 
+
 # ---- atomic placements ----
+
 
 class TransitPlacement(BaseModel):
     """One transiting graha placed against the natal chart at the instant."""
+
     graha: PlanetName
-    longitude: float                       # sidereal, 0..360
+    longitude: float  # sidereal, 0..360
     sign: ZodiacSign
-    sign_degrees: float                    # 0..30 within sign
+    sign_degrees: float  # 0..30 within sign
     nakshatra: str
     nakshatra_pada: int
     is_retrograde: bool
     # placement RELATIVE to the natal chart (the "how did it know" content):
-    house_from_lagna: int                  # 1..12, whole-sign from natal Lagna
-    house_from_moon: int                   # 1..12, whole-sign from natal Moon (Chandra Lagna)
-    natal_sign_occupied: ZodiacSign        # the natal-chart sign this transit sits in
+    house_from_lagna: int  # 1..12, whole-sign from natal Lagna
+    house_from_moon: int  # 1..12, whole-sign from natal Moon (Chandra Lagna)
+    natal_sign_occupied: ZodiacSign  # the natal-chart sign this transit sits in
     model_config = {"use_enum_values": True}
+
 
 class GocharaContext(BaseModel):
     """All transiting grahas placed against the natal chart at `instant`."""
-    instant: datetime                      # UTC, the transit instant ("now" or injected)
-    transit_ayanamsa: float                # Lahiri at the transit instant (audit)
+
+    instant: datetime  # UTC, the transit instant ("now" or injected)
+    transit_ayanamsa: float  # Lahiri at the transit instant (audit)
     placements: dict[PlanetName, TransitPlacement]
+
 
 # ---- Sade Sati ----
 
+
 class SadeSatiSegment(BaseModel):
     """One phase span of the current/queried Sade Sati cycle."""
-    phase: SadeSatiPhase                   # rising / peak / setting
-    saturn_sign: ZodiacSign                # the rasi Saturn occupies in this phase
-    start: datetime                        # phase entry (ingress) instant, UTC
-    end: datetime                          # phase exit (next ingress) instant, UTC
+
+    phase: SadeSatiPhase  # rising / peak / setting
+    saturn_sign: ZodiacSign  # the rasi Saturn occupies in this phase
+    start: datetime  # phase entry (ingress) instant, UTC
+    end: datetime  # phase exit (next ingress) instant, UTC
     model_config = {"use_enum_values": True}
+
 
 class SadeSatiContext(BaseModel):
     """Saturn over the 12th/1st/2nd from natal Moon sign — the headline transit."""
+
     is_active: bool
     current_phase: SadeSatiPhase
     natal_moon_sign: ZodiacSign
-    cycle: list[SadeSatiSegment]           # the 3 phase spans of the active/next cycle
+    cycle: list[SadeSatiSegment]  # the 3 phase spans of the active/next cycle
     # convenience pointers (None when not active):
-    cycle_start: datetime | None = None    # Saturn entering the 12th
-    cycle_end: datetime | None = None      # Saturn leaving the 2nd
+    cycle_start: datetime | None = None  # Saturn entering the 12th
+    cycle_end: datetime | None = None  # Saturn leaving the 2nd
     model_config = {"use_enum_values": True}
+
 
 # ---- major slow-transit hits & returns ----
 
+
 class SlowTransitHit(BaseModel):
     """A Jupiter/Saturn transit over a natal point (Moon, Lagna), or a return."""
-    graha: PlanetName                      # JUPITER or SATURN
-    kind: TransitEventKind                 # SIGN_INGRESS / RETURN
-    natal_point: str                       # "moon" | "lagna" | "natal_<graha>"
-    exact: datetime                        # instant of exact conjunction / ingress, UTC
+
+    graha: PlanetName  # JUPITER or SATURN
+    kind: TransitEventKind  # SIGN_INGRESS / RETURN
+    natal_point: str  # "moon" | "lagna" | "natal_<graha>"
+    exact: datetime  # instant of exact conjunction / ingress, UTC
     severity: TransitSeverity
     model_config = {"use_enum_values": True}
 
+
 # ---- dasha × transit fusion ----
+
 
 class DashaTransitFusion(BaseModel):
     """The active dasha lord weighted by concurrent transits over it / from it."""
+
     instant: datetime
     maha_lord: PlanetName
     antar_lord: PlanetName | None = None
     # where the dasha LORD is transiting right now, and what transits hit it:
-    maha_lord_transit_house_from_moon: int     # 1..12
-    maha_lord_transit_house_from_lagna: int    # 1..12
+    maha_lord_transit_house_from_moon: int  # 1..12
+    maha_lord_transit_house_from_lagna: int  # 1..12
     reinforcing: list[PlanetName] = Field(default_factory=list)  # benefics aspecting/conjunct
-    afflicting: list[PlanetName] = Field(default_factory=list)   # malefics aspecting/conjunct
-    net_weight: float                          # -1.0..+1.0 deterministic score
+    afflicting: list[PlanetName] = Field(default_factory=list)  # malefics aspecting/conjunct
+    net_weight: float  # -1.0..+1.0 deterministic score
     severity: TransitSeverity
     model_config = {"use_enum_values": True}
+
 
 # ---- 12-month forward timeline ----
 
+
 class TimelineEvent(BaseModel):
     """One dated, structured, prose-free forward event. The LLM narrates later."""
-    date: datetime                         # UTC instant of the event
+
+    date: datetime  # UTC instant of the event
     kind: TransitEventKind
-    graha: PlanetName | None = None        # the moving graha (None for pure dasha changes)
-    from_sign: ZodiacSign | None = None    # ingress: vacated sign
-    to_sign: ZodiacSign | None = None      # ingress: entered sign
-    from_lord: PlanetName | None = None    # dasha change: outgoing lord
-    to_lord: PlanetName | None = None      # dasha change: incoming lord
+    graha: PlanetName | None = None  # the moving graha (None for pure dasha changes)
+    from_sign: ZodiacSign | None = None  # ingress: vacated sign
+    to_sign: ZodiacSign | None = None  # ingress: entered sign
+    from_lord: PlanetName | None = None  # dasha change: outgoing lord
+    to_lord: PlanetName | None = None  # dasha change: incoming lord
     sade_sati_phase: SadeSatiPhase | None = None
     severity: TransitSeverity
-    descriptor: str                        # STABLE machine key, e.g. "saturn.ingress.aries"
+    descriptor: str  # STABLE machine key, e.g. "saturn.ingress.aries"
     model_config = {"use_enum_values": True}
+
 
 class TransitTimeline(BaseModel):
     """Forward-looking dated events over the window (default 12 months)."""
+
     window_start: datetime
     window_end: datetime
-    events: list[TimelineEvent]            # chronologically sorted
+    events: list[TimelineEvent]  # chronologically sorted
+
 
 # ---- top-level ----
 
+
 class TransitContext(BaseModel):
     """Everything the predictive Phase-1 transit layer emits for one chart+instant."""
-    instant: datetime                      # the transit "now" (UTC, injectable)
+
+    instant: datetime  # the transit "now" (UTC, injectable)
     gochara: GocharaContext
     sade_sati: SadeSatiContext
     slow_hits: list[SlowTransitHit]
@@ -219,7 +247,7 @@ already-computed natal context plus a transit instant:
 def calculate_transit_context(
     natal: SiderealContext,
     birth_dt: datetime,
-    transit_instant: datetime | None = None,   # None -> now(UTC); inject for reproducibility
+    transit_instant: datetime | None = None,  # None -> now(UTC); inject for reproducibility
     window_months: int = 12,
     ayanamsa_type: AyanamsaType = AyanamsaType.LAHIRI,
     node_type: NodeType = NodeType.MEAN,
