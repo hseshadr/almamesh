@@ -16,7 +16,6 @@ import {
 import { useChartEngine } from "../providers/AlmaMeshRuntimeProvider";
 import { LocationSearch, type LocationResult } from "../components/shared/LocationSearch";
 import { Logo } from "../components/ui/Logo";
-import { Header } from "../components/features/layout/Header";
 import { BirthDatePicker } from "../components/BirthDatePicker";
 import { TimePicker } from "../components/TimePicker";
 import { useOnboardingStore } from "../stores/onboarding";
@@ -935,23 +934,31 @@ export default function OnboardingPage() {
   // NOTE: Loading state for idempotency check removed - OnboardingRoute guard handles it.
 
   return (
-    <div className="min-h-screen flex flex-col bg-background-primary relative overflow-hidden">
+    // Fill the viewport MINUS the chrome AppLayout already contributes (sticky
+    // header + `main` padding). `min-h-screen` here would be 100vh *inside* an
+    // already-offset shell, forcing the document to overflow by exactly that
+    // chrome on every viewport and centring the content against the wrong box.
+    <div className="min-h-[calc(100dvh-var(--app-chrome-block))] flex flex-col bg-background-primary relative overflow-hidden">
       {/* Mystical Background Glow - Same as Login for consistency */}
       <div className="absolute inset-0 pointer-events-none">
-        {/* Central purple glow */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-accent-purple/15 rounded-full blur-[120px]" />
+        {/* Central purple glow — capped to the viewport so a phone gets a
+            centred, proportional wash instead of a clipped 600px disc. */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(600px,130vw)] h-[min(600px,130vw)] bg-accent-purple/15 rounded-full blur-[120px]" />
         {/* Secondary gold accent */}
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-accent-gold/8 rounded-full blur-[100px]" />
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(400px,90vw)] h-[min(400px,90vw)] bg-accent-gold/8 rounded-full blur-[100px]" />
       </div>
 
-      {/* Minimal Header - transparent, no border */}
-      <Header variant="transparent" showBorder={false} />
+      {/* NOTE: no page-level <Header> here — `/onboarding` renders inside
+          AppLayout, which already owns the wordmark and app nav. Rendering a
+          second `sticky top-0 z-40` header stacked a dead ghost bar (and a
+          duplicate logo) under the real one at every breakpoint. */}
 
-      <main className="flex-1 flex flex-col items-center justify-center p-4 sm:p-8 relative z-10">
+      <main className="flex-1 flex flex-col items-center justify-center py-6 sm:py-10 relative z-10">
         <div className="w-full max-w-lg">
-          {/* Logo - Larger and more prominent */}
-          <div className="text-center mb-8">
-            <Logo size="2xl" showText className="justify-center" />
+          {/* Logo — steps down on narrow viewports so the wordmark carries the
+              same visual weight on a phone as on a laptop. */}
+          <div className="text-center mb-6 sm:mb-8">
+            <Logo size="hero" showText className="justify-center" />
           </div>
 
           {/* Saving Indicator */}
@@ -964,11 +971,28 @@ export default function OnboardingPage() {
           {/* Progress Bar */}
           {currentStepKey !== "generating" && (
             <div className="mb-8">
-              <div className="flex justify-between text-sm text-text-muted mb-2">
+              {/* Compact indicator (narrow viewports). Five labels cannot fit a
+                  phone in every locale — es/pt run ~50% longer than en ("Fecha
+                  de nacimiento") — so show the active step plus a counter
+                  rather than crushing all five into one row. */}
+              <div className="flex sm:hidden items-baseline justify-between gap-3 text-sm mb-2">
+                <span className="min-w-0 truncate text-accent-gold">
+                  {steps[currentStepIndex]?.label}
+                </span>
+                <span className="shrink-0 whitespace-nowrap text-text-muted">
+                  {t("progress.counter", {
+                    current: currentStepIndex + 1,
+                    total: steps.length,
+                  })}
+                </span>
+              </div>
+
+              {/* Full trail — sm and up, where all five labels fit. */}
+              <div className="hidden sm:flex justify-between gap-2 text-sm text-text-muted mb-2">
                 {steps.map((step, index) => (
                   <span
                     key={step.key}
-                    className={index <= currentStepIndex ? "text-accent-gold" : ""}
+                    className={`truncate ${index <= currentStepIndex ? "text-accent-gold" : ""}`}
                   >
                     {step.label}
                   </span>

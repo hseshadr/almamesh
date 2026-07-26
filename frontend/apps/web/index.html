@@ -2,7 +2,11 @@
 <html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- `viewport-fit=cover` lets the page paint into a notched device's full
+         screen; the `env(safe-area-inset-*)` gutters in index.css (.app-gutter)
+         then keep content clear of the notch and home indicator. Without
+         `cover`, those insets always resolve to 0. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <!-- Observatory is a dark theme: render native form controls (date/select/
          text inputs), scrollbars and system colors with dark UA defaults so the
          light parchment text stays legible. Mirrored by `color-scheme: dark` on
