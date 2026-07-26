@@ -1,6 +1,9 @@
 {
   "_meta": { "review": "machine-translated, pending native review" },
   "saving": "Salvando progresso...",
+  "progress": {
+    "counter": "Etapa {{current}} de {{total}}"
+  },
   "steps": {
     "name": "Nome",
     "birth_date": "Data de nascimento",

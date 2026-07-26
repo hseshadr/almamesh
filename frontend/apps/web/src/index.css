@@ -36,13 +36,40 @@
   --foreground-rgb: 236, 230, 216;
   --background-start-rgb: 11, 14, 23;
   --background-end-rgb: 8, 10, 17;
+
+  /*
+   * Vertical chrome that AppLayout contributes around every page body: the
+   * sticky header (h-14 = 3.5rem) plus `main`'s vertical padding (py-6 =
+   * 1.5rem top + bottom). A page that wants to fill the remaining viewport
+   * must subtract this — using `min-h-screen` inside the shell resolves to
+   * 100vh *plus* this chrome, which forced the document to overflow by
+   * exactly that amount at every breakpoint and centred content against a box
+   * taller than the viewport. Keep in step with AppLayout's header height and
+   * `main` padding.
+   *
+   * = 3.5rem header + 1px header bottom-border + 1.5rem*2 main padding.
+   */
+  --app-chrome-block: calc(6.5rem + 1px);
+}
+
+/* AppLayout switches to `md:py-8` (2rem) from the md breakpoint. */
+@media (min-width: 768px) {
+  :root {
+    --app-chrome-block: calc(7.5rem + 1px);
+  }
 }
 
 body {
   font-family: var(--font-sans);
   color: var(--color-text);
   background-color: var(--color-bg);
+  /*
+   * `dvh` tracks the *visible* viewport, so the page does not sit 60-100px
+   * too tall behind mobile Safari's collapsing URL bar. The `vh` line is the
+   * fallback for engines without dynamic viewport units.
+   */
   min-height: 100vh;
+  min-height: 100dvh;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
@@ -120,6 +147,24 @@ h4 {
 @layer base {
   * {
     @apply border-ui-border;
+  }
+}
+
+/*
+ * Horizontal gutter for the app shell. Matches the previous `px-4 md:px-6` on
+ * every non-notched device, and grows to clear the rounded corners / camera
+ * cutout on notched phones in landscape. Depends on `viewport-fit=cover` in
+ * index.html — without it the insets resolve to 0 and this is exactly px-4.
+ */
+.app-gutter {
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: max(1rem, env(safe-area-inset-right));
+}
+
+@media (min-width: 768px) {
+  .app-gutter {
+    padding-left: max(1.5rem, env(safe-area-inset-left));
+    padding-right: max(1.5rem, env(safe-area-inset-right));
   }
 }
 

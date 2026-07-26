@@ -1,13 +1,26 @@
 import { Link } from "react-router-dom";
 
-// Size variants for the logo
+// Size variants for the logo.
+//
+// `px` is the intrinsic width/height attribute (reserves space, avoids layout
+// shift); `icon` is the rendered size as static Tailwind classes, which CSS
+// applies over the attributes. Keeping the classes as complete literal strings
+// is deliberate — Tailwind's JIT only emits classes it can see statically, so
+// these must never be assembled from variables.
 const sizeConfig = {
-  sm: { icon: 24, text: "text-lg" },
-  md: { icon: 32, text: "text-xl" },
-  lg: { icon: 48, text: "text-2xl" },
-  xl: { icon: 64, text: "text-3xl" },
-  "2xl": { icon: 96, text: "text-4xl" },
-  "3xl": { icon: 128, text: "text-5xl" },
+  sm: { px: 24, icon: "h-6 w-6", text: "text-lg" },
+  md: { px: 32, icon: "h-8 w-8", text: "text-xl" },
+  lg: { px: 48, icon: "h-12 w-12", text: "text-2xl" },
+  xl: { px: 64, icon: "h-16 w-16", text: "text-3xl" },
+  "2xl": { px: 96, icon: "h-24 w-24", text: "text-4xl" },
+  "3xl": { px: 128, icon: "h-32 w-32", text: "text-5xl" },
+  /**
+   * Splash hero — the only responsive variant. A fixed 96px mark plus
+   * `text-4xl` dominates a 390px phone while reading as modest on a 1440px
+   * laptop; this steps both down below the `sm` breakpoint so the wordmark
+   * keeps a consistent visual weight across viewports.
+   */
+  hero: { px: 96, icon: "h-16 w-16 sm:h-24 sm:w-24", text: "text-3xl sm:text-4xl" },
 } as const;
 
 type LogoSize = keyof typeof sizeConfig;
@@ -42,9 +55,9 @@ export function Logo({
       <img
         src="/logo.png"
         alt="AlmaMesh"
-        width={config.icon}
-        height={config.icon}
-        className="object-contain"
+        width={config.px}
+        height={config.px}
+        className={`object-contain ${config.icon}`}
       />
 
       {showText && (

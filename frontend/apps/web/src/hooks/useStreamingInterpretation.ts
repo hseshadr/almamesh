@@ -35,6 +35,7 @@ import {
   useLanguageStore,
   usePredictiveStore,
   predictiveRequestKey,
+  type InterpretationErrorKind,
   type InterpretationInputProvenance,
   type InterpretationStatus,
 } from '@almamesh/store';
@@ -82,6 +83,14 @@ export interface UseStreamingInterpretationResult {
   failedSections: readonly InterpretationSectionKey[];
   /** Failure message; present once `status === 'error'`. */
   error: string | null;
+  /**
+   * The MACHINE-READABLE reason behind `error` — the typed companion to the
+   * localized sentence above. The reading panel switches on this to tell an
+   * optional-enhancement outage (out of credits, provider down) from a genuine
+   * defect, so it can degrade calmly instead of shouting. `null` when nothing
+   * has failed, or for an entry persisted before the kind was recorded.
+   */
+  errorKind: InterpretationErrorKind | null;
   /** True while a generation is in flight. */
   isStreaming: boolean;
   /** Drop the active chart's interpretation entry. */
@@ -290,11 +299,18 @@ export function withRawPredictive(chart: SiderealChart, chartId: string | null):
  * (a build-time VITE_LLM_API_BASE value), so every non-privacy path resolves
  * to translated guidance or a stable sentinel the dashboard maps to actions.
  */
-function describeError(err: unknown): string {
+interface InterpretationFailure {
+  /** The localized, user-facing sentence (or the model-unavailable sentinel). */
+  readonly message: string;
+  /** The typed verdict the UI switches on to choose its treatment. */
+  readonly kind: InterpretationErrorKind;
+}
+
+function describeError(err: unknown): InterpretationFailure {
   if (err instanceof PrivacyViolationError) {
     // The fail-closed privacy fence writes a specific, user-facing message
     // (which endpoint was refused and why): show it verbatim.
-    return err.message;
+    return { message: err.message, kind: 'privacy' };
   }
   // Record only an allowlisted diagnostic code. Provider errors can contain
   // endpoints or prompt-adjacent data and must never be serialized to console.
@@ -307,10 +323,11 @@ function describeError(err: unknown): string {
   // the old generic "check your model and endpoint" dead-end. This works now
   // that the aggregation preserves the representative HTTP status (see
   // structured-interpretation.ts), so 401/429/5xx classify structurally.
-  if (classifyConnectionError(err) === 'model') {
-    return READING_MODEL_UNAVAILABLE;
+  const kind = classifyConnectionError(err);
+  if (kind === 'model') {
+    return { message: READING_MODEL_UNAVAILABLE, kind };
   }
-  return chatErrorMessage(err);
+  return { message: chatErrorMessage(err), kind };
 }
 
 export function useStreamingInterpretation(chartId?: string | null): UseStreamingInterpretationResult {
@@ -358,7 +375,11 @@ export function useStreamingInterpretation(chartId?: string | null): UseStreamin
       if (!chart) {
         // No raw engine output to interpret (e.g. a pre-structured persisted chart).
         startInterpretation(id);
-        setError(id, 'This chart needs to be regenerated before it can be interpreted.');
+        setError(
+          id,
+          'This chart needs to be regenerated before it can be interpreted.',
+          'needs_regeneration',
+        );
         return;
       }
 
@@ -415,7 +436,8 @@ export function useStreamingInterpretation(chartId?: string | null): UseStreamin
         }
       } catch (err) {
         if (err instanceof Error && err.name === 'AbortError') return;
-        setError(id, describeError(err));
+        const failure = describeError(err);
+        setError(id, failure.message, failure.kind);
       }
     },
     [language, markSectionComplete, markSectionFailed, setError, setInterpretation, startInterpretation]
@@ -445,6 +467,7 @@ export function useStreamingInterpretation(chartId?: string | null): UseStreamin
     sections,
     failedSections: sections.filter((s) => s.failed).map((s) => s.key),
     error: entry?.error ?? null,
+    errorKind: entry?.errorKind ?? null,
     isStreaming: status === 'generating',
     reset,
     cancel,

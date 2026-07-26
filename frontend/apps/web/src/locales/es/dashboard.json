@@ -1,5 +1,7 @@
 {
-  "_meta": { "review": "machine-translated, pending native review" },
+  "_meta": {
+    "review": "machine-translated, pending native review"
+  },
   "actions": {
     "export_pdf": "Exportar PDF",
     "export_pdf_title": "Exportar PDF",
@@ -22,15 +24,26 @@
     "title": "No se pudo cargar la carta",
     "body": "No pudimos cargar los datos de tu carta. Puede tratarse de un problema temporal de conexión."
   },
-  "cta": {
-    "title": "Conecta un modelo de IA para generar tu interpretación",
-    "body": "Tu carta se calcula en tu dispositivo. Para convertirla en una lectura personalizada, conecta un modelo de IA: usa la configuración rápida de OpenRouter con un clic o apunta AlmaMesh a un modelo local (por ejemplo, Ollama)."
+  "narration": {
+    "chart_complete_title": "Tu carta está completa",
+    "chart_complete_body": "Tu ascendente, tu luna, tus periodos de dasha y tu Atlas de Vida se calculan por completo en tu dispositivo: están completos y son correctos. Solo falta la interpretación escrita, un extra opcional que aporta la IA.",
+    "kept_title": "Tu lectura no ha cambiado",
+    "kept_body": "Tu carta y la lectura de abajo están exactamente igual que antes. Lo único que no se completó fue la actualización de la interpretación escrita.",
+    "reason_no_key": "Todavía no hay ningún proveedor de IA conectado.",
+    "next_no_key": "Conecta un modelo de IA cuando quieras una interpretación escrita; nada más de esta página cambia.",
+    "reason_credits": "Tu proveedor de IA se quedó sin créditos.",
+    "next_credits": "Añade créditos con tu proveedor (en OpenRouter: openrouter.ai → Credits) o elige un modelo más económico en la configuración de IA.",
+    "reason_provider_down": "Tu proveedor de IA no está respondiendo en este momento.",
+    "next_provider_down": "No hay ningún problema con tu carta: inténtalo de nuevo en unos momentos.",
+    "reason_auth": "Tu proveedor de IA rechazó la clave de API guardada.",
+    "next_auth": "Revisa o sustituye la clave en la configuración de IA.",
+    "reason_model": "El modelo de IA guardado en tu configuración ya no está disponible.",
+    "next_model": "Cambia al modelo recomendado o elige otro en la configuración de IA."
   },
   "generation": {
     "title_generating": "Generando tu interpretación personalizada",
     "title_failed": "No se pudo generar la interpretación",
     "elapsed": "Generando desde tu modelo: {{elapsed}} transcurridos. Una lectura completa puede tardar entre 1 y 3 minutos en un modelo en la nube.",
-    "model_unavailable": "El modelo de IA de tu configuración no está disponible en tu endpoint, por lo que no se pudo generar la lectura. Cambia al modelo recomendado e inténtalo de nuevo.",
     "partial_failure": "Algunas secciones no se pudieron generar esta vez: {{sections}}. El resto de la lectura está completa — regenérala para completar lo que falta.",
     "regen_failed": "No se pudo regenerar la lectura ({{error}}). Tu lectura anterior se conserva abajo."
   },
