@@ -10,11 +10,23 @@
 
 > **Precedence Rule**: Newer specs override older specs when there are contradictions. See SPEC-COMPLETION-TRACKING.md for governance rules.
 
+> **Correction (2026-07-25): this spec as originally written named the wrong oracle.**
+> It proposed Swiss Ephemeris as the ground truth. **Swiss Ephemeris was never used, and must
+> not be** — `pyswisseph` is AGPL, which is incompatible with AlmaMesh's MIT release. What
+> shipped instead is an *independent code path*: **astropy** plus a committed **JPL Horizons**
+> cross-check, both reading the same local public-domain **DE421** kernel, agreeing with the
+> engine to sub-arcsecond. The engine itself uses **Skyfield** (MIT, © Brandon Rhodes).
+> The original text also conflated two unrelated things — Skyfield reads JPL DE-series
+> ephemerides and has no relationship to Swiss Ephemeris data. The code was corrected long ago
+> (see `backend/tests/validation/reference_fixtures_loader.py`, which records that the former
+> `SwissEphemerisGroundTruth` name mis-described a Skyfield re-run); this document was not.
+> Verified 2026-07-25: zero `swisseph` references in `backend/uv.lock`.
+
 ---
 
 ## 1. Summary
 
-A local testing framework to validate Almamesh astrological/astronomical computations against Swiss Ephemeris (ground truth) and optionally other providers. Uses private test cases (friends/family birth data) that are never committed, enabling developers to verify calculation accuracy and identify whether discrepancies stem from Almamesh bugs or configuration differences.
+A local testing framework to validate Almamesh astrological/astronomical computations against an independent reference oracle — astropy plus a committed JPL Horizons cross-check, **not** Swiss Ephemeris (AGPL; deliberately excluded) — and optionally other providers. Uses private test cases (friends/family birth data) that are never committed, enabling developers to verify calculation accuracy and identify whether discrepancies stem from Almamesh bugs or configuration differences.
 
 ---
 
@@ -22,7 +34,7 @@ A local testing framework to validate Almamesh astrological/astronomical computa
 
 ### Must Have
 - [x] Private cases file format (JSONL) that is gitignored
-- [x] Swiss Ephemeris as ground truth with identical configuration (Lahiri ayanamsa, true nodes, whole sign houses)
+- [x] A license-clean independent oracle as ground truth — astropy + JPL Horizons over the same local DE421 kernel — with identical configuration (Lahiri ayanamsa, true nodes, whole sign houses)
 - [x] Comparison of core calculation points:
   - [x] Planet longitudes (all 9 grahas: Sun, Moon, Mars, Mercury, Jupiter, Venus, Saturn, Rahu, Ketu)
   - [x] Ascendant degree
@@ -73,9 +85,9 @@ File location: `backend/tests/fixtures/private_cases.jsonl`
 | `lon` | float | Longitude in decimal degrees |
 | `tzid` | string | IANA timezone identifier |
 
-### 3.2 Ground Truth: Swiss Ephemeris via Skyfield
+### 3.2 Ground Truth: an independent code path over the same DE421 kernel
 
-Almamesh already uses Skyfield with DE421 ephemeris. The validation framework uses the same underlying Swiss Ephemeris data but with explicit configuration verification:
+Almamesh uses Skyfield with the DE421 ephemeris. The validation framework does **not** re-run Skyfield and call the result a ground truth — that would only prove the engine agrees with itself. It reads the **same local public-domain DE421 kernel through a different library** (astropy `get_body` + `GeocentricTrueEcliptic`), cross-checked against committed JPL Horizons values, with explicit configuration verification:
 
 ```python
 # Configuration that MUST match between Almamesh and ground truth
@@ -87,7 +99,7 @@ VALIDATION_CONFIG = {
 }
 ```
 
-**Ground Truth Assertion**: If Almamesh matches Swiss Ephemeris with identical config, the calculation is correct.
+**Ground Truth Assertion**: If Almamesh matches the independent astropy/JPL Horizons oracle to sub-arcsecond under identical config, the calculation is correct. No AGPL dependency is involved at any point.
 
 ### 3.3 Tolerance Levels
 
