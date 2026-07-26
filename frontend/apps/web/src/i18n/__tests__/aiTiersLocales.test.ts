@@ -73,16 +73,20 @@ describe('AI settings locale parity', () => {
     expect(notes[2]).not.toMatch(/IA no dispositivo/i);
   });
 
-  it('dashboard "Connect an AI model" card drops the on-device AI option ×3', () => {
+  it('dashboard "connect an AI model" copy drops the on-device AI option ×3', () => {
+    // The old `cta.*` card was replaced by the graceful-degradation notice
+    // (`narration.*`), which now carries this copy. Same property, new home.
     const bodies = [enDashboard, esDashboard, ptDashboard].map(
-      (c) => ((c as Catalog).cta as Catalog).body as string,
+      (c) => ((c as Catalog).narration as Catalog).next_no_key as string,
     );
     expect(bodies[0]).toMatch(/connect an AI model/i);
     expect(bodies[1]).toMatch(/conecta un modelo de IA/i);
     expect(bodies[2]).toMatch(/conecte um modelo de IA/i);
     // The "on-device AI option (beta)" sentence is gone; the on-device ENGINE line stays.
     expect(bodies[0]).not.toMatch(/on-device AI option/i);
-    expect(bodies[0]).toMatch(/calculated on-device/i);
+    expect(
+      ((enDashboard as Catalog).narration as Catalog).chart_complete_body as string,
+    ).toMatch(/calculated on-device/i);
   });
 
   it('landing "Bring your own AI" body states the no-AI default ×3', () => {

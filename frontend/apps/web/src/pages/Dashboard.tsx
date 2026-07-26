@@ -45,7 +45,9 @@ import {
   LifeAtlas,
   ReadingGrounding,
 } from "../components/features/dashboard";
+import { NarrationUnavailable } from "../components/features/dashboard/NarrationUnavailable";
 import { getUserFriendlyError, isModelUnavailableMessage } from "../lib/errors";
+import { narrationOutage } from "../lib/narrationOutage";
 import { isMappedChatStreamError } from "../hooks/useChatThread";
 import { type SSEMetaData } from "../lib/streaming";
 import { useContentModeStore } from "../stores/contentMode";
@@ -169,6 +171,7 @@ export default function DashboardPage() {
     isStreaming: isStreamingInterpretation,
     status: interpretationStatus,
     error: streamingError,
+    errorKind: streamingErrorKind,
     cancel: cancelStreaming,
   } = useStreamingInterpretation(chartId);
   const predictiveRequestIdentity = usePredictiveStore((s) => s.requestKey);
@@ -205,8 +208,19 @@ export default function DashboardPage() {
   // stable sentinel for this case; the raw-message sniff keeps recognizing
   // entries persisted before the sentinel existed.
   const isModelUnavailableNotice =
-    streamingError !== null &&
-    (streamingError === READING_MODEL_UNAVAILABLE || isModelUnavailableMessage(streamingError));
+    streamingErrorKind === 'model' ||
+    (streamingError !== null &&
+      (streamingError === READING_MODEL_UNAVAILABLE || isModelUnavailableMessage(streamingError)));
+
+  // HOW to present a missing narration. The chart is deterministic and complete
+  // without any AI, so a provider problem is an OPTIONAL EXTRA being
+  // unavailable, not a broken product: everything except `fault` degrades into
+  // the calm, secondary NarrationUnavailable notice with mode-specific copy.
+  // Only a genuine defect keeps the louder error treatment.
+  const readingOutage = isModelUnavailableNotice
+    ? ('model' as const)
+    : narrationOutage(streamingErrorKind);
+  const readingDegradesGracefully = readingOutage !== 'fault';
 
   // Honest, live "time so far" for the generation panel (replaces a fixed,
   // usually-wrong "about 30 seconds" estimate).
@@ -615,6 +629,43 @@ export default function DashboardPage() {
     );
   }
 
+  // The recovery affordances for a failed REGENERATION, shared by the calm
+  // notice and the louder fault strip so both offer the identical way out.
+  const regenRecoveryActions = (
+    <>
+      {isModelUnavailableNotice && Boolean(readLlmSettings().apiKey) && (
+        <button
+          onClick={handleSwitchToRecommendedModel}
+          className="rounded-md border border-ui-border px-3 py-1.5 text-text-secondary transition-colors hover:border-accent-gold/40 hover:text-text-primary"
+          data-testid="reading-regen-switch-recommended"
+        >
+          {t('dashboard:actions.switch_recommended')}
+        </button>
+      )}
+      <button
+        onClick={handleRegenerateReading}
+        className="underline hover:no-underline"
+        data-testid="reading-regen-retry"
+      >
+        {t('dashboard:actions.retry')}
+      </button>
+      <Link
+        to="/settings/ai"
+        className="underline hover:no-underline"
+        data-testid="reading-regen-ai-settings"
+      >
+        {t('dashboard:actions.ai_settings')}
+      </Link>
+      <button
+        onClick={() => setRegenErrorDismissed(true)}
+        className="underline hover:no-underline"
+        data-testid="reading-regen-dismiss"
+      >
+        {t('dashboard:actions.dismiss')}
+      </button>
+    </>
+  );
+
   return (
     <>
       <div className="space-y-10">
@@ -694,28 +745,74 @@ export default function DashboardPage() {
           }
         />
 
-        {/* 2 — Reading status. No AI model configured: a clear call-to-action
-               instead of empty sections. */}
+        {/* 2 — Reading status. No AI provider connected: SETUP, not failure —
+               the chart on this page is already complete, so the notice leads
+               with that and offers the connect door as the next step. */}
         {!aiConfigured && chartId && !hasValidInterpretation && (
-          <Card title={t('dashboard:cta.title')} data-testid="interpretation-cta">
-            <div className="space-y-4">
-              <p className="max-w-prose text-sm leading-relaxed text-text-secondary">
-                {t('dashboard:cta.body')}
-              </p>
+          <NarrationUnavailable
+            outage="no_key"
+            context="fresh"
+            testId="interpretation-cta"
+            actions={
               <Link
                 to="/settings/ai"
-                className="inline-flex items-center gap-2 rounded-lg border border-accent-gold px-4 py-2 text-sm font-semibold text-accent-gold transition-colors hover:bg-accent-gold/10"
+                className="inline-flex items-center gap-2 rounded-md border border-ui-border px-3 py-1.5 text-text-secondary transition-colors hover:border-accent-gold/40 hover:text-text-primary"
                 data-testid="connect-ai-link"
               >
                 {t('dashboard:actions.connect_ai')}
               </Link>
-            </div>
-          </Card>
+            }
+          />
         )}
 
-        {/* Generating: the 5-section progress checklist (no markdown blob). */}
+        {/* The written interpretation is UNAVAILABLE, and no reading exists yet.
+            The chart above is still complete — this is one optional extra
+            missing, so it renders as a calm, informational aside with the
+            mode's own next step, never a red "it failed" block. */}
         {aiConfigured && chartId && !hasValidInterpretation &&
-          (isStreamingInterpretation || interpretationStatus === 'error') && (
+          !isStreamingInterpretation && interpretationStatus === 'error' &&
+          streamingError && readingDegradesGracefully && (
+          <NarrationUnavailable
+            outage={readingOutage}
+            context="fresh"
+            testId="interpretation-unavailable"
+            actions={
+              <>
+                {isModelUnavailableNotice && Boolean(readLlmSettings().apiKey) && (
+                  <button
+                    onClick={handleSwitchToRecommendedModel}
+                    className="rounded-md border border-ui-border px-3 py-1.5 text-text-secondary transition-colors hover:border-accent-gold/40 hover:text-text-primary"
+                    data-testid="switch-recommended-model"
+                  >
+                    {t('dashboard:actions.switch_recommended')}
+                  </button>
+                )}
+                <button
+                  onClick={handleGenerateSeparatedInterpretation}
+                  className="underline hover:no-underline"
+                  data-testid="interpretation-unavailable-retry"
+                >
+                  {t('dashboard:actions.retry')}
+                </button>
+                <Link
+                  to="/settings/ai"
+                  className="underline hover:no-underline"
+                  data-testid="interpretation-unavailable-ai-settings"
+                >
+                  {t('dashboard:actions.ai_settings')}
+                </Link>
+              </>
+            }
+          />
+        )}
+
+        {/* Generating (or a GENUINE fault): the 5-section progress checklist
+            while streaming, and the louder failure treatment reserved for a
+            real defect — a privacy refusal, an app-state error, an
+            unclassifiable failure. */}
+        {aiConfigured && chartId && !hasValidInterpretation &&
+          (isStreamingInterpretation ||
+            (interpretationStatus === 'error' && !readingDegradesGracefully)) && (
           <Card
             title={
               isStreamingInterpretation
@@ -731,27 +828,13 @@ export default function DashboardPage() {
                 : null}
             </p>
 
-            {streamingError && (
+            {!isStreamingInterpretation && streamingError && (
               <div
                 className="mt-2 text-sm text-status-error"
                 data-testid="interpretation-error"
               >
-                {isModelUnavailableNotice ? (
-                  <p>{t('dashboard:generation.model_unavailable')}</p>
-                ) : (
-                  <p>{streamingError}</p>
-                )}
+                <p>{streamingError}</p>
                 <div className="mt-3 flex flex-wrap items-center gap-3">
-                  {isModelUnavailableNotice &&
-                    Boolean(readLlmSettings().apiKey) && (
-                    <button
-                      onClick={handleSwitchToRecommendedModel}
-                      className="rounded-md bg-accent-gold px-3 py-1.5 font-medium text-background-primary transition-colors hover:bg-accent-gold-bright"
-                      data-testid="switch-recommended-model"
-                    >
-                      {t('dashboard:actions.switch_recommended')}
-                    </button>
-                  )}
                   <button
                     onClick={handleGenerateSeparatedInterpretation}
                     className="underline hover:no-underline"
@@ -813,56 +896,31 @@ export default function DashboardPage() {
             )}
             {/* A FAILED regeneration must be VISIBLE: keep-old-until-success
                 keeps the reading below, and this dismissible strip carries the
-                why + the recovery actions (Retry / switch model / AI settings). */}
-            {interpretationStatus === 'error' && streamingError && !regenErrorDismissed && (
+                why + the recovery actions (Retry / switch model / AI settings).
+                A provider-side outage degrades into the calm notice — the
+                reading on screen is untouched, so nothing here is broken. */}
+            {interpretationStatus === 'error' && streamingError && !regenErrorDismissed &&
+              readingDegradesGracefully && (
+              <NarrationUnavailable
+                outage={readingOutage}
+                context="kept"
+                testId="reading-regen-error"
+                actions={regenRecoveryActions}
+              />
+            )}
+            {interpretationStatus === 'error' && streamingError && !regenErrorDismissed &&
+              !readingDegradesGracefully && (
               <div
-                className="flex items-start justify-between gap-3 rounded-lg border border-status-error/40 bg-status-error/10 px-4 py-3 text-sm"
+                className="flex items-start gap-3 rounded-lg border border-status-error/40 bg-status-error/10 px-4 py-3 text-sm"
                 role="alert"
                 data-testid="reading-regen-error"
               >
                 <div className="space-y-2">
                   <p className="text-status-error">
-                    {isModelUnavailableNotice
-                      ? t('dashboard:generation.model_unavailable')
-                      : t('dashboard:generation.regen_failed', { error: streamingError })}
+                    {t('dashboard:generation.regen_failed', { error: streamingError })}
                   </p>
-                  <div className="flex flex-wrap items-center gap-3">
-                    {isModelUnavailableNotice &&
-                      Boolean(readLlmSettings().apiKey) && (
-                      <button
-                        onClick={handleSwitchToRecommendedModel}
-                        className="rounded-md bg-accent-gold px-3 py-1.5 font-medium text-background-primary transition-colors hover:bg-accent-gold-bright"
-                        data-testid="reading-regen-switch-recommended"
-                      >
-                        {t('dashboard:actions.switch_recommended')}
-                      </button>
-                    )}
-                    <button
-                      onClick={handleRegenerateReading}
-                      className="underline hover:no-underline"
-                      data-testid="reading-regen-retry"
-                    >
-                      {t('dashboard:actions.retry')}
-                    </button>
-                    <Link
-                      to="/settings/ai"
-                      className="underline hover:no-underline"
-                      data-testid="reading-regen-ai-settings"
-                    >
-                      {t('dashboard:actions.ai_settings')}
-                    </Link>
-                  </div>
+                  <div className="flex flex-wrap items-center gap-3">{regenRecoveryActions}</div>
                 </div>
-                <button
-                  onClick={() => setRegenErrorDismissed(true)}
-                  className="shrink-0 text-text-tertiary transition-colors hover:text-text-primary"
-                  aria-label={t('dashboard:actions.dismiss')}
-                  data-testid="reading-regen-dismiss"
-                >
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
               </div>
             )}
             {/* Honest partial-failure notice: per-section LLM failures degrade

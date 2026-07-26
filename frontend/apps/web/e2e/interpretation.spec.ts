@@ -173,13 +173,15 @@ test('[contract/stubbed] interpretation populates from the stubbed LLM on the da
 });
 
 // ===========================================================================
-// Test 1b — total LLM failure surfaces LOUDLY (regression guard).
+// Test 1b — total LLM failure surfaces VISIBLY, but CALMLY (regression guard).
 // A configured model whose endpoint fails every section must NOT leave the
-// dashboard blank. It must show the "could not be generated" panel + Retry.
-// This is the exact regression: failures were swallowed and the run "completed"
-// empty, rendering nothing and no explanation.
+// dashboard blank — that was the original regression (failures swallowed, the
+// run "completed" empty, nothing rendered and no explanation).
+// It must also not shout: the chart is fully computed on-device, so an HTTP 500
+// is the PROVIDER-UNAVAILABLE mode of an optional extra. The panel says the
+// chart is complete, names the reason, and keeps Retry reachable.
 // ===========================================================================
-test('a failing endpoint shows a loud error + Retry, never a blank dashboard', async ({ page }) => {
+test('a failing endpoint degrades calmly with Retry, never a blank dashboard', async ({ page }) => {
   await page.addInitScript(
     ([key, cfg]) => {
       window.localStorage.setItem(key as string, cfg as string);
@@ -198,11 +200,16 @@ test('a failing endpoint shows a loud error + Retry, never a blank dashboard', a
 
   await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
 
-  // The error panel is shown (status === 'error'), NOT hidden (which is what a
-  // silent empty 'complete' produced — the blank-dashboard bug).
-  await expect(page.getByText('Interpretation could not be generated')).toBeVisible({
-    timeout: 60_000,
-  });
+  // The unavailability panel is shown (status === 'error'), NOT hidden (which is
+  // what a silent empty 'complete' produced — the blank-dashboard bug).
+  const notice = page.getByTestId('interpretation-unavailable');
+  await expect(notice).toBeVisible({ timeout: 60_000 });
+  // Calm + honest: the chart itself is complete; only the written
+  // interpretation is missing, and the reason is the provider, not the app.
+  await expect(notice).toContainText('Your chart is complete');
+  await expect(notice).toContainText("isn't responding right now");
+  // The old red "the product is broken" framing is gone.
+  await expect(page.getByText('Interpretation could not be generated')).toHaveCount(0);
   // A retry affordance exists so the user is never stuck.
   await expect(page.getByRole('button', { name: 'Retry' })).toBeVisible();
   // The model IS configured, so the "connect a model" CTA must NOT show — this
