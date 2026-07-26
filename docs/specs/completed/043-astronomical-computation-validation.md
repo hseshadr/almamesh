@@ -148,7 +148,7 @@ When providers disagree at boundaries, the report notes "boundary variance" rath
 | `backend/tests/validation/__init__.py` | Validation module init |
 | `backend/tests/validation/conftest.py` | Validation-specific fixtures |
 | `backend/tests/validation/test_private_cases.py` | Main validation test suite |
-| `backend/tests/validation/ground_truth.py` | Swiss Ephemeris ground truth calculator |
+| `backend/tests/validation/ground_truth.py` | Independent reference-oracle calculator (astropy + JPL Horizons over DE421). Shipped as `reference_fixtures_loader.py` / `reference_fixtures.json`; the planned `SwissEphemerisGroundTruth` name was rejected as both inaccurate and AGPL-implying |
 | `backend/tests/validation/comparators.py` | Comparison logic and tolerance handling |
 | `backend/tests/validation/report.py` | Console report generator |
 | `backend/tests/fixtures/private_cases.jsonl.example` | Example file format (committed) |
@@ -219,8 +219,11 @@ Expected: __init__.py, conftest.py exist
 ```
 What to do:
 - Create backend/tests/validation/ground_truth.py
-- Implement SwissEphemerisGroundTruth class that:
-  - Uses Skyfield with DE421 ephemeris
+- Implement the reference-oracle loader that (shipped as `reference_fixtures_loader.py`; the
+  `SwissEphemerisGroundTruth` name below was never used — re-running Skyfield would only prove
+  the engine agrees with itself, and the Swiss Ephemeris framing implied an AGPL dependency
+  that does not exist):
+  - Reads the same local DE421 ephemeris through an independent library (astropy)
   - Applies Lahiri ayanamsa
   - Calculates true nodes
   - Returns planet longitudes, ascendant, nakshatras
