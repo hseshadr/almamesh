@@ -253,6 +253,8 @@
     "approx_mark": "≈ aproximado",
     "windows_heading": "Janelas próximas",
     "windows_empty": "Nenhuma janela datada nos próximos doze meses.",
+    "receipt_heading": "Recibo assinado",
+    "receipt_hint": "Verificado no seu dispositivo: esta faixa de força não mudou desde que foi selada.",
     "source": {
       "dasha": "daśā",
       "transit": "trânsito"
