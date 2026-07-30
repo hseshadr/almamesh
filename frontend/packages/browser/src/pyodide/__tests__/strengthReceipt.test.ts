@@ -3,7 +3,14 @@ import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { ReplayMismatch, SignatureInvalid, generateSeedHex, publicKeyHex } from "@edgeproc/avow";
+import {
+  ReplayMismatch,
+  SignatureBytesInvalid,
+  SignatureInvalid,
+  SignerMismatch,
+  generateSeedHex,
+  publicKeyHex,
+} from "@edgeproc/avow";
 
 import {
   sealDomainStrengths,
@@ -153,8 +160,22 @@ describe("sealDomainStrengths", () => {
   });
 });
 
+/**
+ * Verification has THREE independent gates, and they fail in a fixed order:
+ * content-hash, then pinned signer, then Ed25519 signature bytes. Each test
+ * below pins the SPECIFIC coded error, not the shared `SignatureInvalid` base,
+ * because a test that only asserts the base cannot tell the reader which gate
+ * actually fired — and a loose assertion silently stands in as "signature
+ * coverage" while never reaching the signature check at all.
+ *
+ * That was a real gap here: before the last test in this block existed, forcing
+ * avow's Ed25519 verdict to always-succeed left this whole file green. The two
+ * tamper cases both short-circuit BEFORE the signature — the mutated payload
+ * dies at the hash compare, the wrong key dies at the signer compare — so
+ * neither one can ever prove the signature check runs.
+ */
 describe("verifyDomainStrength fails closed", () => {
-  it("detects a mutated strength_pct (the tamper case the receipt exists for)", async () => {
+  it("detects a mutated strength_pct at the HASH gate, before the signature", async () => {
     const seed = generateSeedHex();
     const expected = await publicKeyHex(seed);
     const receipt = await signDomainStrength("career", summary(), seed);
@@ -164,13 +185,47 @@ describe("verifyDomainStrength fails closed", () => {
       payload: { ...receipt.payload, summary: { ...receipt.payload.summary, strength_pct: 99 } },
     };
 
-    await expect(verifyDomainStrength(tampered, expected)).rejects.toThrow(ReplayMismatch);
+    // `payload_hash` is left stale, so this dies at the content-hash compare.
+    // ReplayMismatch is NOT a SignatureInvalid — asserted explicitly so this
+    // case can never be miscounted as coverage of the signature check.
+    const error = await verifyDomainStrength(tampered, expected).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(ReplayMismatch);
+    expect(error).not.toBeInstanceOf(SignatureInvalid);
   });
 
-  it("rejects a receipt that is not from the pinned signer", async () => {
+  it("rejects a receipt that is not from the pinned signer at the SIGNER gate", async () => {
     const receipt = await signDomainStrength("career", summary(), generateSeedHex());
     const other = await publicKeyHex(generateSeedHex());
 
-    await expect(verifyDomainStrength(receipt, other)).rejects.toThrow(SignatureInvalid);
+    // The embedded key is compared to the pinned key before the signature is
+    // ever checked, so this is a PROVENANCE failure (`SignerMismatch`), not a
+    // signature failure. Pinning the subclass keeps the distinction executable.
+    const error = await verifyDomainStrength(receipt, other).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(SignerMismatch);
+    expect(error).not.toBeInstanceOf(SignatureBytesInvalid);
+  });
+
+  it("rejects corrupted signature bytes — the one case Ed25519 exists to catch", async () => {
+    const seed = generateSeedHex();
+    const expected = await publicKeyHex(seed);
+    const receipt = await signDomainStrength("career", summary(), seed);
+
+    // Flip ONE hex nibble of the signature and nothing else. `payload` is
+    // untouched so `payload_hash` still matches, and `public_key` is still the
+    // pinned signer — so both earlier gates PASS and control reaches the
+    // Ed25519 check. This is the only test in the file that does.
+    const nibble = receipt.signature[0];
+    const forged = {
+      ...receipt,
+      signature: (nibble === "0" ? "1" : "0") + receipt.signature.slice(1),
+    };
+    expect(forged.signature).not.toBe(receipt.signature);
+    expect(forged.signature).toHaveLength(receipt.signature.length);
+    expect(forged.payload_hash).toBe(receipt.payload_hash);
+    expect(forged.public_key).toBe(expected);
+
+    const error = await verifyDomainStrength(forged, expected).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(SignatureBytesInvalid);
+    expect(error).not.toBeInstanceOf(SignerMismatch);
   });
 });

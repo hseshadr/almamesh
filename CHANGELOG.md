@@ -7,6 +7,22 @@ All notable changes to AlmaMesh are documented here. Format follows
 ## [Unreleased]
 
 ### Added
+- **The Ed25519 signature check on strength receipts is now actually tested, and
+  its failure modes are coded apart.** The suite had two "tamper" tests and
+  neither one ever reached the signature: the mutated-`strength_pct` case leaves
+  a stale `payload_hash` and dies at the content-hash compare, and the wrong-key
+  case dies at the signer compare. Measured, not assumed — forcing avow's Ed25519
+  verdict to always-succeed left all 12 tests green. A new test builds a genuinely
+  valid receipt and flips **one hex nibble of the `signature` only**, leaving
+  `payload_hash` and `public_key` correct, so both earlier gates pass and control
+  reaches the Ed25519 check; under that mutation this test — and only this test —
+  turns red. `@edgeproc/avow` moves `0.1.0` → `0.1.1`, which splits the single
+  `SignatureInvalid` into `SignerMismatch` (wrong signer — a provenance failure)
+  and `SignatureBytesInvalid` (right signer, bad bytes — a tamper failure), both
+  still extending `SignatureInvalid`. The two existing tests are tightened to pin
+  the specific subclass, so neither can silently stand in as signature coverage
+  again. **No verification behavior changed** — the same receipts are rejected in
+  the same order; only the typed error naming *which* gate rejected them is new.
 - **Complete deterministic report artifacts (PR #62).** Exported daśā tables now
   cover **maha, antar, and pratyantar**; generation is keyed to the current
   **predictive cache identity**; AI-written sections require matching
