@@ -252,6 +252,8 @@
     "approx_mark": "≈ approximate",
     "windows_heading": "Upcoming windows",
     "windows_empty": "No dated windows inside the next twelve months.",
+    "receipt_heading": "Signed receipt",
+    "receipt_hint": "Checked on your device: this strength band has not changed since it was sealed.",
     "source": {
       "dasha": "daśā",
       "transit": "transit"

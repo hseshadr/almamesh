@@ -21,6 +21,12 @@
  * at the CALL SITE — casting the envelope through `JsonValue`, never touching the
  * published component — the type-level twin of `@almamesh/browser`'s value-level
  * `asJsonSubject` seam.
+ *
+ * THE SKIN. `@edgeproc/receipt-ui` publishes markup and NO stylesheet, so the
+ * consumer owns the look. `StrengthReceiptBadge.css` is that half of the seam —
+ * the Observatory palette applied to the library's BEM hooks. Importing it here
+ * (rather than from a global stylesheet) keeps the library's class names inside
+ * this one directory.
  */
 
 import type { ReactElement, ReactNode } from 'react';
@@ -31,6 +37,7 @@ import { verifyDomainStrength } from '@almamesh/browser';
 import type { DomainStrengthReceipt, DomainStrengthSubject } from '@almamesh/browser/types';
 
 import { BandBadge } from './PredictiveBadges';
+import './StrengthReceiptBadge.css';
 
 /** The single documented adapter: a domain receipt viewed as a JSON receipt. */
 type JsonReceipt = SignedReceipt<JsonValue>;
@@ -80,27 +87,45 @@ function PayloadBody({ subject }: { subject: DomainStrengthSubject }): ReactElem
   return (
     <div
       data-testid={`domain-receipt-panel-${subject.domain}`}
-      className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-text-secondary"
+      className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-text-secondary"
     >
       <span className="text-text-primary">{t(`domains.names.${subject.domain}`)}</span>
       <BandBadge band={subject.summary.band} />
-      <span className="text-xs text-text-tertiary">{t('domains.strength_tier_model')}</span>
+      {/* `text-text-muted` and NOT `text-text-tertiary`: the palette has a
+          `background.tertiary` but no `text.tertiary`, so `text-text-tertiary`
+          compiles to nothing and the caption silently inherits body colour. */}
+      <span className="text-xs text-text-muted">{t('domains.strength_tier_model')}</span>
     </div>
   );
 }
 
-/** Full, per-domain receipt view: verdict + envelope + covenant-safe payload. */
+/**
+ * Full, per-domain receipt view: verdict + envelope + covenant-safe payload.
+ *
+ * The vendored panel labels itself only with `aria-label="Signed receipt"`,
+ * which a sighted visitor never sees — on screen it arrived as an unlabelled
+ * block of key/hash rows. The heading + one-line hint are the almamesh layer
+ * that makes the proof legible; both are localized.
+ */
 export function StrengthReceiptPanel({
   receipt,
   expectedPublicKey,
 }: StrengthReceiptViewProps): ReactElement {
+  const { t } = useTranslation('predictive');
   const renderPayload = (): ReactNode => <PayloadBody subject={receipt.payload} />;
   return (
-    <ReceiptPanel
-      receipt={asJsonReceipt(receipt)}
-      expectedPublicKey={expectedPublicKey}
-      verify={verify}
-      renderPayload={renderPayload}
-    />
+    // A plain wrapper on purpose: the vendored panel is already a
+    // `<section aria-label="Signed receipt">`, and nesting a second named
+    // region would just add a redundant landmark for screen-reader users.
+    <div className="receipt-block">
+      <h4 className="receipt-block__heading">{t('domains.receipt_heading')}</h4>
+      <p className="receipt-block__hint">{t('domains.receipt_hint')}</p>
+      <ReceiptPanel
+        receipt={asJsonReceipt(receipt)}
+        expectedPublicKey={expectedPublicKey}
+        verify={verify}
+        renderPayload={renderPayload}
+      />
+    </div>
   );
 }

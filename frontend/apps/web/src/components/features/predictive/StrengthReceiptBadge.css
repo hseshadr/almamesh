@@ -1,0 +1,187 @@
+/*
+ * StrengthReceiptBadge.css — the Observatory skin for `@edgeproc/receipt-ui`.
+ *
+ * WHY THIS FILE EXISTS. `@edgeproc/receipt-ui` is a deliberately unstyled Lego:
+ * it publishes framework-agnostic markup with stable BEM hooks (`receipt-panel`,
+ * `receipt-panel__meta/__row/__payload`, `receipt-status` + a `data-status`
+ * state attribute) and ships NO stylesheet, so each consumer paints it in its
+ * own design system. AlmaMesh had never supplied that skin, so the signed
+ * receipt — the visible proof of the whole trust story — rendered on
+ * almamesh.com as a raw <dl>: an unstyled stack of "Algorithm / Ed25519 /
+ * Signer key / 9c08d6…" lines with no card, no pill and no alignment.
+ *
+ * WHERE IT SITS IN THE SEAM. `StrengthReceiptBadge.tsx` is the value-level half
+ * of the seam (the injected verifier + the pinned key); this file is the
+ * presentation half. The library's class names appear ONLY in these two files,
+ * so a receipt-ui upgrade that renames a hook stays a one-directory change.
+ *
+ * NO NEW VISUAL LANGUAGE. Every colour, radius, border, font and step below is
+ * an EXISTING Observatory token (`@almamesh/constants` -> tailwind.config.ts)
+ * pulled in with `@apply`. The verdict pill is deliberately the same recipe as
+ * `components/ui/Badge.tsx` so it reads as a sibling of the BandBadge that sits
+ * beside it, and the panel is the nested-well counterpart of `ui/Card.tsx`.
+ */
+
+/* ---------------------------------------------------------------------------
+ * The block: our heading + hint above the vendored panel.
+ * The micro-heading idiom is DomainsPanel's ("CURRENT EMPHASIS", "UPCOMING
+ * WINDOWS"): xs, uppercase, wide tracking, recessive colour.
+ * ------------------------------------------------------------------------ */
+/* `min-w-0` is load-bearing, not decoration: this block lands inside flex and
+   grid parents, whose default `min-width: auto` lets a long signature readout
+   push the whole page wide instead of wrapping. */
+.receipt-block {
+  @apply w-full min-w-0;
+}
+
+.receipt-block__heading {
+  @apply text-xs uppercase tracking-wider text-text-muted;
+}
+
+.receipt-block__hint {
+  @apply mb-2 mt-0.5 max-w-prose text-xs text-text-muted;
+}
+
+/* ---------------------------------------------------------------------------
+ * The panel: an engraved well nested inside the surrounding Card surface.
+ * One step darker than the Card (background-darker vs background-secondary) so
+ * it reads as inset rather than as a second, competing card.
+ * ------------------------------------------------------------------------ */
+.receipt-panel {
+  @apply rounded-lg border border-ui-border bg-background-darker px-4 py-3.5;
+  /* `tokens.shadows.engraved` from @almamesh/constants — a 1px warm inner
+     highlight, the same catch-the-light lift the Card's own shadow implies. */
+  box-shadow: inset 0 1px 0 0 rgba(244, 241, 232, 0.04);
+}
+
+/* ---------------------------------------------------------------------------
+ * The verdict pill.
+ *
+ * Same recipe as `ui/Badge.tsx`: rounded-full, hairline border, 10% status
+ * tint, mono xs. The state hue rides the icon, the border and the fill — the
+ * LABEL stays parchment `text-text-primary` on purpose, because the failure
+ * copy ("Not verified — tampered or invalid signature") is the most important
+ * sentence on this surface and #C84A3A on its own tint is only ~3.9:1, under
+ * the WCAG 1.4.3 AA floor of 4.5:1 for 12px text. Parchment clears 12:1 in all
+ * four states. The verdict itself never depends on colour at all: the vendored
+ * component always renders a distinct icon AND a distinct word (WCAG 1.4.1).
+ * ------------------------------------------------------------------------ */
+.receipt-status {
+  @apply inline-flex max-w-full items-center gap-1.5 rounded-full border px-3 py-1;
+  @apply text-left font-mono text-xs font-medium tracking-wide;
+  @apply border-ui-border bg-background-elevated text-text-primary;
+}
+
+.receipt-status__icon {
+  @apply shrink-0 leading-none text-text-secondary;
+}
+
+/* A long verdict must wrap INSIDE the pill, never widen the page at 320px. */
+.receipt-status__text {
+  @apply min-w-0 break-words;
+}
+
+.receipt-status[data-status='verified'] {
+  @apply border-status-success/40 bg-status-success/10;
+}
+.receipt-status[data-status='verified'] .receipt-status__icon {
+  @apply text-status-success;
+}
+
+.receipt-status[data-status='invalid'] {
+  @apply border-status-error/50 bg-status-error/10;
+}
+.receipt-status[data-status='invalid'] .receipt-status__icon {
+  @apply text-status-error;
+}
+
+.receipt-status[data-status='wrong-key'] {
+  @apply border-status-warning/50 bg-status-warning/10;
+}
+.receipt-status[data-status='wrong-key'] .receipt-status__icon {
+  @apply text-status-warning;
+}
+
+/* `checking` deliberately inherits the neutral base rule above — an unresolved
+   verify is not yet a verdict, and the fail-closed default must not look like
+   one. */
+
+/* ---------------------------------------------------------------------------
+ * Envelope metadata: a label/value list, hairline-ruled like the Card header.
+ * ------------------------------------------------------------------------ */
+.receipt-panel__meta {
+  @apply mt-3.5;
+}
+
+.receipt-panel__row {
+  @apply flex flex-wrap items-baseline gap-x-3 gap-y-0.5 border-t border-ui-border py-2;
+}
+
+.receipt-panel__row:first-child {
+  @apply border-t-0 pt-0;
+}
+
+.receipt-panel__row:last-child {
+  @apply pb-0;
+}
+
+.receipt-panel__row dt {
+  @apply shrink-0 basis-28 text-xs uppercase tracking-wider text-text-muted;
+}
+
+.receipt-panel__row dd {
+  @apply m-0 min-w-0 flex-1 text-sm text-text-secondary;
+}
+
+/* Signer key / payload hash / signature. The component abbreviates them, but a
+   full-length value must still wrap inside its own column instead of pushing
+   the document wide — the readout scrolls nothing and overflows nothing. */
+.receipt-panel__row dd code {
+  @apply block break-all font-mono text-xs text-text-primary;
+  overflow-wrap: anywhere;
+}
+
+/* ---------------------------------------------------------------------------
+ * The subject body (localized domain + calibrated band + honest tier caption).
+ * ------------------------------------------------------------------------ */
+.receipt-panel__payload {
+  @apply mt-3 border-t border-ui-border pt-3;
+}
+
+/* ---------------------------------------------------------------------------
+ * Paper. The app is a dark observatory; a browser print of this page is a light
+ * sheet (index.css forces `main` and every `bg-background-*` white under
+ * @media print). These rules keep the panel in step instead of stamping a dark
+ * rectangle onto the page. The `--print-*` custom properties are declared by
+ * index.css's own print block.
+ * ------------------------------------------------------------------------ */
+@media print {
+  .receipt-panel {
+    background: #fff !important;
+    border-color: var(--print-border, #d1d5db) !important;
+    box-shadow: none !important;
+  }
+
+  .receipt-status {
+    background: #fff !important;
+    border-color: var(--print-border, #d1d5db) !important;
+  }
+
+  .receipt-status,
+  .receipt-status__icon,
+  .receipt-panel__row dd,
+  .receipt-panel__row dd code {
+    color: var(--print-text-primary, #111827) !important;
+  }
+
+  .receipt-block__heading,
+  .receipt-block__hint,
+  .receipt-panel__row dt {
+    color: var(--print-text-muted, #6b7280) !important;
+  }
+
+  .receipt-panel__row,
+  .receipt-panel__payload {
+    border-color: var(--print-border, #d1d5db) !important;
+  }
+}

@@ -253,6 +253,8 @@
     "approx_mark": "≈ aproximado",
     "windows_heading": "Ventanas próximas",
     "windows_empty": "No hay ventanas con fecha en los próximos doce meses.",
+    "receipt_heading": "Recibo firmado",
+    "receipt_hint": "Comprobado en tu dispositivo: esta banda de fuerza no ha cambiado desde que se selló.",
     "source": {
       "dasha": "daśā",
       "transit": "tránsito"
