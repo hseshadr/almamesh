@@ -2,7 +2,7 @@
 # suites split into a PR smoke lane + a scheduled nightly full lane — this is
 # the full half; test.yml's e2e-smoke + exit-gate jobs are the PR half).
 #
-# Runs ALL 11 flow specs in frontend/apps/web/e2e/. Each playwright config
+# Runs ALL 12 flow specs in frontend/apps/web/e2e/. Each playwright config
 # self-builds its production bundle (most with VITE_EXIT_GATE_HOOKS=1; the
 # report-pdf + dual-voice configs deliberately WITHOUT hooks — the real-visitor
 # build) and serves it on its own strict port, so specs are isolated and can
@@ -35,7 +35,7 @@ concurrency:
 
 jobs:
   nightly-e2e:
-    name: All 11 Playwright flow specs
+    name: All 12 Playwright flow specs
     runs-on: ubuntu-latest
     timeout-minutes: 120
 
@@ -110,6 +110,21 @@ jobs:
       # report-pdf + dual-voice extract downloaded-PDF text via `pdftotext`.
       - name: Install pdftotext (poppler-utils)
         run: sudo apt-get update && sudo apt-get install -y poppler-utils
+
+      # ---- Tier 0: two-build service-worker update lane ----
+      # The only gate that needs TWO builds: it serves build A, "deploys" build B
+      # on the same origin, and asserts that clicking "Reload to update" leaves the
+      # browser executing B's entry chunk. Deployed-SHA equality cannot replace it —
+      # on 2026-08-01 build.json served the new SHA while every returning visitor
+      # ran the old chunks out of a stale precache. Nightly rather than per-PR
+      # because the fixture build is ~6 min; see CLAUDE.md "Playwright e2e tiering".
+      - name: Build the two sw-update fixtures (A and B)
+        working-directory: frontend/apps/web
+        run: node scripts/build-sw-update-fixtures.mjs
+
+      - name: sw-update — "Reload to update" lands the visitor on the new build
+        working-directory: frontend/apps/web
+        run: bun run test:e2e:sw-update
 
       # ---- Tier 1: no engine boot (fastest) ----
       - name: ai-settings — AI-setup wizard flow
