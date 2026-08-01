@@ -61,8 +61,10 @@ This repo builds against `~/dev/project-ideas/oss/ENGINEERING-STANDARDS.md`
     `bun run test:e2e:sw-update`. Deployed-SHA equality cannot replace this: on
     2026-08-01 `build.json` served the new SHA while every returning visitor ran
     the old chunks out of a stale precache.
-  - **Nightly lane** (`nightly-e2e.yml`, cron + manual dispatch): all 11
-    `e2e/*.spec.ts` suites, with the exit-gate job's flake engineering
+  - **Nightly lane** (`nightly-e2e.yml`, cron + manual dispatch): all 12
+    `e2e/*.spec.ts` suites — including the sw-update lane above, which is what
+    makes it a gate rather than a command someone remembers to type — with the
+    exit-gate job's flake engineering
     (Skyfield ephemeris + uv + Bun caches). The five `*.real.*` specs and the
     dual-voice B/C checks self-skip unless the optional `OPENROUTER_API_KEY`
     repo secret is configured — a keyless nightly is still a green, honest run
