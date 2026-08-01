@@ -107,9 +107,8 @@
     "grade_aria": "Grado del yoga: {{grade}}",
     "strength": {
       "tier": "estimación estructural",
-      "summary_max": "neto {{net}} de máx. {{bound}}",
-      "summary_min": "neto {{net}} de mín. {{bound}}",
-      "aria": "Estimación de fuerza estructural: {{pct}} por ciento, {{band}}"
+      "summary": "neto {{net}} en la escala {{min}}…{{max}}",
+      "aria": "Estimación de fuerza estructural: {{pct}} por ciento, {{band}}. {{scale}}"
     }
   },
   "dasha": {

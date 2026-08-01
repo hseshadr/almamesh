@@ -302,6 +302,10 @@ const pdfSign = (n: number): string => (n >= 0 ? `+${n}` : `-${Math.abs(n)}`);
  * The calibrated STRUCTURAL strength headline + signed ledger for the PDF card.
  * Empty strings for bundles stored before the calibrated-strength upgrade, so
  * the card silently omits the line (mirrors the web's presence guard).
+ *
+ * The ledger always names the FULL achievable scale — the engine's percentage
+ * divides by max_favorable + max_unfavorable, so printing a single bound left
+ * the arithmetic unreproducible on paper too.
  */
 function buildYogaStrength(yoga: YogaData): { strength: string; strengthLedger: string } {
   if (!hasStrength(yoga)) {
@@ -310,14 +314,11 @@ function buildYogaStrength(yoga: YogaData): { strength: string; strengthLedger: 
   const view = yogaStrength(yoga);
   const band = GRADE_TITLE[view.band] ?? titleCase(view.band);
   const strength = glyphSafe(`${view.pct}% · ${band} · structural estimate`);
-  if (view.entries.length === 0) {
-    return { strength, strengthLedger: '' };
-  }
+  const scale = `net ${pdfSign(view.net)} on the ${pdfSign(view.min)}...${pdfSign(view.max)} scale`;
   const marks = view.entries
     .map((entry) => `${titleCase(entry.planet)} ${entry.value} ${pdfSign(entry.mark)}`)
     .join(' · ');
-  const bound = `${view.net >= 0 ? 'max' : 'min'} ${pdfSign(view.bound)}`;
-  return { strength, strengthLedger: glyphSafe(`${marks} · net ${pdfSign(view.net)} of ${bound}`) };
+  return { strength, strengthLedger: glyphSafe(marks ? `${marks} · ${scale}` : scale) };
 }
 
 /** Build the yoga cards (engine yogas → name + category·grade + strength + desc). */

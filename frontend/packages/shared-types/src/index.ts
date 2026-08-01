@@ -796,7 +796,12 @@ export interface MeshEdgeCtx {
   integrity_note: string;
 }
 
-/** The engine's qualitative yoga grade. There is NO numeric yoga strength. */
+/**
+ * The engine's qualitative yoga grade — a bucketing of the SAME `strength_pct`
+ * the report prints beside it (backend `yogas/factors.band_for_pct`: >=75%
+ * strong, >=40% moderate, else weak). Never re-derive it from the percentage;
+ * mirror this field, so the word and the number can never contradict.
+ */
 export type YogaGrade = 'strong' | 'moderate' | 'weak';
 
 /** The engine's closed yoga-category vocabulary. */

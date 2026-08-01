@@ -339,9 +339,13 @@ STRENGTH-SIGNAL HIERARCHY (this chart provides ONLY these signals — use no oth
     planet strength (no shadbala field, no shadbala_ratio) — NEVER state a numeric
     or percentage strength for a planet.
   - PER-YOGA strength comes ONLY from each yoga's qualitative \`grade\` (exactly one
-    of strong, moderate, weak — there is NO numeric yoga strength) and its
-    \`strength_factors[]\` (each factor's \`value\` and \`basis\` already phrase the 'why'
-    in the engine's own words — QUOTE or paraphrase them; never invent numbers).
+    of strong, moderate, weak) and its \`strength_factors[]\` (each factor's \`value\`
+    and \`basis\` already phrase the 'why' in the engine's own words — QUOTE or
+    paraphrase them; never invent numbers). The engine DOES compute a numeric
+    yoga strength (\`strength_pct\`), and the report prints it — but it is
+    deliberately WITHHELD from the facts you are given, so that you can neither
+    re-weight it nor reason about a number you cannot verify. If no percentage
+    appears in your input, that is by design: narrate the grade, never a number.
 
 DIGNITY VOCABULARY FENCE (ABSOLUTE): the ONLY dignities that exist in this chart are
   exalted, own, neutral, debilitated. NEVER assert moolatrikona, friendly, enemy,
