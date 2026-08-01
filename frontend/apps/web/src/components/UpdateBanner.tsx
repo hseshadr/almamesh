@@ -6,15 +6,31 @@ import { useVersionCheck } from '../hooks/useVersionCheck'
  * Banner shown when a new version of the app is available.
  *
  * Two signals, one prompt:
- *   - the PWA Service Worker has a freshly precached app shell waiting
- *     (`needRefresh`) — the authoritative "reload to update" trigger;
- *   - `/version.json` changed (the build polled by {@link useVersionCheck}) —
- *     a redundant deploy signal that also surfaces the prompt for clients whose
- *     SW has not yet picked up the waiting worker.
+ *   - `/version.json` changed (polled by {@link useVersionCheck}) — in practice
+ *     the ONLY trigger that fires for a returning visitor;
+ *   - the Service Worker has a freshly precached shell waiting (`needRefresh`).
+ *     This was assumed to be the authoritative trigger, and is not: Chromium
+ *     does not re-check sw.js on these navigations, so nothing ever reaches
+ *     `waiting` on its own. Measured, see lib/swUpdate.ts.
  *
- * "Reload now" activates the waiting SW (skipWaiting) and reloads, so the new
- * shell takes over. The cached engine data in OPFS is untouched.
+ * BOTH triggers must therefore take the SAME action, and that action has to
+ * re-check for a new worker itself. They used to differ: a banner raised by the
+ * poller ran a bare `window.location.reload()`, which cannot activate a waiting
+ * worker — so the reload landed on the same stale build, forever. Since the
+ * poller was the only trigger that ever fired, there was no working path at all.
+ *
+ * The cached engine data in OPFS is untouched by an update.
  */
+
+// z-[60] on purpose. The app chrome — LandingNav's `sticky top-0 z-50` header,
+// dialogs, the chat panel — all sit at z-50 and come LATER in the DOM, so an
+// equal z-index loses the tie and paints over this banner: on the landing route
+// it was invisible AND unclickable, which is why "clicking the banner did
+// nothing". A prompt nobody can reach is not a prompt. Keep new chrome below 60.
+const BANNER_CLASS =
+  'fixed top-0 left-0 right-0 z-[60] bg-accent-gold text-background-primary ' +
+  'px-4 py-2 flex items-center justify-center gap-4 animate-fade-in'
+
 export function UpdateBanner() {
   const { t } = useTranslation()
   const { needRefresh, update, dismiss: dismissSw } = useServiceWorker()
@@ -28,12 +44,11 @@ export function UpdateBanner() {
     return null
   }
 
+  // One action, whichever signal raised the banner. `update()` re-checks for a
+  // new worker, activates it, and reloads — a plain reload cannot do any of it.
   const reload = () => {
-    if (needRefresh) {
-      update() // activates waiting SW + reloads
-    } else {
-      window.location.reload()
-    }
+    dismissVersion()
+    update()
   }
 
   const dismiss = () => {
@@ -45,7 +60,7 @@ export function UpdateBanner() {
     <div
       role="status"
       aria-live="polite"
-      className="fixed top-0 left-0 right-0 z-50 bg-accent-gold text-background-primary px-4 py-2 flex items-center justify-center gap-4 animate-fade-in"
+      className={BANNER_CLASS}
     >
       <span className="text-sm font-medium">{t('update.available')}</span>
       <button

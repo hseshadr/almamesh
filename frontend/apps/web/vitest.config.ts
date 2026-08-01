@@ -37,6 +37,9 @@ export default defineConfig({
   },
   resolve: {
     alias: {
+      // vite-plugin-pwa synthesises this only during a production build; without
+      // a stub, every file importing it fails to load under vitest.
+      'virtual:pwa-register': path.resolve(__dirname, './src/test/stubs/pwa-register.ts'),
       '@': path.resolve(__dirname, './src'),
       '@almamesh/shared-types': path.resolve(__dirname, '../../packages/shared-types/src'),
       '@almamesh/constants': path.resolve(__dirname, '../../packages/constants/src'),

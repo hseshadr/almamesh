@@ -37,6 +37,10 @@ export default [
       // 4900+ false positives if linted. Without this, running the exit gate
       // locally breaks the next `git commit` (lint-staged runs the lint).
       "dist-real/**",
+      // The two builds the service-worker update gate compares
+      // (scripts/build-sw-update-fixtures.mjs) — generated output again, and
+      // linting a minified sw.js alone is ~15k false positives.
+      "dist-sw-update/**",
       "node_modules/**",
       "playwright-report/**",
       "test-results/**",

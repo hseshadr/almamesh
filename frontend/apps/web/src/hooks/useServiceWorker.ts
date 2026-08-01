@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { registerSW } from 'virtual:pwa-register'
 
 import { healStrandedServiceWorker } from '../lib/swSelfHeal'
+import { applyServiceWorkerUpdate } from '../lib/swUpdate'
 
 /**
  * Registers the PWA Service Worker and surfaces its update lifecycle.
@@ -13,6 +14,12 @@ import { healStrandedServiceWorker } from '../lib/swSelfHeal'
  *   - `update()` is the force path: it activates the waiting SW (skipWaiting)
  *     and reloads, so a security update can be pushed through immediately.
  *
+ * `update()` deliberately does NOT use the updater `registerSW` returns. That
+ * updater only messages a worker that is ALREADY waiting, so it is a no-op in
+ * the common case where /version.json noticed the deploy before the browser
+ * re-checked sw.js. {@link applyServiceWorkerUpdate} re-checks first — see the
+ * bug write-up there. One update path, so the two triggers cannot diverge.
+ *
  * Persistence: the sync Worker best-effort calls `navigator.storage.persist()`;
  * we ALSO request it from the main thread so OPFS/IndexedDB (the cached engine
  * data + saved charts) are not evicted under storage pressure.
@@ -20,7 +27,6 @@ import { healStrandedServiceWorker } from '../lib/swSelfHeal'
 export function useServiceWorker() {
   const [needRefresh, setNeedRefresh] = useState(false)
   const [offlineReady, setOfflineReady] = useState(false)
-  const updateRef = useRef<((reload?: boolean) => Promise<void>) | null>(null)
 
   useEffect(() => {
     void navigator.storage?.persist?.().catch(() => false)
@@ -31,7 +37,7 @@ export function useServiceWorker() {
     // preserved) so a returning visitor is never stranded — no manual reset.
     void healStrandedServiceWorker()
 
-    updateRef.current = registerSW({
+    registerSW({
       immediate: true,
       onNeedRefresh() {
         setNeedRefresh(true)
@@ -44,8 +50,7 @@ export function useServiceWorker() {
 
   const update = useCallback(() => {
     setNeedRefresh(false)
-    // skipWaiting + reload (the registerSW updater reloads on activation).
-    void updateRef.current?.(true)
+    void applyServiceWorkerUpdate()
   }, [])
 
   const dismiss = useCallback(() => {

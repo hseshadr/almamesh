@@ -30,7 +30,8 @@
     "test:unit:watch": "vitest",
     "test:unit:coverage": "vitest run --coverage",
     "data:cities": "node ../../scripts/generate-cities.mjs",
-    "report:pdf:sample": "node --import tsx scripts/render-report-pdf.mjs"
+    "report:pdf:sample": "node --import tsx scripts/render-report-pdf.mjs",
+    "test:e2e:sw-update": "playwright test --config=playwright.sw-update.config.ts"
   },
   "dependencies": {
     "@almamesh/browser": "workspace:*",
