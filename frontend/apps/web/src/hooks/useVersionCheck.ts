@@ -1,5 +1,7 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 
+import { applyServiceWorkerUpdate } from '../lib/swUpdate';
+
 interface VersionInfo {
   version: string;
   buildTime: string;
@@ -72,13 +74,12 @@ export function useVersionCheck(options: UseVersionCheckOptions = {}) {
     }
   }, [onNewVersion]);
 
+  // One update path, shared with useServiceWorker. This used to post
+  // SKIP_WAITING to `navigator.serviceWorker.controller` — the OLD, active
+  // worker, which ignores it — and then plain-reload, which cannot activate a
+  // waiting worker either. Both halves left the user on the stale build.
   const refreshApp = useCallback(() => {
-    // Clear service worker cache if present
-    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-      navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
-    }
-    // Force hard refresh
-    window.location.reload();
+    void applyServiceWorkerUpdate();
   }, []);
 
   const dismissUpdate = useCallback(() => {

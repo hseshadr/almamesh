@@ -10,6 +10,7 @@ __pycache__/
 dist/
 dist-verify/
 dist-real/
+dist-sw-update/
 build/
 *.egg-info/
 .next/

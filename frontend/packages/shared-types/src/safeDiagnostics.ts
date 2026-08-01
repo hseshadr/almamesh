@@ -35,8 +35,10 @@ export const SAFE_DIAGNOSTIC_CODES = [
   'provider.settings_save_failed',
   'report.pdf_generation_failed',
   'stream.invalid_event',
+  'sw.get_registration_failed',
   'sw.heal_failed',
   'sw.shell_cleanup_failed',
+  'sw.update_check_failed',
 ] as const;
 
 export type SafeDiagnosticCode = (typeof SAFE_DIAGNOSTIC_CODES)[number];

@@ -53,6 +53,14 @@ This repo builds against `~/dev/project-ideas/oss/ENGINEERING-STANDARDS.md`
     `ai-settings.spec.ts` (settings wizard flow, no engine boot) and
     `report-pdf.e2e.spec.ts` (real onboarding → chart generation → rectify →
     PDF, no LLM key).
+  - **Service-worker update lane** (`playwright.sw-update.config.ts`): the only
+    gate that needs TWO builds — it serves build A, "deploys" build B on the
+    same origin, and asserts that clicking the update banner leaves the browser
+    executing B's entry chunk. Build the fixtures first
+    (`node scripts/build-sw-update-fixtures.mjs`, ~6 min), then
+    `bun run test:e2e:sw-update`. Deployed-SHA equality cannot replace this: on
+    2026-08-01 `build.json` served the new SHA while every returning visitor ran
+    the old chunks out of a stale precache.
   - **Nightly lane** (`nightly-e2e.yml`, cron + manual dispatch): all 11
     `e2e/*.spec.ts` suites, with the exit-gate job's flake engineering
     (Skyfield ephemeris + uv + Bun caches). The five `*.real.*` specs and the
