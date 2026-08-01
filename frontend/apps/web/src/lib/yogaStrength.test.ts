@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { YogaData, YogaStrengthFactor } from '@almamesh/browser/types';
-import { hasStrength, signedMark, strengthBand, yogaStrength } from './yogaStrength';
+import { hasStrength, signedMark, yogaStrength } from './yogaStrength';
 
 const factor = (planet: string, value: string, mark: number): YogaStrengthFactor => ({
   factor_type: 'dignity',
@@ -25,14 +25,34 @@ const mkYoga = (over: Partial<YogaData>): YogaData => ({
   ...over,
 });
 
-describe('strengthBand', () => {
-  it('buckets at the §A.1 cut points (>=75 strong, >=40 moderate, else weak)', () => {
-    expect(strengthBand(100)).toBe('strong');
-    expect(strengthBand(75)).toBe('strong');
-    expect(strengthBand(74.9)).toBe('moderate');
-    expect(strengthBand(40)).toBe('moderate');
-    expect(strengthBand(39.9)).toBe('weak');
-    expect(strengthBand(0)).toBe('weak');
+// NOTE: the former `describe('strengthBand')` block is GONE, deliberately and
+// loudly. It pinned a SECOND set of cut points, in TypeScript, next to the
+// engine's own — which is precisely how the report came to print
+// "AUSPICIOUS · WEAK" and "45% · MODERATE" on the same line. The cut points now
+// live once, in `backend/src/almamesh/yogas/factors.band_for_pct`, and the UI
+// mirrors the word the engine already computed. The replacement guard below is
+// strictly stronger: it fails if the UI ever re-derives a band from anything.
+
+describe('yogaStrength — the UI never invents a band', () => {
+  // Each row pairs a percentage with the word the ENGINE emitted for it. Rows
+  // 3-5 are deliberately contradictory: they are what a bundle stored by the
+  // pre-fix engine actually looks like. The UI must still show the engine's
+  // word — re-deriving one from `pct` is the defect, not the fix.
+  const rows = [
+    { pct: 90.91, grade: 'strong' as const },
+    { pct: 50, grade: 'moderate' as const },
+    { pct: 45.45, grade: 'weak' as const },
+    { pct: 66.67, grade: 'strong' as const },
+    { pct: 40, grade: 'weak' as const },
+    { pct: 0, grade: 'weak' as const },
+    { pct: 100, grade: 'strong' as const },
+  ];
+
+  it.each(rows)('mirrors the engine grade for $pct% (engine says $grade)', ({ pct, grade }) => {
+    const view = yogaStrength(
+      mkYoga({ strength_pct: pct, strength_tier: 'structural', grade, net_marks: 0 }),
+    );
+    expect(view.band).toBe(grade);
   });
 });
 
@@ -54,11 +74,12 @@ describe('hasStrength', () => {
 });
 
 describe('yogaStrength', () => {
-  it('rounds the pct, derives the band, and points the bound at max_favorable when net >= 0', () => {
+  it('rounds the pct, mirrors the engine band, and exposes BOTH achievable bounds', () => {
     const s = yogaStrength(
       mkYoga({
         strength_pct: 90.91,
         strength_tier: 'structural',
+        grade: 'strong',
         net_marks: 4,
         max_favorable: 5,
         max_unfavorable: 6,
@@ -73,15 +94,38 @@ describe('yogaStrength', () => {
     expect(s.pct).toBe(91);
     expect(s.band).toBe('strong');
     expect(s.net).toBe(4);
-    expect(s.bound).toBe(5); // net >= 0 -> +max_favorable
+    expect(s.min).toBe(-6); // −max_unfavorable
+    expect(s.max).toBe(5); //  +max_favorable
     expect(s.entries.map((e) => e.mark)).toEqual([1, 1, 1]); // the 0-mark factor is filtered
   });
 
-  it('points the bound at -max_unfavorable when net < 0', () => {
+  // The transparency defect: the report used to print ONE bound ("net +0 of max
+  // +3") while `_strength_pct` divides by max_favorable + max_unfavorable. A
+  // reader computing 0/3 got 0% and could not reproduce the 50% on screen. Both
+  // bounds must be exposed so the arithmetic is checkable from the printed line.
+  it('exposes a denominator the reader can actually reproduce the pct from', () => {
+    const s = yogaStrength(
+      mkYoga({
+        strength_pct: 50,
+        strength_tier: 'structural',
+        grade: 'moderate',
+        net_marks: 0,
+        max_favorable: 3,
+        max_unfavorable: 3,
+        strength_factors: [factor('venus', 'exalted', 1), factor('venus', 'combust', -1)],
+      }),
+    );
+    // Exactly the arithmetic a reader does from the printed "net +0 on the −3…+3 scale":
+    const reproduced = (100 * (s.net - s.min)) / (s.max - s.min);
+    expect(Math.round(reproduced)).toBe(s.pct);
+  });
+
+  it('keeps both bounds when the net is negative (the scale does not flip)', () => {
     const s = yogaStrength(
       mkYoga({
         strength_pct: 0,
         strength_tier: 'structural',
+        grade: 'weak',
         net_marks: -2,
         max_favorable: 2,
         max_unfavorable: 2,
@@ -90,6 +134,7 @@ describe('yogaStrength', () => {
     );
     expect(s.pct).toBe(0);
     expect(s.band).toBe('weak');
-    expect(s.bound).toBe(-2); // net < 0 -> -max_unfavorable
+    expect(s.min).toBe(-2);
+    expect(s.max).toBe(2);
   });
 });

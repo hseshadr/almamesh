@@ -316,10 +316,11 @@ function toNavamsaVargaCtx(chart: SiderealChart): VargaContext | undefined {
 
 /**
  * Reshape one engine yoga into the UI `YogaData` — field-for-field, verbatim.
- * The engine emits ONLY formed yogas with a qualitative `grade` and a complete
- * trace (strength factors + formation rules, each min-length-1 by schema);
- * there is no numeric strength to carry. Pure relabeling of the enum strings
- * onto the UI unions — no astrology.
+ * The engine emits ONLY formed yogas with a qualitative `grade`, the numeric
+ * `strength_pct` that `grade` is a bucketing of, and a complete trace (strength
+ * factors + formation rules, each min-length-1 by schema). All of it is carried
+ * verbatim. Pure relabeling of the enum strings onto the UI unions — no
+ * astrology, and nothing re-derived.
  */
 function toYogaData(yoga: EngineYogaData): YogaData {
   return {

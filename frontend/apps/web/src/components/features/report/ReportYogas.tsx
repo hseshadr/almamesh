@@ -4,7 +4,7 @@
  * The narrative is the audience-resolved `integrated_yoga_narrative` persona
  * (LLM prose). The list is the engine's own formed yogas (calculation
  * integrity): the `display_name`, the qualitative grade as a small-caps
- * typographic mark (the engine emits NO numeric strength), the short
+ * typographic mark (the engine's own word, mirrored — never re-derived), the short
  * description, and a one-line formation basis with its classical citation —
  * every word the engine's verbatim.
  */
@@ -28,6 +28,11 @@ const capitalize = (word: string): string =>
  * "structural estimate" tier label, and the signed factor ledger — all
  * anchored to the engine's own marks (never a fabricated precision score).
  * Renders nothing for bundles stored before the calibrated-strength upgrade.
+ *
+ * The ledger always ends with the FULL achievable scale ("net +0 on the −3…+3
+ * scale"), because that is the denominator the engine's percentage actually
+ * divides by. Printing only the favorable bound made a correct 50% look like
+ * arithmetic the reader could not reproduce.
  */
 function YogaStrengthMark({ yoga }: { readonly yoga: YogaData }): ReactElement | null {
   const { t } = useTranslation('report');
@@ -36,28 +41,30 @@ function YogaStrengthMark({ yoga }: { readonly yoga: YogaData }): ReactElement |
   }
   const strength = yogaStrength(yoga);
   const band = t(`yogas.grade.${strength.band}`);
-  const summaryKey = strength.net >= 0 ? 'yogas.strength.summary_max' : 'yogas.strength.summary_min';
+  const scale = t('yogas.strength.summary', {
+    net: signedMark(strength.net),
+    min: signedMark(strength.min),
+    max: signedMark(strength.max),
+  });
   return (
     <div className="report-yoga-strength" data-testid="report-yoga-strength">
       <span
         className="report-strength-pct"
-        aria-label={t('yogas.strength.aria', { pct: strength.pct, band })}
+        aria-label={t('yogas.strength.aria', { pct: strength.pct, band, scale })}
       >
         {strength.pct}%<span className="report-strength-band"> · {band}</span>
       </span>
       <span className="report-strength-tier">{t('yogas.strength.tier')}</span>
-      {strength.entries.length > 0 ? (
-        <p className="report-strength-ledger">
-          {strength.entries.map((entry, index) => (
-            <span key={`${entry.planet}-${entry.value}-${index}`}>
-              {index > 0 ? ' · ' : ''}
-              {capitalize(entry.planet)} {entry.value} {signedMark(entry.mark)}
-            </span>
-          ))}
-          {' → '}
-          {t(summaryKey, { net: signedMark(strength.net), bound: signedMark(strength.bound) })}
-        </p>
-      ) : null}
+      <p className="report-strength-ledger">
+        {strength.entries.map((entry, index) => (
+          <span key={`${entry.planet}-${entry.value}-${index}`}>
+            {index > 0 ? ' · ' : ''}
+            {capitalize(entry.planet)} {entry.value} {signedMark(entry.mark)}
+          </span>
+        ))}
+        {strength.entries.length > 0 ? ' → ' : ''}
+        {scale}
+      </p>
     </div>
   );
 }

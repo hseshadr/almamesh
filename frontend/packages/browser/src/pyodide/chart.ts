@@ -101,7 +101,12 @@ export interface VimshottariDasha {
   readonly convention?: DashaYearConvention;
 }
 
-/** The engine's qualitative yoga grade — there is NO numeric yoga strength. */
+/**
+ * The engine's qualitative yoga grade — a bucketing of the SAME `strength_pct`
+ * emitted alongside it (backend `yogas/factors.band_for_pct`: >=75% strong,
+ * >=40% moderate, else weak). Mirror this field; never re-derive a band from
+ * the percentage, or the word and the number drift apart.
+ */
 export type YogaGrade = "strong" | "moderate" | "weak";
 
 /**

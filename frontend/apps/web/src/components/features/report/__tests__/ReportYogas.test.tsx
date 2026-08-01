@@ -70,7 +70,14 @@ describe('ReportYogas — calibrated structural strength', () => {
     expect(text).toContain('structural estimate'); // epistemic tier — never over-claims
     expect(text).toContain('Jupiter exalted +1'); // signed factor ledger, engine words
     expect(text).toContain('Moon kendra (house 4) +1');
-    expect(text).toContain('net +4 of max +5'); // the achievable-range summary
+    // INVERTED, deliberately: this line used to assert 'net +4 of max +5' — ONE
+    // bound — while the engine's percentage divides by max_favorable +
+    // max_unfavorable (5 + 6 = 11). A reader checking 4/5 got 80%, not the 91%
+    // printed above it. The old assertion pinned that unreproducible display as
+    // correct, so it is replaced by one that requires BOTH bounds.
+    expect(text).toContain('net +4 on the −6…+5 scale');
+    // And the arithmetic the printed line now supports must land on the headline:
+    expect(Math.round((100 * (4 - -6)) / (5 - -6))).toBe(91);
   });
 
   it('renders NO strength block for a pre-upgrade bundle (presence guard)', () => {
@@ -79,7 +86,7 @@ describe('ReportYogas — calibrated structural strength', () => {
     expect(queryByTestId('report-yoga-strength')).toBeNull(); // but no fabricated %
   });
 
-  it('shows the min-bound summary when the net is unfavorable', () => {
+  it('shows the SAME two-ended scale when the net is unfavorable (it does not flip)', () => {
     const weak: YogaData = {
       ...baseYoga,
       grade: 'weak',
@@ -94,7 +101,10 @@ describe('ReportYogas — calibrated structural strength', () => {
       ],
     };
     const { getByTestId } = render(<ReportYogas yogas={[weak]} audience="you" />);
-    const text = within(getByTestId('report-yoga-strength')).getByText(/net −2 of min −2/);
+    // Was /net −2 of min −2/ — the display switched which single bound it showed
+    // depending on the sign of the net, which made the denominator look like it
+    // changed too. It never did: the scale is always [−max_unfavorable, +max_favorable].
+    const text = within(getByTestId('report-yoga-strength')).getByText(/net −2 on the −2…\+2 scale/);
     expect(text).toBeTruthy();
   });
 });

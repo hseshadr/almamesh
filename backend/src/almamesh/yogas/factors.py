@@ -15,8 +15,18 @@ bounded mark lattice, not a probability and not empirically validated life outco
 - house class  kendra (1/4/7/10) and trikona (5/9) favorable; dusthana (6/8/12)
                unfavorable; upachaya (3/11) and the rest neutral.
 
-Grade rule (documented, not tunable): net = favorable - unfavorable marks over
-all involved planets; strong when net >= +2, weak when net <= -1, else moderate.
+Strength rule (documented, not tunable) — ONE rule, applied once:
+
+1. net = favorable - unfavorable marks, summed over all involved planets.
+2. strength_pct = 100 * (net + max_unfavorable) / (max_favorable + max_unfavorable),
+   a linear map of the net onto the yoga's OWN achievable [-M-, +M+] range. Both
+   bounds are emitted so a reader can reproduce the number from the printed ledger.
+3. grade = a bucketing of that same percentage: strong >= 75%, moderate >= 40%,
+   else weak (``band_for_pct``).
+
+The word is derived from the number, never computed alongside it. A yoga can
+therefore never print "45% . weak": see ``tests/test_yoga_grade_band_agreement``,
+which enumerates the achievable lattice and asserts agreement at every point.
 """
 
 from __future__ import annotations
@@ -36,6 +46,12 @@ from almamesh.yogas.lordship import (
 )
 
 _NODES = frozenset({PlanetName.RAHU, PlanetName.KETU})
+
+# The ONLY strength cut points in the system (rigor-upgrade §A.1). The word a
+# report prints is a bucketing of the percentage it prints beside it — there is
+# no second threshold anywhere, in any language. See ``band_for_pct``.
+STRONG_MIN_PCT = 75.0
+MODERATE_MIN_PCT = 40.0
 
 # Which planets CAN earn the retrograde +1: the Sun and Moon never turn vakra,
 # and the nodes are perpetually retrograde but excluded from the mark (see
@@ -168,16 +184,6 @@ def _net_marks(pos: PlanetPosition) -> int:
     return favorable - unfavorable
 
 
-def grade_for(positions: list[PlanetPosition]) -> YogaGrade:
-    """Deterministic qualitative grade from the involved planets' factors."""
-    net = sum(_net_marks(pos) for pos in positions)
-    if net >= 2:
-        return "strong"
-    if net <= -1:
-        return "weak"
-    return "moderate"
-
-
 def factors_for(positions: list[PlanetPosition]) -> list[YogaStrengthFactor]:
     """All observed factors across the involved planets, in planet order."""
     out: list[YogaStrengthFactor] = []
@@ -215,7 +221,6 @@ def favorability(positions: list[PlanetPosition]) -> tuple[int, int, int, float]
     """Signed net marks, the yoga's own max-favorable/max-unfavorable range, and
     the calibrated structural strength %.
 
-    Reuses ``_net_marks`` for ``net`` so the grade and the % can never disagree.
     Returns ``(net, max_favorable, max_unfavorable, strength_pct)``.
     """
     net = sum(_net_marks(pos) for pos in positions)
@@ -223,3 +228,27 @@ def favorability(positions: list[PlanetPosition]) -> tuple[int, int, int, float]
     max_unfavorable = sum(_max_unfavorable(pos) for pos in positions)
     pct = _strength_pct(net, max_favorable, max_unfavorable)
     return net, max_favorable, max_unfavorable, pct
+
+
+def band_for_pct(pct: float) -> YogaGrade:
+    """THE percentage -> word rule (rigor-upgrade §A.1). One rule, one place.
+
+    Every surface that prints a strength word — the engine's ``grade`` field, the
+    web report, the PDF — resolves it through here or through the ``grade`` this
+    produces. Nothing re-derives a band from its own thresholds.
+    """
+    if pct >= STRONG_MIN_PCT:
+        return "strong"
+    if pct >= MODERATE_MIN_PCT:
+        return "moderate"
+    return "weak"
+
+
+def grade_for(positions: list[PlanetPosition]) -> YogaGrade:
+    """The qualitative grade, derived from the SAME number the report prints.
+
+    The word is a bucketing of ``strength_pct`` and nothing else, so "45% · weak"
+    is unreachable by construction (see ``tests/test_yoga_grade_band_agreement``,
+    which enumerates the achievable lattice and asserts it at every point).
+    """
+    return band_for_pct(favorability(positions)[3])

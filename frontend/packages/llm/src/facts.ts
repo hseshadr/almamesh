@@ -207,9 +207,11 @@ function navamsaBlock(chart: SanitizedChart): string {
 /**
  * One yoga line, engine words only:
  * "- Gaja Kesari Yoga (…) [moderate] (planets: jupiter, moon) — basis: Jupiter
- *  in the 1st from the Moon". The grade is the engine's qualitative grade —
- * NO numeric yoga strength exists in the contract; the basis is the first
- * formation rule's own description (guarded for older stored payloads).
+ *  in the 1st from the Moon". The grade is the engine's qualitative grade. The
+ * contract DOES carry a numeric `strength_pct`, and the report prints it — but
+ * this fact sheet deliberately withholds it, so the model can never re-weight or
+ * re-derive a number the reader can already check against the engine. The basis
+ * is the first formation rule's own description (guarded for older payloads).
  */
 function yogaLine(yoga: SanitizedChart["yogas"][number]): string {
   const title = yoga.display_name || yoga.name;

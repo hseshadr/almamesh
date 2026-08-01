@@ -1053,6 +1053,55 @@
         "strength_tier": "structural"
       },
       {
+        "category": "dosha",
+        "description": "No planet (other than the Sun) in the 2nd or 12th from the Moon",
+        "display_name": "Kemadruma Yoga (No planet (other than the Sun) in the 2nd or 12th from the Moon)",
+        "effects": "An unsupported Moon: struggles unless cancelled elsewhere",
+        "formation_rules": [
+          {
+            "description": "No planet (other than the Sun) in the 2nd or 12th from the Moon",
+            "houses": [
+              9
+            ],
+            "planets": [
+              "moon"
+            ],
+            "rule": "chandra.kemadruma",
+            "source": "BPHS, Chandra-yoga adhyaya (Sunapha/Anapha/Durudhara/Kemadruma)"
+          }
+        ],
+        "grade": "strong",
+        "houses_involved": [
+          9
+        ],
+        "max_favorable": 2,
+        "max_unfavorable": 3,
+        "name": "Kemadruma Yoga",
+        "net_marks": 1,
+        "planetary_signature": "moon_h9",
+        "planets_involved": [
+          "moon"
+        ],
+        "strength_factors": [
+          {
+            "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
+            "factor_type": "dignity",
+            "mark": 0,
+            "planet": "moon",
+            "value": "neutral"
+          },
+          {
+            "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
+            "factor_type": "house_class",
+            "mark": 1,
+            "planet": "moon",
+            "value": "trikona (house 9)"
+          }
+        ],
+        "strength_pct": 80.0,
+        "strength_tier": "structural"
+      },
+      {
         "category": "raja",
         "description": "A kendra lord and a trikona lord in sambandha",
         "display_name": "Raja Yoga (Moon (kendra lord) and Jupiter (trikona lord) in conjunction)",
@@ -1335,55 +1384,6 @@
           }
         ],
         "strength_pct": 50.0,
-        "strength_tier": "structural"
-      },
-      {
-        "category": "dosha",
-        "description": "No planet (other than the Sun) in the 2nd or 12th from the Moon",
-        "display_name": "Kemadruma Yoga (No planet (other than the Sun) in the 2nd or 12th from the Moon)",
-        "effects": "An unsupported Moon: struggles unless cancelled elsewhere",
-        "formation_rules": [
-          {
-            "description": "No planet (other than the Sun) in the 2nd or 12th from the Moon",
-            "houses": [
-              9
-            ],
-            "planets": [
-              "moon"
-            ],
-            "rule": "chandra.kemadruma",
-            "source": "BPHS, Chandra-yoga adhyaya (Sunapha/Anapha/Durudhara/Kemadruma)"
-          }
-        ],
-        "grade": "moderate",
-        "houses_involved": [
-          9
-        ],
-        "max_favorable": 2,
-        "max_unfavorable": 3,
-        "name": "Kemadruma Yoga",
-        "net_marks": 1,
-        "planetary_signature": "moon_h9",
-        "planets_involved": [
-          "moon"
-        ],
-        "strength_factors": [
-          {
-            "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
-            "factor_type": "dignity",
-            "mark": 0,
-            "planet": "moon",
-            "value": "neutral"
-          },
-          {
-            "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
-            "factor_type": "house_class",
-            "mark": 1,
-            "planet": "moon",
-            "value": "trikona (house 9)"
-          }
-        ],
-        "strength_pct": 80.0,
         "strength_tier": "structural"
       },
       {
@@ -2640,6 +2640,55 @@
         "strength_tier": "structural"
       },
       {
+        "category": "mahapurusha",
+        "description": "Pancha Mahapurusha: the graha in a kendra from lagna in own/exaltation sign",
+        "display_name": "Malavya Yoga (Venus own in the 10th)",
+        "effects": "Refinement, comforts and artistic grace",
+        "formation_rules": [
+          {
+            "description": "Venus own in the 10th (kendra from lagna, own/exaltation sign)",
+            "houses": [
+              10
+            ],
+            "planets": [
+              "venus"
+            ],
+            "rule": "mahapurusha.kendra_dignity",
+            "source": "BPHS, Pancha-Mahapurusha-yoga adhyaya; Phaladeepika 6.1-2"
+          }
+        ],
+        "grade": "strong",
+        "houses_involved": [
+          10
+        ],
+        "max_favorable": 3,
+        "max_unfavorable": 3,
+        "name": "Malavya Yoga",
+        "net_marks": 2,
+        "planetary_signature": "venus_h10",
+        "planets_involved": [
+          "venus"
+        ],
+        "strength_factors": [
+          {
+            "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
+            "factor_type": "dignity",
+            "mark": 1,
+            "planet": "venus",
+            "value": "own"
+          },
+          {
+            "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
+            "factor_type": "house_class",
+            "mark": 1,
+            "planet": "venus",
+            "value": "kendra (house 10)"
+          }
+        ],
+        "strength_pct": 83.33,
+        "strength_tier": "structural"
+      },
+      {
         "category": "chandra",
         "description": "Planets (other than the Sun) on both sides of the Moon",
         "display_name": "Durudhara Yoga (Planets (other than the Sun) on both sides of the Moon)",
@@ -2661,7 +2710,7 @@
             "source": "BPHS, Chandra-yoga adhyaya (Sunapha/Anapha/Durudhara/Kemadruma)"
           }
         ],
-        "grade": "strong",
+        "grade": "moderate",
         "houses_involved": [
           1,
           2,
@@ -2732,52 +2781,90 @@
         "strength_tier": "structural"
       },
       {
-        "category": "mahapurusha",
-        "description": "Pancha Mahapurusha: the graha in a kendra from lagna in own/exaltation sign",
-        "display_name": "Malavya Yoga (Venus own in the 10th)",
-        "effects": "Refinement, comforts and artistic grace",
+        "category": "raja",
+        "description": "A kendra lord and a trikona lord in sambandha",
+        "display_name": "Raja Yoga (Saturn (kendra lord) and Mars (trikona lord) in mutual_aspect)",
+        "effects": "Authority, rise and recognition",
         "formation_rules": [
           {
-            "description": "Venus own in the 10th (kendra from lagna, own/exaltation sign)",
+            "description": "Saturn (kendra lord) and Mars (trikona lord) in mutual_aspect",
             "houses": [
-              10
+              3,
+              4,
+              7,
+              9,
+              12
             ],
             "planets": [
-              "venus"
+              "mars",
+              "saturn"
             ],
-            "rule": "mahapurusha.kendra_dignity",
-            "source": "BPHS, Pancha-Mahapurusha-yoga adhyaya; Phaladeepika 6.1-2"
+            "rule": "raja.kendra_trikona_mutual_aspect",
+            "source": "BPHS, Raja-yoga adhyaya: kendra-lord and trikona-lord in sambandha"
           }
         ],
-        "grade": "strong",
+        "grade": "moderate",
         "houses_involved": [
-          10
+          3,
+          4,
+          7,
+          9,
+          12
         ],
-        "max_favorable": 3,
-        "max_unfavorable": 3,
-        "name": "Malavya Yoga",
-        "net_marks": 2,
-        "planetary_signature": "venus_h10",
+        "max_favorable": 6,
+        "max_unfavorable": 6,
+        "name": "Raja Yoga",
+        "net_marks": -1,
+        "planetary_signature": "mars_saturn_h3_h4_h7_h9_h12",
         "planets_involved": [
-          "venus"
+          "mars",
+          "saturn"
         ],
         "strength_factors": [
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
-            "mark": 1,
-            "planet": "venus",
-            "value": "own"
+            "mark": -1,
+            "planet": "mars",
+            "value": "debilitated"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": -1,
+            "planet": "mars",
+            "value": "dusthana (house 12)"
+          },
+          {
+            "basis": "Asta (combustion) within the classical orb of the Sun (Surya-Siddhanta tradition; B.V. Raman, Graha and Bhava Balas)",
+            "factor_type": "combustion",
+            "mark": -1,
+            "planet": "mars",
+            "value": "combust (1.56 deg from the Sun)"
+          },
+          {
+            "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
+            "factor_type": "dignity",
             "mark": 1,
-            "planet": "venus",
-            "value": "kendra (house 10)"
+            "planet": "saturn",
+            "value": "exalted"
+          },
+          {
+            "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
+            "factor_type": "house_class",
+            "mark": 0,
+            "planet": "saturn",
+            "value": "upachaya (house 3)"
+          },
+          {
+            "basis": "Vakra (retrograde) motion confers high cheshta-bala (BPHS, Shadbala adhyaya)",
+            "factor_type": "retrograde",
+            "mark": 1,
+            "planet": "saturn",
+            "value": "retrograde"
           }
         ],
-        "strength_pct": 83.33,
+        "strength_pct": 41.67,
         "strength_tier": "structural"
       },
       {
@@ -3084,93 +3171,6 @@
           }
         ],
         "strength_pct": 30.0,
-        "strength_tier": "structural"
-      },
-      {
-        "category": "raja",
-        "description": "A kendra lord and a trikona lord in sambandha",
-        "display_name": "Raja Yoga (Saturn (kendra lord) and Mars (trikona lord) in mutual_aspect)",
-        "effects": "Authority, rise and recognition",
-        "formation_rules": [
-          {
-            "description": "Saturn (kendra lord) and Mars (trikona lord) in mutual_aspect",
-            "houses": [
-              3,
-              4,
-              7,
-              9,
-              12
-            ],
-            "planets": [
-              "mars",
-              "saturn"
-            ],
-            "rule": "raja.kendra_trikona_mutual_aspect",
-            "source": "BPHS, Raja-yoga adhyaya: kendra-lord and trikona-lord in sambandha"
-          }
-        ],
-        "grade": "weak",
-        "houses_involved": [
-          3,
-          4,
-          7,
-          9,
-          12
-        ],
-        "max_favorable": 6,
-        "max_unfavorable": 6,
-        "name": "Raja Yoga",
-        "net_marks": -1,
-        "planetary_signature": "mars_saturn_h3_h4_h7_h9_h12",
-        "planets_involved": [
-          "mars",
-          "saturn"
-        ],
-        "strength_factors": [
-          {
-            "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
-            "factor_type": "dignity",
-            "mark": -1,
-            "planet": "mars",
-            "value": "debilitated"
-          },
-          {
-            "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
-            "factor_type": "house_class",
-            "mark": -1,
-            "planet": "mars",
-            "value": "dusthana (house 12)"
-          },
-          {
-            "basis": "Asta (combustion) within the classical orb of the Sun (Surya-Siddhanta tradition; B.V. Raman, Graha and Bhava Balas)",
-            "factor_type": "combustion",
-            "mark": -1,
-            "planet": "mars",
-            "value": "combust (1.56 deg from the Sun)"
-          },
-          {
-            "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
-            "factor_type": "dignity",
-            "mark": 1,
-            "planet": "saturn",
-            "value": "exalted"
-          },
-          {
-            "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
-            "factor_type": "house_class",
-            "mark": 0,
-            "planet": "saturn",
-            "value": "upachaya (house 3)"
-          },
-          {
-            "basis": "Vakra (retrograde) motion confers high cheshta-bala (BPHS, Shadbala adhyaya)",
-            "factor_type": "retrograde",
-            "mark": 1,
-            "planet": "saturn",
-            "value": "retrograde"
-          }
-        ],
-        "strength_pct": 41.67,
         "strength_tier": "structural"
       },
       {
@@ -4407,6 +4407,165 @@
         "strength_tier": "structural"
       },
       {
+        "category": "chandra",
+        "description": "Planets (other than the Sun) on both sides of the Moon",
+        "display_name": "Durudhara Yoga (Planets (other than the Sun) on both sides of the Moon)",
+        "effects": "Resources and supportive company on both sides",
+        "formation_rules": [
+          {
+            "description": "Planets (other than the Sun) on both sides of the Moon",
+            "houses": [
+              10,
+              11,
+              12
+            ],
+            "planets": [
+              "jupiter",
+              "mercury",
+              "moon"
+            ],
+            "rule": "chandra.durudhara",
+            "source": "BPHS, Chandra-yoga adhyaya (Sunapha/Anapha/Durudhara/Kemadruma)"
+          }
+        ],
+        "grade": "moderate",
+        "houses_involved": [
+          10,
+          11,
+          12
+        ],
+        "max_favorable": 8,
+        "max_unfavorable": 9,
+        "name": "Durudhara Yoga",
+        "net_marks": -1,
+        "planetary_signature": "jupiter_mercury_moon_h10_h11_h12",
+        "planets_involved": [
+          "jupiter",
+          "mercury",
+          "moon"
+        ],
+        "strength_factors": [
+          {
+            "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
+            "factor_type": "dignity",
+            "mark": 0,
+            "planet": "jupiter",
+            "value": "neutral"
+          },
+          {
+            "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
+            "factor_type": "house_class",
+            "mark": 1,
+            "planet": "jupiter",
+            "value": "kendra (house 10)"
+          },
+          {
+            "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
+            "factor_type": "dignity",
+            "mark": 0,
+            "planet": "mercury",
+            "value": "neutral"
+          },
+          {
+            "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
+            "factor_type": "house_class",
+            "mark": -1,
+            "planet": "mercury",
+            "value": "dusthana (house 12)"
+          },
+          {
+            "basis": "Asta (combustion) within the classical orb of the Sun (Surya-Siddhanta tradition; B.V. Raman, Graha and Bhava Balas)",
+            "factor_type": "combustion",
+            "mark": -1,
+            "planet": "mercury",
+            "value": "combust (5.27 deg from the Sun)"
+          },
+          {
+            "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
+            "factor_type": "dignity",
+            "mark": 0,
+            "planet": "moon",
+            "value": "neutral"
+          },
+          {
+            "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
+            "factor_type": "house_class",
+            "mark": 0,
+            "planet": "moon",
+            "value": "upachaya (house 11)"
+          }
+        ],
+        "strength_pct": 47.06,
+        "strength_tier": "structural"
+      },
+      {
+        "category": "surya",
+        "description": "Planets (other than the Moon) in the 12th from the Sun",
+        "display_name": "Vasi Yoga (Planets (other than the Moon) in the 12th from the Sun)",
+        "effects": "Balanced fortunes, eloquence and supportive circumstances",
+        "formation_rules": [
+          {
+            "description": "Planets (other than the Moon) in the 12th from the Sun",
+            "houses": [
+              11,
+              12
+            ],
+            "planets": [
+              "sun",
+              "venus"
+            ],
+            "rule": "surya.vasi",
+            "source": "BPHS, Surya-yoga adhyaya (Vesi/Vasi/Ubhayachari)"
+          }
+        ],
+        "grade": "moderate",
+        "houses_involved": [
+          11,
+          12
+        ],
+        "max_favorable": 5,
+        "max_unfavorable": 5,
+        "name": "Vasi Yoga",
+        "net_marks": -1,
+        "planetary_signature": "sun_venus_h11_h12",
+        "planets_involved": [
+          "sun",
+          "venus"
+        ],
+        "strength_factors": [
+          {
+            "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
+            "factor_type": "dignity",
+            "mark": 0,
+            "planet": "sun",
+            "value": "neutral"
+          },
+          {
+            "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
+            "factor_type": "house_class",
+            "mark": -1,
+            "planet": "sun",
+            "value": "dusthana (house 12)"
+          },
+          {
+            "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
+            "factor_type": "dignity",
+            "mark": 0,
+            "planet": "venus",
+            "value": "neutral"
+          },
+          {
+            "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
+            "factor_type": "house_class",
+            "mark": 0,
+            "planet": "venus",
+            "value": "upachaya (house 11)"
+          }
+        ],
+        "strength_pct": 40.0,
+        "strength_tier": "structural"
+      },
+      {
         "category": "auspicious",
         "description": "Sun-Mercury conjunction",
         "display_name": "Budha-Aditya Yoga (Sun and Mercury conjunct in Cancer (the 12th))",
@@ -4476,98 +4635,6 @@
           }
         ],
         "strength_pct": 20.0,
-        "strength_tier": "structural"
-      },
-      {
-        "category": "chandra",
-        "description": "Planets (other than the Sun) on both sides of the Moon",
-        "display_name": "Durudhara Yoga (Planets (other than the Sun) on both sides of the Moon)",
-        "effects": "Resources and supportive company on both sides",
-        "formation_rules": [
-          {
-            "description": "Planets (other than the Sun) on both sides of the Moon",
-            "houses": [
-              10,
-              11,
-              12
-            ],
-            "planets": [
-              "jupiter",
-              "mercury",
-              "moon"
-            ],
-            "rule": "chandra.durudhara",
-            "source": "BPHS, Chandra-yoga adhyaya (Sunapha/Anapha/Durudhara/Kemadruma)"
-          }
-        ],
-        "grade": "weak",
-        "houses_involved": [
-          10,
-          11,
-          12
-        ],
-        "max_favorable": 8,
-        "max_unfavorable": 9,
-        "name": "Durudhara Yoga",
-        "net_marks": -1,
-        "planetary_signature": "jupiter_mercury_moon_h10_h11_h12",
-        "planets_involved": [
-          "jupiter",
-          "mercury",
-          "moon"
-        ],
-        "strength_factors": [
-          {
-            "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
-            "factor_type": "dignity",
-            "mark": 0,
-            "planet": "jupiter",
-            "value": "neutral"
-          },
-          {
-            "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
-            "factor_type": "house_class",
-            "mark": 1,
-            "planet": "jupiter",
-            "value": "kendra (house 10)"
-          },
-          {
-            "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
-            "factor_type": "dignity",
-            "mark": 0,
-            "planet": "mercury",
-            "value": "neutral"
-          },
-          {
-            "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
-            "factor_type": "house_class",
-            "mark": -1,
-            "planet": "mercury",
-            "value": "dusthana (house 12)"
-          },
-          {
-            "basis": "Asta (combustion) within the classical orb of the Sun (Surya-Siddhanta tradition; B.V. Raman, Graha and Bhava Balas)",
-            "factor_type": "combustion",
-            "mark": -1,
-            "planet": "mercury",
-            "value": "combust (5.27 deg from the Sun)"
-          },
-          {
-            "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
-            "factor_type": "dignity",
-            "mark": 0,
-            "planet": "moon",
-            "value": "neutral"
-          },
-          {
-            "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
-            "factor_type": "house_class",
-            "mark": 0,
-            "planet": "moon",
-            "value": "upachaya (house 11)"
-          }
-        ],
-        "strength_pct": 47.06,
         "strength_tier": "structural"
       },
       {
@@ -4642,73 +4709,6 @@
           }
         ],
         "strength_pct": 36.36,
-        "strength_tier": "structural"
-      },
-      {
-        "category": "surya",
-        "description": "Planets (other than the Moon) in the 12th from the Sun",
-        "display_name": "Vasi Yoga (Planets (other than the Moon) in the 12th from the Sun)",
-        "effects": "Balanced fortunes, eloquence and supportive circumstances",
-        "formation_rules": [
-          {
-            "description": "Planets (other than the Moon) in the 12th from the Sun",
-            "houses": [
-              11,
-              12
-            ],
-            "planets": [
-              "sun",
-              "venus"
-            ],
-            "rule": "surya.vasi",
-            "source": "BPHS, Surya-yoga adhyaya (Vesi/Vasi/Ubhayachari)"
-          }
-        ],
-        "grade": "weak",
-        "houses_involved": [
-          11,
-          12
-        ],
-        "max_favorable": 5,
-        "max_unfavorable": 5,
-        "name": "Vasi Yoga",
-        "net_marks": -1,
-        "planetary_signature": "sun_venus_h11_h12",
-        "planets_involved": [
-          "sun",
-          "venus"
-        ],
-        "strength_factors": [
-          {
-            "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
-            "factor_type": "dignity",
-            "mark": 0,
-            "planet": "sun",
-            "value": "neutral"
-          },
-          {
-            "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
-            "factor_type": "house_class",
-            "mark": -1,
-            "planet": "sun",
-            "value": "dusthana (house 12)"
-          },
-          {
-            "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
-            "factor_type": "dignity",
-            "mark": 0,
-            "planet": "venus",
-            "value": "neutral"
-          },
-          {
-            "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
-            "factor_type": "house_class",
-            "mark": 0,
-            "planet": "venus",
-            "value": "upachaya (house 11)"
-          }
-        ],
-        "strength_pct": 40.0,
         "strength_tier": "structural"
       },
       {
@@ -5919,6 +5919,55 @@
         "strength_tier": "structural"
       },
       {
+        "category": "dosha",
+        "description": "No planet (other than the Sun) in the 2nd or 12th from the Moon",
+        "display_name": "Kemadruma Yoga (No planet (other than the Sun) in the 2nd or 12th from the Moon)",
+        "effects": "An unsupported Moon: struggles unless cancelled elsewhere",
+        "formation_rules": [
+          {
+            "description": "No planet (other than the Sun) in the 2nd or 12th from the Moon",
+            "houses": [
+              3
+            ],
+            "planets": [
+              "moon"
+            ],
+            "rule": "chandra.kemadruma",
+            "source": "BPHS, Chandra-yoga adhyaya (Sunapha/Anapha/Durudhara/Kemadruma)"
+          }
+        ],
+        "grade": "moderate",
+        "houses_involved": [
+          3
+        ],
+        "max_favorable": 2,
+        "max_unfavorable": 3,
+        "name": "Kemadruma Yoga",
+        "net_marks": 0,
+        "planetary_signature": "moon_h3",
+        "planets_involved": [
+          "moon"
+        ],
+        "strength_factors": [
+          {
+            "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
+            "factor_type": "dignity",
+            "mark": 0,
+            "planet": "moon",
+            "value": "neutral"
+          },
+          {
+            "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
+            "factor_type": "house_class",
+            "mark": 0,
+            "planet": "moon",
+            "value": "upachaya (house 3)"
+          }
+        ],
+        "strength_pct": 60.0,
+        "strength_tier": "structural"
+      },
+      {
         "category": "raja",
         "description": "A kendra lord and a trikona lord in sambandha",
         "display_name": "Raja Yoga (Jupiter (kendra lord) and Saturn (trikona lord) in mutual_aspect)",
@@ -5940,7 +5989,7 @@
             "source": "BPHS, Raja-yoga adhyaya: kendra-lord and trikona-lord in sambandha"
           }
         ],
-        "grade": "strong",
+        "grade": "moderate",
         "houses_involved": [
           1,
           7,
@@ -6025,7 +6074,7 @@
             "source": "BPHS, Raja-yoga adhyaya: kendra-lord and trikona-lord in sambandha"
           }
         ],
-        "grade": "strong",
+        "grade": "moderate",
         "houses_involved": [
           1,
           4,
@@ -6086,55 +6135,6 @@
           }
         ],
         "strength_pct": 66.67,
-        "strength_tier": "structural"
-      },
-      {
-        "category": "dosha",
-        "description": "No planet (other than the Sun) in the 2nd or 12th from the Moon",
-        "display_name": "Kemadruma Yoga (No planet (other than the Sun) in the 2nd or 12th from the Moon)",
-        "effects": "An unsupported Moon: struggles unless cancelled elsewhere",
-        "formation_rules": [
-          {
-            "description": "No planet (other than the Sun) in the 2nd or 12th from the Moon",
-            "houses": [
-              3
-            ],
-            "planets": [
-              "moon"
-            ],
-            "rule": "chandra.kemadruma",
-            "source": "BPHS, Chandra-yoga adhyaya (Sunapha/Anapha/Durudhara/Kemadruma)"
-          }
-        ],
-        "grade": "moderate",
-        "houses_involved": [
-          3
-        ],
-        "max_favorable": 2,
-        "max_unfavorable": 3,
-        "name": "Kemadruma Yoga",
-        "net_marks": 0,
-        "planetary_signature": "moon_h3",
-        "planets_involved": [
-          "moon"
-        ],
-        "strength_factors": [
-          {
-            "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
-            "factor_type": "dignity",
-            "mark": 0,
-            "planet": "moon",
-            "value": "neutral"
-          },
-          {
-            "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
-            "factor_type": "house_class",
-            "mark": 0,
-            "planet": "moon",
-            "value": "upachaya (house 3)"
-          }
-        ],
-        "strength_pct": 60.0,
         "strength_tier": "structural"
       },
       {
@@ -7339,89 +7339,6 @@
     },
     "yogas": [
       {
-        "category": "raja",
-        "description": "A kendra lord and a trikona lord in sambandha",
-        "display_name": "Raja Yoga (Saturn (kendra lord) and Jupiter (trikona lord) in conjunction)",
-        "effects": "Authority, rise and recognition",
-        "formation_rules": [
-          {
-            "description": "Saturn (kendra lord) and Jupiter (trikona lord) in conjunction",
-            "houses": [
-              7,
-              9,
-              11
-            ],
-            "planets": [
-              "jupiter",
-              "saturn"
-            ],
-            "rule": "raja.kendra_trikona_conjunction",
-            "source": "BPHS, Raja-yoga adhyaya: kendra-lord and trikona-lord in sambandha"
-          }
-        ],
-        "grade": "strong",
-        "houses_involved": [
-          7,
-          9,
-          11
-        ],
-        "max_favorable": 6,
-        "max_unfavorable": 6,
-        "name": "Raja Yoga",
-        "net_marks": 2,
-        "planetary_signature": "jupiter_saturn_h7_h9_h11",
-        "planets_involved": [
-          "jupiter",
-          "saturn"
-        ],
-        "strength_factors": [
-          {
-            "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
-            "factor_type": "dignity",
-            "mark": 0,
-            "planet": "jupiter",
-            "value": "neutral"
-          },
-          {
-            "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
-            "factor_type": "house_class",
-            "mark": 0,
-            "planet": "jupiter",
-            "value": "upachaya (house 11)"
-          },
-          {
-            "basis": "Vakra (retrograde) motion confers high cheshta-bala (BPHS, Shadbala adhyaya)",
-            "factor_type": "retrograde",
-            "mark": 1,
-            "planet": "jupiter",
-            "value": "retrograde"
-          },
-          {
-            "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
-            "factor_type": "dignity",
-            "mark": 0,
-            "planet": "saturn",
-            "value": "neutral"
-          },
-          {
-            "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
-            "factor_type": "house_class",
-            "mark": 0,
-            "planet": "saturn",
-            "value": "upachaya (house 11)"
-          },
-          {
-            "basis": "Vakra (retrograde) motion confers high cheshta-bala (BPHS, Shadbala adhyaya)",
-            "factor_type": "retrograde",
-            "mark": 1,
-            "planet": "saturn",
-            "value": "retrograde"
-          }
-        ],
-        "strength_pct": 66.67,
-        "strength_tier": "structural"
-      },
-      {
         "category": "dhana",
         "description": "9th lord Jupiter in the 11th",
         "display_name": "Dhana Yoga (9th lord Jupiter in the 11th)",
@@ -7554,6 +7471,55 @@
         "strength_tier": "structural"
       },
       {
+        "category": "dosha",
+        "description": "No planet (other than the Sun) in the 2nd or 12th from the Moon",
+        "display_name": "Kemadruma Yoga (No planet (other than the Sun) in the 2nd or 12th from the Moon)",
+        "effects": "An unsupported Moon: struggles unless cancelled elsewhere",
+        "formation_rules": [
+          {
+            "description": "No planet (other than the Sun) in the 2nd or 12th from the Moon",
+            "houses": [
+              8
+            ],
+            "planets": [
+              "moon"
+            ],
+            "rule": "chandra.kemadruma",
+            "source": "BPHS, Chandra-yoga adhyaya (Sunapha/Anapha/Durudhara/Kemadruma)"
+          }
+        ],
+        "grade": "moderate",
+        "houses_involved": [
+          8
+        ],
+        "max_favorable": 2,
+        "max_unfavorable": 3,
+        "name": "Kemadruma Yoga",
+        "net_marks": -1,
+        "planetary_signature": "moon_h8",
+        "planets_involved": [
+          "moon"
+        ],
+        "strength_factors": [
+          {
+            "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
+            "factor_type": "dignity",
+            "mark": 0,
+            "planet": "moon",
+            "value": "neutral"
+          },
+          {
+            "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
+            "factor_type": "house_class",
+            "mark": -1,
+            "planet": "moon",
+            "value": "dusthana (house 8)"
+          }
+        ],
+        "strength_pct": 40.0,
+        "strength_tier": "structural"
+      },
+      {
         "category": "special",
         "description": "Dainya Parivartana: Venus and Saturn exchange signs (houses 8th and 11th)",
         "display_name": "Parivartana Yoga (Dainya Parivartana: Venus and Saturn exchange signs (houses 8th and 11th))",
@@ -7625,6 +7591,89 @@
           }
         ],
         "strength_pct": 50.0,
+        "strength_tier": "structural"
+      },
+      {
+        "category": "raja",
+        "description": "A kendra lord and a trikona lord in sambandha",
+        "display_name": "Raja Yoga (Saturn (kendra lord) and Jupiter (trikona lord) in conjunction)",
+        "effects": "Authority, rise and recognition",
+        "formation_rules": [
+          {
+            "description": "Saturn (kendra lord) and Jupiter (trikona lord) in conjunction",
+            "houses": [
+              7,
+              9,
+              11
+            ],
+            "planets": [
+              "jupiter",
+              "saturn"
+            ],
+            "rule": "raja.kendra_trikona_conjunction",
+            "source": "BPHS, Raja-yoga adhyaya: kendra-lord and trikona-lord in sambandha"
+          }
+        ],
+        "grade": "moderate",
+        "houses_involved": [
+          7,
+          9,
+          11
+        ],
+        "max_favorable": 6,
+        "max_unfavorable": 6,
+        "name": "Raja Yoga",
+        "net_marks": 2,
+        "planetary_signature": "jupiter_saturn_h7_h9_h11",
+        "planets_involved": [
+          "jupiter",
+          "saturn"
+        ],
+        "strength_factors": [
+          {
+            "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
+            "factor_type": "dignity",
+            "mark": 0,
+            "planet": "jupiter",
+            "value": "neutral"
+          },
+          {
+            "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
+            "factor_type": "house_class",
+            "mark": 0,
+            "planet": "jupiter",
+            "value": "upachaya (house 11)"
+          },
+          {
+            "basis": "Vakra (retrograde) motion confers high cheshta-bala (BPHS, Shadbala adhyaya)",
+            "factor_type": "retrograde",
+            "mark": 1,
+            "planet": "jupiter",
+            "value": "retrograde"
+          },
+          {
+            "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
+            "factor_type": "dignity",
+            "mark": 0,
+            "planet": "saturn",
+            "value": "neutral"
+          },
+          {
+            "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
+            "factor_type": "house_class",
+            "mark": 0,
+            "planet": "saturn",
+            "value": "upachaya (house 11)"
+          },
+          {
+            "basis": "Vakra (retrograde) motion confers high cheshta-bala (BPHS, Shadbala adhyaya)",
+            "factor_type": "retrograde",
+            "mark": 1,
+            "planet": "saturn",
+            "value": "retrograde"
+          }
+        ],
+        "strength_pct": 66.67,
         "strength_tier": "structural"
       },
       {
@@ -7748,55 +7797,6 @@
           }
         ],
         "strength_pct": 20.0,
-        "strength_tier": "structural"
-      },
-      {
-        "category": "dosha",
-        "description": "No planet (other than the Sun) in the 2nd or 12th from the Moon",
-        "display_name": "Kemadruma Yoga (No planet (other than the Sun) in the 2nd or 12th from the Moon)",
-        "effects": "An unsupported Moon: struggles unless cancelled elsewhere",
-        "formation_rules": [
-          {
-            "description": "No planet (other than the Sun) in the 2nd or 12th from the Moon",
-            "houses": [
-              8
-            ],
-            "planets": [
-              "moon"
-            ],
-            "rule": "chandra.kemadruma",
-            "source": "BPHS, Chandra-yoga adhyaya (Sunapha/Anapha/Durudhara/Kemadruma)"
-          }
-        ],
-        "grade": "weak",
-        "houses_involved": [
-          8
-        ],
-        "max_favorable": 2,
-        "max_unfavorable": 3,
-        "name": "Kemadruma Yoga",
-        "net_marks": -1,
-        "planetary_signature": "moon_h8",
-        "planets_involved": [
-          "moon"
-        ],
-        "strength_factors": [
-          {
-            "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
-            "factor_type": "dignity",
-            "mark": 0,
-            "planet": "moon",
-            "value": "neutral"
-          },
-          {
-            "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
-            "factor_type": "house_class",
-            "mark": -1,
-            "planet": "moon",
-            "value": "dusthana (house 8)"
-          }
-        ],
-        "strength_pct": 40.0,
         "strength_tier": "structural"
       },
       {
@@ -8917,73 +8917,6 @@
     },
     "yogas": [
       {
-        "category": "special",
-        "description": "Maha Parivartana: Moon and Venus exchange signs (houses 4th and 7th)",
-        "display_name": "Parivartana Yoga (Maha Parivartana: Moon and Venus exchange signs (houses 4th and 7th))",
-        "effects": "The two houses' agendas become interlocked and mutually felt",
-        "formation_rules": [
-          {
-            "description": "Maha Parivartana: Moon and Venus exchange signs (houses 4th and 7th)",
-            "houses": [
-              4,
-              7
-            ],
-            "planets": [
-              "moon",
-              "venus"
-            ],
-            "rule": "parivartana.maha",
-            "source": "Parivartana (exchange) sambandha; Maha/Khala/Dainya per the UK tradition"
-          }
-        ],
-        "grade": "strong",
-        "houses_involved": [
-          4,
-          7
-        ],
-        "max_favorable": 5,
-        "max_unfavorable": 6,
-        "name": "Parivartana Yoga",
-        "net_marks": 2,
-        "planetary_signature": "moon_venus_h4_h7",
-        "planets_involved": [
-          "moon",
-          "venus"
-        ],
-        "strength_factors": [
-          {
-            "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
-            "factor_type": "dignity",
-            "mark": 0,
-            "planet": "moon",
-            "value": "neutral"
-          },
-          {
-            "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
-            "factor_type": "house_class",
-            "mark": 1,
-            "planet": "moon",
-            "value": "kendra (house 7)"
-          },
-          {
-            "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
-            "factor_type": "dignity",
-            "mark": 0,
-            "planet": "venus",
-            "value": "neutral"
-          },
-          {
-            "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
-            "factor_type": "house_class",
-            "mark": 1,
-            "planet": "venus",
-            "value": "kendra (house 4)"
-          }
-        ],
-        "strength_pct": 72.73,
-        "strength_tier": "structural"
-      },
-      {
         "category": "auspicious",
         "description": "The 10th from Lagna or Moon occupied by benefics alone",
         "display_name": "Amala Yoga (a stainless 10th: benefics only)",
@@ -9097,6 +9030,218 @@
           }
         ],
         "strength_pct": 54.55,
+        "strength_tier": "structural"
+      },
+      {
+        "category": "special",
+        "description": "Maha Parivartana: Moon and Venus exchange signs (houses 4th and 7th)",
+        "display_name": "Parivartana Yoga (Maha Parivartana: Moon and Venus exchange signs (houses 4th and 7th))",
+        "effects": "The two houses' agendas become interlocked and mutually felt",
+        "formation_rules": [
+          {
+            "description": "Maha Parivartana: Moon and Venus exchange signs (houses 4th and 7th)",
+            "houses": [
+              4,
+              7
+            ],
+            "planets": [
+              "moon",
+              "venus"
+            ],
+            "rule": "parivartana.maha",
+            "source": "Parivartana (exchange) sambandha; Maha/Khala/Dainya per the UK tradition"
+          }
+        ],
+        "grade": "moderate",
+        "houses_involved": [
+          4,
+          7
+        ],
+        "max_favorable": 5,
+        "max_unfavorable": 6,
+        "name": "Parivartana Yoga",
+        "net_marks": 2,
+        "planetary_signature": "moon_venus_h4_h7",
+        "planets_involved": [
+          "moon",
+          "venus"
+        ],
+        "strength_factors": [
+          {
+            "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
+            "factor_type": "dignity",
+            "mark": 0,
+            "planet": "moon",
+            "value": "neutral"
+          },
+          {
+            "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
+            "factor_type": "house_class",
+            "mark": 1,
+            "planet": "moon",
+            "value": "kendra (house 7)"
+          },
+          {
+            "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
+            "factor_type": "dignity",
+            "mark": 0,
+            "planet": "venus",
+            "value": "neutral"
+          },
+          {
+            "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
+            "factor_type": "house_class",
+            "mark": 1,
+            "planet": "venus",
+            "value": "kendra (house 4)"
+          }
+        ],
+        "strength_pct": 72.73,
+        "strength_tier": "structural"
+      },
+      {
+        "category": "raja",
+        "description": "A kendra lord and a trikona lord in sambandha",
+        "display_name": "Raja Yoga (Saturn (kendra lord) and Jupiter (trikona lord) in mutual_aspect)",
+        "effects": "Authority, rise and recognition",
+        "formation_rules": [
+          {
+            "description": "Saturn (kendra lord) and Jupiter (trikona lord) in mutual_aspect",
+            "houses": [
+              6,
+              9,
+              10,
+              12
+            ],
+            "planets": [
+              "jupiter",
+              "saturn"
+            ],
+            "rule": "raja.kendra_trikona_mutual_aspect",
+            "source": "BPHS, Raja-yoga adhyaya: kendra-lord and trikona-lord in sambandha"
+          }
+        ],
+        "grade": "moderate",
+        "houses_involved": [
+          6,
+          9,
+          10,
+          12
+        ],
+        "max_favorable": 6,
+        "max_unfavorable": 6,
+        "name": "Raja Yoga",
+        "net_marks": -1,
+        "planetary_signature": "jupiter_saturn_h6_h9_h10_h12",
+        "planets_involved": [
+          "jupiter",
+          "saturn"
+        ],
+        "strength_factors": [
+          {
+            "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
+            "factor_type": "dignity",
+            "mark": 1,
+            "planet": "jupiter",
+            "value": "own"
+          },
+          {
+            "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
+            "factor_type": "house_class",
+            "mark": -1,
+            "planet": "jupiter",
+            "value": "dusthana (house 12)"
+          },
+          {
+            "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
+            "factor_type": "dignity",
+            "mark": 0,
+            "planet": "saturn",
+            "value": "neutral"
+          },
+          {
+            "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
+            "factor_type": "house_class",
+            "mark": -1,
+            "planet": "saturn",
+            "value": "dusthana (house 6)"
+          }
+        ],
+        "strength_pct": 41.67,
+        "strength_tier": "structural"
+      },
+      {
+        "category": "auspicious",
+        "description": "The lagna hemmed: only benefics occupy the 12th and 2nd",
+        "display_name": "Shubha Kartari Yoga (The lagna hemmed: only benefics occupy the 12th and 2nd)",
+        "effects": "Protection and support around the self",
+        "formation_rules": [
+          {
+            "description": "The lagna hemmed: only benefics occupy the 12th and 2nd",
+            "houses": [
+              2,
+              12
+            ],
+            "planets": [
+              "jupiter",
+              "mercury"
+            ],
+            "rule": "kartari.shubha",
+            "source": "Phaladeepika (Shubha/Papa Kartari)"
+          }
+        ],
+        "grade": "moderate",
+        "houses_involved": [
+          2,
+          12
+        ],
+        "max_favorable": 6,
+        "max_unfavorable": 6,
+        "name": "Shubha Kartari Yoga",
+        "net_marks": -1,
+        "planetary_signature": "jupiter_mercury_h2_h12",
+        "planets_involved": [
+          "jupiter",
+          "mercury"
+        ],
+        "strength_factors": [
+          {
+            "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
+            "factor_type": "dignity",
+            "mark": 1,
+            "planet": "jupiter",
+            "value": "own"
+          },
+          {
+            "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
+            "factor_type": "house_class",
+            "mark": -1,
+            "planet": "jupiter",
+            "value": "dusthana (house 12)"
+          },
+          {
+            "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
+            "factor_type": "dignity",
+            "mark": 0,
+            "planet": "mercury",
+            "value": "neutral"
+          },
+          {
+            "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
+            "factor_type": "house_class",
+            "mark": 0,
+            "planet": "mercury",
+            "value": "neutral (house 2)"
+          },
+          {
+            "basis": "Asta (combustion) within the classical orb of the Sun (Surya-Siddhanta tradition; B.V. Raman, Graha and Bhava Balas)",
+            "factor_type": "combustion",
+            "mark": -1,
+            "planet": "mercury",
+            "value": "combust (8.20 deg from the Sun)"
+          }
+        ],
+        "strength_pct": 41.67,
         "strength_tier": "structural"
       },
       {
@@ -9238,151 +9383,6 @@
           }
         ],
         "strength_pct": 50.0,
-        "strength_tier": "structural"
-      },
-      {
-        "category": "raja",
-        "description": "A kendra lord and a trikona lord in sambandha",
-        "display_name": "Raja Yoga (Saturn (kendra lord) and Jupiter (trikona lord) in mutual_aspect)",
-        "effects": "Authority, rise and recognition",
-        "formation_rules": [
-          {
-            "description": "Saturn (kendra lord) and Jupiter (trikona lord) in mutual_aspect",
-            "houses": [
-              6,
-              9,
-              10,
-              12
-            ],
-            "planets": [
-              "jupiter",
-              "saturn"
-            ],
-            "rule": "raja.kendra_trikona_mutual_aspect",
-            "source": "BPHS, Raja-yoga adhyaya: kendra-lord and trikona-lord in sambandha"
-          }
-        ],
-        "grade": "weak",
-        "houses_involved": [
-          6,
-          9,
-          10,
-          12
-        ],
-        "max_favorable": 6,
-        "max_unfavorable": 6,
-        "name": "Raja Yoga",
-        "net_marks": -1,
-        "planetary_signature": "jupiter_saturn_h6_h9_h10_h12",
-        "planets_involved": [
-          "jupiter",
-          "saturn"
-        ],
-        "strength_factors": [
-          {
-            "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
-            "factor_type": "dignity",
-            "mark": 1,
-            "planet": "jupiter",
-            "value": "own"
-          },
-          {
-            "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
-            "factor_type": "house_class",
-            "mark": -1,
-            "planet": "jupiter",
-            "value": "dusthana (house 12)"
-          },
-          {
-            "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
-            "factor_type": "dignity",
-            "mark": 0,
-            "planet": "saturn",
-            "value": "neutral"
-          },
-          {
-            "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
-            "factor_type": "house_class",
-            "mark": -1,
-            "planet": "saturn",
-            "value": "dusthana (house 6)"
-          }
-        ],
-        "strength_pct": 41.67,
-        "strength_tier": "structural"
-      },
-      {
-        "category": "auspicious",
-        "description": "The lagna hemmed: only benefics occupy the 12th and 2nd",
-        "display_name": "Shubha Kartari Yoga (The lagna hemmed: only benefics occupy the 12th and 2nd)",
-        "effects": "Protection and support around the self",
-        "formation_rules": [
-          {
-            "description": "The lagna hemmed: only benefics occupy the 12th and 2nd",
-            "houses": [
-              2,
-              12
-            ],
-            "planets": [
-              "jupiter",
-              "mercury"
-            ],
-            "rule": "kartari.shubha",
-            "source": "Phaladeepika (Shubha/Papa Kartari)"
-          }
-        ],
-        "grade": "weak",
-        "houses_involved": [
-          2,
-          12
-        ],
-        "max_favorable": 6,
-        "max_unfavorable": 6,
-        "name": "Shubha Kartari Yoga",
-        "net_marks": -1,
-        "planetary_signature": "jupiter_mercury_h2_h12",
-        "planets_involved": [
-          "jupiter",
-          "mercury"
-        ],
-        "strength_factors": [
-          {
-            "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
-            "factor_type": "dignity",
-            "mark": 1,
-            "planet": "jupiter",
-            "value": "own"
-          },
-          {
-            "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
-            "factor_type": "house_class",
-            "mark": -1,
-            "planet": "jupiter",
-            "value": "dusthana (house 12)"
-          },
-          {
-            "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
-            "factor_type": "dignity",
-            "mark": 0,
-            "planet": "mercury",
-            "value": "neutral"
-          },
-          {
-            "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
-            "factor_type": "house_class",
-            "mark": 0,
-            "planet": "mercury",
-            "value": "neutral (house 2)"
-          },
-          {
-            "basis": "Asta (combustion) within the classical orb of the Sun (Surya-Siddhanta tradition; B.V. Raman, Graha and Bhava Balas)",
-            "factor_type": "combustion",
-            "mark": -1,
-            "planet": "mercury",
-            "value": "combust (8.20 deg from the Sun)"
-          }
-        ],
-        "strength_pct": 41.67,
         "strength_tier": "structural"
       }
     ]
@@ -10492,6 +10492,55 @@
         "strength_tier": "structural"
       },
       {
+        "category": "dosha",
+        "description": "No planet (other than the Sun) in the 2nd or 12th from the Moon",
+        "display_name": "Kemadruma Yoga (No planet (other than the Sun) in the 2nd or 12th from the Moon)",
+        "effects": "An unsupported Moon: struggles unless cancelled elsewhere",
+        "formation_rules": [
+          {
+            "description": "No planet (other than the Sun) in the 2nd or 12th from the Moon",
+            "houses": [
+              7
+            ],
+            "planets": [
+              "moon"
+            ],
+            "rule": "chandra.kemadruma",
+            "source": "BPHS, Chandra-yoga adhyaya (Sunapha/Anapha/Durudhara/Kemadruma)"
+          }
+        ],
+        "grade": "strong",
+        "houses_involved": [
+          7
+        ],
+        "max_favorable": 2,
+        "max_unfavorable": 3,
+        "name": "Kemadruma Yoga",
+        "net_marks": 1,
+        "planetary_signature": "moon_h7",
+        "planets_involved": [
+          "moon"
+        ],
+        "strength_factors": [
+          {
+            "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
+            "factor_type": "dignity",
+            "mark": 0,
+            "planet": "moon",
+            "value": "neutral"
+          },
+          {
+            "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
+            "factor_type": "house_class",
+            "mark": 1,
+            "planet": "moon",
+            "value": "kendra (house 7)"
+          }
+        ],
+        "strength_pct": 80.0,
+        "strength_tier": "structural"
+      },
+      {
         "category": "raja",
         "description": "A kendra lord and a trikona lord in sambandha",
         "display_name": "Raja Yoga (Jupiter (kendra lord) and Saturn (trikona lord) in conjunction)",
@@ -10561,52 +10610,82 @@
         "strength_tier": "structural"
       },
       {
-        "category": "dosha",
-        "description": "No planet (other than the Sun) in the 2nd or 12th from the Moon",
-        "display_name": "Kemadruma Yoga (No planet (other than the Sun) in the 2nd or 12th from the Moon)",
-        "effects": "An unsupported Moon: struggles unless cancelled elsewhere",
+        "category": "auspicious",
+        "description": "Sun-Mercury conjunction",
+        "display_name": "Budha-Aditya Yoga (Sun and Mercury conjunct in Libra (the 2nd))",
+        "effects": "Sharp intellect, administrative and communicative skill",
         "formation_rules": [
           {
-            "description": "No planet (other than the Sun) in the 2nd or 12th from the Moon",
+            "description": "Sun and Mercury conjunct in Libra (the 2nd)",
             "houses": [
-              7
+              2
             ],
             "planets": [
-              "moon"
+              "mercury",
+              "sun"
             ],
-            "rule": "chandra.kemadruma",
-            "source": "BPHS, Chandra-yoga adhyaya (Sunapha/Anapha/Durudhara/Kemadruma)"
+            "rule": "budha_aditya.conjunction",
+            "source": "Classical two-graha combination (Saravali; 300IC)"
           }
         ],
         "grade": "moderate",
         "houses_involved": [
-          7
+          2
         ],
-        "max_favorable": 2,
-        "max_unfavorable": 3,
-        "name": "Kemadruma Yoga",
-        "net_marks": 1,
-        "planetary_signature": "moon_h7",
+        "max_favorable": 5,
+        "max_unfavorable": 5,
+        "name": "Budha-Aditya Yoga",
+        "net_marks": -1,
+        "planetary_signature": "mercury_sun_h2",
         "planets_involved": [
-          "moon"
+          "mercury",
+          "sun"
         ],
         "strength_factors": [
           {
             "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
             "factor_type": "dignity",
             "mark": 0,
-            "planet": "moon",
+            "planet": "mercury",
             "value": "neutral"
           },
           {
             "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
             "factor_type": "house_class",
+            "mark": 0,
+            "planet": "mercury",
+            "value": "neutral (house 2)"
+          },
+          {
+            "basis": "Asta (combustion) within the classical orb of the Sun (Surya-Siddhanta tradition; B.V. Raman, Graha and Bhava Balas)",
+            "factor_type": "combustion",
+            "mark": -1,
+            "planet": "mercury",
+            "value": "combust (4.41 deg from the Sun)"
+          },
+          {
+            "basis": "Vakra (retrograde) motion confers high cheshta-bala (BPHS, Shadbala adhyaya)",
+            "factor_type": "retrograde",
             "mark": 1,
-            "planet": "moon",
-            "value": "kendra (house 7)"
+            "planet": "mercury",
+            "value": "retrograde"
+          },
+          {
+            "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
+            "factor_type": "dignity",
+            "mark": -1,
+            "planet": "sun",
+            "value": "debilitated"
+          },
+          {
+            "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
+            "factor_type": "house_class",
+            "mark": 0,
+            "planet": "sun",
+            "value": "neutral (house 2)"
           }
         ],
-        "strength_pct": 80.0,
+        "strength_pct": 40.0,
         "strength_tier": "structural"
       },
       {
@@ -10759,85 +10838,6 @@
           }
         ],
         "strength_pct": 50.0,
-        "strength_tier": "structural"
-      },
-      {
-        "category": "auspicious",
-        "description": "Sun-Mercury conjunction",
-        "display_name": "Budha-Aditya Yoga (Sun and Mercury conjunct in Libra (the 2nd))",
-        "effects": "Sharp intellect, administrative and communicative skill",
-        "formation_rules": [
-          {
-            "description": "Sun and Mercury conjunct in Libra (the 2nd)",
-            "houses": [
-              2
-            ],
-            "planets": [
-              "mercury",
-              "sun"
-            ],
-            "rule": "budha_aditya.conjunction",
-            "source": "Classical two-graha combination (Saravali; 300IC)"
-          }
-        ],
-        "grade": "weak",
-        "houses_involved": [
-          2
-        ],
-        "max_favorable": 5,
-        "max_unfavorable": 5,
-        "name": "Budha-Aditya Yoga",
-        "net_marks": -1,
-        "planetary_signature": "mercury_sun_h2",
-        "planets_involved": [
-          "mercury",
-          "sun"
-        ],
-        "strength_factors": [
-          {
-            "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
-            "factor_type": "dignity",
-            "mark": 0,
-            "planet": "mercury",
-            "value": "neutral"
-          },
-          {
-            "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
-            "factor_type": "house_class",
-            "mark": 0,
-            "planet": "mercury",
-            "value": "neutral (house 2)"
-          },
-          {
-            "basis": "Asta (combustion) within the classical orb of the Sun (Surya-Siddhanta tradition; B.V. Raman, Graha and Bhava Balas)",
-            "factor_type": "combustion",
-            "mark": -1,
-            "planet": "mercury",
-            "value": "combust (4.41 deg from the Sun)"
-          },
-          {
-            "basis": "Vakra (retrograde) motion confers high cheshta-bala (BPHS, Shadbala adhyaya)",
-            "factor_type": "retrograde",
-            "mark": 1,
-            "planet": "mercury",
-            "value": "retrograde"
-          },
-          {
-            "basis": "Sign dignity per the BPHS exaltation/own-sign doctrine",
-            "factor_type": "dignity",
-            "mark": -1,
-            "planet": "sun",
-            "value": "debilitated"
-          },
-          {
-            "basis": "Whole-sign house class from the lagna (kendra/trikona/upachaya/dusthana)",
-            "factor_type": "house_class",
-            "mark": 0,
-            "planet": "sun",
-            "value": "neutral (house 2)"
-          }
-        ],
-        "strength_pct": 40.0,
         "strength_tier": "structural"
       }
     ]
