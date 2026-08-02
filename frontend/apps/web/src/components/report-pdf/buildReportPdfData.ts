@@ -25,12 +25,14 @@ import {
 } from '../../lib/reportData';
 import type { ReportAudience } from '../../lib/reportSelectors';
 import { rectificationDelta, type RectificationDelta } from '../../lib/rectification';
+import type { StabilityMarker } from '../../lib/stability';
 import type { StrengthProvenance } from '../../lib/strengthProvenance';
 import type {
   ReportPdfAssumptions,
   ReportPdfData,
   ReportPdfDetail,
   ReportPdfLabels,
+  ReportPdfNarrativeTitles,
   ReportPdfRectification,
   ReportPdfTechnical,
 } from './types';
@@ -42,7 +44,9 @@ import {
   buildHouses,
   buildNarrative,
   buildPlanetRows,
+  buildYogaNarrative,
   buildYogas,
+  type StabilityFlagFor,
 } from './buildReportSections';
 import {
   buildDomainsSection,
@@ -78,6 +82,27 @@ export interface BuildReportPdfDataInput {
   readonly interpretation?: VedicInterpretation;
   /** Resolved audience voice (layman / technical) for the narrative. */
   readonly audience: ReportAudience;
+  /**
+   * The five narrative section titles, ALREADY LOCALIZED (the same
+   * `report:interpretation.*` strings the on-screen report uses). OPTIONAL:
+   * omit it and the builder falls back to its English defaults, so an
+   * unwired caller keeps producing exactly what it produced before.
+   */
+  readonly narrativeTitles?: ReportPdfNarrativeTitles;
+  /**
+   * The per-claim birth-time stability markers keyed by `yoga:<name>` /
+   * `domain:<domain>` — the SAME map the on-screen report feeds its
+   * `StabilityChip`s (`reportStabilityMarkers`). OPTIONAL; without it (or
+   * without `formatStability`) no stability flag is printed and every yoga /
+   * domain renders exactly as it did before.
+   */
+  readonly stability?: ReadonlyMap<string, StabilityMarker>;
+  /**
+   * Binds `report:stability.stable` / `report:stability.sensitive` to a marker
+   * — the same i18n keys `StabilityChip` reads, so PDF and screen say the same
+   * words. Same "i18n stays in React" pattern as `formatRectifiedNote`.
+   */
+  readonly formatStability?: (marker: StabilityMarker) => string;
   /** Localized kundli plate captions ("Rāśi · D1" / "Navāṁśa · D9"). */
   readonly chartCaptions: { readonly rasi: string; readonly navamsa: string };
   /** Optional, already-localized near-cusp caveat. */
@@ -155,6 +180,23 @@ function titleCase(value: string): string {
   return value ? value.charAt(0).toUpperCase() + value.slice(1) : '';
 }
 
+/**
+ * The claim-id → localized stability flag resolver, or `undefined` when the
+ * caller supplied no markers (or no formatter) — in which case nothing about
+ * the yoga cards or domain blocks changes. Pure lookup + formatting; it never
+ * decides stability itself (that is `lib/stability`'s deterministic diff).
+ */
+function stabilityFlagResolver(input: BuildReportPdfDataInput): StabilityFlagFor | undefined {
+  const { stability, formatStability } = input;
+  if (!stability || !formatStability) {
+    return undefined;
+  }
+  return (claimId: string): string | undefined => {
+    const marker = stability.get(claimId);
+    return marker ? glyphSafe(formatStability(marker)) : undefined;
+  };
+}
+
 /** Build the cream-paper data list from the birth + lagna data. */
 function buildBirthDetails(input: BuildReportPdfDataInput): ReadonlyArray<ReportPdfDetail> {
   const when = formatBirthDateTime(input.birth);
@@ -192,11 +234,18 @@ function buildAssumptions(input: BuildReportPdfDataInput): ReportPdfAssumptions 
   };
 }
 
-/** Glyph-safe every chrome label so the PDF layer renders verbatim strings. */
+/**
+ * Glyph-safe every chrome label so the PDF layer renders verbatim strings.
+ * Optional labels a caller has not wired are left absent rather than coerced
+ * to `""` — the renderer's own fallback then applies.
+ */
 function safeLabels(labels: ReportPdfLabels): ReportPdfLabels {
   const safe = {} as Record<keyof ReportPdfLabels, string>;
   for (const key of Object.keys(labels) as (keyof ReportPdfLabels)[]) {
-    safe[key] = glyphSafe(labels[key]);
+    const value = labels[key];
+    if (value !== undefined) {
+      safe[key] = glyphSafe(value);
+    }
   }
   return safe as ReportPdfLabels;
 }
@@ -207,6 +256,7 @@ export function buildReportPdfData(input: BuildReportPdfDataInput): ReportPdfDat
   );
   const d1Geometry = buildD1Geometry(input.sidereal);
   const { comprehensive } = input;
+  const stabilityFlagFor = stabilityFlagResolver(input);
 
   return {
     personName: glyphSafe(input.personName),
@@ -226,9 +276,12 @@ export function buildReportPdfData(input: BuildReportPdfDataInput): ReportPdfDat
       input.formatAntarHeading,
       input.formatPratyantarHeading,
     ),
-    yogas: buildYogas(input.sidereal),
+    yogas: buildYogas(input.sidereal, stabilityFlagFor),
+    yogaNarrative: input.interpretation
+      ? buildYogaNarrative(input.interpretation, input.audience)
+      : undefined,
     narrative: input.interpretation
-      ? buildNarrative(input.interpretation, input.audience)
+      ? buildNarrative(input.interpretation, input.audience, input.narrativeTitles)
       : undefined,
     // Comprehensive sections mirror the web report: each renders only when its
     // on-device context was computed (and the translators were supplied).
@@ -246,7 +299,12 @@ export function buildReportPdfData(input: BuildReportPdfDataInput): ReportPdfDat
         : undefined,
     domains:
       comprehensive?.domainsCtx !== undefined
-        ? buildDomainsSection(comprehensive.domainsCtx, comprehensive.translators, comprehensive.provenance)
+        ? buildDomainsSection(
+            comprehensive.domainsCtx,
+            comprehensive.translators,
+            comprehensive.provenance,
+            stabilityFlagFor,
+          )
         : undefined,
     rectification: input.rectification,
     assumptions: buildAssumptions(input),

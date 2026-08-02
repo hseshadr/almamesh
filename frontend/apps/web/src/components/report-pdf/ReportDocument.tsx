@@ -117,15 +117,16 @@ export function ReportDocument({ data }: ReportDocumentProps): ReactElement {
         {footer()}
       </Page>
 
-      {/* The Interpretation page is rendered ONLY when the LLM narrative exists.
-          Without it the report gracefully degrades to its deterministic natal
-          halves. */}
-      {data.narrative && data.narrative.length > 0 ? (
-        <Page size="A4" style={styles.page}>
-          <ReportPdfNarrative data={data} />
-          {footer()}
-        </Page>
-      ) : null}
+      {/* The Interpretation page ALWAYS renders. With a narrative it carries the
+          reading; without one it carries a short, honest note saying the written
+          interpretation appears once an AI reading is generated. Deleting the
+          section silently was the bug: a reader could not tell whether the
+          report was complete. (Contrast the sections below, whose absence is
+          self-evident from the data they would have shown.) */}
+      <Page size="A4" style={styles.page}>
+        <ReportPdfNarrative data={data} />
+        {footer()}
+      </Page>
 
       {/* Comprehensive sections — mirrors of web report VII–XI; each present
           only when its on-device context was computed. */}

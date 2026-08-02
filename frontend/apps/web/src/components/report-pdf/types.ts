@@ -139,6 +139,31 @@ export interface ReportPdfYoga {
    * max +5". Empty when strength is absent or the yoga has no non-neutral marks.
    */
   readonly strengthLedger: string;
+  /**
+   * The birth-time stability flag for THIS yoga, pre-localized — the same words
+   * the on-screen `StabilityChip` prints ("birth-time stable" / "birth-time
+   * sensitive"). OPTIONAL: absent when no stability markers were supplied
+   * (older payloads), and the card then renders exactly as it did before.
+   */
+  readonly stability?: string;
+}
+
+/**
+ * The five LLM-narrative section titles, ALREADY LOCALIZED by the caller (they
+ * are the same `report:interpretation.*` strings the on-screen report uses).
+ * The PDF layer holds no i18n — inject these or accept the English defaults.
+ */
+export interface ReportPdfNarrativeTitles {
+  /** `report:interpretation.current_sky` — "What's Active Now & Next". */
+  readonly currentSky: string;
+  /** `report:interpretation.strengths`. */
+  readonly strengths: string;
+  /** `report:interpretation.challenges`. */
+  readonly challenges: string;
+  /** `report:interpretation.life_themes`. */
+  readonly lifeThemes: string;
+  /** `report:interpretation.road_ahead`. */
+  readonly roadAhead: string;
 }
 
 /** One interpretation block — an optional heading + ordered prose paragraphs. */
@@ -252,6 +277,12 @@ export interface ReportPdfDomainBlock {
   readonly windowsLabel: string;
   readonly windows: ReadonlyArray<string>;
   readonly windowsEmpty: string;
+  /**
+   * The birth-time stability flag for THIS domain, pre-localized — identical
+   * wording to the on-screen `StabilityChip`. OPTIONAL: absent when no markers
+   * were supplied, and the block then renders exactly as it did before.
+   */
+  readonly stability?: string;
 }
 
 /** Section XI — the seven deterministic life-domain forecasts. */
@@ -341,10 +372,18 @@ export interface ReportPdfData {
   /** The engine's yogas. */
   readonly yogas: ReadonlyArray<ReportPdfYoga>;
   /**
+   * The LLM's woven yoga story (`integrated_yoga_narrative`), resolved to the
+   * reader's voice and split into paragraphs. OPTIONAL — absent on a natal-only
+   * report, and the yoga section then prints the engine's cards alone.
+   */
+  readonly yogaNarrative?: ReadonlyArray<string>;
+  /**
    * The structured interpretation, as ordered narrative blocks. OPTIONAL: when
    * the LLM interpretation has not been generated yet, the report degrades to
-   * its deterministic natal halves and this is `undefined` — the document then
-   * omits the Interpretation section entirely (never a blank/broken page).
+   * its deterministic natal halves and this is `undefined`. The Interpretation
+   * SECTION still prints — carrying `labels.narrativeAbsentNote`, an honest
+   * one-paragraph explanation — so a reader is never left wondering what is
+   * missing (never a blank page, never a fabricated narrative).
    */
   readonly narrative?: ReadonlyArray<ReportPdfNarrativeSection>;
 
@@ -417,4 +456,12 @@ export interface ReportPdfLabels {
   readonly narrativeEyebrow: string;
   readonly narrativeTitle: string;
   readonly narrativeIntro: string;
+  /**
+   * Printed INSTEAD of the reading when no AI interpretation was generated:
+   * one short, honest paragraph saying the written interpretation appears once
+   * a reading is generated (optional, bring-your-own-key) and that the rest of
+   * the report is complete. OPTIONAL for callers that have not wired it yet —
+   * the section then falls back to an English default rather than going blank.
+   */
+  readonly narrativeAbsentNote?: string;
 }

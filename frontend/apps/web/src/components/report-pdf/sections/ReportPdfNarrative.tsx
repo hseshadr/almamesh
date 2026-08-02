@@ -4,6 +4,11 @@
  * italic pull-quote; every subsequent block is a Fraunces sub-heading over its
  * ordered paragraphs. Paragraphs arrive as plain text on `ReportPdfNarrativeSection`
  * (markdown already stripped) — the PDF layer only typesets.
+ *
+ * When no reading exists the section STILL prints: heading + one honest
+ * paragraph saying the written interpretation appears once an AI reading is
+ * generated. Silently deleting the section left a reader wondering what they
+ * had missed; a fabricated narrative would be worse. This is the third option.
  */
 
 import type { ReactElement } from 'react';
@@ -50,6 +55,16 @@ function NarrativeBlock({ section }: { section: ReportPdfNarrativeSection }): Re
   );
 }
 
+/**
+ * The English fallback for callers that have not wired `narrativeAbsentNote`
+ * yet. Shipping locales override it; it exists so the section can never go
+ * blank, not as the contract (i18n stays in React).
+ */
+const ABSENT_NOTE_FALLBACK =
+  'No AI reading has been generated for this chart yet, so the written interpretation ' +
+  'is not printed here. Generating one is optional and uses your own API key — ' +
+  'everything else in this report is complete and unaffected.';
+
 export function ReportPdfNarrative({ data }: ReportPdfNarrativeProps): ReactElement {
   const { narrative, labels } = data;
   const sections = narrative ?? [];
@@ -60,6 +75,11 @@ export function ReportPdfNarrative({ data }: ReportPdfNarrativeProps): ReactElem
         title={labels.narrativeTitle}
         intro={labels.narrativeIntro}
       />
+      {sections.length === 0 ? (
+        <Text style={styles.narrativePara}>
+          {labels.narrativeAbsentNote || ABSENT_NOTE_FALLBACK}
+        </Text>
+      ) : null}
       {sections.map((section, index) =>
         section.title === '' ? (
           <SummaryBlock key={`summary-${index}`} section={section} />

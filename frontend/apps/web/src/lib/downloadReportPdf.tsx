@@ -19,9 +19,11 @@ import type {
   BirthDetailLabels,
   ReportPdfAssumptions,
   ReportPdfLabels,
+  ReportPdfNarrativeTitles,
   ReportPdfRectification,
   ReportPdfTranslators,
 } from '../components/report-pdf';
+import type { StabilityMarker } from './stability';
 import type { ReportAudience } from './reportSelectors';
 import type { ReportChartFields } from './reportData';
 import type { RectificationDelta } from './rectification';
@@ -63,6 +65,21 @@ export interface DownloadReportPdfInput {
   readonly interpretation?: VedicInterpretation;
   /** Resolved audience voice (layman / technical) for the narrative. */
   readonly audience: ReportAudience;
+  /**
+   * Localized headings for the narrative blocks (Strengths, Challenges, …).
+   * i18n stays in React; the PDF layer only typesets what it is handed.
+   */
+  readonly narrativeTitles?: ReportPdfNarrativeTitles;
+  /**
+   * The SAME birth-time stability markers the on-screen report renders as
+   * `StabilityChip`s. Carried into the PDF so the durable artifact keeps the
+   * honesty furniture the screen shows — a near-cusp ascendant makes every
+   * house-based verdict birth-time-sensitive, and a reader of the PDF alone
+   * deserves to know which verdicts those are.
+   */
+  readonly stability?: ReadonlyMap<string, StabilityMarker>;
+  /** Localizes a marker into the chip's own wording. */
+  readonly formatStability?: (marker: StabilityMarker) => string;
   readonly chrome: ReportPdfChrome;
   /**
    * The computed predictive contexts + the i18next translators that localize
@@ -136,6 +153,9 @@ export async function downloadReportPdf(input: DownloadReportPdfInput): Promise<
     sidereal: input.sidereal,
     interpretation: input.interpretation,
     audience: input.audience,
+    narrativeTitles: input.narrativeTitles,
+    stability: input.stability,
+    formatStability: input.formatStability,
     chartCaptions: input.chrome.chartCaptions,
     ascendantNote: input.chrome.ascendantNote,
     formatRectifiedNote: input.chrome.formatRectifiedNote,

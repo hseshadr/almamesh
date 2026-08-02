@@ -28,6 +28,7 @@
     "yogas_intro": "Las combinaciones planetarias que el motor identifica en esta carta, con su grado clásico. Un yoga es una tendencia, nunca un veredicto.",
     "narrative_eyebrow": "Sección VII",
     "narrative_intro": "Una lectura tejida a partir de las posiciones anteriores — fortalezas, desafíos, temas de vida y orientación en los principales ámbitos de la vida.",
+    "narrative_absent_note": "Aún no se ha generado una lectura con IA para esta carta, así que la interpretación escrita no se imprime aquí. Generarla es opcional y usa tu propia clave de API: todo lo demás en este informe está completo y no se ve afectado.",
     "transits_eyebrow": "Sección VIII",
     "transits_intro": "Dónde están los grahas en el cielo sideral de hoy frente a la carta natal — Sade Sati, impactos de grahas lentos, la fusión daśā × tránsito y la línea de tiempo de doce meses.",
     "vargas_eyebrow": "Sección IX",

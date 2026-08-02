@@ -28,6 +28,7 @@
     "yogas_intro": "As combinações planetárias que o motor identifica neste mapa, com seu grau clássico. Um yoga é uma tendência, nunca um veredicto.",
     "narrative_eyebrow": "Seção VII",
     "narrative_intro": "Uma leitura tecida a partir das posições acima — forças, desafios, temas de vida e orientação nos principais domínios da vida.",
+    "narrative_absent_note": "Ainda não foi gerada uma leitura com IA para este mapa, por isso a interpretação escrita não é impressa aqui. Gerá-la é opcional e usa a sua própria chave de API — todo o restante deste relatório está completo e não é afetado.",
     "transits_eyebrow": "Seção VIII",
     "transits_intro": "Onde os grahas estão no céu sideral de hoje em relação ao mapa natal — Sade Sati, impactos de grahas lentos, a fusão daśā × trânsito e a linha do tempo de doze meses.",
     "vargas_eyebrow": "Seção IX",

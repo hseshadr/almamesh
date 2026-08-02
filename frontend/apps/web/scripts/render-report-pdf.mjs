@@ -32,36 +32,58 @@
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { mkdir, readFile } from 'node:fs/promises';
+import { registerHooks } from 'node:module';
 import { createElement } from 'react';
 import { Font, renderToFile } from '@react-pdf/renderer';
 import i18next from 'i18next';
-import { ReportDocument } from '../src/components/report-pdf/ReportDocument.tsx';
-import {
+
+/**
+ * Stub `.css` imports before ANY app module loads.
+ *
+ * The pure `buildComprehensiveSections` builder reaches `DOMAIN_ORDER` and
+ * `hasApproximatedComponents` through two React panel modules, and one of those
+ * panels imports a stylesheet. Vite handles that in the browser; plain Node +
+ * tsx cannot parse `.css` and the whole harness dies on an unrelated import.
+ * A no-op module keeps this eye-inspection script running without asking the
+ * app to restructure. App modules are imported dynamically BELOW so this hook
+ * is installed first (static imports would be hoisted ahead of it).
+ */
+registerHooks({
+  load(url, context, nextLoad) {
+    if (url.endsWith('.css')) {
+      return { format: 'module', shortCircuit: true, source: 'export default {};' };
+    }
+    return nextLoad(url, context);
+  },
+});
+
+const { ReportDocument } = await import('../src/components/report-pdf/ReportDocument.tsx');
+const {
   buildCharts,
   buildD1Geometry,
   buildDasha,
   buildHouses,
   buildNarrative,
   buildPlanetRows,
+  buildYogaNarrative,
   buildYogas,
-} from '../src/components/report-pdf/buildReportSections.ts';
-import {
-  buildDomainsSection,
-  buildStrengthSection,
-  buildTransitsSection,
-  buildVargasSection,
-} from '../src/components/report-pdf/buildComprehensiveSections.ts';
-import { buildRectificationPdf } from '../src/components/report-pdf/buildRectificationPdf.ts';
-import { glyphSafe } from '../src/components/report-pdf/glyphSafe.ts';
-import {
-  DOMAINS_CTX,
-  STRENGTH_CTX,
-  TRANSIT_CTX,
-  VARGA_CTX_FULL,
-} from '../src/test/predictiveFixtures.ts';
-import enReport from '../src/locales/en/report.json';
-import enPredictive from '../src/locales/en/predictive.json';
-import enRectify from '../src/locales/en/rectify.json';
+} = await import('../src/components/report-pdf/buildReportSections.ts');
+const { buildDomainsSection, buildStrengthSection, buildTransitsSection, buildVargasSection } =
+  await import('../src/components/report-pdf/buildComprehensiveSections.ts');
+const { buildRectificationPdf } = await import(
+  '../src/components/report-pdf/buildRectificationPdf.ts'
+);
+const { glyphSafe } = await import('../src/components/report-pdf/glyphSafe.ts');
+const { domainClaimId, reportStabilityMarkers, yogaClaimId } = await import(
+  '../src/lib/stability.ts'
+);
+const { cuspInfo } = await import('../src/lib/lagnaCusp.ts');
+const { DOMAINS_CTX, STRENGTH_CTX, TRANSIT_CTX, VARGA_CTX_FULL } = await import(
+  '../src/test/predictiveFixtures.ts'
+);
+const { default: enReport } = await import('../src/locales/en/report.json');
+const { default: enPredictive } = await import('../src/locales/en/predictive.json');
+const { default: enRectify } = await import('../src/locales/en/rectify.json');
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const APP_ROOT = resolve(HERE, '..');
@@ -71,8 +93,9 @@ const CHART_FILE = resolve(OUT_DIR, 'reference_chart.json');
 
 // `REPORT_FIXTURE=natal-only` renders the graceful natal-only degradation: the
 // deterministic halves (cover · birth details · planets · kundli · dasha · yogas)
-// with NO interpretation, so the Interpretation section is cleanly omitted. Any
-// other value renders the full report (the default).
+// with NO interpretation. The Interpretation section still PRINTS — carrying a
+// short honest note that no AI reading has been generated — so the artifact
+// never silently hides a section. Any other value renders the full report.
 const FIXTURE = process.env.REPORT_FIXTURE ?? 'full';
 const NATAL_ONLY = FIXTURE === 'natal-only';
 const OUT_FILE = resolve(OUT_DIR, NATAL_ONLY ? 'sample-report-natal-only.pdf' : 'sample-report.pdf');
@@ -184,6 +207,19 @@ const SAMPLE_INTERPRETATION = {
       'Devotion, water, music, and quiet practice restore you more than analysis does. Your ' +
       'twelfth-house Mercury makes the inner world unusually articulate when you give it space.',
   },
+  // The LLM's woven yoga story — prose about the engine's OWN formed yogas,
+  // printed above the yoga cards it describes (Section VI).
+  integrated_yoga_narrative: {
+    layman:
+      'The yogas in this chart do not read as a list of separate blessings; they read as one ' +
+      'argument made three times. An exalted Venus rising, a debilitated-but-rescued chart lord, ' +
+      'and every graha held inside the nodal axis all say the same thing — that value here is ' +
+      'discovered through reversal rather than handed over intact.',
+    technical:
+      'Malavya Yoga (exalted Venus in a kendra) supplies the outward signature, while Neecha ' +
+      'Bhanga on the debilitated chart lord supplies the mechanism; Kala Sarpa constrains the ' +
+      'whole to the Rahu–Ketu axis, concentrating rather than dispersing the result.',
+  },
 };
 
 /** The localized chrome labels (authored here; the app passes i18n strings). */
@@ -249,6 +285,9 @@ const LABELS = {
   narrativeIntro:
     'A reading woven from the placements above — strengths, challenges, life themes, and ' +
     'guidance across the major life domains.',
+  // Printed INSTEAD of the reading on the natal-only fixture: the section keeps
+  // its place in the document and says plainly why it is empty.
+  narrativeAbsentNote: enReport.pdf.narrative_absent_note,
 };
 
 /** Glyph-safe every string in a flat label/value record (mirrors the app). */
@@ -320,6 +359,29 @@ async function main() {
   const d1Geometry = buildD1Geometry(chart);
   const translators = await buildTranslators();
 
+  // Birth-time stability, derived exactly as the app derives it: a lagna within
+  // 3° of a sign boundary makes every house-based verdict birth-time SENSITIVE;
+  // otherwise the ascendant is unambiguous and each verdict is stable. Never
+  // asserted by hand — the reference chart's own lagna decides.
+  const { lagna } = chart;
+  const nearCusp = cuspInfo(lagna.sign, lagna.sign_degrees, 3, lagna) !== null;
+  const stabilityMarkers = reportStabilityMarkers(
+    [
+      ...chart.yogas.map((yoga) => yogaClaimId(yoga.name)),
+      ...Object.keys(DOMAINS_CTX.forecasts).map(domainClaimId),
+    ],
+    nearCusp,
+  );
+  const stabilityFlagFor = (claimId) => {
+    const marker = stabilityMarkers.get(claimId);
+    if (!marker) {
+      return undefined;
+    }
+    return glyphSafe(
+      translators.tr(marker.holdsUnderBoth ? 'stability.stable' : 'stability.sensitive'),
+    );
+  };
+
   const data = {
     personName: glyphSafe('Reference Native'),
     audienceLabel: glyphSafe('For You'),
@@ -346,10 +408,21 @@ async function main() {
     houses: buildHouses(chart),
     charts: buildCharts(chart, d1Geometry, { rasi: 'Rāśi · D1', navamsa: 'Navāṁśa · D9' }),
     dasha: buildDasha(chart, (lord) => `Antar-daśās of the ${lord} Mahā-daśā`),
-    yogas: buildYogas(chart),
-    // Natal-only fixture omits the narrative entirely (undefined) — the document
-    // then drops the Interpretation page; the full fixture builds it as usual.
-    narrative: NATAL_ONLY ? undefined : buildNarrative(SAMPLE_INTERPRETATION, 'you'),
+    yogas: buildYogas(chart, stabilityFlagFor),
+    // Natal-only fixture omits the narrative entirely (undefined) — the
+    // Interpretation page still renders, carrying `narrativeAbsentNote` instead
+    // of a reading; the full fixture builds the reading as usual. Section titles
+    // come from the REAL en catalog, never hardcoded in the PDF layer.
+    yogaNarrative: NATAL_ONLY ? undefined : buildYogaNarrative(SAMPLE_INTERPRETATION, 'you'),
+    narrative: NATAL_ONLY
+      ? undefined
+      : buildNarrative(SAMPLE_INTERPRETATION, 'you', {
+          currentSky: translators.tr('interpretation.current_sky'),
+          strengths: translators.tr('interpretation.strengths'),
+          challenges: translators.tr('interpretation.challenges'),
+          lifeThemes: translators.tr('interpretation.life_themes'),
+          roadAhead: translators.tr('interpretation.road_ahead'),
+        }),
     // The comprehensive sections (transits · all 16 vargas · strength · domains ·
     // Birth Time Authority) render only on the full fixture — the natal-only
     // fixture proves they are cleanly omitted, exactly like the app.
@@ -359,7 +432,7 @@ async function main() {
           transits: buildTransitsSection(TRANSIT_CTX, translators),
           vargas: buildVargasSection(fullSixteenVargaCtx(), translators),
           strength: buildStrengthSection(STRENGTH_CTX, translators),
-          domains: buildDomainsSection(DOMAINS_CTX, translators),
+          domains: buildDomainsSection(DOMAINS_CTX, translators, undefined, stabilityFlagFor),
           rectification: buildRectificationPdf({
             record: SAMPLE_RECTIFICATION_RECORD,
             events: SAMPLE_RECTIFICATION_EVENTS,
@@ -375,7 +448,9 @@ async function main() {
   console.log(
     `   planets=${data.planets.length} houses=${data.houses.length} yogas=${data.yogas.length} ` +
       `maha=${data.dasha.mahaSequence.length} antarTables=${data.dasha.antarTables.length} ` +
-      `narrative=${data.narrative ? data.narrative.length : 'omitted'} ` +
+      `narrative=${data.narrative ? data.narrative.length : 'absent-note'} ` +
+      `yogaNarrative=${data.yogaNarrative ? data.yogaNarrative.length : 'omitted'} ` +
+      `stability=${nearCusp ? 'sensitive' : 'stable'} ` +
       `navamsa=${data.charts.navamsa ? 'yes' : 'no'} ` +
       `vargaPlates=${data.vargas ? data.vargas.plates.length : 'omitted'} ` +
       `rectification=${data.rectification ? 'yes' : 'omitted'}`,

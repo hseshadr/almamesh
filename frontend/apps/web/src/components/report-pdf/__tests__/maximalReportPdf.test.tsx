@@ -187,6 +187,39 @@ describe('maximal report PDF acceptance', () => {
     expect(foldedText).not.toContain('LIFE EVENTS USED FOR RECTIFICATION');
   });
 
+  /**
+   * Section XIII is the honesty furniture the product's credibility rests on:
+   * which ayanamsa, which house system, whether the birth time was rectified,
+   * and how near the ascendant sits to a cusp. Nothing asserted it in a REAL
+   * rendered PDF, so it was one refactor away from silently vanishing from the
+   * durable artifact while every other test stayed green.
+   */
+  it('prints Assumptions & Provenance with all four load-bearing rows', () => {
+    const assumptions = data.assumptions;
+    expect(assumptions, 'the maximal fixture must carry Section XIII').toBeDefined();
+    if (!assumptions) return;
+
+    const [pageNumber] = pagesContaining(pdf, assumptions.chrome.title);
+    expect(pageNumber, 'Section XIII must reach a rendered page').toBeDefined();
+    const page = pdf.pages.find((candidate) => candidate.number === pageNumber);
+    const pageText = normalizePdfText(page?.text ?? '').toLocaleLowerCase('en');
+
+    expect(assumptions.rows).toHaveLength(4);
+    for (const row of assumptions.rows) {
+      // Labels are small-caps and wrap around the value column, so poppler
+      // reads their words out of order — assert every word landed, not a
+      // contiguous run.
+      for (const word of normalizePdfText(row.label).toLocaleLowerCase('en').split(' ')) {
+        expect(pageText, `missing word ${word} of assumptions label ${row.label}`).toContain(word);
+      }
+      // A label with no value beside it would state an assumption without
+      // disclosing it — the exact failure this section exists to prevent.
+      expect(pageText, `missing assumptions value for ${row.label}`).toContain(
+        normalizePdfText(row.value).toLocaleLowerCase('en'),
+      );
+    }
+  });
+
   it('keeps content and footer text inside their A4 layout regions', () => {
     expect(a4ContentBoundViolations(pdf, { footerNote: data.labels.footerNote })).toEqual([]);
   });

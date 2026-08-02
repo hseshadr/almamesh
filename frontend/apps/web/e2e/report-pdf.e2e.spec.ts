@@ -18,6 +18,7 @@ import {
   footerGeometryViolations,
   horizontalWordOverlapViolations,
   inspectPdfWithPoppler,
+  normalizePdfText,
 } from '../src/components/report-pdf/__tests__/pdfPoppler';
 
 const execFileAsync = promisify(execFile);
@@ -37,7 +38,14 @@ const execFileAsync = promisify(execFile);
  *      06:14, lagna flips Leo -> Cancer),
  *   3. hard-reloads the dashboard offline and proves the saved Cancer chart survives,
  *   4. computes fixed-date predictive transits and checks houses from Cancer,
- *   5. downloads the keyless report and verifies the same transit/lagna/date facts.
+ *   5. downloads the keyless report and verifies the same transit/lagna/date facts,
+ *      including that section VII (Interpretation) is PRESENT with an honest
+ *      "no reading yet" note rather than silently deleted, and that the document
+ *      never shrinks below its measured 26-page baseline.
+ *
+ * A fourth test covers the stale-status regression: a complete natal-only
+ * reading beside a `ready` predictive slice (the combination that downgrades the
+ * reading's status to 'idle') must still print its narrative in the PDF.
  *
  * The proof case is the reference native: Bengaluru, India, 08 Aug 1988, 06:44 IST.
  * The lagna sits on the Cancer / Leo cusp:
@@ -54,12 +62,48 @@ const DOWNLOAD_PATH = resolve(OUT_DIR, 'e2e-download.pdf');
 const DASHBOARD_SHOT = resolve(OUT_DIR, 'e2e-dashboard.png');
 const REPORT_SHOT = resolve(OUT_DIR, 'e2e-report.png');
 const MAXIMAL_DOWNLOAD_PATH = resolve(OUT_DIR, 'e2e-maximal-download.pdf');
+const STALE_DOWNLOAD_PATH = resolve(OUT_DIR, 'e2e-stale-natal-download.pdf');
+const EN_REPORT_CATALOG = resolve(HERE, '../src/locales/en/report.json');
 
 const SYNTHETIC_PROFILE_ID = 'report-pdf-maximal-profile';
 const SYNTHETIC_CHART_ID = 'report-pdf-maximal-chart';
 const SYNTHETIC_EVENT_COUNT = 18;
 const CURRENT_SKY_SENTINEL = 'Current sky browser-download sentinel';
 const TRANSIT_REFERENCE_TIME = '2026-07-11T12:00:00Z';
+
+/**
+ * The reported bug, in one sentence: a natal-only reading records
+ * `inputProvenance.predictiveRequestKey: null`, and that provenance stops being
+ * "input-current" the instant the predictive layer publishes raw contexts — so
+ * an export gated on `status === 'complete'` silently dropped the entire
+ * Interpretation section while the dashboard kept showing the same reading.
+ * These sentinels are the narrative that MUST survive that downgrade.
+ */
+const NATAL_ONLY_SUMMARY_SENTINEL = 'Natal-only summary survives the stale-status downgrade';
+const NATAL_ONLY_STRENGTH_SENTINEL = 'Natal-only strength survives the stale-status downgrade';
+
+/**
+ * Pages in the keyless report measured on `main` BEFORE the fix: sections I–VI
+ * and VIII–XIII, with VII absent and the numbering visibly jumping VI → VIII.
+ * The fixed document only ADDS the Interpretation page, so it can never be
+ * shorter; a smaller count means a section was silently gutted again.
+ */
+const KEYLESS_PDF_BASELINE_PAGES = 26;
+
+/**
+ * The RAW engine predictive slices exactly as `computePredictive` returns them
+ * (the store persists them at v2 under `rawContexts`). Their PRESENCE is what
+ * makes the staleness path fire: `currentPredictiveFacts` counts predictive
+ * facts as existing only when all four slices are readable, and a natal-only
+ * reading is "current" only while they do NOT. Without `rawContexts` the bug
+ * does not reproduce at all — the reading simply stays complete.
+ */
+const RAW_PREDICTIVE_CONTEXTS = {
+  transit_context: { instant: TRANSIT_REFERENCE_TIME },
+  varga_context_full: { charts: {} },
+  strength_context: { ashtakavarga: { sarva: { total: 337 } } },
+  domains_context: { forecasts: {} },
+} as const;
 const RECTIFIED_TRANSIT_ROWS = [
   { graha: 'Saturn', sign: 'Pisces', cancerHouse: 9, aquariusHouse: 2 },
   { graha: 'Sun', sign: 'Gemini', cancerHouse: 12, aquariusHouse: 5 },
@@ -230,8 +274,85 @@ const SYNTHETIC_VARGA_CONTEXT: VargaCtxFull = {
   ) as VargaCtxFull['charts'],
 };
 
+/**
+ * The stored reading seeded beside the synthetic chart.
+ *
+ * `staleNatalOnly` reproduces the reported production case: the reading is
+ * natal-only, so its provenance key is `null`, which the interpretation store
+ * treats as current ONLY while no predictive facts exist. Seeded next to a
+ * `ready` predictive slice carrying `rawContexts`, the reading's status is
+ * downgraded to 'idle' — exactly the condition the export used to gate on.
+ * Otherwise the reading is keyed to the current predictive request and stays
+ * complete on every code path.
+ */
+function syntheticInterpretationEntry(requestKey: string, staleNatalOnly: boolean) {
+  const base = {
+    status: 'complete',
+    profileId: SYNTHETIC_PROFILE_ID,
+    updatedAt: '2026-07-11T12:00:00Z',
+  } as const;
+  if (staleNatalOnly) {
+    return {
+      ...base,
+      sections: { summary: true, strengths: true },
+      inputProvenance: { predictiveRequestKey: null },
+      interpretation: {
+        summary: {
+          layman: `${NATAL_ONLY_SUMMARY_SENTINEL}.`,
+          technical: `${NATAL_ONLY_SUMMARY_SENTINEL}.`,
+        },
+        strengths: [
+          {
+            title: 'Saturn in the tenth',
+            layman: NATAL_ONLY_STRENGTH_SENTINEL,
+            technical: NATAL_ONLY_STRENGTH_SENTINEL,
+          },
+        ],
+        challenges: [],
+        life_themes: [],
+        // No `current_sky`: a natal-only reading never narrates timing.
+      },
+    };
+  }
+  return {
+    ...base,
+    sections: { current_sky: true },
+    inputProvenance: { predictiveRequestKey: requestKey },
+    interpretation: {
+      summary: {
+        layman: 'A synthetic maximal-report reading.',
+        technical: 'A synthetic maximal-report reading.',
+      },
+      strengths: [],
+      challenges: [],
+      life_themes: [],
+      current_sky: [
+        {
+          title: 'Jupiter transit',
+          layman: CURRENT_SKY_SENTINEL,
+          technical: CURRENT_SKY_SENTINEL,
+        },
+      ],
+    },
+  };
+}
+
+interface MaximalSeedOptions {
+  /**
+   * Seed the PRODUCTION staleness case instead of the all-current one: a
+   * natal-only reading (`predictiveRequestKey: null`) beside a `ready`
+   * predictive slice that carries `rawContexts`. See
+   * `syntheticInterpretationEntry` and `RAW_PREDICTIVE_CONTEXTS`.
+   */
+  readonly staleNatalOnlyReading?: boolean;
+}
+
 /** Seed only local persisted inputs; the page still builds and downloads the real report. */
-async function seedSyntheticMaximalReport(page: Page): Promise<void> {
+async function seedSyntheticMaximalReport(
+  page: Page,
+  options: MaximalSeedOptions = {},
+): Promise<void> {
+  const staleNatalOnly = options.staleNatalOnlyReading === true;
   // Establish the preview origin without booting the SPA. If the empty Zustand
   // stores hydrate before this write, they can race and overwrite the fixture.
   await page.goto('/robots.txt', { waitUntil: 'domcontentloaded' });
@@ -372,6 +493,9 @@ async function seedSyntheticMaximalReport(page: Page): Promise<void> {
           vargaCtxFull: SYNTHETIC_VARGA_CONTEXT,
           strengthCtx: STRENGTH_CTX,
           domainsCtx: DOMAINS_CTX,
+          // Only the stale case publishes raw engine facts — that is the
+          // trigger that turns a natal-only reading's provenance stale.
+          ...(staleNatalOnly ? { rawContexts: RAW_PREDICTIVE_CONTEXTS } : {}),
           profileKey: SYNTHETIC_PROFILE_ID,
           requestKey,
         },
@@ -390,29 +514,7 @@ async function seedSyntheticMaximalReport(page: Page): Promise<void> {
       JSON.stringify({
         state: {
           byChart: {
-            [SYNTHETIC_CHART_ID]: {
-              status: 'complete',
-              sections: { current_sky: true },
-              profileId: SYNTHETIC_PROFILE_ID,
-              updatedAt: '2026-07-11T12:00:00Z',
-              inputProvenance: { predictiveRequestKey: requestKey },
-              interpretation: {
-                summary: {
-                  layman: 'A synthetic maximal-report reading.',
-                  technical: 'A synthetic maximal-report reading.',
-                },
-                strengths: [],
-                challenges: [],
-                life_themes: [],
-                current_sky: [
-                  {
-                    title: 'Jupiter transit',
-                    layman: CURRENT_SKY_SENTINEL,
-                    technical: CURRENT_SKY_SENTINEL,
-                  },
-                ],
-              },
-            },
+            [SYNTHETIC_CHART_ID]: syntheticInterpretationEntry(requestKey, staleNatalOnly),
           },
         },
         version: 5,
@@ -659,6 +761,46 @@ async function expectReportTransitRow(
   await expect(cells.nth(1)).toHaveText(expected.sign);
   await expect(cells.nth(4)).toHaveText(String(expected.cancerHouse));
   await expect(cells.nth(4)).not.toHaveText(String(expected.aquariusHouse));
+}
+
+/**
+ * The shipping ENGLISH copy for one dotted key of the `report` namespace.
+ *
+ * Read from the catalog rather than retyped: an assertion that hardcodes prose
+ * passes while the app says something completely different, and it goes red on
+ * a harmless copy edit. The catalog is what the PDF actually renders.
+ */
+async function englishReportString(dottedKey: string): Promise<string> {
+  const catalog: unknown = JSON.parse(await readFile(EN_REPORT_CATALOG, 'utf8'));
+  let node: unknown = catalog;
+  for (const segment of dottedKey.split('.')) {
+    node = node === null || typeof node !== 'object'
+      ? undefined
+      : (node as Record<string, unknown>)[segment];
+  }
+  expect(typeof node, `en/report.json must define "${dottedKey}"`).toBe('string');
+  return String(node);
+}
+
+/** Whitespace-flattened, case-folded PDF text — headings letter-space and body copy wraps. */
+function flattenPdfText(pdfText: string): string {
+  return normalizePdfText(pdfText).toLocaleLowerCase('en');
+}
+
+/**
+ * The flattened "<eyebrow> <title>" needle for the Interpretation section — the
+ * two parts ADJACENT, which is how `ReportPdfHeading` renders them.
+ *
+ * Checking the eyebrow alone would be VACUOUS: "section vii" is a substring of
+ * the "SECTION VIII" eyebrow that follows it, so a bare eyebrow check passes on
+ * the pre-fix 26-page document that deleted section VII outright (verified
+ * against the saved pre-fix artifact). The pair is present only when the
+ * section itself is.
+ */
+async function interpretationHeadingNeedle(): Promise<string> {
+  const eyebrow = await englishReportString('pdf.narrative_eyebrow');
+  const title = await englishReportString('interpretation.heading');
+  return flattenPdfText(`${eyebrow} ${title}`);
 }
 
 /** Extract the text of the downloaded PDF via the system `pdftotext`. */
@@ -1050,6 +1192,37 @@ test('REAL onboarding -> rectify -> offline reload -> predictive PDF is correct'
     'whole-sign',
   );
 
+  // 7f. KEYLESS HONESTY. This lane never configures an LLM, so no reading
+  // exists — and the pre-fix document simply DELETED section VII, leaving the
+  // numbering to jump VI → VIII with nothing to explain it. The section must
+  // now print its heading and say plainly that the written interpretation
+  // appears once a reading is generated. Assert against the shipping catalog
+  // copy, never hand-typed prose (see `englishReportString`). Headings
+  // letter-space and the note wraps mid-sentence in the PDF, so compare on
+  // whitespace-flattened, case-folded text.
+  const flatPdfText = flattenPdfText(pdfText);
+  const headingNeedle = await interpretationHeadingNeedle();
+  const narrativeAbsentNote = await englishReportString('pdf.narrative_absent_note');
+  expect(
+    flatPdfText,
+    `a keyless report must still carry the Interpretation section ("${headingNeedle}")`,
+  ).toContain(headingNeedle);
+  expect(
+    flatPdfText,
+    'a keyless report must SAY the interpretation is absent, never silently skip section VII',
+  ).toContain(flattenPdfText(narrativeAbsentNote));
+
+  // 7g. The document may only GROW. 26 pages is the measured pre-fix baseline
+  // (sections I–VI, VIII–XIII); a shorter report means a section was gutted.
+  const downloadedPages = (
+    await inspectPdfWithPoppler(new Uint8Array(await readFile(DOWNLOAD_PATH)))
+  ).pages.length;
+  console.log('[report-pdf] keyless page count :', downloadedPages);
+  expect(
+    downloadedPages,
+    `the keyless report must not shrink below its ${KEYLESS_PDF_BASELINE_PAGES}-page baseline`,
+  ).toBeGreaterThanOrEqual(KEYLESS_PDF_BASELINE_PAGES);
+
   // Surface the load-bearing lines in the test log as evidence.
   console.log('[report-pdf] generated-on date :', JSON.stringify(dateLine || generatedOnLong));
   console.log('[report-pdf] time-of-birth line:', JSON.stringify(timeOfBirthLine));
@@ -1149,4 +1322,63 @@ test('synthetic maximal state -> real browser download preserves every report fa
   ]) {
     expect(pdfText, `downloaded maximal PDF is missing ${sentinel}`).toContain(sentinel);
   }
+});
+
+test('a natal-only reading gone stale still prints its narrative in the downloaded PDF', async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  await mkdir(OUT_DIR, { recursive: true });
+
+  // THE REPORTED BUG. Seed a stored chart plus a COMPLETE natal-only reading
+  // (`inputProvenance.predictiveRequestKey: null`) beside a `ready` predictive
+  // slice carrying `rawContexts`. That is production, exactly: the moment the
+  // predictive layer computes, a natal-only reading stops being "input-current"
+  // and its status drops to 'idle'. The dashboard kept rendering the reading
+  // from the permissive value while the export — gated on `status === 'complete'`
+  // — dropped the whole Interpretation section without a word. `rawContexts` is
+  // the load-bearing part of this fixture; remove it and the bug cannot fire.
+  await seedSyntheticMaximalReport(page, { staleNatalOnlyReading: true });
+  await page.goto('/report?mode=astrologer', { waitUntil: 'domcontentloaded' });
+
+  const downloadBtn = page.getByTestId('report-download-pdf');
+  await expect(
+    downloadBtn,
+    'a stale reading must not disable export — a stored chart is the only precondition',
+  ).toBeVisible({ timeout: 30_000 });
+
+  const [download]: [Download, void] = await Promise.all([
+    page.waitForEvent('download', { timeout: 60_000 }),
+    downloadBtn.click(),
+  ]);
+  await download.saveAs(STALE_DOWNLOAD_PATH);
+
+  const pdfText = await pdfToText(STALE_DOWNLOAD_PATH);
+  const flatPdfText = flattenPdfText(pdfText);
+
+  // The section header is present...
+  const headingNeedle = await interpretationHeadingNeedle();
+  expect(
+    flatPdfText,
+    `the stale-status PDF must carry the Interpretation section ("${headingNeedle}")`,
+  ).toContain(headingNeedle);
+
+  // ...AND the seeded prose itself. Before the fix the PDF omitted the narrative
+  // entirely — this pair of sentinels is the property under test.
+  expect(
+    flatPdfText,
+    'the stale natal-only SUMMARY must survive into the downloaded PDF',
+  ).toContain(flattenPdfText(NATAL_ONLY_SUMMARY_SENTINEL));
+  expect(
+    flatPdfText,
+    'the stale natal-only STRENGTHS block must survive into the downloaded PDF',
+  ).toContain(flattenPdfText(NATAL_ONLY_STRENGTH_SENTINEL));
+
+  // And the "no reading" note must NOT appear — there IS a reading here, and
+  // printing the honest-absence note beside real prose would be a new lie.
+  const narrativeAbsentNote = await englishReportString('pdf.narrative_absent_note');
+  expect(
+    flatPdfText,
+    'a report that HAS a reading must not also claim no reading was generated',
+  ).not.toContain(flattenPdfText(narrativeAbsentNote));
 });
