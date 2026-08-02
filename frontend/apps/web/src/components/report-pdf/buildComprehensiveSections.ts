@@ -39,7 +39,8 @@ import {
 } from '../../lib/predictiveEventCopy';
 import { DOMAIN_ORDER } from '../features/predictive/DomainsPanel';
 import { hasApproximatedComponents } from '../features/predictive/StrengthPanel';
-import { paperTint } from './buildReportSections';
+import { domainClaimId } from '../../lib/stability';
+import { paperTint, type StabilityFlagFor } from './buildReportSections';
 import { glyphSafe } from './glyphSafe';
 import type {
   ReportPdfDomains,
@@ -442,18 +443,27 @@ function domainStrengthAxes(
   })} · ${tp('domains.strength_tier_model')}`;
 }
 
-/** Reshape the engine DomainsCtx into the seven pre-formatted domain blocks. */
+/**
+ * Reshape the engine DomainsCtx into the seven pre-formatted domain blocks.
+ *
+ * `stabilityFlagFor` optionally supplies each domain's pre-localized birth-time
+ * stability mark (the screen's `StabilityChip` wording). Omit it and every
+ * block is byte-identical to before.
+ */
 export function buildDomainsSection(
   ctx: DomainsCtx,
   translators: ReportPdfTranslators,
   provenance?: StrengthProvenance,
+  stabilityFlagFor?: StabilityFlagFor,
 ): ReportPdfDomains {
   const { tr, tp } = translators;
   const blocks = DOMAIN_ORDER.map((domain) => {
     const forecast = ctx.forecasts[domain];
     const strength = forecast.strength_summary;
     const unverified = isStrengthUnverified(domain, provenance);
+    const stability = stabilityFlagFor?.(domainClaimId(domain));
     return {
+      ...(stability ? { stability } : {}),
       name: glyphSafe(tp(`domains.names.${domain}`)),
       band: glyphSafe(domainBand(strength, unverified, tp)),
       strengthAxes: glyphSafe(domainStrengthAxes(strength, unverified, translators)),

@@ -408,6 +408,13 @@ jobs:
   #   - report-pdf.e2e.spec.ts — the hardest real gate: ACTUAL onboarding →
   #     engine bootstrap → Generate → dashboard → rectify → PDF download, built
   #     WITHOUT hooks (no __almameshGenerate seeding) and needing no LLM key.
+  #     It also gates PDF COMPLETENESS on the downloaded bytes: section VII
+  #     (Interpretation) always prints — carrying the real reading, or an honest
+  #     "no reading generated yet" note in this keyless lane, never silently
+  #     deleted — a natal-only reading gone stale still prints its narrative,
+  #     and the document never shrinks below its measured 26-page baseline.
+  #     All four tests live in that one spec, so `test:e2e:report:pdf` picks
+  #     them up with no extra step.
   # Each playwright config self-builds its production bundle and serves it via
   # `vite preview` on its own strict port (4188 / 4196). Tiering doc: CLAUDE.md
   # "Playwright e2e tiering".
@@ -494,7 +501,7 @@ jobs:
           VITE_API_URL: ""
         run: bun run test:e2e:ai
 
-      - name: Smoke — REAL chart generation → report PDF (no hooks, no LLM key)
+      - name: Smoke — REAL chart generation → report PDF + completeness (no hooks, no LLM key)
         working-directory: frontend/apps/web
         env:
           VITE_API_URL: ""

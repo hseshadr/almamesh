@@ -4,8 +4,8 @@
   },
   "actions": {
     "export_pdf": "Exportar PDF",
-    "export_pdf_title": "Exportar PDF",
-    "export_pdf_disabled_title": "Gere primeiro sua interpretação",
+    "export_pdf_title": "Baixe seu relatório completo em PDF",
+    "export_pdf_disabled_title": "Ainda não há mapa — crie um para baixar um relatório",
     "settings": "Configurações",
     "settings_title": "Configurações",
     "try_again": "Tentar novamente",

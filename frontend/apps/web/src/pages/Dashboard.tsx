@@ -1,6 +1,6 @@
 import { useCallback, useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import type {
   BirthChartGenerationResponse,
@@ -62,7 +62,8 @@ import {
 } from "../hooks/useStreamingInterpretation";
 import { useElapsedSeconds, formatElapsed } from "../hooks/useElapsedSeconds";
 import { useLlmStatus } from "../hooks/useLlmStatus";
-import { canExportPdf, isPlaceholderContent } from "./exportGate";
+import { useReportPdfExport } from "../hooks/useReportPdfExport";
+import { isPlaceholderContent } from "./exportGate";
 import { personaText, resolveReportAudience } from "../lib/reportSelectors";
 import { rectificationDelta } from "../lib/rectification";
 
@@ -102,7 +103,6 @@ export default function DashboardPage() {
   // Toggling `contentMode` re-derives this at render time, so the summary
   // switches voice instantly — no LLM call (the store subscription re-renders).
   const audience = resolveReportAudience(contentMode);
-  const navigate = useNavigate();
 
   // Arriving via a "discuss in chat" link (e.g. from /life/:domain) opens the
   // chat panel immediately instead of leaving the user hunting for the bubble.
@@ -417,9 +417,20 @@ export default function DashboardPage() {
     return Boolean(hasValidCareer || hasValidHealth || hasValidRelationship || hasValidSpiritual);
   })();
 
-  // Export PDF is gated on a real, finished interpretation so the print report is
-  // never empty or full of placeholders (see ./exportGate).
-  const canExport = canExportPdf(interpretationStatus, hasValidInterpretation);
+  // ONE-CLICK EXPORT. Everything the report prints is already persisted on this
+  // device, so Export PDF renders and downloads right here — it does not
+  // navigate to /report and ask for a second click, and it never prompts.
+  //
+  // The ONLY precondition is a stored chart (`canExport`). It is deliberately
+  // NOT gated on a finished AI reading: that old gate meant a user without an
+  // AI key could never export a document that is complete without any AI — the
+  // chart, planets, houses, dasha, yogas and assumptions are all deterministic.
+  // A missing interpretation just omits one optional section, and the PDF says
+  // so in its own words. The assembly is shared with /report
+  // (`useReportPdfExport`), so the two entry points cannot drift apart.
+  const { exportPdf, pdfError, canExport } = useReportPdfExport(
+    resolveReportAudience(viewMode === 'astrologer' ? 'astrologer' : 'you'),
+  );
 
   // Auto-generate interpretation on mount when a chart is loaded, an AI model is
   // configured, and there is no existing complete interpretation for this chart.
@@ -684,7 +695,7 @@ export default function DashboardPage() {
               <ContentModeToggle />
               <button
                 type="button"
-                onClick={() => navigate(`/report?mode=${viewMode === 'astrologer' ? 'astrologer' : 'you'}`)}
+                onClick={exportPdf}
                 disabled={!canExport}
                 data-testid="print-chart-button"
                 title={canExport ? t('dashboard:actions.export_pdf_title') : t('dashboard:actions.export_pdf_disabled_title')}
@@ -744,6 +755,19 @@ export default function DashboardPage() {
             </>
           }
         />
+
+        {/* The PDF render failed. Calm, visible, on-screen ONLY (`no-print`) —
+            never a silent unhandled rejection, and never printed into a
+            document. Mirrors the notice on /report. */}
+        {pdfError && (
+          <div
+            className="no-print flex items-start gap-3 rounded-lg border border-ui-border bg-background-secondary px-4 py-3 text-sm text-text-secondary"
+            role="alert"
+            data-testid="dashboard-pdf-error"
+          >
+            <p>{pdfError}</p>
+          </div>
+        )}
 
         {/* 2 — Reading status. No AI provider connected: SETUP, not failure —
                the chart on this page is already complete, so the notice leads

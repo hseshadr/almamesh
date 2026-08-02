@@ -6,7 +6,44 @@ All notable changes to AlmaMesh are documented here. Format follows
 
 ## [Unreleased]
 
+### Fixed
+- **The exported PDF dropped the AI interpretation the app was still showing you.**
+  `ReportView` gated the export on `status === 'complete'`, but a natal-only
+  reading's status is downgraded to `'idle'` the moment the predictive layer
+  computes (its `inputProvenance.predictiveRequestKey` is `null`, which stops
+  being "current" once predictive facts exist). The dashboard kept rendering that
+  same reading from the permissive `interpretation` value, so screen and export
+  disagreed about a document the user could see. Both now read the one stored
+  value; there is no third state left for them to disagree about. Regression test:
+  *"exports the narrative the screen is showing, even after predictive turns the
+  status stale"*.
+- **Export PDF asked you to do things first.** The dashboard button was
+  `disabled` until a finished AI reading existed — so a user with no API key
+  could never export a document that is complete without any AI at all — and it
+  did not export: it navigated to `/report`, where a second button had to be
+  found. It is now one click, gated only on a stored chart. `canExportPdf` is
+  deleted; its test suite asserted that gate as the requirement and has been
+  inverted rather than removed.
+- **The Interpretation section is no longer silently omitted.** With no reading,
+  section VII simply vanished and the numbering jumped VI → VIII with no
+  explanation. The section now always prints, carrying an honest note that a
+  written interpretation appears once a reading is generated (optional,
+  bring-your-own-key) and that the rest of the report is complete and unaffected.
+- `isPlaceholderContent` now treats whitespace-only text as a placeholder; a
+  summary of `"   "` previously rendered as an empty prose block.
+
 ### Added
+- **A completeness guard so the export cannot silently fall behind the app
+  again.** `lib/reportSections.ts` declares every report section once;
+  `lib/__tests__/reportSectionParity.test.tsx` holds both renderers to it in
+  both directions — a section on screen that is not declared fails by name, and
+  a section declared exported that the PDF does not carry fails by name. Opting
+  a section out requires writing the reason in the registry. Both directions were
+  proven to fail before being trusted. Stated limit: this proves a section is
+  *present*, not that it carries the same depth as the screen.
+- `hooks/useReportPdfExport` — the single export assembly the dashboard and
+  `/report` both call, reading persisted values only. It recomputes nothing, so
+  the two entry points cannot drift into two different documents.
 - **The Ed25519 signature check on strength receipts is now actually tested, and
   its failure modes are coded apart.** The suite had two "tamper" tests and
   neither one ever reached the signature: the mutated-`strength_pct` case leaves

@@ -20,6 +20,7 @@ import { formatDegree } from '../../lib/reportData';
 import { buildGuidanceSections, personaText, type ReportAudience } from '../../lib/reportSelectors';
 import { hasStrength, yogaStrength } from '../../lib/yogaStrength';
 import { glyphSafe } from './glyphSafe';
+import { yogaClaimId } from '../../lib/stability';
 import type {
   ReportPdfAntarTable,
   ReportPdfCharts,
@@ -27,9 +28,18 @@ import type {
   ReportPdfDashaPeriod,
   ReportPdfHouseRow,
   ReportPdfNarrativeSection,
+  ReportPdfNarrativeTitles,
   ReportPdfPlanetRow,
   ReportPdfYoga,
 } from './types';
+
+/**
+ * Resolve one claim's pre-localized stability flag ("birth-time sensitive"),
+ * or `undefined` when no marker exists for it. Built by `buildReportPdfData`
+ * from the caller's marker map + its localized formatter, so i18n stays in
+ * React exactly like every other string the PDF layer renders.
+ */
+export type StabilityFlagFor = (claimId: string) => string | undefined;
 
 /** Display order for the planetary table (luminaries, then taras, then nodes). */
 const PLANET_ORDER: readonly string[] = [
@@ -321,8 +331,17 @@ function buildYogaStrength(yoga: YogaData): { strength: string; strengthLedger: 
   return { strength, strengthLedger: glyphSafe(marks ? `${marks} · ${scale}` : scale) };
 }
 
-/** Build the yoga cards (engine yogas → name + category·grade + strength + desc). */
-export function buildYogas(chart: SiderealChart): ReadonlyArray<ReportPdfYoga> {
+/**
+ * Build the yoga cards (engine yogas → name + category·grade + strength + desc).
+ *
+ * `stabilityFlagFor` optionally supplies each yoga's pre-localized birth-time
+ * stability mark — the same honesty furniture the screen's `StabilityChip`
+ * shows. Omit it and every card is byte-identical to before.
+ */
+export function buildYogas(
+  chart: SiderealChart,
+  stabilityFlagFor?: StabilityFlagFor,
+): ReadonlyArray<ReportPdfYoga> {
   return chart.yogas.map((yoga) => {
     const category = titleCase(yoga.category.replace(/_/g, ' '));
     const grade = GRADE_TITLE[yoga.grade] ?? titleCase(yoga.grade);
@@ -330,6 +349,7 @@ export function buildYogas(chart: SiderealChart): ReadonlyArray<ReportPdfYoga> {
     // The clean `name` is the card title; `display_name` appends a parenthetical
     // formation that duplicates the description, so we drop it. The 4 distinct
     // "Dhana Yoga" rows stay distinguishable via their description line.
+    const stability = stabilityFlagFor?.(yogaClaimId(yoga.name));
     return {
       name: glyphSafe(yoga.name),
       classification: glyphSafe(category ? `${category} · ${grade}` : grade),
@@ -337,6 +357,7 @@ export function buildYogas(chart: SiderealChart): ReadonlyArray<ReportPdfYoga> {
       signature: glyphSafe(planets),
       grade: yoga.grade,
       ...buildYogaStrength(yoga),
+      ...(stability ? { stability } : {}),
     };
   });
 }
@@ -378,10 +399,30 @@ function titledSection(
   return paragraphs.length > 0 ? { title, paragraphs } : null;
 }
 
-/** Build the structured interpretation as ordered narrative blocks. */
+/**
+ * The English titles used when a caller has not injected localized ones. They
+ * are a FALLBACK, not the contract: the app passes `report:interpretation.*`
+ * so the PDF matches the reader's language (i18n stays in React).
+ */
+const DEFAULT_NARRATIVE_TITLES: ReportPdfNarrativeTitles = {
+  currentSky: "What's Active Now & Next",
+  strengths: 'Strengths',
+  challenges: 'Challenges',
+  lifeThemes: 'Life Themes',
+  roadAhead: 'The Road Ahead',
+};
+
+/**
+ * Build the structured interpretation as ordered narrative blocks.
+ *
+ * `titles` carries the five section headings ALREADY LOCALIZED (the same
+ * `report:interpretation.*` strings the on-screen report renders). Guidance
+ * headings already arrive localized via `buildGuidanceSections`.
+ */
 export function buildNarrative(
   interpretation: VedicInterpretation,
   audience: ReportAudience,
+  titles: ReportPdfNarrativeTitles = DEFAULT_NARRATIVE_TITLES,
 ): ReadonlyArray<ReportPdfNarrativeSection> {
   const sections: ReportPdfNarrativeSection[] = [];
 
@@ -394,28 +435,42 @@ export function buildNarrative(
   // differentiator leads the reading, right after the summary. Degrades
   // gracefully: absent/empty on a natal-only reading (honesty fence: never
   // invent timing) simply drops the section, same as every titledSection below.
-  const currentSky = titledSection(
-    "What's Active Now & Next",
-    interpretation.current_sky ?? [],
-    audience,
-  );
+  const currentSky = titledSection(titles.currentSky, interpretation.current_sky ?? [], audience);
   if (currentSky) sections.push(currentSky);
 
-  const strengths = titledSection('Strengths', interpretation.strengths ?? [], audience);
+  const strengths = titledSection(titles.strengths, interpretation.strengths ?? [], audience);
   if (strengths) sections.push(strengths);
-  const challenges = titledSection('Challenges', interpretation.challenges ?? [], audience);
+  const challenges = titledSection(titles.challenges, interpretation.challenges ?? [], audience);
   if (challenges) sections.push(challenges);
-  const themes = titledSection('Life Themes', interpretation.life_themes ?? [], audience);
+  const themes = titledSection(titles.lifeThemes, interpretation.life_themes ?? [], audience);
   if (themes) sections.push(themes);
 
   for (const guidance of buildGuidanceSections(interpretation, audience)) {
     sections.push({ title: guidance.title, paragraphs: toParagraphs(guidance.text) });
   }
 
-  const road = titledSection('The Road Ahead', interpretation.upcoming_periods ?? [], audience);
+  const road = titledSection(titles.roadAhead, interpretation.upcoming_periods ?? [], audience);
   if (road) sections.push(road);
 
   return sections;
+}
+
+/**
+ * The LLM's woven yoga story (`integrated_yoga_narrative`) as ordered
+ * paragraphs in the reader's voice, or `undefined` when the reading carries
+ * none (older stored readings, or a natal-only report). It is prose the model
+ * wrote about the engine's OWN formed yogas — the PDF only typesets it.
+ */
+export function buildYogaNarrative(
+  interpretation: VedicInterpretation,
+  audience: ReportAudience,
+): ReadonlyArray<string> | undefined {
+  const text = personaText(interpretation.integrated_yoga_narrative, audience);
+  if (!text) {
+    return undefined;
+  }
+  const paragraphs = toParagraphs(text);
+  return paragraphs.length > 0 ? paragraphs : undefined;
 }
 
 /** Build the D1 geometry once (shared by the planet table + the kundli plate). */

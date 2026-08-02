@@ -23,9 +23,11 @@ import {
   TRANSIT_CTX,
   VARGA_CTX_FULL,
 } from '../../../test/predictiveFixtures';
+import { cuspInfo } from '../../../lib/lagnaCusp';
+import { rectificationDelta } from '../../../lib/rectification';
 import { buildRectificationPdf } from '../buildRectificationPdf';
 import { buildReportPdfData } from '../buildReportPdfData';
-import type { ReportPdfData, ReportPdfLabels } from '../types';
+import type { ReportPdfAssumptions, ReportPdfData, ReportPdfLabels } from '../types';
 
 const testI18n = createInstance();
 void testI18n.init({
@@ -479,6 +481,47 @@ function maximalVargaContext(): VargaCtxFull {
   return { ...VARGA_CTX_FULL, charts };
 }
 
+/**
+ * Section XIII — Assumptions & Provenance, assembled the way the LIVE app
+ * assembles it (`useReportPdfExport`): the same four rows, the same catalog
+ * keys, and the same two derivations — `rectificationDelta` for the birth-time
+ * row and `cuspInfo` for the ascendant row. Nothing is hand-written, so the
+ * fixture states this chart's real assumptions rather than a flattering pair.
+ */
+function maximalAssumptions(tr: ReturnType<typeof testI18n.getFixedT>): ReportPdfAssumptions {
+  const delta = rectificationDelta(BIRTH);
+  const cusp = cuspInfo(CHART.lagna.sign, CHART.lagna.sign_degrees, 3, CHART.lagna);
+  return {
+    chrome: {
+      eyebrow: tr('section_eyebrow', { index: 'XIII' }),
+      title: tr('assumptions.heading'),
+      intro: tr('assumptions.intro'),
+    },
+    rows: [
+      { label: tr('assumptions.ayanamsa_label'), value: tr('assumptions.ayanamsa_value') },
+      { label: tr('assumptions.house_system_label'), value: tr('assumptions.house_system_value') },
+      {
+        label: tr('assumptions.time_label'),
+        value: delta
+          ? tr('assumptions.time_rectified', {
+              entered: delta.enteredLabel,
+              rectified: delta.rectifiedLabel,
+            })
+          : tr('assumptions.time_recorded'),
+      },
+      {
+        label: tr('assumptions.cusp_label'),
+        value: cusp
+          ? tr('assumptions.cusp_near', {
+              degrees: cusp.degrees.toFixed(1),
+              sign: cusp.neighbourSign,
+            })
+          : tr('assumptions.cusp_clear'),
+      },
+    ],
+  };
+}
+
 export function buildMaximalReportPdfData(): ReportPdfData {
   const tr = testI18n.getFixedT(null, 'report');
   const rectification = buildRectificationPdf({
@@ -512,6 +555,7 @@ export function buildMaximalReportPdfData(): ReportPdfData {
     },
     chromeLabels: CHROME_LABELS,
     rectification,
+    assumptions: maximalAssumptions(tr),
     comprehensive: {
       translators: { tr, tp: testI18n.getFixedT(null, 'predictive') },
       transitCtx: TRANSIT_CTX,

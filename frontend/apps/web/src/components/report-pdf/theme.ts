@@ -695,6 +695,15 @@ export const styles = StyleSheet.create({
     letterSpacing: 0.4,
     color: palette.faint,
   },
+  /* Birth-time stability flag — the paper twin of the screen's StabilityChip. */
+  yogaStability: {
+    marginBottom: 3,
+    fontFamily: FONT_MONO,
+    fontSize: type.micro,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+    color: palette.faint,
+  },
   yogaDesc: {
     fontSize: type.small,
     color: palette.ink,

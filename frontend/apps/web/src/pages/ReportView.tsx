@@ -13,12 +13,17 @@
  * GRACEFUL DEGRADATION: only a missing CHART dead-ends (there is nothing to
  * report). When the interpretation has not been generated yet, the report still
  * renders its deterministic natal halves (cover · kundli · planets · dasha ·
- * yogas) and the PDF download stays enabled — only the written Interpretation
- * is omitted, with an on-screen hint to generate it for the full reading.
+ * yogas) and the PDF download stays enabled. The exported document then PRINTS
+ * the Interpretation section with an honest note saying a written reading
+ * appears once one has been generated — it is never silently dropped, which
+ * left the section numbering jumping VI → VIII with no explanation.
+ *
+ * The export itself lives in `hooks/useReportPdfExport` — the single assembly
+ * this page and the dashboard's one-click Export PDF both call, so the two
+ * entry points cannot produce two different documents.
  */
 
 import type { ReactElement } from 'react';
-import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
@@ -28,7 +33,6 @@ import {
   useRectificationRecordsStore,
   type LifeEvent,
 } from '@almamesh/store';
-import { safeError } from '@almamesh/shared-types';
 import type { LagnaData } from '@almamesh/browser/types';
 import type { ProcessedBirthData, RectificationRecord } from '@almamesh/shared-types';
 import { useStreamingInterpretation } from '../hooks/useStreamingInterpretation';
@@ -40,12 +44,7 @@ import { selectPrimaryStoredChart } from '../lib/predictive';
 import { cuspInfo } from '../lib/lagnaCusp';
 import { rectificationDelta } from '../lib/rectification';
 import { domainClaimId, reportStabilityMarkers, yogaClaimId } from '../lib/stability';
-import { downloadReportPdf, type ReportPdfChrome } from '../lib/downloadReportPdf';
-// Deep import ON PURPOSE: the report-pdf index re-exports ReportDocument and
-// therefore @react-pdf/renderer, which must stay OUT of ReportView's static
-// graph (it loads lazily inside downloadReportPdf). The builder module itself
-// is pure reshaping + i18n and pulls no renderer code.
-import { buildRectificationPdf } from '../components/report-pdf/buildRectificationPdf';
+import { useReportPdfExport } from '../hooks/useReportPdfExport';
 import {
   ReportAssumptions,
   ReportChartsPage,
@@ -63,11 +62,6 @@ import {
   ReportYogas,
 } from '../components/features/report';
 import '../styles/report-print.css';
-
-/** A short ISO date (YYYY-MM-DD) for the PDF file/title. */
-function isoDate(date: Date): string {
-  return date.toISOString().slice(0, 10);
-}
 
 /** Capitalize a sign name for the cusp lookup (matches the on-screen cover). */
 function titleCaseSign(sign: string): string {
@@ -148,7 +142,6 @@ function ReportPredictivePending({ layer }: { layer: PredictiveLayer }): ReactEl
 export default function ReportView(): ReactElement {
   const navigate = useNavigate();
   const { t } = useTranslation('report');
-  const { t: tp } = useTranslation('predictive');
   const [searchParams] = useSearchParams();
   const { contentMode } = useContentModeStore();
 
@@ -157,7 +150,7 @@ export default function ReportView(): ReactElement {
   const charts = useChartLibraryStore((s) => s.charts);
   const storedChart = selectPrimaryStoredChart(charts, activeProfileId);
   const chartId = storedChart?.chart_id ?? null;
-  const { interpretation, status } = useStreamingInterpretation(chartId);
+  const { interpretation } = useStreamingInterpretation(chartId);
 
   // The lazy predictive layer (transits / vargas / strength / domains): the
   // report renders these sections only when computed; otherwise it offers an
@@ -183,9 +176,11 @@ export default function ReportView(): ReactElement {
   const fallbackMode = contentMode === 'technical' ? 'astrologer' : 'you';
   const audience = resolveReportAudience(searchParams.get('mode') ?? fallbackMode);
 
-  // PDF-generation failure notice (on-screen only, never printed). Cleared at
-  // the start of every download attempt so a retry starts clean.
-  const [pdfError, setPdfError] = useState<string | null>(null);
+  // The export is assembled in ONE shared place (`useReportPdfExport`) that the
+  // dashboard's one-click Export PDF also uses — so the two entry points cannot
+  // drift into two different documents. `pdfError` is on-screen only, never
+  // printed, and clears at the start of every attempt.
+  const { exportPdf, pdfError } = useReportPdfExport(audience);
 
   const personName = storedChart?.person_name ?? '';
 
@@ -196,11 +191,15 @@ export default function ReportView(): ReactElement {
     return <ReportEmpty message={t('empty.no_chart')} />;
   }
 
-  // The written interpretation is OPTIONAL. It is only included when fully
-  // generated; otherwise the report renders its deterministic natal halves and
-  // shows an on-screen hint to generate the reading.
-  const readyInterpretation =
-    status === 'complete' && interpretation ? interpretation : undefined;
+  // The written interpretation is OPTIONAL, and it is read from ONE stored
+  // value — `interpretation` is exactly what the hook deems safe to display,
+  // and exactly what the dashboard renders. Do NOT additionally gate on
+  // `status === 'complete'`: a natal-only reading stays valid prose forever,
+  // but its `status` is downgraded to 'idle' the moment the predictive layer
+  // computes. That extra gate is what silently dropped the narrative from the
+  // report and the PDF while the dashboard went on showing it. Display and
+  // export now read the same field, so they cannot disagree.
+  const readyInterpretation = interpretation;
 
   const birth = storedChart.birth_data as ProcessedBirthData | undefined;
   const lagna = sidereal.lagna as LagnaData;
@@ -221,179 +220,13 @@ export default function ReportView(): ReactElement {
   ];
   const stability = reportStabilityMarkers(claimIds, nearCusp);
 
-  // Build the @react-pdf "Download PDF" action. Reuses the SAME engine values and
-  // formatters the on-screen report renders. Enabled whenever the chart is ready
-  // (birth data present); the interpretation is OPTIONAL — when absent the PDF
-  // degrades to its deterministic natal halves and omits the narrative section.
-  const handleDownloadPdf = (): void => {
-    if (!birth) {
-      return;
-    }
-    const cusp = cuspInfo(titleCaseSign(lagna.sign), lagna.sign_degrees);
-    const chrome: ReportPdfChrome = {
-      personName,
-      audienceLabel: t(`audience.${audience}`),
-      subtitle: t('pdf.subtitle'),
-      kicker: t('cover.kicker'),
-      ascendantNote: cusp
-        ? t('cover.cusp_note', { degrees: cusp.degrees.toFixed(1), sign: cusp.neighbourSign })
-        : undefined,
-      formatRectifiedNote: (delta) =>
-        t('cover.rectified_note', {
-          entered: delta.enteredLabel,
-          rectified: delta.rectifiedLabel,
-          sign: delta.deltaMinutes > 0 ? '+' : '−',
-          minutes: Math.abs(delta.deltaMinutes),
-        }),
-      formatAntarHeading: (lord) => t('dasha.antar_heading', { lord }),
-      formatPratyantarHeading: (lord) => t('dasha.pratyantar_heading', { lord }),
-      chartCaptions: {
-        rasi: t('charts.rasi_caption'),
-        navamsa: t('charts.navamsa_caption'),
-      },
-      detailLabels: {
-        dateOfBirth: t('cover.date_of_birth'),
-        timeOfBirth: t('cover.time_of_birth'),
-        placeOfBirth: t('cover.place_of_birth'),
-        ascendant: t('cover.ascendant'),
-      },
-      chromeLabels: {
-        preparedFor: t('cover.prepared_for'),
-        birthDetailsTitle: t('pdf.birth_details_title'),
-        birthDetailsEyebrow: t('pdf.birth_details_eyebrow'),
-        birthDetailsIntro: t('pdf.birth_details_intro'),
-        technicalNote: t('pdf.technical_note'),
-        footerNote: t('pdf.footer_note'),
-        planetsEyebrow: t('pdf.planets_eyebrow'),
-        planetsTitle: t('planets.heading'),
-        planetsIntro: t('pdf.planets_intro'),
-        colPlanet: t('planets.col_planet'),
-        colSign: t('planets.col_sign'),
-        colDegree: t('planets.col_degree'),
-        colNakshatra: t('planets.col_nakshatra'),
-        colHouse: t('pdf.house_short'),
-        colDignity: t('planets.col_dignity'),
-        lagnaRowName: t('pdf.lagna_row_name'),
-        housesEyebrow: t('pdf.houses_eyebrow'),
-        housesTitle: t('houses.heading'),
-        housesIntro: t('pdf.houses_intro'),
-        colHouseNumber: t('houses.col_house'),
-        colHouseSign: t('houses.col_sign'),
-        colHouseLord: t('houses.col_lord'),
-        colOccupants: t('houses.col_occupants'),
-        housesNote: t('houses.whole_sign_note'),
-        chartsEyebrow: t('pdf.charts_eyebrow'),
-        chartsTitle: t('charts.heading'),
-        chartsIntro: t('pdf.charts_intro'),
-        dashaEyebrow: t('pdf.dasha_eyebrow'),
-        dashaTitle: t('dasha.heading'),
-        dashaIntro: t('pdf.dasha_intro'),
-        dashaCurrentLabel: t('pdf.dasha_current_label'),
-        dashaSequenceLabel: t('pdf.dasha_sequence_label'),
-        yogasEyebrow: t('pdf.yogas_eyebrow'),
-        yogasTitle: t('yogas.heading'),
-        yogasIntro: t('pdf.yogas_intro'),
-        narrativeEyebrow: t('pdf.narrative_eyebrow'),
-        narrativeTitle: t('interpretation.heading'),
-        narrativeIntro: t('pdf.narrative_intro'),
-      },
-    };
-    // Assumptions & provenance (Section XIII) — assembled from the SAME cusp +
-    // rectification provenance the cover uses; i18n stays here in React.
-    const assumptionsDelta = rectificationDelta(birth);
-    const assumptions = {
-      chrome: {
-        eyebrow: t('section_eyebrow', { index: 'XIII' }),
-        title: t('assumptions.heading'),
-        intro: t('assumptions.intro'),
-      },
-      rows: [
-        { label: t('assumptions.ayanamsa_label'), value: t('assumptions.ayanamsa_value') },
-        {
-          label: t('assumptions.house_system_label'),
-          value: t('assumptions.house_system_value'),
-        },
-        {
-          label: t('assumptions.time_label'),
-          value: assumptionsDelta
-            ? t('assumptions.time_rectified', {
-                entered: assumptionsDelta.enteredLabel,
-                rectified: assumptionsDelta.rectifiedLabel,
-              })
-            : t('assumptions.time_recorded'),
-        },
-        {
-          label: t('assumptions.cusp_label'),
-          value: cusp
-            ? t('assumptions.cusp_near', {
-                degrees: cusp.degrees.toFixed(1),
-                sign: cusp.neighbourSign,
-              })
-            : t('assumptions.cusp_clear'),
-        },
-      ],
-    };
-    // A rejected render (font fetch, @react-pdf failure, pdf().toBlob()) must
-    // surface on screen — never a silent unhandled rejection.
-    setPdfError(null);
-    void downloadReportPdf({
-      birth,
-      lagna,
-      chart: { ayanamsa_value: sidereal.ayanamsa_value },
-      sidereal,
-      interpretation: readyInterpretation,
-      audience,
-      chrome,
-      // The comprehensive sections mirror the web report: they enter the PDF
-      // only when the on-device predictive contexts are computed.
-      comprehensive:
-        predictive.status === 'ready'
-          ? {
-              translators: { tr: t, tp },
-              transitCtx: predictive.transitCtx,
-              vargaCtxFull: predictive.vargaCtxFull,
-              strengthCtx: predictive.strengthCtx,
-              domainsCtx: predictive.domainsCtx,
-              // Sealed domain-strength receipts + their signer (Spec 062
-              // delta N): absent on an older persisted payload, in which case
-              // downloadReportPdf verifies nothing and renders exactly as
-              // before this existed.
-              domainStrengthReceipts: predictive.rawContexts?.domain_strength_receipts,
-              strengthSignerPublicKey: predictive.rawContexts?.strength_signer_public_key,
-            }
-          : undefined,
-      // Birth Time Authority (Section XII) — only when a confirmed record
-      // exists; localized here so i18n stays in React.
-      rectification: rectificationRecord
-        ? buildRectificationPdf({
-            record: rectificationRecord,
-            events: supportingEvents.map((event) => ({
-              date: event.date,
-              category: event.category,
-              // A concise headline only — never the raw onboarding narrative
-              // (`description`), which is a whole life story, not one event.
-              // buildRectificationPdf clips whatever survives to a clean cell.
-              summary: event.summary ?? event.note,
-            })),
-            t,
-          })
-        : undefined,
-      assumptions,
-      fileBaseName: t('pdf_title', { name: personName, date: isoDate(new Date()) }),
-    }).catch((err) => {
-      // Keep a stable diagnostic code without logging report or profile data.
-      safeError('report.pdf_generation_failed', err);
-      setPdfError(t('pdf_error'));
-    });
-  };
-
   return (
     <div className="report-screen">
       <div className="report-toolbar no-print" data-testid="report-toolbar">
         <button
           type="button"
           className="report-toolbar-button report-toolbar-button-primary no-print"
-          onClick={handleDownloadPdf}
+          onClick={exportPdf}
           data-testid="report-download-pdf"
         >
           {t('download_pdf')}

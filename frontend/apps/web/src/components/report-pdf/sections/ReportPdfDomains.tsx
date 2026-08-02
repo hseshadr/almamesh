@@ -48,6 +48,14 @@ const local = StyleSheet.create({
     lineHeight: 1.5,
     marginBottom: 2,
   },
+  stability: {
+    fontFamily: FONT_MONO,
+    fontSize: typeScale.micro,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+    color: palette.faint,
+    marginBottom: 2,
+  },
   line: {
     fontSize: typeScale.caption,
     color: palette.ink,
@@ -77,6 +85,10 @@ function DomainCard({ block }: { block: ReportPdfDomainBlock }): ReactElement {
         <Text style={local.name}>{block.name}</Text>
         <Text style={local.band}>{block.band}</Text>
       </View>
+      {/* Honesty furniture, mirrored from the screen's StabilityChip: whether
+          this domain's verdict survives both candidate ascendants. Absent
+          markers (older payloads) print nothing at all. */}
+      {block.stability ? <Text style={local.stability}>{block.stability}</Text> : null}
       <Text style={local.axes}>{block.strengthAxes}</Text>
       <Text style={local.line}>{block.strengthLine}</Text>
       <Text style={local.line}>{block.emphasisLine}</Text>

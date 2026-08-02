@@ -17,6 +17,7 @@ export type {
   ReportPdfData,
   ReportPdfDetail,
   ReportPdfLabels,
+  ReportPdfNarrativeTitles,
   ReportPdfRectification,
   ReportPdfTechnical,
 } from './types';

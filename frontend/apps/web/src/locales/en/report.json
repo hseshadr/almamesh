@@ -25,6 +25,7 @@
     "yogas_intro": "The named planetary combinations the engine identifies in this chart, with their classical grade. A yoga is a tendency, never a verdict.",
     "narrative_eyebrow": "Section VII",
     "narrative_intro": "A reading woven from the placements above — strengths, challenges, life themes, and guidance across the major life domains.",
+    "narrative_absent_note": "No AI reading has been generated for this chart yet, so the written interpretation is not printed here. Generating one is optional and uses your own API key — everything else in this report is complete and unaffected.",
     "transits_eyebrow": "Section VIII",
     "transits_intro": "Where the grahas stand in today's sidereal sky against the natal chart — Sade Sati, slow-graha hits, the daśā × transit fusion, and the twelve-month timeline.",
     "vargas_eyebrow": "Section IX",

@@ -4,8 +4,8 @@
   },
   "actions": {
     "export_pdf": "Exportar PDF",
-    "export_pdf_title": "Exportar PDF",
-    "export_pdf_disabled_title": "Genera primero tu interpretación",
+    "export_pdf_title": "Descarga tu informe completo en PDF",
+    "export_pdf_disabled_title": "Aún no hay carta — crea una para descargar un informe",
     "settings": "Configuración",
     "settings_title": "Configuración",
     "try_again": "Intentar de nuevo",

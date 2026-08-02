@@ -1,8 +1,8 @@
 {
   "actions": {
     "export_pdf": "Export PDF",
-    "export_pdf_title": "Export PDF",
-    "export_pdf_disabled_title": "Generate your interpretation first",
+    "export_pdf_title": "Download your full report as a PDF",
+    "export_pdf_disabled_title": "No chart yet — create one to download a report",
     "settings": "Settings",
     "settings_title": "Settings",
     "try_again": "Try Again",
