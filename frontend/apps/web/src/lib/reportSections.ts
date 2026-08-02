@@ -51,6 +51,25 @@ export interface ReportSectionSpec {
    * section, as a direct child of `[data-testid="report-document"]`.
    */
   readonly screenTestId: string;
+  /**
+   * The section's roman numeral — declared ONCE, for BOTH renderers.
+   *
+   * Screen and paper each used to hardcode their own numerals in their own
+   * files, with nothing comparing them; inserting a section renumbered one
+   * surface and silently left the other stale (Evidence printed VIII in the
+   * export and XII on screen). The on-screen components now read this via
+   * `sectionNumeral`, and `__tests__/reportSectionNumerals.test.ts` checks the
+   * PDF's localized eyebrow strings carry the same numeral in every language.
+   *
+   * Absent for chrome that is not a numbered chapter (the cover, the footer).
+   */
+  readonly numeral?: string;
+  /**
+   * The `report:pdf.*` key whose eyebrow string states this numeral on paper —
+   * the thing the drift guard reads. Absent when the PDF builds the eyebrow from
+   * `report:section_eyebrow` + this numeral directly (nothing to drift from).
+   */
+  readonly pdfEyebrowKey?: string;
   readonly export: ReportSectionExport;
 }
 
@@ -75,66 +94,101 @@ export const REPORT_SECTIONS: readonly ReportSectionSpec[] = [
   {
     key: 'birth-details',
     screenTestId: 'report-cover',
+    numeral: 'I',
+    pdfEyebrowKey: 'birth_details_eyebrow',
     export: { kind: 'included', pdfText: (d) => d.labels.birthDetailsTitle },
   },
   {
     key: 'planets',
     screenTestId: 'report-planet-table',
+    numeral: 'II',
+    pdfEyebrowKey: 'planets_eyebrow',
     export: { kind: 'included', pdfText: (d) => d.labels.planetsTitle },
   },
   {
     key: 'houses',
     screenTestId: 'report-houses',
+    numeral: 'III',
+    pdfEyebrowKey: 'houses_eyebrow',
     export: { kind: 'included', pdfText: (d) => d.labels.housesTitle },
   },
   {
     key: 'charts',
     screenTestId: 'report-charts',
+    numeral: 'IV',
+    pdfEyebrowKey: 'charts_eyebrow',
     export: { kind: 'included', pdfText: (d) => d.labels.chartsTitle },
   },
   {
     key: 'dasha',
     screenTestId: 'report-dasha',
+    numeral: 'V',
+    pdfEyebrowKey: 'dasha_eyebrow',
     export: { kind: 'included', pdfText: (d) => d.labels.dashaTitle },
   },
   {
     key: 'yogas',
     screenTestId: 'report-yogas',
+    numeral: 'VI',
+    pdfEyebrowKey: 'yogas_eyebrow',
     export: { kind: 'included', pdfText: (d) => d.labels.yogasTitle },
   },
   {
     key: 'interpretation',
     screenTestId: 'report-interpretation',
+    numeral: 'VII',
+    pdfEyebrowKey: 'narrative_eyebrow',
     export: { kind: 'included', pdfText: (d) => d.labels.narrativeTitle },
+  },
+  {
+    key: 'evidence',
+    screenTestId: 'report-evidence',
+    numeral: 'VIII',
+    pdfEyebrowKey: 'evidence_eyebrow',
+    export: { kind: 'included', pdfText: (d) => d.evidence?.chrome.title },
   },
   {
     key: 'transits',
     screenTestId: 'report-transits',
+    numeral: 'IX',
+    pdfEyebrowKey: 'transits_eyebrow',
     export: { kind: 'included', pdfText: (d) => d.transits?.chrome.title },
   },
   {
     key: 'vargas',
     screenTestId: 'report-vargas',
+    numeral: 'X',
+    pdfEyebrowKey: 'vargas_eyebrow',
     export: { kind: 'included', pdfText: (d) => d.vargas?.chrome.title },
   },
   {
     key: 'strength',
     screenTestId: 'report-strength',
+    numeral: 'XI',
+    pdfEyebrowKey: 'strength_eyebrow',
     export: { kind: 'included', pdfText: (d) => d.strength?.chrome.title },
   },
   {
     key: 'domains',
     screenTestId: 'report-domains',
+    numeral: 'XII',
+    pdfEyebrowKey: 'domains_eyebrow',
     export: { kind: 'included', pdfText: (d) => d.domains?.chrome.title },
   },
   {
     key: 'rectification',
     screenTestId: 'report-rectification',
+    numeral: 'XIII',
+    pdfEyebrowKey: 'rectification_eyebrow',
     export: { kind: 'included', pdfText: (d) => d.rectification?.chrome.title },
   },
   {
+    // No `pdfEyebrowKey`: the export builds this eyebrow from
+    // `report:section_eyebrow` + `sectionNumeral('assumptions')`, so there is no
+    // second copy of the numeral to drift from.
     key: 'assumptions',
     screenTestId: 'report-assumptions',
+    numeral: 'XIV',
     export: { kind: 'included', pdfText: (d) => d.assumptions?.chrome.title },
   },
   {
@@ -157,4 +211,27 @@ export const REPORT_SECTION_SCREEN_TEST_IDS: readonly string[] = [
 /** Sections that must be findable in the exported PDF. */
 export function includedSections(): readonly ReportSectionSpec[] {
   return REPORT_SECTIONS.filter((section) => section.export.kind === 'included');
+}
+
+/** The numbered chapters, in document order (cover + footer chrome excluded). */
+export function numberedSections(): readonly ReportSectionSpec[] {
+  return REPORT_SECTIONS.filter((section) => section.numeral !== undefined);
+}
+
+/**
+ * The declared roman numeral for a section. Both renderers call this instead of
+ * writing a literal, so there is exactly one place a numeral can be wrong.
+ *
+ * Throws on an unknown key rather than returning "" — a section heading with a
+ * silently blank numeral is precisely the kind of quiet wrongness this replaced.
+ */
+export function sectionNumeral(key: string): string {
+  const spec = REPORT_SECTIONS.find((section) => section.key === key);
+  if (!spec?.numeral) {
+    throw new Error(
+      `No numeral is declared for report section "${key}" in lib/reportSections.ts. ` +
+        `Add the section (with its numeral) to REPORT_SECTIONS, or fix the key.`,
+    );
+  }
+  return spec.numeral;
 }

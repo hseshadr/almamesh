@@ -461,12 +461,17 @@ export const styles = StyleSheet.create({
     borderTopColor: palette.ruleStrong,
   },
   // Column widths (sum reflects the inner measure). Glyph chip + name share col 1.
-  colPlanet: { width: 108, flexDirection: 'row', alignItems: 'center' },
-  colSign: { width: 78 },
-  colDegree: { width: 74 },
+  // The seventh column, State, is what makes combustion a WORD rather than an
+  // opacity; the other six were trimmed to make room for it without letting any
+  // cell overflow into its neighbour (see `__tests__/pdfPoppler.ts`'s
+  // `horizontalWordOverlapViolations`, which fails on exactly that).
+  colPlanet: { width: 84, flexDirection: 'row', alignItems: 'center' },
+  colSign: { width: 60 },
+  colDegree: { width: 56 },
   colNakshatra: { flex: 1 },
-  colHouse: { width: 34, textAlign: 'center' },
-  colDignity: { width: 70 },
+  colHouse: { width: 26, textAlign: 'center' },
+  colDignity: { width: 60 },
+  colState: { width: 74 },
   // Planet glyph chip.
   glyphChip: {
     width: 19,
@@ -517,6 +522,27 @@ export const styles = StyleSheet.create({
     fontSize: type.micro,
     color: palette.brass,
   },
+  /** The State cell — retro / combust, in words, one per line. */
+  cellState: {
+    fontSize: type.caption,
+    color: palette.inkSoft,
+  },
+  /**
+   * The combustion statements under the table: the measured separation AND the
+   * classical orb, full width so the arithmetic never wraps mid-figure.
+   */
+  combustionNote: {
+    marginTop: space.sm,
+    fontFamily: FONT_MONO,
+    fontSize: type.micro,
+    color: palette.muted,
+    lineHeight: 1.5,
+  },
+  /**
+   * Combust rows dim. This is a REDUNDANT cue on top of the State column — never
+   * the carrier. Opacity does not survive text extraction, a screen reader,
+   * greyscale printing, or a photocopy.
+   */
   rowDim: { opacity: 0.55 },
 
   /* ── Kundli plates ────────────────────────────────────────── */
@@ -648,6 +674,23 @@ export const styles = StyleSheet.create({
     color: palette.faint,
     textAlign: 'right',
   },
+  /**
+   * The running period's marker, IN WORDS. The brass tick and the heavier lord
+   * beside it are redundant cues: a `<View>` dot contributes zero characters, so
+   * without this the nine mahā rows extract as nine identical lines. The cell is
+   * always present (empty when not running) so the columns stay aligned.
+   */
+  dashaCurrentMark: {
+    width: 64,
+    fontFamily: FONT_MONO,
+    // Deliberately the same size as the span / years cells beside it: a smaller
+    // face sits on its own baseline band, and text extraction then reads the
+    // marker as a separate line from the row it belongs to.
+    fontSize: type.caption,
+    textTransform: 'uppercase',
+    color: palette.brassDeep,
+    textAlign: 'right',
+  },
 
   /* ── Yogas ────────────────────────────────────────────────── */
   yogaCard: {
@@ -748,5 +791,124 @@ export const styles = StyleSheet.create({
     color: palette.ink,
     lineHeight: 1.7,
     marginBottom: space.sm,
+  },
+
+  /* ── Evidence & Confidence ────────────────────────────────────
+   * Cells are STACKED (label above value, full measure) rather than columnar:
+   * a side-by-side label/value pair reads back out of pdftotext interleaved
+   * once the value wraps, which would make the printed section unverifiable.
+   */
+  evidenceMethod: {
+    marginTop: space.sm,
+    marginBottom: space.lg,
+    paddingLeft: space.md,
+    borderLeftWidth: 2,
+    borderLeftColor: palette.brass,
+  },
+  evidenceSubheading: {
+    fontFamily: FONT_DISPLAY,
+    fontWeight: 600,
+    fontSize: type.h3,
+    color: palette.inkSoft,
+    marginBottom: space.sm,
+  },
+  evidenceStep: {
+    fontFamily: FONT_MONO,
+    fontSize: type.micro,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    color: palette.brassDeep,
+    marginTop: space.md,
+    marginBottom: space.xs,
+  },
+  evidenceCeiling: {
+    marginBottom: space.xs,
+  },
+  evidenceCeilingLabel: {
+    fontFamily: FONT_MONO,
+    fontSize: type.caption,
+    color: palette.inkSoft,
+  },
+  evidenceNote: {
+    marginTop: space.xs,
+    fontFamily: FONT_DISPLAY,
+    fontStyle: 'italic',
+    fontSize: type.small,
+    color: palette.muted,
+    lineHeight: 1.5,
+  },
+  evidenceFormula: {
+    marginTop: space.sm,
+    fontFamily: FONT_MONO,
+    fontSize: type.caption,
+    color: palette.brassDeep,
+  },
+  evidenceAlternate: {
+    marginBottom: space.lg,
+    backgroundColor: palette.paperDeep,
+    borderRadius: 4,
+    paddingVertical: space.md,
+    paddingHorizontal: space.md,
+  },
+  evidenceRow: {
+    marginBottom: space.sm,
+    borderWidth: 0.5,
+    borderColor: palette.rule,
+    borderRadius: 4,
+    backgroundColor: palette.card,
+    paddingVertical: space.sm,
+    paddingHorizontal: space.md,
+  },
+  evidenceCell: {
+    marginBottom: space.xs,
+  },
+  evidenceCellLabel: {
+    fontFamily: FONT_MONO,
+    fontSize: type.micro,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    color: palette.faint,
+  },
+  evidenceCellValue: {
+    fontSize: type.small,
+    color: palette.ink,
+    lineHeight: 1.55,
+  },
+  evidenceFactor: {
+    fontFamily: FONT_MONO,
+    fontSize: type.micro,
+    color: palette.inkSoft,
+    lineHeight: 1.55,
+  },
+  /* Deliberately unlike a ledger row: no white card, a brass-tinted frame. */
+  evidenceGuidance: {
+    marginBottom: space.md,
+    backgroundColor: palette.paperDeep,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: palette.brass,
+    borderRadius: 4,
+    paddingVertical: space.md,
+    paddingHorizontal: space.md,
+  },
+  evidenceGuidanceHeading: {
+    fontFamily: FONT_DISPLAY,
+    fontWeight: 600,
+    fontSize: type.h3,
+    color: palette.brassDeep,
+    marginBottom: space.xs,
+  },
+  evidenceGuidanceText: {
+    marginTop: space.sm,
+    fontSize: type.small,
+    color: palette.ink,
+    lineHeight: 1.6,
+  },
+  evidenceRejected: {
+    marginTop: space.md,
+    fontFamily: FONT_MONO,
+    fontSize: type.micro,
+    color: palette.muted,
+    lineHeight: 1.55,
   },
 });

@@ -15,7 +15,12 @@ const GLYPH_MAP: ReadonlyArray<readonly [RegExp, string]> = [
   [/′/g, "'"], // PRIME (arcminute) → apostrophe
   [/″/g, '"'], // DOUBLE PRIME (arcsecond) → quote
   [/≈/g, '~'], // ALMOST EQUAL TO → tilde
-  [/→/g, '—'], // RIGHTWARDS ARROW (U+2192, outside the latin subset) → em dash
+  // RIGHTWARDS ARROW (U+2192, outside the latin subset). Mapped to ASCII "->",
+  // NOT to an em dash: an em dash silently turns a MOVEMENT into a RANGE.
+  // Caught by reading a real export — "Mercury: house 1 — house 12" reads as
+  // "houses 1 to 12" when it means "moves from the 1st to the 12th", and the
+  // whole point of that line is which direction the second chart moves in.
+  [/→/g, '->'],
   [/[✦★✧]/g, '*'], // decorative stars → asterisk
   [/[‘’]/g, "'"], // curly single quotes → apostrophe
   [/[“”]/g, '"'], // curly double quotes → quote

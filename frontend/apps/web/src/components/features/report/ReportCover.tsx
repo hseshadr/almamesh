@@ -19,6 +19,7 @@
 
 import type { ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import type { LagnaData } from '@almamesh/browser/types';
 import type { ProcessedBirthData } from '@almamesh/shared-types';
 import {
@@ -46,6 +47,11 @@ interface ReportCoverProps {
    * the same way the PDF builder threads it — i18n stays here in React.
    */
   readonly rectification?: RectificationDelta | null;
+  /**
+   * The active profile, so a near-cusp callout can LINK to `/rectify/:id` — the
+   * action its own copy recommends. Null/absent simply omits the link.
+   */
+  readonly profileId?: string | null;
 }
 
 /**
@@ -103,9 +109,23 @@ function TimeOfBirthValue({
  * leads with the ascendant value, names the alternative rising sign, and states
  * that house placements depend on the recorded time. Renders nothing unless the
  * lagna sits within `cuspInfo`'s near-boundary threshold.
+ *
+ * It also LINKS to the rectification flow. The copy recommends refining the
+ * birth time before relying on house placements, and for a while there was no
+ * route to it anywhere on this page — a recommended action with no way to take
+ * it. The link is the same one the dashboard's `IdentityStrip` has always shown
+ * (`astrology:cusp.resolve_link` → `/rectify/:profileId`); it is omitted when no
+ * profile is active, since there would be nothing to rectify. Screen only — the
+ * PDF has no links, and its cusp note stays as it is.
  */
-function CuspCallout({ lagna }: { readonly lagna: LagnaData }): ReactElement | null {
-  const { t } = useTranslation('report');
+function CuspCallout({
+  lagna,
+  profileId,
+}: {
+  readonly lagna: LagnaData;
+  readonly profileId?: string | null;
+}): ReactElement | null {
+  const { t } = useTranslation(['report', 'astrology']);
   const sign = titleCase(lagna.sign);
   const cusp = cuspInfo(sign, lagna.sign_degrees);
   if (!cusp) {
@@ -125,6 +145,15 @@ function CuspCallout({ lagna }: { readonly lagna: LagnaData }): ReactElement | n
           sign: cusp.neighbourSign,
         })}
       </span>
+      {profileId ? (
+        <Link
+          to={`/rectify/${profileId}`}
+          className="report-cover-cusp-callout-link no-print"
+          data-testid="report-cusp-resolve-link"
+        >
+          {t('astrology:cusp.resolve_link')}
+        </Link>
+      ) : null}
     </aside>
   );
 }
@@ -136,6 +165,7 @@ export function ReportCover({
   birth,
   lagna,
   rectification,
+  profileId,
 }: ReportCoverProps): ReactElement {
   const { t } = useTranslation('report');
   const when = formatBirthDateTime(birth);
@@ -195,7 +225,7 @@ export function ReportCover({
           a muted footnote. Engine-grounded (cuspInfo measures the distance) and
           honest — it names the alternative rising sign and recommends refining
           the birth time before relying on house placements. */}
-      <CuspCallout lagna={lagna} />
+      <CuspCallout lagna={lagna} profileId={profileId} />
 
       <p className="report-cover-generated" data-testid="report-generated-date">
         {t('cover.generated_on', { date: formatReportDate(new Date()) })}

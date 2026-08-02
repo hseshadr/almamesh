@@ -824,6 +824,149 @@
   color: var(--report-ink);
 }
 
+/* ---- Evidence & Confidence ----------------------------------------------
+ * Cells stack (label above value) rather than sitting in columns, matching the
+ * printed section exactly — the two renderers share one builder, so they should
+ * also share a shape.
+ */
+.report-evidence-intro,
+.report-evidence-note {
+  max-width: var(--report-measure);
+  font-family: var(--report-sans);
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: var(--report-ink-soft);
+  margin: 0 0 12px;
+}
+
+.report-evidence-method {
+  margin: 0 0 20px;
+  padding-left: 14px;
+  border-left: 2px solid var(--report-gold);
+}
+
+.report-evidence-subheading {
+  font-family: var(--report-serif);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--report-ink);
+  margin: 0 0 6px;
+}
+
+.report-evidence-step {
+  font-family: var(--report-sans);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--report-gold-deep);
+  margin: 12px 0 4px;
+}
+
+.report-evidence-ceilings {
+  margin: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.report-evidence-ceiling dt {
+  font-family: var(--report-sans);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--report-ink);
+}
+
+.report-evidence-ceiling dd,
+.report-evidence-rules li,
+.report-evidence-cell-value {
+  margin: 0;
+  max-width: var(--report-measure);
+  font-family: var(--report-sans);
+  font-size: 0.8rem;
+  line-height: 1.55;
+  color: var(--report-ink);
+}
+
+.report-evidence-rules,
+.report-evidence-shifts,
+.report-evidence-factors {
+  margin: 0;
+  padding-left: 16px;
+  display: grid;
+  gap: 4px;
+}
+
+.report-evidence-formula {
+  margin: 10px 0 0;
+  font-family: var(--report-sans);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--report-gold-deep);
+}
+
+.report-evidence-alternate {
+  margin: 0 0 20px;
+  padding: 12px 14px;
+  background: var(--report-cream);
+  border-radius: 4px;
+}
+
+.report-evidence-rows {
+  display: grid;
+  gap: 10px;
+}
+
+.report-evidence-row {
+  display: grid;
+  gap: 8px;
+  padding: 11px 13px;
+  border: 0.5px solid var(--report-rule-soft);
+  border-radius: 4px;
+  background: #fff;
+}
+
+.report-evidence-cell-label {
+  display: block;
+  font-family: var(--report-sans);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--report-muted);
+  margin-bottom: 2px;
+}
+
+.report-evidence-factors li,
+.report-evidence-shifts li {
+  font-family: var(--report-sans);
+  font-size: 0.74rem;
+  line-height: 1.5;
+  color: var(--report-ink-soft);
+}
+
+/* Deliberately unlike a ledger row: no white card, a dashed brass frame — the
+   visual separation carries the epistemic one. */
+.report-evidence-guidance {
+  margin: 18px 0 0;
+  padding: 13px 15px;
+  background: var(--report-cream);
+  border: 1px dashed var(--report-gold);
+  border-radius: 4px;
+}
+
+.report-evidence-guidance .report-evidence-subheading {
+  color: var(--report-gold-deep);
+}
+
+.report-evidence-rejected {
+  margin: 14px 0 0;
+  max-width: var(--report-measure);
+  font-family: var(--report-sans);
+  font-size: 0.74rem;
+  line-height: 1.5;
+  color: var(--report-muted);
+}
+
 /* ---- Footer / colophon --------------------------------------------------- */
 .report-footer {
   display: flex;
@@ -1098,6 +1241,19 @@
   font-size: 0.78rem;
   line-height: 1.5;
   color: var(--report-ink-soft);
+}
+
+/* The action the callout recommends, made reachable: a link to /rectify/:id.
+   Screen only — `.no-print` hides it where a link would do nothing. */
+.report-cover-cusp-callout-link {
+  display: inline-block;
+  margin-top: 7px;
+  font-family: var(--report-sans);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--report-gold-deep);
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 /* On-screen-only "compute timing sections before printing" affordance. */

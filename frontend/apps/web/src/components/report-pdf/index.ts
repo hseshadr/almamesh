@@ -9,13 +9,18 @@
 export { ReportDocument } from './ReportDocument';
 export { buildReportPdfData } from './buildReportPdfData';
 export type { BirthDetailLabels, BuildReportPdfDataInput } from './buildReportPdfData';
+export { buildEvidenceSection } from './buildEvidenceSection';
+export type { EvidenceText } from './buildEvidenceSection';
 export { buildRectificationPdf } from './buildRectificationPdf';
 export type { BuildRectificationPdfInput, RectificationPdfEvent } from './buildRectificationPdf';
 export type { ReportPdfTranslators } from './buildComprehensiveSections';
+export type { CombustionCopy } from './buildReportSections';
 export type {
   ReportPdfAssumptions,
   ReportPdfData,
   ReportPdfDetail,
+  ReportPdfEvidence,
+  ReportPdfEvidenceRow,
   ReportPdfLabels,
   ReportPdfNarrativeTitles,
   ReportPdfRectification,

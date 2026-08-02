@@ -20,6 +20,7 @@ import type { LagnaData } from '@almamesh/browser/types';
 import { cuspInfo } from '../../../lib/lagnaCusp';
 import type { RectificationDelta } from '../../../lib/rectification';
 import { ReportSectionHeading } from './ReportSectionHeading';
+import { sectionNumeral } from '../../../lib/reportSections';
 
 function titleCase(value: string): string {
   return value ? value.charAt(0).toUpperCase() + value.slice(1) : '';
@@ -41,7 +42,7 @@ export function ReportAssumptions({
   const cusp = cuspInfo(titleCase(lagna.sign), lagna.sign_degrees, 3, lagna);
   return (
     <section className="report-section report-assumptions" data-testid="report-assumptions">
-      <ReportSectionHeading index="XIII" title={t('assumptions.heading')} />
+      <ReportSectionHeading index={sectionNumeral('assumptions')} title={t('assumptions.heading')} />
       <p className="report-assumptions-intro">{t('assumptions.intro')}</p>
       <dl className="report-assumptions-list">
         <div className="report-assumptions-row">

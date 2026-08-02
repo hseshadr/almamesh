@@ -192,6 +192,8 @@ const CHROME_LABELS: ReportPdfLabels = {
   colNakshatra: 'Nakshatra',
   colHouse: 'Hse',
   colDignity: 'Dignity',
+  colState: 'State',
+  stateRetrograde: 'Retro (R)',
   lagnaRowName: 'Ascendant',
   housesEyebrow: 'Section III',
   housesTitle: 'Houses',
@@ -208,6 +210,7 @@ const CHROME_LABELS: ReportPdfLabels = {
   dashaTitle: 'Dasha',
   dashaIntro: 'intro',
   dashaCurrentLabel: 'Current',
+  dashaCurrentMarker: 'Current',
   dashaSequenceLabel: 'Sequence',
   yogasEyebrow: 'Section VI',
   yogasTitle: 'Yogas',
@@ -340,7 +343,9 @@ describe('buildReportPdfData — all-mahā antar tables', () => {
 
   it("renders the running antar's localized pratyantar table", () => {
     const data = buildReportPdfData(baseInput());
-    const text = collectText(ReportPdfDashaTables({ tables: data.dasha.antarTables }));
+    const text = collectText(
+      ReportPdfDashaTables({ tables: data.dasha.antarTables, currentMarker: 'Current' }),
+    );
 
     expect(text).toContain('Pratyantar-dasas of the Sun Antar-dasa');
     expect(text).toContain('Venus');
@@ -364,9 +369,12 @@ describe('buildReportPdfData — comprehensive slices mirror the web report', ()
     expect(transits).toBeDefined();
     expect(transits?.gochara.rows).toHaveLength(2); // saturn + jupiter placements
     expect(transits?.slowHits.rows).toHaveLength(2);
-    // Slow-hit copy matches the web report ('→' maps to an em dash for the
-    // latin-subset print fonts).
-    expect(transits?.slowHits.rows[0].cells[1]).toBe('Saturn — natal Saturn');
+    // Slow-hit copy matches the web report ('→' maps to ASCII '->' for the
+    // latin-subset print fonts). It mapped to an em dash until reading a real
+    // export showed what that costs: an em dash turns every DIRECTIONAL
+    // statement into an ambiguous range. "Saturn — natal Saturn" reads as a
+    // span; the line means a transit arriving ON a natal point.
+    expect(transits?.slowHits.rows[0].cells[1]).toBe('Saturn -> natal Saturn');
     expect(transits?.slowHits.rows[0].cells[2]).toBe('Challenging');
     expect(transits?.timeline.rows).toHaveLength(2);
     expect(transits?.sadeSati.length).toBeGreaterThanOrEqual(2);

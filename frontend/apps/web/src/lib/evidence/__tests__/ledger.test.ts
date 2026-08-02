@@ -172,3 +172,29 @@ describe('the keyless report is complete without any model', () => {
     expect(savana?.deltaDays).toBeCloseTo(-99.75, 6);
   });
 });
+
+describe('observations must distinguish THIS chart from any other', () => {
+  it('omits the shadow nodes from retrogradation — they are retrograde always', () => {
+    const chart = nearCuspChart();
+    const withNodes = {
+      ...chart,
+      planets: {
+        ...chart.planets,
+        rahu: {
+          ...chart.planets.saturn,
+          name: 'rahu',
+          sign: 'Sagittarius',
+          house: 11,
+          is_retrograde: true,
+          combustion_separation_deg: null,
+          houses_ruled: [],
+          dignity: 'neutral',
+        },
+      },
+    };
+    const ids = buildEvidenceLedger(withNodes).rows.map((row) => row.observation.id);
+    expect(ids).not.toContain('retrograde:rahu');
+    // A genuinely retrograde graha still earns its row.
+    expect(ids).toContain('retrograde:saturn');
+  });
+});

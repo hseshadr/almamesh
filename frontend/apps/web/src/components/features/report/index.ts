@@ -19,6 +19,7 @@ export { ReportVargas } from './ReportVargas';
 export { ReportStrength } from './ReportStrength';
 export { ReportDomains } from './ReportDomains';
 export { ReportInterpretation } from './ReportInterpretation';
+export { ReportEvidence } from './ReportEvidence';
 export { ReportProse } from './ReportProse';
 export { ReportAssumptions } from './ReportAssumptions';
 export { StabilityChip } from './StabilityChip';

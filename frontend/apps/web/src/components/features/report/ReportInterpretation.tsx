@@ -14,6 +14,7 @@ import type { TitledPersona, VedicInterpretation } from '@almamesh/shared-types'
 import { buildGuidanceSections, personaText, type ReportAudience } from '../../../lib/reportSelectors';
 import { ReportProse } from './ReportProse';
 import { ReportSectionHeading } from './ReportSectionHeading';
+import { sectionNumeral } from '../../../lib/reportSections';
 
 /** A list of titled personas (strengths / challenges / life themes) for one mode. */
 function TitledBlock({
@@ -71,7 +72,7 @@ export function ReportInterpretation({
 
   return (
     <section className="report-section report-interpretation" data-testid="report-interpretation">
-      <ReportSectionHeading index="VI" title={t('interpretation.heading')} />
+      <ReportSectionHeading index={sectionNumeral('interpretation')} title={t('interpretation.heading')} />
 
       {summary ? (
         <div className="report-summary-quote report-avoid-break">

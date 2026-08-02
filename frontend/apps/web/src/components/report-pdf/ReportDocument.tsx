@@ -31,6 +31,11 @@ import {
 } from './sections/ReportPdfDasha';
 import { ReportPdfYogas } from './sections/ReportPdfYogas';
 import { ReportPdfNarrative } from './sections/ReportPdfNarrative';
+import {
+  hasEvidenceEpilogue,
+  ReportPdfEvidence,
+  ReportPdfEvidenceGuidance,
+} from './sections/ReportPdfEvidence';
 import { ReportPdfTransits } from './sections/ReportPdfTransits';
 import {
   chunkVargaPlates,
@@ -107,7 +112,10 @@ export function ReportDocument({ data }: ReportDocumentProps): ReactElement {
 
       {dashaTablePages.map((tables, pageIndex) => (
         <Page key={`dasha-${pageIndex}`} size="A4" style={styles.page}>
-          <ReportPdfDashaTables tables={tables} />
+          <ReportPdfDashaTables
+            tables={tables}
+            currentMarker={data.labels.dashaCurrentMarker}
+          />
           {footer()}
         </Page>
       ))}
@@ -128,7 +136,25 @@ export function ReportDocument({ data }: ReportDocumentProps): ReactElement {
         {footer()}
       </Page>
 
-      {/* Comprehensive sections — mirrors of web report VII–XI; each present
+      {/* Section VIII — Evidence & Confidence: the audit of everything above.
+          Deterministic (engine chart only), so it prints with or without a
+          model reading. The general-guidance epilogue gets its OWN page: those
+          statements rest on nothing computed, and the physical separation is
+          the point — no ledger cell may appear beside them. */}
+      {data.evidence ? (
+        <Page size="A4" style={styles.page}>
+          <ReportPdfEvidence data={data} />
+          {footer()}
+        </Page>
+      ) : null}
+      {hasEvidenceEpilogue(data.evidence) ? (
+        <Page size="A4" style={styles.page}>
+          <ReportPdfEvidenceGuidance data={data} />
+          {footer()}
+        </Page>
+      ) : null}
+
+      {/* Comprehensive sections — mirrors of web report IX–XII; each present
           only when its on-device context was computed. */}
       {data.transits ? (
         <Page size="A4" style={styles.page}>

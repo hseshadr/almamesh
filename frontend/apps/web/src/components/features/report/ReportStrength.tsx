@@ -21,6 +21,7 @@ import { formatPredictiveDate, formatRupas } from '../../../lib/predictive';
 import { grahaName, signName } from '../../../lib/predictiveEventCopy';
 import { hasApproximatedComponents } from '../predictive/StrengthPanel';
 import { ReportSectionHeading } from './ReportSectionHeading';
+import { sectionNumeral } from '../../../lib/reportSections';
 
 const SIGN_ORDER: readonly ZodiacSign[] = [
   'aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo',
@@ -54,7 +55,7 @@ export function ReportStrength({ strengthCtx }: ReportStrengthProps): ReactEleme
 
   return (
     <section className="report-section" data-testid="report-strength">
-      <ReportSectionHeading index="IX" title={t('strength.heading')} />
+      <ReportSectionHeading index={sectionNumeral('strength')} title={t('strength.heading')} />
 
       <h3 className="report-subsection-title">
         {t('strength.sav_heading')} — {t('strength.sav_total', { total: sarva.total })}

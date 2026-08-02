@@ -611,3 +611,70 @@ describe('hydrate healing — an interrupted generation must never persist as a 
     expect(migrated.byChart.idle?.status).toBe('idle');
   });
 });
+
+describe('evidence annotations (optional, purely additive)', () => {
+  const PAYLOAD = {
+    readings: [{ observation_id: 'dignity:venus', interpretation: 'Warmth arrives audited.' }],
+    general_guidance: ['Sleep well.'],
+  };
+
+  it('stays at persist version 5 — an optional field needs no migration', () => {
+    expect(INTERPRETATION_PERSIST_VERSION).toBe(5);
+  });
+
+  it('rehydrates an entry stored BEFORE the field existed, unchanged', () => {
+    const legacy = {
+      byChart: {
+        c1: {
+          status: 'complete',
+          sections: { core: true },
+          profileId: 'profile-1',
+          interpretation: makeInterpretation('A steady Saturn stretch.'),
+        },
+      },
+    };
+
+    const migrated = migrateInterpretationPersistedState(legacy, INTERPRETATION_PERSIST_VERSION);
+
+    expect(migrated).toEqual(legacy);
+    expect(migrated.byChart.c1?.evidenceAnnotations).toBeUndefined();
+    expect(migrated.byChart.c1?.interpretation).toEqual(makeInterpretation('A steady Saturn stretch.'));
+  });
+
+  it('attaches the raw payload to the entry without touching the stored reading', async () => {
+    const store = newStore();
+    const reading = makeInterpretation('A bright Jupiter year.');
+    store.getState().startInterpretation('c1');
+    await store.getState().setInterpretation('c1', reading, '2026-08-01T00:00:00Z');
+
+    await store.getState().setEvidenceAnnotations('c1', PAYLOAD);
+
+    const entry = store.getState().getEntry('c1');
+    expect(entry?.evidenceAnnotations).toEqual(PAYLOAD);
+    expect(entry?.status).toBe('complete');
+    expect(entry?.interpretation).toEqual(reading);
+    expect(entry?.updatedAt).toBe('2026-08-01T00:00:00Z');
+  });
+
+  it('ignores annotations from a SUPERSEDED run (a slow call must not land on a newer reading)', async () => {
+    const store = newStore();
+    const staleToken = store.getState().startInterpretation('c1');
+    store.getState().startInterpretation('c1'); // a newer run takes over
+
+    await store.getState().setEvidenceAnnotations('c1', PAYLOAD, staleToken);
+
+    expect(store.getState().getEntry('c1')?.evidenceAnnotations).toBeUndefined();
+  });
+
+  it('a NEW reading drops the previous readings annotations — prose never outlives its reading', async () => {
+    const store = newStore();
+    store.getState().startInterpretation('c1');
+    await store.getState().setInterpretation('c1', makeInterpretation('First.'), '2026-08-01T00:00:00Z');
+    await store.getState().setEvidenceAnnotations('c1', PAYLOAD);
+
+    store.getState().startInterpretation('c1');
+    await store.getState().setInterpretation('c1', makeInterpretation('Second.'), '2026-08-02T00:00:00Z');
+
+    expect(store.getState().getEntry('c1')?.evidenceAnnotations).toBeUndefined();
+  });
+});

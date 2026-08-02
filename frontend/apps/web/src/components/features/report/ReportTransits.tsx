@@ -18,6 +18,7 @@ import {
   timelineEventLabel,
 } from '../../../lib/predictiveEventCopy';
 import { ReportSectionHeading } from './ReportSectionHeading';
+import { sectionNumeral } from '../../../lib/reportSections';
 
 const GRAHA_ORDER = [
   'sun', 'moon', 'mars', 'mercury', 'jupiter', 'venus', 'saturn', 'rahu', 'ketu',
@@ -41,7 +42,7 @@ export function ReportTransits({ transitCtx }: ReportTransitsProps): ReactElemen
 
   return (
     <section className="report-section" data-testid="report-transits">
-      <ReportSectionHeading index="VII" title={t('transits.heading')} />
+      <ReportSectionHeading index={sectionNumeral('transits')} title={t('transits.heading')} />
       <p className="report-note">
         {t('transits.as_of', { date: formatPredictiveDate(transitCtx.gochara.instant) })}
       </p>

@@ -18,6 +18,7 @@ import { hasStrength, signedMark, yogaStrength } from '../../../lib/yogaStrength
 import { yogaClaimId, type StabilityMarker } from '../../../lib/stability';
 import { ReportProse } from './ReportProse';
 import { ReportSectionHeading } from './ReportSectionHeading';
+import { sectionNumeral } from '../../../lib/reportSections';
 import { StabilityChip } from './StabilityChip';
 
 const capitalize = (word: string): string =>
@@ -104,7 +105,7 @@ export function ReportYogas({
 
   return (
     <section className="report-section" data-testid="report-yogas">
-      <ReportSectionHeading index="IV" title={t('yogas.heading')} />
+      <ReportSectionHeading index={sectionNumeral('yogas')} title={t('yogas.heading')} />
 
       {narrative ? (
         <ReportProse

@@ -13,6 +13,7 @@ import { useTranslation } from 'react-i18next';
 import type { PlanetPosition, SiderealChart } from '@almamesh/browser/types';
 import { formatDegree } from '../../../lib/reportData';
 import { ReportSectionHeading } from './ReportSectionHeading';
+import { sectionNumeral } from '../../../lib/reportSections';
 
 /** Canonical graha order so the table reads sun → … → ketu, not dict order. */
 const PLANET_ORDER: readonly string[] = [
@@ -70,7 +71,7 @@ export function ReportPlanetTable({ chart }: ReportPlanetTableProps): ReactEleme
 
   return (
     <section className="report-section" data-testid="report-planet-table">
-      <ReportSectionHeading index="II" title={t('planets.heading')} />
+      <ReportSectionHeading index={sectionNumeral('planets')} title={t('planets.heading')} />
       <table className="report-table">
         <thead>
           <tr>

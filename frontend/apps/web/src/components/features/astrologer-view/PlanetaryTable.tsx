@@ -126,6 +126,10 @@ function fromLegacy(name: string, raw: SiderealPlanet): ChartPlanet {
     dignity: '',
     isRetrograde: Boolean(raw.is_retrograde),
     isCombust: Boolean(raw.is_combust),
+    // The legacy `SiderealPlanet` never carried the separation. null means
+    // "not measured here", which a renderer must show as absent rather than
+    // as a confident 0.00 degrees.
+    combustionSeparationDeg: null,
     housesRuled: raw.houses_ruled ?? [],
     isYogakaraka: Boolean(raw.is_yogakaraka),
     color: colors.text.muted,

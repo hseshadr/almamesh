@@ -13,6 +13,7 @@ import { domainWindowLabel, grahaName } from '../../../lib/predictiveEventCopy';
 import { domainClaimId, type StabilityMarker } from '../../../lib/stability';
 import { DOMAIN_ORDER } from '../predictive/DomainsPanel';
 import { ReportSectionHeading } from './ReportSectionHeading';
+import { sectionNumeral } from '../../../lib/reportSections';
 import { StabilityChip } from './StabilityChip';
 
 function DomainBlock({
@@ -106,7 +107,7 @@ export function ReportDomains({ domainsCtx, stability }: ReportDomainsProps): Re
   const { t } = useTranslation('report');
   return (
     <section className="report-section" data-testid="report-domains">
-      <ReportSectionHeading index="X" title={t('domains.heading')} />
+      <ReportSectionHeading index={sectionNumeral('domains')} title={t('domains.heading')} />
       <div className="report-domain-grid">
         {DOMAIN_ORDER.map((domain) => (
           <DomainBlock

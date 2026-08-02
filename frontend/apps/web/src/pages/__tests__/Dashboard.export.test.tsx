@@ -33,6 +33,7 @@ import {
 } from '@almamesh/store';
 import type { BirthChartGenerationResponse } from '@almamesh/shared-types';
 
+import { buildObservations } from '../../lib/evidence';
 import '../../i18n/config';
 
 // The PDF pipeline (dynamically imports @react-pdf/renderer). Mocked so the
@@ -204,6 +205,76 @@ describe('Dashboard — Export PDF (one click, stored data only)', () => {
     const [input] = vi.mocked(downloadReportPdf).mock.calls[0];
     expect(input.interpretation).toBeUndefined();
     expect(input.birth).toBeTruthy();
+  });
+
+  /**
+   * "Wired, not just built": the evidence section can be complete, tested and
+   * rendered by the document and STILL never reach a user, if the one live
+   * assembly forgets to pass it. This drives the real button and inspects the
+   * payload — with NO reading generated, which is precisely the case where the
+   * deterministic ledger has to carry the report on its own.
+   */
+  it('carries the deterministic evidence ledger into a keyless export', async () => {
+    renderDashboard();
+
+    fireEvent.click(await screen.findByTestId('print-chart-button'));
+
+    await waitFor(() => expect(downloadReportPdf).toHaveBeenCalled());
+    const [input] = vi.mocked(downloadReportPdf).mock.calls[0];
+    expect(input.interpretation).toBeUndefined();
+    expect(input.evidence?.rows.length ?? 0).toBeGreaterThan(0);
+    // Every row keeps all five cells; only the interpretation is empty, and it
+    // says so in words rather than going blank.
+    for (const row of input.evidence?.rows ?? []) {
+      expect(row.observation).not.toBe('');
+      expect(row.evidence.length).toBeGreaterThan(0);
+      expect(row.confidence).not.toBe('');
+      expect(row.alternative).not.toBe('');
+      expect(row.interpretation.toLowerCase()).toContain('no written interpretation');
+    }
+  });
+
+  /**
+   * The other half of "wired, not just built": with a reading stored, the model
+   * prose must actually REACH the exported document — and a fabricated citation
+   * must be rejected on that same live path, not merely inside the validator's
+   * own unit test. This drives the real button with one honest annotation and
+   * one that cites a yoga this chart does not contain.
+   */
+  it('carries VALIDATED model prose into the export and drops a fabricated citation', async () => {
+    const sidereal = storedChart().sidereal_chart;
+    if (!sidereal) throw new Error('The stored-chart fixture carries no sidereal chart');
+    const observationId = buildObservations(sidereal).observations[0].id;
+    useInterpretationStore.setState({
+      byChart: {
+        'chart-1': {
+          status: 'complete',
+          sections: {},
+          // Annotations follow the SAME staleness gate as the reading: a chart
+          // whose inputs have moved on must not show either.
+          inputProvenance: { predictiveRequestKey: null },
+          evidenceAnnotations: {
+            readings: [
+              { observation_id: observationId, interpretation: 'GROUNDED_SENTINEL' },
+              { observation_id: 'yoga:Not In This Chart', interpretation: 'HALLUCINATED_SENTINEL' },
+            ],
+          },
+        },
+      },
+    });
+    renderDashboard();
+
+    fireEvent.click(await screen.findByTestId('print-chart-button'));
+
+    await waitFor(() => expect(downloadReportPdf).toHaveBeenCalled());
+    const [input] = vi.mocked(downloadReportPdf).mock.calls[0];
+    const rendered = JSON.stringify(input.evidence);
+
+    expect(rendered).toContain('GROUNDED_SENTINEL');
+    // The fabricated statement reaches no cell of the exported document.
+    expect(rendered).not.toContain('HALLUCINATED_SENTINEL');
+    // And the drop is disclosed to the reader rather than being silent.
+    expect(rendered).toMatch(/Not In This Chart/);
   });
 
   it('never mentions an AI reading in the button tooltip', async () => {

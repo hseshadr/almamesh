@@ -13,6 +13,7 @@ import type { ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { SiderealChart } from '@almamesh/browser/types';
 import { ReportSectionHeading } from './ReportSectionHeading';
+import { sectionNumeral } from '../../../lib/reportSections';
 
 /** Canonical graha order so occupant lists read sun → … → ketu, not dict order. */
 const PLANET_ORDER: readonly string[] = [
@@ -75,7 +76,7 @@ export function ReportHouses({ chart }: ReportHousesProps): ReactElement {
 
   return (
     <section className="report-section" data-testid="report-houses">
-      <ReportSectionHeading index="III" title={t('houses.heading')} />
+      <ReportSectionHeading index={sectionNumeral('houses')} title={t('houses.heading')} />
       <table className="report-table">
         <thead>
           <tr>

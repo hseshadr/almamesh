@@ -19,6 +19,9 @@ import { chartFactors, type ChartFactor } from './factors';
 
 import type { SiderealChart } from '@almamesh/browser/types';
 
+/** The shadow nodes move retrograde always, in every chart, by definition. */
+const ALWAYS_RETROGRADE: ReadonlySet<string> = new Set(['rahu', 'ketu']);
+
 export interface Observation {
   /** Stable id — the primary factor. This is what a model annotation cites. */
   readonly id: string;
@@ -49,7 +52,11 @@ function observationFactorIds(chart: SiderealChart, factors: readonly ChartFacto
     if (factor.kind === 'combustion' && factor.combust) {
       ids.push(factor.id);
     }
-    if (factor.kind === 'retrograde') {
+    // Rahu and Ketu are retrograde in EVERY chart, so "Rahu is retrograde" is
+    // true of everyone and tells this reader nothing. An observation that
+    // cannot distinguish one chart from another is filler, and filler is what
+    // the evidence column exists to keep out.
+    if (factor.kind === 'retrograde' && !ALWAYS_RETROGRADE.has(factor.planet)) {
       ids.push(factor.id);
     }
     if (factor.kind === 'rulership' && factor.yogakaraka) {

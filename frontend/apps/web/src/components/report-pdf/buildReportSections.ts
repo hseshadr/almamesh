@@ -16,6 +16,7 @@ import {
   type ChartPlanet,
 } from '@almamesh/store';
 import { planetInk } from '../chart/chartTheme';
+import { combustionOrbDeg } from '../../lib/evidence/combustionOrbs';
 import { formatDegree } from '../../lib/reportData';
 import { buildGuidanceSections, personaText, type ReportAudience } from '../../lib/reportSelectors';
 import { hasStrength, yogaStrength } from '../../lib/yogaStrength';
@@ -87,10 +88,68 @@ function nakshatraLabel(nakshatra: string, pada: number): string {
   return pada > 0 ? `${nakshatra} · ${pada}` : nakshatra;
 }
 
+/**
+ * The two localized combustion strings, bound in React by the caller (i18n never
+ * enters this layer) — the same pattern as `formatAntarHeading`.
+ *
+ * Unlike the chrome labels, these default to ENGLISH rather than to absence. A
+ * fact-carrying string that silently disappears when a caller forgets to wire it
+ * is the very failure this whole change exists to end: combustion used to be
+ * encoded as `opacity: 0.55` and nothing else, so the exported table said nothing
+ * at all about a combust graha.
+ */
+export interface CombustionCopy {
+  /** The planet row's State cell, e.g. "Combust 2.76°". */
+  readonly state: (separation: string) => string;
+  /** The under-table statement, e.g. "Venus — combust 2.76° from the Sun (orb 10°)". */
+  readonly note: (parts: {
+    readonly planet: string;
+    readonly separation: string;
+    readonly orb: string;
+  }) => string;
+}
+
+const DEFAULT_COMBUSTION_COPY: CombustionCopy = {
+  state: (separation) => `Combust ${separation}°`,
+  note: ({ planet, separation, orb }) =>
+    `${planet} — combust ${separation}° from the Sun (orb ${orb}°)`,
+};
+
+/** Degrees print to 2 dp throughout the report. */
+function degrees2dp(value: number): string {
+  return value.toFixed(2);
+}
+
+/** Classical orbs are whole degrees; print them bare, and only decimalize if not. */
+function orbFigure(value: number): string {
+  return Number.isInteger(value) ? String(value) : value.toFixed(2);
+}
+
+/** The graha's display name — the same string the table row prints. */
+function planetName(name: string): string {
+  return PLANET_NAMES[name] ?? titleCase(name);
+}
+
+/**
+ * The combustion STATE in words, or "" when the graha is not combust. When the
+ * payload carries no measured separation (older bundles), the state degrades to
+ * the bare verdict rather than inventing a number.
+ */
+function combustionState(planet: ChartPlanet, copy: CombustionCopy): string {
+  if (!planet.isCombust) {
+    return '';
+  }
+  const separation = planet.combustionSeparationDeg;
+  if (separation === null) {
+    return glyphSafe(copy.state('').trim());
+  }
+  return glyphSafe(copy.state(degrees2dp(separation)));
+}
+
 /** One planet → one table row (paper-legible ink, glyph-safe degree). */
-function toPlanetRow(planet: ChartPlanet): ReportPdfPlanetRow {
+function toPlanetRow(planet: ChartPlanet, copy: CombustionCopy): ReportPdfPlanetRow {
   return {
-    name: PLANET_NAMES[planet.name] ?? titleCase(planet.name),
+    name: planetName(planet.name),
     glyph: planet.label,
     sign: planet.sign,
     degree: glyphSafe(formatDegree(planet.signDegrees)),
@@ -99,15 +158,19 @@ function toPlanetRow(planet: ChartPlanet): ReportPdfPlanetRow {
     dignity: dignityLabel(planet.dignity),
     isRetrograde: planet.isRetrograde,
     isCombust: planet.isCombust,
+    combustion: combustionState(planet, copy),
     color: planetInk(planet.color, 'paper'),
   };
 }
 
 /** The 9 grahas (engine order) + a leading Lagna row. */
-export function buildPlanetRows(geometry: ChartGeometry): ReadonlyArray<ReportPdfPlanetRow> {
+export function buildPlanetRows(
+  geometry: ChartGeometry,
+  copy: CombustionCopy = DEFAULT_COMBUSTION_COPY,
+): ReadonlyArray<ReportPdfPlanetRow> {
   const byName = new Map(geometry.planets.map((p) => [p.name, p]));
   const rows = PLANET_ORDER.filter((name) => byName.has(name)).map((name) =>
-    toPlanetRow(byName.get(name) as ChartPlanet),
+    toPlanetRow(byName.get(name) as ChartPlanet, copy),
   );
   const lagnaRow: ReportPdfPlanetRow = {
     name: 'Ascendant',
@@ -119,9 +182,44 @@ export function buildPlanetRows(geometry: ChartGeometry): ReadonlyArray<ReportPd
     dignity: '',
     isRetrograde: false,
     isCombust: false,
+    combustion: '',
     color: '#B8860B',
   };
   return [lagnaRow, ...rows];
+}
+
+/**
+ * One finished sentence per combust graha, for the line under the planetary
+ * table: the measured separation AND the classical orb it was tested against.
+ *
+ * The engine emits `is_combust` and `combustion_separation_deg` but NOT the orb,
+ * so the orb comes from `lib/evidence/combustionOrbs.ts` — a mirror of the Python
+ * constants whose own test parses the Python source, so the two cannot drift.
+ * A graha with no orb (the Sun itself, the shadow nodes) states nothing here.
+ */
+export function buildCombustionNotes(
+  geometry: ChartGeometry,
+  copy: CombustionCopy = DEFAULT_COMBUSTION_COPY,
+): ReadonlyArray<string> {
+  const byName = new Map(geometry.planets.map((p) => [p.name, p]));
+  return PLANET_ORDER.filter((name) => byName.has(name))
+    .map((name) => byName.get(name) as ChartPlanet)
+    .filter((planet) => planet.isCombust && planet.combustionSeparationDeg !== null)
+    .flatMap((planet) => {
+      const orb = combustionOrbDeg(planet.name, planet.isRetrograde);
+      if (orb === null) {
+        return [];
+      }
+      return [
+        glyphSafe(
+          copy.note({
+            planet: planetName(planet.name),
+            separation: degrees2dp(planet.combustionSeparationDeg as number),
+            orb: orbFigure(orb),
+          }),
+        ),
+      ];
+    });
 }
 
 /**

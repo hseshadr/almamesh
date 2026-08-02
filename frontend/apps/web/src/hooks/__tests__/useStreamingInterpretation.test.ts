@@ -23,6 +23,7 @@ vi.mock('@almamesh/llm', async () => {
   return {
     ...actual,
     streamStructuredInterpretation: vi.fn(),
+    requestEvidenceAnnotations: vi.fn(),
   };
 });
 
@@ -40,6 +41,9 @@ vi.mock('@almamesh/store', async () => {
 import {
   configProvenance,
   streamStructuredInterpretation,
+  requestEvidenceAnnotations,
+  openRouterPreset,
+  LLM_SETTINGS_KEY,
   PrivacyViolationError,
   LlmRequestError,
   type InterpretationEvent,
@@ -55,6 +59,7 @@ import type { VedicInterpretation } from '@almamesh/shared-types';
 import i18n from '../../i18n/config';
 
 const mockedStream = vi.mocked(streamStructuredInterpretation);
+const mockedAnnotate = vi.mocked(requestEvidenceAnnotations);
 
 // A chart that carries the raw engine output the sanitizer needs.
 const CHART_WITH_RAW = {
@@ -65,6 +70,56 @@ const CHART_WITH_RAW = {
     birth_location_details: { latitude: 12.97, longitude: 77.59 },
   },
   sidereal_chart: { ayanamsa_value: 23.4, lagna: {}, planets: {}, houses: {}, yogas: [] },
+};
+
+// A chart carrying enough engine output for the deterministic evidence layer to
+// build real observations: an ascendant, a debilitated Venus, a running dasha.
+const CHART_WITH_FACTORS = {
+  chart_id: 'chart-777',
+  profile_id: 'profile-123',
+  birth_data: {
+    birth_datetime_utc: '1990-03-30T06:45:00Z',
+    birth_location_details: { latitude: 12.97, longitude: 77.59 },
+  },
+  sidereal_chart: {
+    ayanamsa_value: 23.4,
+    lagna: { sign: 'Aries', sign_degrees: 14.2 },
+    planets: {
+      venus: {
+        sign: 'Virgo',
+        sign_degrees: 8.5,
+        nakshatra: 'Hasta',
+        nakshatra_pada: 2,
+        dignity: 'debilitated',
+        house: 6,
+        houses_ruled: [2, 7],
+        is_yogakaraka: false,
+        is_combust: false,
+        combustion_separation_deg: 12.4,
+        is_retrograde: false,
+        speed: 1.1,
+      },
+    },
+    houses: {},
+    yogas: [],
+    dashas: {
+      convention: 'vimshottari',
+      current_maha: {
+        lord: 'saturn',
+        start_date: '2020-01-01',
+        end_date: '2039-01-01',
+        duration_years: 19,
+      },
+      maha_dasha_sequence: [
+        {
+          lord: 'saturn',
+          start_date: '2020-01-01',
+          end_date: '2039-01-01',
+          duration_years: 19,
+        },
+      ],
+    },
+  },
 };
 
 const CURRENT_PREDICTIVE_KEY = predictiveRequestKey({
@@ -725,6 +780,159 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
 
       await waitFor(() => expect(result.current.status).toBe('error'));
       expect(result.current.errorKind).toBe('needs_regeneration');
+    });
+  });
+
+  // =========================================================================
+  // Evidence annotations — the SECOND, optional model call
+  // =========================================================================
+  //
+  // After a reading completes the hook asks the model to attach interpretation
+  // prose to observations the deterministic engine ALREADY computed. It is a
+  // separate step by design: the reading is saved and on screen before this
+  // runs, so nothing about it can degrade the reading.
+  describe('evidence annotations', () => {
+    /** Opt into a configured cloud provider (the only state that may annotate). */
+    function configureProvider(): void {
+      localStorage.setItem(
+        LLM_SETTINGS_KEY,
+        JSON.stringify(openRouterPreset('test-key', 'deepseek/deepseek-v4-pro')),
+      );
+    }
+
+    const ANNOTATION_PAYLOAD = {
+      readings: [
+        {
+          observation_id: 'dignity:venus',
+          interpretation: 'Affection gets audited before it is offered.',
+          also_cites: ['position:venus'],
+        },
+      ],
+      general_guidance: ['Rest is not a reward for finishing.'],
+    };
+
+    beforeEach(() => {
+      getChart.mockReturnValue(CHART_WITH_FACTORS);
+      mockedStream.mockImplementation(
+        eventStream([{ type: 'complete', interpretation: SAMPLE_INTERPRETATION }]),
+      );
+      mockedAnnotate.mockResolvedValue(ANNOTATION_PAYLOAD);
+    });
+
+    it('requests annotations for the REAL engine observations and persists the payload', async () => {
+      configureProvider();
+
+      const { result } = renderHook(() => useStreamingInterpretation('chart-777'));
+      await act(async () => {
+        await result.current.streamInterpretation('chart-777');
+      });
+
+      await waitFor(() => expect(mockedAnnotate).toHaveBeenCalledTimes(1));
+      const params = mockedAnnotate.mock.calls[0][0];
+
+      // The observation list is the engine's, not a second one invented here.
+      const ids = params.observations.map((o) => o.id);
+      expect(ids).toContain('lagna');
+      expect(ids).toContain('dignity:venus');
+      expect(ids).toContain('dasha:maha:saturn');
+      // Every prompt row carries a factual statement + the computed evidence.
+      for (const observation of params.observations) {
+        expect(observation.statement.length).toBeGreaterThan(0);
+        expect(observation.evidence.length).toBeGreaterThan(0);
+      }
+      // The allowlist is every CITABLE factor — a superset of the observations.
+      expect(params.factorIds).toContain('position:venus');
+      expect(params.factorIds).toContain('house:venus');
+      expect(params.factorIds.length).toBeGreaterThan(params.observations.length);
+      // The chart crossed the privacy boundary: a sanitized copy, not the store's.
+      expect(params.chart).not.toBe(CHART_WITH_FACTORS.sidereal_chart);
+      expect(params.chart.lagna.sign).toBe('Aries');
+      // Config, language and abort signal are the interpretation path's own.
+      expect(params.config.apiKey).toBe('test-key');
+      expect(params.language).toBe('en');
+      expect(params.signal).toBeDefined();
+
+      expect(useInterpretationStore.getState().byChart['chart-777']?.evidenceAnnotations).toEqual(
+        ANNOTATION_PAYLOAD,
+      );
+    });
+
+    it('sends the persisted UI language, not a hardcoded one', async () => {
+      configureProvider();
+      useLanguageStore.setState({ language: 'es' });
+
+      const { result } = renderHook(() => useStreamingInterpretation('chart-777'));
+      await act(async () => {
+        await result.current.streamInterpretation('chart-777');
+      });
+
+      await waitFor(() => expect(mockedAnnotate).toHaveBeenCalledTimes(1));
+      expect(mockedAnnotate.mock.calls[0][0].language).toBe('es');
+    });
+
+    // THE LOAD-BEARING ONE. An annotation outage is an enhancement outage. If it
+    // could take the reading down with it, the whole "separate step" claim is a
+    // lie and a provider hiccup would erase a reading the user already has.
+    it('a FAILED annotation call never degrades the reading', async () => {
+      configureProvider();
+      mockedAnnotate.mockRejectedValue(new LlmRequestError('HTTP 402 out of credits'));
+
+      const { result } = renderHook(() => useStreamingInterpretation('chart-777'));
+      await act(async () => {
+        await result.current.streamInterpretation('chart-777');
+      });
+
+      await waitFor(() => expect(result.current.status).toBe('complete'));
+      expect(result.current.interpretation).toEqual(SAMPLE_INTERPRETATION);
+      expect(result.current.error).toBeNull();
+      expect(result.current.errorKind).toBeNull();
+      // The evidence section renders keyless — no interpretation, everything else.
+      expect(
+        useInterpretationStore.getState().byChart['chart-777']?.evidenceAnnotations,
+      ).toBeUndefined();
+    });
+
+    it('a THROWING observation build never degrades the reading either', async () => {
+      configureProvider();
+      // A chart with no `dashas` block: the deterministic factor builder throws.
+      getChart.mockReturnValue(CHART_WITH_RAW);
+
+      const { result } = renderHook(() => useStreamingInterpretation('chart-123'));
+      await act(async () => {
+        await result.current.streamInterpretation('chart-123');
+      });
+
+      await waitFor(() => expect(result.current.status).toBe('complete'));
+      expect(result.current.interpretation).toEqual(SAMPLE_INTERPRETATION);
+      expect(mockedAnnotate).not.toHaveBeenCalled();
+    });
+
+    it('makes NO annotation call at all when no provider is configured', async () => {
+      // localStorage was cleared in beforeEach: the resolved config is the
+      // unconfigured local_only loopback default, with no key.
+      const { result } = renderHook(() => useStreamingInterpretation('chart-777'));
+      await act(async () => {
+        await result.current.streamInterpretation('chart-777');
+      });
+
+      await waitFor(() => expect(result.current.status).toBe('complete'));
+      expect(mockedAnnotate).not.toHaveBeenCalled();
+      expect(
+        useInterpretationStore.getState().byChart['chart-777']?.evidenceAnnotations,
+      ).toBeUndefined();
+    });
+
+    it('makes no annotation call when the reading itself failed', async () => {
+      configureProvider();
+      mockedStream.mockImplementation(failingStream(new LlmRequestError('HTTP 500')));
+
+      const { result } = renderHook(() => useStreamingInterpretation('chart-777'));
+      await act(async () => {
+        await result.current.streamInterpretation('chart-777');
+      });
+
+      await waitFor(() => expect(result.current.status).toBe('error'));
+      expect(mockedAnnotate).not.toHaveBeenCalled();
     });
   });
 });
