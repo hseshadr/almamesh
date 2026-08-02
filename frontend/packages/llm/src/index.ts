@@ -128,6 +128,23 @@ export type { ViewMode, ChatRectificationContext, ChatPromptBudget } from "./pro
 export { languageInstruction, withLanguage } from "./language";
 export type { PromptLanguage } from "./language";
 
+// --- Evidence annotation (the evidence-backed report's ONLY model call) ---
+// The model may attach prose to observations the deterministic engine already
+// computed; it may not author one. The payload returned here is RAW and
+// UNVALIDATED on purpose — `apps/web/src/lib/evidence/annotations.ts` is the
+// single validation site, and it rejects any statement citing an id this chart
+// does not contain. A second validation pass here would be a second place for
+// that rule to drift.
+export {
+  requestEvidenceAnnotations,
+  buildEvidenceAnnotationMessages,
+} from "./evidence-annotation";
+export type {
+  EvidenceObservationPrompt,
+  EvidenceAnnotationParams,
+  RawEvidenceAnnotationPayload,
+} from "./evidence-annotation";
+
 export { chatCompletionJson } from "./client";
 export type { ChatCompletionJsonOptions } from "./client";
 

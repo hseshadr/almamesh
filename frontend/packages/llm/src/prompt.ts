@@ -112,6 +112,12 @@ export const OUTPUT_DISCIPLINE_RULES = [
   "1/5/9, upachaya = 3/6/10/11, dusthana = 6/8/12.",
 ].join("\n");
 
+// The privacy line every narration prompt carries. Extracted verbatim from the
+// structured system prompt so the SAME sentence is shared, not re-typed: a rule
+// written twice is a rule that will eventually say two different things.
+export const PRIVACY_RULE =
+  "PRIVACY: never mention city/state/country names. Refer generically to 'birth location'.";
+
 // The anti-scam contract for ALL relationship narration (the mesh reading and
 // any chat turn that carries a relationship context). AlmaMesh exists to be the
 // anti-scam astrology app: classical Melapaka numbers are reflective tradition,

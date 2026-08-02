@@ -17,7 +17,7 @@
 import { create, type StateCreator } from 'zustand';
 import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware';
 
-import type { ReadingProvenance } from '@almamesh/llm';
+import type { RawEvidenceAnnotationPayload, ReadingProvenance } from '@almamesh/llm';
 import type { VedicInterpretation } from '@almamesh/shared-types';
 import { deletionAwareIdbStorage } from './deletionTombstones';
 
@@ -99,6 +99,22 @@ export interface ChartInterpretationEntry {
   readonly inputProvenance?: InterpretationInputProvenance;
   /** Owning profile, retained across chart regeneration for complete deletion. */
   readonly profileId?: string;
+  /**
+   * RAW, UNVALIDATED model output for the evidence-backed report: prose the
+   * model attached to observations the deterministic engine already computed.
+   *
+   * Stored raw on purpose. `apps/web/src/lib/evidence/ledger.ts` is the single
+   * validation site — it rejects any statement citing an id this chart does not
+   * contain — so validating here too would create a second place for that rule
+   * to drift. Nothing renders from this field without going through the ledger.
+   *
+   * Optional and purely additive: the annotation call is a separate, best-effort
+   * step AFTER the reading is already saved, so an entry with no annotations is
+   * the normal shape (no key, call failed, older build). Consumers render the
+   * evidence table keyless — observation/evidence/confidence/alternative with an
+   * empty interpretation cell — which loses nothing deterministic.
+   */
+  readonly evidenceAnnotations?: RawEvidenceAnnotationPayload;
 }
 
 /** Ephemeral identity for one generation attempt; never persisted. */
@@ -143,6 +159,19 @@ export interface InterpretationStore {
     runToken?: InterpretationRunToken,
   ) => Promise<void>;
   /**
+   * Attach RAW evidence annotations to a chart's entry. Separate from
+   * `setInterpretation` because the annotation call happens AFTER the reading is
+   * already stored and shown: it is an enhancement, never a precondition, and a
+   * failure to make it leaves the entry exactly as it is. Pass the `runToken`
+   * from `startInterpretation` so a slow call from a superseded run cannot land
+   * its prose on a newer reading.
+   */
+  setEvidenceAnnotations: (
+    chartId: string,
+    annotations: RawEvidenceAnnotationPayload,
+    runToken?: InterpretationRunToken,
+  ) => Promise<void>;
+  /**
    * Record a failure: status -> 'error'. `kind` is the typed verdict behind the
    * message (omitted by legacy callers, which consumers read as unknown).
    */
@@ -183,6 +212,11 @@ export const INTERPRETATION_PERSIST_NAME = 'almamesh-interpretations';
  * v5: entries may carry `profileId` ownership. Legacy ownerless readings are
  * preserved; deletion removes them only when chart/thread ownership proves
  * they belong to the deleted profile.
+ *
+ * NOT a version: `evidenceAnnotations` is OPTIONAL and additive, so an entry
+ * written before it existed hydrates byte-identical and renders a keyless
+ * evidence table. A bump here would force a needless migration pass for a field
+ * whose absence is already a valid, fully-supported state.
  */
 export const INTERPRETATION_PERSIST_VERSION = 5;
 
@@ -364,6 +398,11 @@ export const interpretationStoreCreator: StateCreator<InterpretationStore> = (se
                   ? { inputProvenance: current.inputProvenance }
                   : {}),
                 ...(current.updatedAt !== undefined ? { updatedAt: current.updatedAt } : {}),
+                // The kept reading keeps its own annotations while the new run
+                // is in flight; only a successful `setInterpretation` drops them.
+                ...(current.evidenceAnnotations !== undefined
+                  ? { evidenceAnnotations: current.evidenceAnnotations }
+                  : {}),
               }
             : {};
         const owner = profileId ?? current.profileId;
@@ -416,6 +455,9 @@ export const interpretationStoreCreator: StateCreator<InterpretationStore> = (se
         const current = entryOf(state.byChart, chartId);
         // `provenance` always overwrites (including with undefined): the stored
         // fingerprint must describe THIS reading, never a stale predecessor's.
+        // `evidenceAnnotations` is cleared for the same reason: the previous
+        // reading's model prose must never appear beside a reading it was not
+        // written for. The annotation step re-runs after this and refills it.
         const entry: ChartInterpretationEntry = {
           ...current,
           status: 'complete',
@@ -424,8 +466,22 @@ export const interpretationStoreCreator: StateCreator<InterpretationStore> = (se
           updatedAt,
           provenance,
           inputProvenance,
+          evidenceAnnotations: undefined,
         };
         return { byChart: withEntry(state.byChart, chartId, entry) };
+      });
+      await persistInterpretationSnapshot(get());
+    },
+
+    setEvidenceAnnotations: async (chartId, annotations, runToken) => {
+      set((state) => {
+        if (!acceptsRun(chartId, runToken)) {
+          return state;
+        }
+        const current = entryOf(state.byChart, chartId);
+        return {
+          byChart: withEntry(state.byChart, chartId, { ...current, evidenceAnnotations: annotations }),
+        };
       });
       await persistInterpretationSnapshot(get());
     },

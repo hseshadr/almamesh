@@ -60,8 +60,17 @@ export interface ReportPdfPlanetRow {
   readonly dignity: string;
   /** True → an ASCII "(R)" retrograde mark is shown next to the degree. */
   readonly isRetrograde: boolean;
-  /** True → the row is dimmed (combust planet). */
+  /** True → the row is dimmed (combust planet) — a REDUNDANT cue, never the carrier. */
   readonly isCombust: boolean;
+  /**
+   * The combustion STATE, stated in words — e.g. "Combust 2.76°" — or "" when the
+   * graha is not combust. This exists because opacity is not a fact: a dimmed row
+   * survives neither text extraction, nor a screen reader, nor a photocopy, and
+   * for a long while it was the only thing the exported table said about a
+   * combust planet. The measured separation rides along because "combust" alone
+   * is a verdict, while "combust at 2.76°" is arithmetic a reader can check.
+   */
+  readonly combustion: string;
   /** Hex accent for the glyph chip (paper-legible planet ink). */
   readonly color: string;
 }
@@ -76,7 +85,12 @@ export interface ReportPdfDashaPeriod {
   readonly end: string;
   /** Span label, e.g. "19 yrs". */
   readonly span: string;
-  /** True → this period is the one currently running (brass-marked). */
+  /**
+   * True → this period is the one currently running. The brass tick and the
+   * heavier lord are REDUNDANT cues; the row also prints
+   * `ReportPdfLabels.dashaCurrentMarker` in words, because a `<View>` dot
+   * contributes zero characters and nine rows then extract identically.
+   */
   readonly isCurrent: boolean;
 }
 
@@ -323,7 +337,77 @@ export interface ReportPdfRectification {
 }
 
 /**
- * Section XIII — Assumptions & Provenance. The four load-bearing choices every
+ * One row of the evidence ledger — the five cells, all pre-formatted.
+ *
+ * `evidence` is a LIST because each cited factor prints on its own line as
+ * `<id> · <measured values> · <how it was computed>`; collapsing them into one
+ * sentence is exactly how a citation stops being checkable.
+ */
+export interface ReportPdfEvidenceRow {
+  /** The primary factor's stable id — the row's identity in both renderers. */
+  readonly observationId: string;
+  /** What was computed, stated as a sentence. Never a judgement about it. */
+  readonly observation: string;
+  /** Every cited factor, with its measured values and its class. */
+  readonly evidence: ReadonlyArray<string>;
+  /** The model's prose, or the localized "no written interpretation" line. */
+  readonly interpretation: string;
+  /** The level AND its derivation (ceiling, the factor that set it, deductions). */
+  readonly confidence: string;
+  /** A real counterfactual, a robustness measurement, or an honest "none". */
+  readonly alternative: string;
+}
+
+/** The five cell labels, in render order. */
+export interface ReportPdfEvidenceCellLabels {
+  readonly observation: string;
+  readonly evidence: string;
+  readonly interpretation: string;
+  readonly confidence: string;
+  readonly alternative: string;
+}
+
+/**
+ * Section VIII — Evidence & Confidence: the audit of every section above it.
+ *
+ * The preamble states the METHOD (ceiling table, deduction rules with their real
+ * numeric thresholds, the formula) so a reader can re-derive every level in the
+ * rows rather than take it on authority — see `lib/evidence/confidence.ts`.
+ *
+ * `guidance` is a list of PLAIN STRINGS, never rows, and that is load-bearing:
+ * statements the model itself declared ungrounded must render with no evidence,
+ * no confidence and no alternative beside them. Making them structurally
+ * incapable of carrying those cells is stronger than remembering not to.
+ */
+export interface ReportPdfEvidence {
+  readonly chrome: ReportPdfSectionChrome;
+  readonly methodHeading: string;
+  readonly ceilingHeading: string;
+  /** arithmetic → High, rule → Moderate, model → Low, each with its reason. */
+  readonly ceilings: ReadonlyArray<ReportPdfLabeledValue>;
+  readonly ceilingNote: string;
+  readonly deductionHeading: string;
+  /** Each deduction rule with its threshold interpolated from the constants. */
+  readonly deductionRules: ReadonlyArray<string>;
+  readonly formula: string;
+  /* The second chart — present ONLY when this ascendant sits near a cusp. */
+  readonly alternateHeading?: string;
+  readonly alternateLead?: string;
+  readonly alternateShifts?: ReadonlyArray<string>;
+  /** States plainly that the equivalent in MINUTES of birth time is not computed. */
+  readonly alternateMinutesNote?: string;
+  readonly cellLabels: ReportPdfEvidenceCellLabels;
+  readonly rows: ReadonlyArray<ReportPdfEvidenceRow>;
+  /* General guidance — present only when the model declared some. */
+  readonly guidanceHeading?: string;
+  readonly guidanceNote?: string;
+  readonly guidance?: ReadonlyArray<string>;
+  /** Provenance: how many model statements were dropped, and what they cited. */
+  readonly rejectedNote?: string;
+}
+
+/**
+ * Section XIV — Assumptions & Provenance. The four load-bearing choices every
  * verdict rests on (ayanāṁśa, house system, birth time, ascendant cusp), each a
  * finished label→value string. Assembled from existing provenance; invents nothing.
  */
@@ -363,6 +447,15 @@ export interface ReportPdfData {
 
   /** The planetary-positions table (9 grahas + the Lagna row). */
   readonly planets: ReadonlyArray<ReportPdfPlanetRow>;
+  /**
+   * One finished sentence per combust graha, printed under the planetary table —
+   * e.g. "Venus — combust 2.76° from the Sun (orb 10°)". The table cell states
+   * the fact; this states the whole arithmetic, including the classical orb the
+   * engine tested against (which the engine does not itself emit — see
+   * `lib/evidence/combustionOrbs.ts`, a mirror guarded against drift). Empty
+   * when no graha is combust.
+   */
+  readonly combustionNotes: ReadonlyArray<string>;
   /** The 12 whole-sign house rows (sign, lord, occupants). */
   readonly houses: ReadonlyArray<ReportPdfHouseRow>;
   /** The two kundli charts (D1 + optional D9), as geometry. */
@@ -386,6 +479,13 @@ export interface ReportPdfData {
    * missing (never a blank page, never a fabricated narrative).
    */
   readonly narrative?: ReadonlyArray<ReportPdfNarrativeSection>;
+  /**
+   * Section VIII — Evidence & Confidence. Deterministic: it needs only the
+   * engine chart, so it is present whenever the caller built it, with or
+   * without a model reading. OPTIONAL only so that callers predating it (and
+   * the narrower fixtures) keep type-checking.
+   */
+  readonly evidence?: ReportPdfEvidence;
 
   /* Comprehensive sections — present only when the on-device predictive
      contexts were computed (transits/vargas/strength/domains) or a confirmed
@@ -423,6 +523,10 @@ export interface ReportPdfLabels {
   readonly colNakshatra: string;
   readonly colHouse: string;
   readonly colDignity: string;
+  /** Header of the State column ("State") — the retro / combust readout. */
+  readonly colState: string;
+  /** The retrograde state word, e.g. "Retro (R)" (`report:planets.retrograde`). */
+  readonly stateRetrograde: string;
   readonly lagnaRowName: string;
 
   /** Houses section. */
@@ -446,6 +550,12 @@ export interface ReportPdfLabels {
   readonly dashaIntro: string;
   readonly dashaCurrentLabel: string;
   readonly dashaSequenceLabel: string;
+  /**
+   * The word printed on the running period's row, e.g. "Current". Load-bearing:
+   * the brass tick beside it is a `<View>` and contributes no characters, so
+   * without this all nine mahā rows extract as identical text.
+   */
+  readonly dashaCurrentMarker: string;
 
   /** Yogas section. */
   readonly yogasEyebrow: string;

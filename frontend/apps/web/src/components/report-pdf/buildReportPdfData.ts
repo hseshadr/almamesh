@@ -31,6 +31,7 @@ import type {
   ReportPdfAssumptions,
   ReportPdfData,
   ReportPdfDetail,
+  ReportPdfEvidence,
   ReportPdfLabels,
   ReportPdfNarrativeTitles,
   ReportPdfRectification,
@@ -41,11 +42,13 @@ import {
   buildCharts,
   buildD1Geometry,
   buildDasha,
+  buildCombustionNotes,
   buildHouses,
   buildNarrative,
   buildPlanetRows,
   buildYogaNarrative,
   buildYogas,
+  type CombustionCopy,
   type StabilityFlagFor,
 } from './buildReportSections';
 import {
@@ -124,6 +127,15 @@ export interface BuildReportPdfDataInput {
   readonly formatAntarHeading?: (lord: string) => string;
   /** Binds `report:dasha.pratyantar_heading` for the running antar's table. */
   readonly formatPratyantarHeading?: (lord: string) => string;
+  /**
+   * Binds the localized combustion copy (`report:pdf.planet_state_combust` and
+   * `report:pdf.combustion_note`). Same i18n-stays-in-React pattern as above,
+   * with one deliberate difference: omitting it falls back to ENGLISH text, not
+   * to silence. Combustion is a FACT the engine computed — a caller that forgets
+   * to wire the words must still see them, because "no words" is precisely the
+   * defect (a dimmed row) this replaced.
+   */
+  readonly formatCombustion?: CombustionCopy;
   readonly detailLabels: BirthDetailLabels;
   readonly chromeLabels: ReportPdfLabels;
   /**
@@ -154,10 +166,16 @@ export interface BuildReportPdfDataInput {
    */
   readonly rectification?: ReportPdfRectification;
   /**
-   * The assumptions & provenance section (Section XIII), pre-localized in React.
+   * The assumptions & provenance section (Section XIV), pre-localized in React.
    * OPTIONAL — omitted entirely when not supplied, exactly like the other slices.
    */
   readonly assumptions?: ReportPdfAssumptions;
+  /**
+   * Section VIII — Evidence & Confidence, pre-localized by
+   * `buildEvidenceSection` (the same builder the on-screen report calls).
+   * OPTIONAL — omitted entirely when not supplied, like the other slices.
+   */
+  readonly evidence?: ReportPdfEvidence;
 }
 
 /**
@@ -268,7 +286,8 @@ export function buildReportPdfData(input: BuildReportPdfDataInput): ReportPdfDat
     ascendantNote: input.ascendantNote ? glyphSafe(input.ascendantNote) : undefined,
     rectifiedNote: buildRectifiedNote(input),
     technical,
-    planets: buildPlanetRows(d1Geometry),
+    planets: buildPlanetRows(d1Geometry, input.formatCombustion),
+    combustionNotes: buildCombustionNotes(d1Geometry, input.formatCombustion),
     houses: buildHouses(input.sidereal),
     charts: buildCharts(input.sidereal, d1Geometry, input.chartCaptions),
     dasha: buildDasha(
@@ -306,6 +325,7 @@ export function buildReportPdfData(input: BuildReportPdfDataInput): ReportPdfDat
             stabilityFlagFor,
           )
         : undefined,
+    evidence: input.evidence,
     rectification: input.rectification,
     assumptions: buildAssumptions(input),
     labels: safeLabels(input.chromeLabels),

@@ -830,8 +830,18 @@ function pdfTransitColumns(pdfText: string, graha: string): readonly string[] {
   return columns;
 }
 
-const DASHA_ROW_PATTERN =
-  /^(Sun|Moon|Mars|Rahu|Jupiter|Saturn|Mercury|Ketu|Venus)\s+([A-Z][a-z]{2} \d{4})\s+—\s+([A-Z][a-z]{2} \d{4})\s+\d+(?:\.\d+)? yr$/;
+// The running maha/antar/pratyantar row carries an extra trailing word — the
+// `labels.dashaCurrentMarker` text (ReportPdfDasha.tsx) — in the SAME y-band as
+// the rest of the row, so it lands in the same extracted line. The marker is
+// OPTIONAL in the pattern (most rows don't have it) and its exact text is
+// threaded in from the shipping catalog rather than hardcoded, so a copy edit
+// to "Current" can't silently desync this from what the PDF actually prints.
+function dashaRowPattern(currentMarker: string): RegExp {
+  const escapedMarker = currentMarker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(
+    `^(Sun|Moon|Mars|Rahu|Jupiter|Saturn|Mercury|Ketu|Venus)\\s+([A-Z][a-z]{2} \\d{4})\\s+—\\s+([A-Z][a-z]{2} \\d{4})\\s+\\d+(?:\\.\\d+)? yr(?:\\s+${escapedMarker})?$`,
+  );
+}
 
 function titleCaseDashaLord(lord: string): string {
   return `${lord.charAt(0).toUpperCase()}${lord.slice(1)}`;
@@ -859,7 +869,9 @@ function dashaRowTuple(period: {
 
 function downloadedDashaRowTuples(
   pdf: Awaited<ReturnType<typeof inspectPdfWithPoppler>>,
+  currentMarker: string,
 ): readonly string[] {
+  const pattern = dashaRowPattern(currentMarker);
   return pdf.pages
     .filter(
       (pdfPage) =>
@@ -884,7 +896,7 @@ function downloadedDashaRowTuples(
       );
     })
     .flatMap((line) => {
-      const match = DASHA_ROW_PATTERN.exec(line);
+      const match = pattern.exec(line);
       return match ? [`${match[1]}|${match[2]}|${match[3]}`] : [];
     });
 }
@@ -1276,7 +1288,14 @@ test('synthetic maximal state -> real browser download preserves every report fa
     ...expectedAntarRows,
     ...expectedPratyantarRows,
   ];
-  const downloadedDashaRows = downloadedDashaRowTuples(inspectedPdf);
+  // `styles.dashaCurrentMark` (theme.ts) sets `textTransform: 'uppercase'`, so
+  // the glyphs pdftotext actually extracts are "CURRENT", not the catalog's
+  // title-case "Current" — mirror that transform rather than hardcoding the
+  // upper-cased word, so a font/style change can't silently desync this again.
+  const dashaCurrentMarker = (
+    await englishReportString('pdf.dasha_current_marker')
+  ).toLocaleUpperCase('en');
+  const downloadedDashaRows = downloadedDashaRowTuples(inspectedPdf, dashaCurrentMarker);
   expect(expectedMahaRows).toHaveLength(9);
   expect(expectedAntarRows).toHaveLength(81);
   expect(expectedPratyantarRows).toHaveLength(9);

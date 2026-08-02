@@ -28,6 +28,7 @@ import {
   type InterpretationSectionKey,
   type LlmEnv,
   type ProviderConfig,
+  type RawEvidenceAnnotationPayload,
 } from '@almamesh/llm';
 import {
   useChartLibraryStore,
@@ -45,6 +46,7 @@ import type { ProcessedBirthData, VedicInterpretation } from '@almamesh/shared-t
 
 import { chatErrorMessage, classifyConnectionError } from '../lib/errors';
 import { buildEnsurePredictiveInput, predictiveReferenceInstant } from '../lib/predictive';
+import { fetchEvidenceAnnotations } from './evidenceAnnotations';
 
 /** The structured sections, in the order the generator announces them. */
 export const INTERPRETATION_SECTIONS: readonly InterpretationSectionKey[] = [
@@ -75,6 +77,12 @@ export interface UseStreamingInterpretationResult {
   streamInterpretation: (chartId: string, options?: StreamInterpretationOptions) => Promise<void>;
   /** The finished structured reading for the active chart, if complete. */
   interpretation: VedicInterpretation | undefined;
+  /**
+   * The model's RAW, UNVALIDATED evidence annotations for this chart.
+   * Never render these directly — pass them to `buildEvidenceLedger`, which
+   * rejects every citation to a factor the chart does not contain.
+   */
+  evidenceAnnotations: RawEvidenceAnnotationPayload | undefined;
   /** Lifecycle of the active chart's interpretation. */
   status: InterpretationStatus;
   /** Per-section completion/failure flags (the 5 keys), for a progress checklist. */
@@ -341,6 +349,7 @@ export function useStreamingInterpretation(chartId?: string | null): UseStreamin
   const markSectionComplete = useInterpretationStore((s) => s.markSectionComplete);
   const markSectionFailed = useInterpretationStore((s) => s.markSectionFailed);
   const setInterpretation = useInterpretationStore((s) => s.setInterpretation);
+  const setEvidenceAnnotations = useInterpretationStore((s) => s.setEvidenceAnnotations);
   const setError = useInterpretationStore((s) => s.setError);
   const resetEntry = useInterpretationStore((s) => s.reset);
 
@@ -398,7 +407,10 @@ export function useStreamingInterpretation(chartId?: string | null): UseStreamin
       const controller = new AbortController();
       abortControllerRef.current = controller;
 
-      startInterpretation(id);
+      const runToken = startInterpretation(id);
+      // Whether the reading itself landed. Gates the annotation step below: a run
+      // that errored or was cancelled has nothing to annotate.
+      let readingCompleted = false;
       try {
         for await (const event of streamStructuredInterpretation({
           chart: input.chart,
@@ -431,6 +443,7 @@ export function useStreamingInterpretation(chartId?: string | null): UseStreamin
               { ...configProvenance(config), predictiveAware },
               input.provenance,
             );
+            readingCompleted = true;
           }
           // `section_start` is informational.
         }
@@ -438,9 +451,40 @@ export function useStreamingInterpretation(chartId?: string | null): UseStreamin
         if (err instanceof Error && err.name === 'AbortError') return;
         const failure = describeError(err);
         setError(id, failure.message, failure.kind);
+        return;
+      }
+
+      // ---------------------------------------------------------------------
+      // SEPARATE STEP: evidence annotations. Strictly after the reading.
+      // ---------------------------------------------------------------------
+      // The reading is already stored as `complete` and already on screen by the
+      // time we get here, so nothing below can take it away. `fetchEvidenceAnnotations`
+      // never throws and returns null when it made no call or the call failed —
+      // in which case the evidence table simply renders keyless (observation,
+      // evidence, confidence and alternative, with an empty interpretation cell).
+      // `runToken` keeps a slow response from landing on a newer reading.
+      if (!readingCompleted || controller.signal.aborted) {
+        return;
+      }
+      const annotations = await fetchEvidenceAnnotations({
+        chart: input.chart,
+        config,
+        language,
+        signal: controller.signal,
+      });
+      if (annotations !== null && !controller.signal.aborted) {
+        await setEvidenceAnnotations(id, annotations, runToken);
       }
     },
-    [language, markSectionComplete, markSectionFailed, setError, setInterpretation, startInterpretation]
+    [
+      language,
+      markSectionComplete,
+      markSectionFailed,
+      setError,
+      setEvidenceAnnotations,
+      setInterpretation,
+      startInterpretation,
+    ]
   );
 
   const resolvedChartId = chartId ?? null;
@@ -463,6 +507,10 @@ export function useStreamingInterpretation(chartId?: string | null): UseStreamin
   return {
     streamInterpretation,
     interpretation: inputIsSafeToDisplay ? entry?.interpretation : undefined,
+    // UNVALIDATED model output, handed on deliberately raw. `buildEvidenceLedger`
+    // is the single place it is ever checked against the computed chart, so
+    // passing it through here cannot create a second, laxer validation site.
+    evidenceAnnotations: inputIsSafeToDisplay ? entry?.evidenceAnnotations : undefined,
     status,
     sections,
     failedSections: sections.filter((s) => s.failed).map((s) => s.key),

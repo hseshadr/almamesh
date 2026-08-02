@@ -25,6 +25,7 @@ import { NorthIndianChartSVG } from '../../chart/NorthIndianChartSVG';
 import { SouthIndianChartSVG } from '../../chart/SouthIndianChartSVG';
 import { formatDegree, selectTechnicalFields } from '../../../lib/reportData';
 import { ReportSectionHeading } from './ReportSectionHeading';
+import { sectionNumeral } from '../../../lib/reportSections';
 
 /** Title-case a lowercase engine lord/sign value for display ("mars" → "Mars"). */
 function titleCase(value: string): string {
@@ -107,7 +108,7 @@ export function ReportChartsPage({ chart, size = 320 }: ReportChartsPageProps): 
 
   return (
     <section className="report-section report-charts" data-testid="report-charts">
-      <ReportSectionHeading index="I" title={t('charts.heading')} />
+      <ReportSectionHeading index={sectionNumeral('charts')} title={t('charts.heading')} />
 
       <div className="report-charts-grid">
         <ChartPlate caption={t('charts.rasi_caption')} geometry={geometry} size={size} isNorth={isNorth} />

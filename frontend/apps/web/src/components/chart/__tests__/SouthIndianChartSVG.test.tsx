@@ -31,6 +31,7 @@ function planet(overrides: Partial<ChartPlanet> & Pick<ChartPlanet, 'name'>): Ch
     dignity: 'exalted',
     isRetrograde: false,
     isCombust: false,
+    combustionSeparationDeg: null,
     housesRuled: [],
     isYogakaraka: false,
     color: '#E3B85A',

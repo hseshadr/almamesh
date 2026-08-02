@@ -17,7 +17,9 @@ import type {
 } from '@almamesh/shared-types';
 import type {
   BirthDetailLabels,
+  CombustionCopy,
   ReportPdfAssumptions,
+  ReportPdfEvidence,
   ReportPdfLabels,
   ReportPdfNarrativeTitles,
   ReportPdfRectification,
@@ -46,6 +48,12 @@ export interface ReportPdfChrome {
   readonly formatAntarHeading?: (lord: string) => string;
   /** Binds `report:dasha.pratyantar_heading` for the running antar's table. */
   readonly formatPratyantarHeading?: (lord: string) => string;
+  /**
+   * Binds `report:pdf.planet_state_combust` + `report:pdf.combustion_note` — the
+   * words that STATE combustion in the planetary table. Omitting it falls back
+   * to English rather than to silence: a dimmed row is what this replaced.
+   */
+  readonly formatCombustion?: CombustionCopy;
   /** Localized kundli plate captions ("Rāśi · D1" / "Navāṁśa · D9"). */
   readonly chartCaptions: { readonly rasi: string; readonly navamsa: string };
   readonly detailLabels: BirthDetailLabels;
@@ -107,8 +115,10 @@ export interface DownloadReportPdfInput {
   };
   /** Pre-localized Birth Time Authority slice (when a rectification exists). */
   readonly rectification?: ReportPdfRectification;
-  /** Pre-localized assumptions & provenance section (Section XIII). */
+  /** Pre-localized assumptions & provenance section (Section XIV). */
   readonly assumptions?: ReportPdfAssumptions;
+  /** Pre-localized Evidence & Confidence section (Section VIII). */
+  readonly evidence?: ReportPdfEvidence;
   /** The download file name (without extension). */
   readonly fileBaseName: string;
 }
@@ -161,6 +171,7 @@ export async function downloadReportPdf(input: DownloadReportPdfInput): Promise<
     formatRectifiedNote: input.chrome.formatRectifiedNote,
     formatAntarHeading: input.chrome.formatAntarHeading,
     formatPratyantarHeading: input.chrome.formatPratyantarHeading,
+    formatCombustion: input.chrome.formatCombustion,
     detailLabels: input.chrome.detailLabels,
     chromeLabels: input.chrome.chromeLabels,
     comprehensive: input.comprehensive
@@ -175,6 +186,7 @@ export async function downloadReportPdf(input: DownloadReportPdfInput): Promise<
       : undefined,
     rectification: input.rectification,
     assumptions: input.assumptions,
+    evidence: input.evidence,
   });
 
   const blob = await pdf(<ReportDocument data={data} />).toBlob();

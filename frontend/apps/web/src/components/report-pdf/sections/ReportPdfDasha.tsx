@@ -1,9 +1,14 @@
 /**
- * ReportPdfDasha — the Vimshottari daśā timeline: a brass-marked "current period"
- * card (Maha · Antar · Pratyantar), the nine maha-daśā rows with dated spans, and
- * the antar-daśā drill-down of EVERY mahā (the definitive reference tables; the
- * running antar stays brass-marked inside its mahā). All dates/spans arrive
+ * ReportPdfDasha — the Vimshottari daśā timeline: a "current period" card
+ * (Maha · Antar · Pratyantar), the nine maha-daśā rows with dated spans, and the
+ * antar-daśā drill-down of EVERY mahā (the definitive reference tables; the
+ * running antar is marked inside its mahā too). All dates/spans arrive
  * pre-formatted (epoch-safe) on `ReportPdfData` — no recomputation here.
+ *
+ * The running period is named IN WORDS on its own row. It used to be a brass dot
+ * plus a slightly heavier lord — and a `<View>` dot contributes no characters, so
+ * all nine mahā rows extracted as identical text. The brass stays as a redundant
+ * cue; `labels.dashaCurrentMarker` is what actually says which row is running.
  */
 
 import type { ReactElement } from 'react';
@@ -22,6 +27,8 @@ interface ReportPdfDashaProps {
 
 interface ReportPdfDashaTablesProps {
   readonly tables: readonly ReportPdfAntarTable[];
+  /** `labels.dashaCurrentMarker` — the word printed on the running period's row. */
+  readonly currentMarker: string;
 }
 
 const TABLE_UNITS_PER_PAGE = 2;
@@ -51,7 +58,13 @@ export function planDashaTablePages(
   return pages;
 }
 
-function PeriodRow({ period }: { period: ReportPdfDashaPeriod }): ReactElement {
+function PeriodRow({
+  period,
+  currentMarker,
+}: {
+  period: ReportPdfDashaPeriod;
+  currentMarker: string;
+}): ReactElement {
   return (
     <View style={styles.dashaRow} wrap={false}>
       <View style={period.isCurrent ? styles.dashaTickCurrent : styles.dashaTick} />
@@ -62,6 +75,8 @@ function PeriodRow({ period }: { period: ReportPdfDashaPeriod }): ReactElement {
         {period.start} — {period.end}
       </Text>
       <Text style={styles.dashaYears}>{period.span}</Text>
+      {/* Always rendered so the column keeps its width; empty rows print nothing. */}
+      <Text style={styles.dashaCurrentMark}>{period.isCurrent ? currentMarker : ''}</Text>
     </View>
   );
 }
@@ -69,19 +84,25 @@ function PeriodRow({ period }: { period: ReportPdfDashaPeriod }): ReactElement {
 function PeriodTable({
   heading,
   periods,
+  currentMarker,
 }: {
   heading: string;
   periods: readonly ReportPdfDashaPeriod[];
+  currentMarker: string;
 }): ReactElement {
   const [first, ...remaining] = periods;
   return (
     <View>
       <View wrap={false}>
         <Text style={styles.subLabel}>{heading}</Text>
-        {first ? <PeriodRow period={first} /> : null}
+        {first ? <PeriodRow period={first} currentMarker={currentMarker} /> : null}
       </View>
       {remaining.map((period) => (
-        <PeriodRow key={`${heading}-${period.lord}-${period.start}`} period={period} />
+        <PeriodRow
+          key={`${heading}-${period.lord}-${period.start}`}
+          period={period}
+          currentMarker={currentMarker}
+        />
       ))}
     </View>
   );
@@ -107,23 +128,35 @@ export function ReportPdfDashaOverview({ data }: ReportPdfDashaProps): ReactElem
       <Text style={styles.subLabel}>{labels.dashaSequenceLabel}</Text>
       <View>
         {dasha.mahaSequence.map((period) => (
-          <PeriodRow key={`${period.lord}-${period.start}`} period={period} />
+          <PeriodRow
+            key={`${period.lord}-${period.start}`}
+            period={period}
+            currentMarker={labels.dashaCurrentMarker}
+          />
         ))}
       </View>
     </View>
   );
 }
 
-export function ReportPdfDashaTables({ tables }: ReportPdfDashaTablesProps): ReactElement {
+export function ReportPdfDashaTables({
+  tables,
+  currentMarker,
+}: ReportPdfDashaTablesProps): ReactElement {
   return (
     <View wrap={false}>
       {tables.map((table) => (
         <View key={table.heading} wrap={false}>
-          <PeriodTable heading={table.heading} periods={table.periods} />
+          <PeriodTable
+            heading={table.heading}
+            periods={table.periods}
+            currentMarker={currentMarker}
+          />
           {table.pratyantarTable ? (
             <PeriodTable
               heading={table.pratyantarTable.heading}
               periods={table.pratyantarTable.periods}
+              currentMarker={currentMarker}
             />
           ) : null}
         </View>

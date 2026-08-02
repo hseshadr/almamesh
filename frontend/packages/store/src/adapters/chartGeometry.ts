@@ -70,6 +70,19 @@ export interface ChartPlanet {
   readonly dignity: string;
   readonly isRetrograde: boolean;
   readonly isCombust: boolean;
+  /**
+   * Angular separation to the Sun in degrees, or null where asta cannot apply
+   * (the Sun itself, the nodes, or a varga placement where the engine carries
+   * only the D1 flag forward).
+   *
+   * Carried because a VERDICT without its MEASUREMENT cannot be stated as a
+   * checkable sentence. "Combust" is a label a reader has to take on trust;
+   * "combust at 2.76° from the Sun, against a 10° orb" is arithmetic they can
+   * verify against the two longitudes printed in the same table. This field was
+   * dropped here for a while, which left the PDF encoding combustion as nothing
+   * but a lighter shade of grey.
+   */
+  readonly combustionSeparationDeg: number | null;
   /** Whole-sign houses this graha lords (engine-computed); [] for Rahu/Ketu. */
   readonly housesRuled: readonly number[];
   /** Engine BPHS Yogakaraka flag (lords a kendra AND a trikona). */
@@ -149,6 +162,7 @@ function toChartPlanet(
     dignity: raw.dignity,
     isRetrograde: raw.is_retrograde,
     isCombust: raw.is_combust,
+    combustionSeparationDeg: raw.combustion_separation_deg ?? null,
     housesRuled: raw.houses_ruled,
     isYogakaraka: raw.is_yogakaraka,
     color: colorOf(raw.name),
@@ -300,6 +314,9 @@ function vargaToChartPlanet(
     // Combustion is a D1 graha-level fact the engine carries onto the varga; a
     // combust D1 graha stays visibly combust in every divisional chart.
     isCombust: raw.is_combust ?? false,
+    // A varga placement carries only the D1 flag; the engine emits no
+    // per-varga separation, so there is no number to state here.
+    combustionSeparationDeg: null,
     // Lordship is a RASI (D1) concept; the engine emits none per varga graha.
     housesRuled: [],
     isYogakaraka: false,

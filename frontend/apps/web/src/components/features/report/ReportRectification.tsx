@@ -47,6 +47,7 @@ import {
   localizeSignal,
 } from '../../../lib/rectifySignals';
 import { ReportSectionHeading } from './ReportSectionHeading';
+import { sectionNumeral } from '../../../lib/reportSections';
 
 interface ReportRectificationProps {
   readonly record: RectificationRecord;
@@ -99,7 +100,7 @@ export function ReportRectification({ record, events }: ReportRectificationProps
 
   return (
     <section className="report-section" data-testid="report-rectification">
-      <ReportSectionHeading index="XI" title={t('rectification.heading')} />
+      <ReportSectionHeading index={sectionNumeral('rectification')} title={t('rectification.heading')} />
 
       <dl className="report-dasha-current report-avoid-break" data-testid="report-rectification-facts">
         <div className="report-dasha-leg">

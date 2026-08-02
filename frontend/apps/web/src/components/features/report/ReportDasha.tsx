@@ -31,6 +31,7 @@ import {
 import { formatPredictiveDate } from '../../../lib/predictive';
 import { formatDurationYears } from '../../../lib/reportData';
 import { ReportSectionHeading } from './ReportSectionHeading';
+import { sectionNumeral } from '../../../lib/reportSections';
 
 function titleCase(value: string): string {
   return value ? value.charAt(0).toUpperCase() + value.slice(1) : '';
@@ -131,7 +132,7 @@ export function ReportDasha({ dashas }: ReportDashaProps): ReactElement | null {
 
   return (
     <section className="report-section" data-testid="report-dasha">
-      <ReportSectionHeading index="V" title={t('dasha.heading')} />
+      <ReportSectionHeading index={sectionNumeral('dasha')} title={t('dasha.heading')} />
 
       {(dashas.current_maha || dashas.current_antar || dashas.current_pratyantar) && (
         <dl className="report-dasha-current report-avoid-break" data-testid="report-dasha-current">

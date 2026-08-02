@@ -36,9 +36,13 @@ import { usePredictiveLayer } from './usePredictiveLayer';
 import { selectPrimaryStoredChart } from '../lib/predictive';
 import { cuspInfo } from '../lib/lagnaCusp';
 import { rectificationDelta } from '../lib/rectification';
+import { sectionNumeral } from '../lib/reportSections';
 import { domainClaimId, reportStabilityMarkers, yogaClaimId } from '../lib/stability';
 import { downloadReportPdf, type ReportPdfChrome } from '../lib/downloadReportPdf';
+import { buildEvidenceLedger } from '../lib/evidence';
+import { buildEvidenceSection } from '../components/report-pdf/buildEvidenceSection';
 import { buildRectificationPdf } from '../components/report-pdf/buildRectificationPdf';
+import { glyphSafe } from '../components/report-pdf/glyphSafe';
 import type { ReportAudience } from '../lib/reportSelectors';
 
 /** A short ISO date (YYYY-MM-DD) for the PDF file/title. */
@@ -77,7 +81,7 @@ export function useReportPdfExport(audience: ReportAudience): UseReportPdfExport
   // `status === 'complete'` gate: that extra condition is what silently dropped
   // a perfectly valid natal-only reading from the export the moment the
   // predictive layer computed and turned its status stale.
-  const { interpretation } = useStreamingInterpretation(chartId);
+  const { interpretation, evidenceAnnotations } = useStreamingInterpretation(chartId);
   const predictive = usePredictiveLayer();
 
   const profileId = activeProfileId ?? storedChart?.profile_id ?? null;
@@ -127,6 +131,14 @@ export function useReportPdfExport(audience: ReportAudience): UseReportPdfExport
         }),
       formatAntarHeading: (lord) => t('dasha.antar_heading', { lord }),
       formatPratyantarHeading: (lord) => t('dasha.pratyantar_heading', { lord }),
+      // Combustion, in words. The engine emits `is_combust` and the measured
+      // separation; the classical orb comes from the guarded TS mirror in
+      // `lib/evidence/combustionOrbs.ts`, so the printed claim is checkable.
+      formatCombustion: {
+        state: (separation) => t('pdf.planet_state_combust', { separation }),
+        note: ({ planet, separation, orb }) =>
+          t('pdf.combustion_note', { planet, separation, orb }),
+      },
       chartCaptions: {
         rasi: t('charts.rasi_caption'),
         navamsa: t('charts.navamsa_caption'),
@@ -153,6 +165,8 @@ export function useReportPdfExport(audience: ReportAudience): UseReportPdfExport
         colNakshatra: t('planets.col_nakshatra'),
         colHouse: t('pdf.house_short'),
         colDignity: t('planets.col_dignity'),
+        colState: t('planets.col_state'),
+        stateRetrograde: t('planets.retrograde'),
         lagnaRowName: t('pdf.lagna_row_name'),
         housesEyebrow: t('pdf.houses_eyebrow'),
         housesTitle: t('houses.heading'),
@@ -169,6 +183,10 @@ export function useReportPdfExport(audience: ReportAudience): UseReportPdfExport
         dashaTitle: t('dasha.heading'),
         dashaIntro: t('pdf.dasha_intro'),
         dashaCurrentLabel: t('pdf.dasha_current_label'),
+        // Says which row is running. The brass tick beside it is a `<View>` and
+        // contributes no characters, so without this word all nine mahā rows
+        // extract as identical text.
+        dashaCurrentMarker: t('pdf.dasha_current_marker'),
         dashaSequenceLabel: t('pdf.dasha_sequence_label'),
         yogasEyebrow: t('pdf.yogas_eyebrow'),
         yogasTitle: t('yogas.heading'),
@@ -197,7 +215,7 @@ export function useReportPdfExport(audience: ReportAudience): UseReportPdfExport
     const assumptionsDelta = rectificationDelta(birth);
     const assumptions = {
       chrome: {
-        eyebrow: t('section_eyebrow', { index: 'XIII' }),
+        eyebrow: t('section_eyebrow', { index: sectionNumeral('assumptions') }),
         title: t('assumptions.heading'),
         intro: t('assumptions.intro'),
       },
@@ -271,6 +289,13 @@ export function useReportPdfExport(audience: ReportAudience): UseReportPdfExport
           })
         : undefined,
       assumptions,
+      // Section VIII — Evidence & Confidence. Deterministic: the ledger needs
+      // only the engine chart, so it exports with or without an AI reading (a
+      // keyless user still gets every Observation / Evidence / Confidence /
+      // Alternative cell, with the interpretation cell saying so in words).
+      // Built by the SAME builder the on-screen section calls, so the screen
+      // and the durable artifact cannot phrase a single cell differently.
+      evidence: buildEvidenceSection(buildEvidenceLedger(sidereal, evidenceAnnotations), t, glyphSafe),
       fileBaseName: t('pdf_title', { name: personName, date: isoDate(new Date()) }),
     }).catch((err) => {
       safeError('report.pdf_generation_failed', err);
@@ -281,6 +306,7 @@ export function useReportPdfExport(audience: ReportAudience): UseReportPdfExport
     sidereal,
     birth,
     interpretation,
+    evidenceAnnotations,
     audience,
     predictive,
     rectificationRecord,

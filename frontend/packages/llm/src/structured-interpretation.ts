@@ -36,7 +36,7 @@ import { chatCompletionJson, LlmRequestError, type ChatMessage } from "./client"
 import { ensurePrivacy, isLocalEndpoint, type ProviderConfig } from "./config";
 import { withLanguage, type PromptLanguage } from "./language";
 import { buildPredictiveFactsBlock } from "./predictive-facts";
-import { OUTPUT_DISCIPLINE_RULES, type ViewMode } from "./prompt";
+import { OUTPUT_DISCIPLINE_RULES, PRIVACY_RULE, type ViewMode } from "./prompt";
 import { sanitizeChartForLlm, type SanitizedChart } from "./sanitize";
 
 // =============================================================================
@@ -167,7 +167,7 @@ const SYSTEM_PROMPT = [
   "ANTI-REPETITION: do not reuse the same yoga, placement, phrase, or metaphor across",
   "  sections — each section foregrounds different planets/houses and fresh vocabulary.",
   "",
-  "PRIVACY: never mention city/state/country names. Refer generically to 'birth location'.",
+  PRIVACY_RULE,
   "",
   OUTPUT_DISCIPLINE_RULES,
   "",

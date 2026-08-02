@@ -66,6 +66,7 @@ const FIXTURE: SiderealChart = {
       house: 2,
       is_retrograde: true,
       is_combust: true,
+      combustion_separation_deg: 1.5,
       houses_ruled: [3],
       dignity: "debilitated",
     }),
@@ -176,6 +177,19 @@ describe("buildChartGeometry", () => {
     expect(sun?.color).toBe(PLANET_COLORS.sun);
     const rahu = geo.planets.find((p) => p.name === "rahu");
     expect(rahu?.color).toBe(PLANET_COLORS.rahu);
+  });
+
+  it("carries the MEASURED combustion separation, not only the verdict", () => {
+    // The engine's schema comment says the separation is surfaced "so no
+    // consumer (UI/LLM) ever re-derives it" — and then this adapter dropped it,
+    // one layer before the only consumer that wanted to print it. Without the
+    // number, the PDF was left encoding combustion as a lighter shade of grey,
+    // which survives neither text extraction, nor a screen reader, nor a
+    // photocopy. A fact carried only by contrast is not a fact the report states.
+    const sun = geo.planets.find((p) => p.name === "sun");
+    expect(sun?.combustionSeparationDeg).toBe(1.5);
+    const moon = geo.planets.find((p) => p.name === "moon");
+    expect(moon?.combustionSeparationDeg).toBeNull();
   });
 
   it("passes retrograde / combust / lordship / dignity through", () => {

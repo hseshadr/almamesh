@@ -23,10 +23,14 @@ import {
   TRANSIT_CTX,
   VARGA_CTX_FULL,
 } from '../../../test/predictiveFixtures';
+import { buildEvidenceLedger } from '../../../lib/evidence';
 import { cuspInfo } from '../../../lib/lagnaCusp';
 import { rectificationDelta } from '../../../lib/rectification';
+import { sectionNumeral } from '../../../lib/reportSections';
+import { buildEvidenceSection } from '../buildEvidenceSection';
 import { buildRectificationPdf } from '../buildRectificationPdf';
 import { buildReportPdfData } from '../buildReportPdfData';
+import { glyphSafe } from '../glyphSafe';
 import type { ReportPdfAssumptions, ReportPdfData, ReportPdfLabels } from '../types';
 
 const testI18n = createInstance();
@@ -263,16 +267,23 @@ function maximalYogas(): readonly YogaData[] {
   ];
 }
 
-const CHART: SiderealChart = {
+export const CHART: SiderealChart = {
   ayanamsa_value: 23.86,
+  // A NEAR-CUSP ascendant, deliberately: it is the hardest case the report has
+  // to print honestly (the whole house frame has a live alternative), and it is
+  // what makes Section VIII's second-chart table, the lagna-fork deduction, and
+  // the cover's cusp caveat all exercised by the maximal artifact.
   lagna: {
-    longitude: 5.4,
+    longitude: 1.18,
     sign: 'Aries',
-    sign_degrees: 5.4,
+    sign_degrees: 1.18,
     sign_lord: 'mars',
     nakshatra: 'Ashwini',
-    nakshatra_pada: 2,
+    nakshatra_pada: 1,
     nakshatra_lord: 'ketu',
+    lagna_cusp_distance_deg: 1.18,
+    lagna_adjacent_sign: 'Pisces',
+    is_near_cusp: true,
   },
   planets: maximalPlanets(),
   houses: Object.fromEntries(
@@ -307,6 +318,9 @@ const CHART: SiderealChart = {
       duration_years: 0.25,
     },
     pratyantar_sequence: PRATYANTAR_SEQUENCE,
+    // Named so the evidence ledger can print the rival year lengths this engine
+    // knows, and the exact days each would move these boundaries.
+    convention: 'julian_365_25',
   },
   yogas: maximalYogas(),
   navamsa: {
@@ -362,6 +376,8 @@ const CHROME_LABELS = {
   colNakshatra: 'Nakshatra',
   colHouse: 'Hse',
   colDignity: 'Dignity',
+  colState: 'State',
+  stateRetrograde: 'Retro (R)',
   lagnaRowName: 'Ascendant',
   housesEyebrow: 'Section III',
   housesTitle: 'Houses',
@@ -377,8 +393,9 @@ const CHROME_LABELS = {
   dashaEyebrow: 'Section V',
   dashaTitle: 'Dasha',
   dashaIntro:
-    'The 120-year planetary period system keyed to the Moon\'s nakshatra at birth. Each maha-dasa colours a long chapter of life; the current period is marked in brass.',
-  dashaCurrentLabel: 'Current',
+    'The 120-year planetary period system keyed to the Moon\'s nakshatra at birth. Each maha-dasa colours a long chapter of life; the period running today is labelled on its own row.',
+  dashaCurrentLabel: 'Currently Running',
+  dashaCurrentMarker: 'Current',
   dashaSequenceLabel: 'Sequence',
   yogasEyebrow: 'Section VI',
   yogasTitle: 'Yogas',
@@ -482,7 +499,40 @@ function maximalVargaContext(): VargaCtxFull {
 }
 
 /**
- * Section XIII — Assumptions & Provenance, assembled the way the LIVE app
+ * UNTRUSTED model output, exactly as the validator expects to receive it. It
+ * deliberately exercises all three outcomes so the maximal artifact proves the
+ * whole contract, not just the happy path:
+ *   • two readings that cite real observations       → ACCEPTED, printed inline
+ *   • one that cites a yoga this chart never formed  → REJECTED, counted only
+ *   • one the model itself declared ungrounded       → GENERAL GUIDANCE, apart
+ */
+export const EVIDENCE_GUIDANCE_SENTINEL =
+  'General guidance sentinel: rest is a discipline, not a reward for finishing.';
+
+const EVIDENCE_BOGUS_CITATION = 'yoga:Yoga This Chart Never Formed';
+
+const EVIDENCE_ANNOTATIONS = {
+  readings: [
+    {
+      observation_id: 'lagna',
+      interpretation:
+        'An Aries ascendant sets a direct, initiating tone for the whole chart sentinel.',
+      also_cites: ['position:mars'],
+    },
+    {
+      observation_id: 'dasha:maha:venus',
+      interpretation: 'The running Venus period colours these years with craft and relationship.',
+    },
+    {
+      observation_id: EVIDENCE_BOGUS_CITATION,
+      interpretation: 'This statement cites a yoga the engine never formed and must not print.',
+    },
+  ],
+  general_guidance: [EVIDENCE_GUIDANCE_SENTINEL],
+};
+
+/**
+ * Section XIV — Assumptions & Provenance, assembled the way the LIVE app
  * assembles it (`useReportPdfExport`): the same four rows, the same catalog
  * keys, and the same two derivations — `rectificationDelta` for the birth-time
  * row and `cuspInfo` for the ascendant row. Nothing is hand-written, so the
@@ -493,7 +543,7 @@ function maximalAssumptions(tr: ReturnType<typeof testI18n.getFixedT>): ReportPd
   const cusp = cuspInfo(CHART.lagna.sign, CHART.lagna.sign_degrees, 3, CHART.lagna);
   return {
     chrome: {
-      eyebrow: tr('section_eyebrow', { index: 'XIII' }),
+      eyebrow: tr('section_eyebrow', { index: sectionNumeral('assumptions') }),
       title: tr('assumptions.heading'),
       intro: tr('assumptions.intro'),
     },
@@ -522,6 +572,14 @@ function maximalAssumptions(tr: ReturnType<typeof testI18n.getFixedT>): ReportPd
   };
 }
 
+/**
+ * The same fixed `t` this fixture localizes with. Exported so a test can look up
+ * the very words the document was built from (never a hardcoded copy of them).
+ */
+export function maximalReportT(): ReturnType<typeof testI18n.getFixedT> {
+  return testI18n.getFixedT(null, 'report');
+}
+
 export function buildMaximalReportPdfData(): ReportPdfData {
   const tr = testI18n.getFixedT(null, 'report');
   const rectification = buildRectificationPdf({
@@ -547,6 +605,13 @@ export function buildMaximalReportPdfData(): ReportPdfData {
     },
     formatAntarHeading: (lord) => `Antar-dasas of the ${lord} Maha-dasa`,
     formatPratyantarHeading: (lord) => `Pratyantar-dasas of the ${lord} Antar-dasa`,
+    // The REAL combustion copy, exactly as `useReportPdfExport` binds it, so the
+    // maximal artifact exercises the shipped strings rather than a stand-in.
+    formatCombustion: {
+      state: (separation) => tr('pdf.planet_state_combust', { separation }),
+      note: ({ planet, separation, orb }) =>
+        tr('pdf.combustion_note', { planet, separation, orb }),
+    },
     detailLabels: {
       dateOfBirth: 'Date of Birth',
       timeOfBirth: 'Time of Birth',
@@ -556,6 +621,14 @@ export function buildMaximalReportPdfData(): ReportPdfData {
     chromeLabels: CHROME_LABELS,
     rectification,
     assumptions: maximalAssumptions(tr),
+    // Built exactly as the live export builds it (`useReportPdfExport`): one
+    // ledger from the engine chart plus untrusted model output, reshaped by the
+    // SAME builder the on-screen report calls, glyph-safed for the print fonts.
+    evidence: buildEvidenceSection(
+      buildEvidenceLedger(CHART, EVIDENCE_ANNOTATIONS),
+      tr,
+      glyphSafe,
+    ),
     comprehensive: {
       translators: { tr, tp: testI18n.getFixedT(null, 'predictive') },
       transitCtx: TRANSIT_CTX,

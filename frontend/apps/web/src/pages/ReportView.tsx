@@ -51,6 +51,7 @@ import {
   ReportCover,
   ReportDasha,
   ReportDomains,
+  ReportEvidence,
   ReportFooter,
   ReportHouses,
   ReportInterpretation,
@@ -150,14 +151,14 @@ export default function ReportView(): ReactElement {
   const charts = useChartLibraryStore((s) => s.charts);
   const storedChart = selectPrimaryStoredChart(charts, activeProfileId);
   const chartId = storedChart?.chart_id ?? null;
-  const { interpretation } = useStreamingInterpretation(chartId);
+  const { interpretation, evidenceAnnotations } = useStreamingInterpretation(chartId);
 
   // The lazy predictive layer (transits / vargas / strength / domains): the
   // report renders these sections only when computed; otherwise it offers an
   // on-screen (never printed) affordance to compute before printing.
   const predictive = usePredictiveLayer();
 
-  // Birth Time Authority (Section XII): the profile's CONFIRMED rectification
+  // Birth Time Authority: the profile's CONFIRMED rectification
   // record + its supporting life events, resolved in record order (read-only
   // store usage; ids that no longer resolve are simply dropped).
   const profileId = activeProfileId ?? storedChart?.profile_id ?? null;
@@ -268,23 +269,36 @@ export default function ReportView(): ReactElement {
             birth={birth}
             lagna={lagna}
             rectification={rectificationDelta(birth)}
+            profileId={profileId}
           />
         ) : null}
-        <ReportChartsPage chart={sidereal} />
+        {/* Section order is DECLARED once, in `lib/reportSections.ts`, and the
+            export follows the same list — so the two surfaces cannot present the
+            same section under different numerals (Evidence was VIII on paper and
+            XII on screen). Change the order here and in the registry together;
+            `__tests__/reportSectionParity.test.tsx` checks the screen's rendered
+            numerals read I…XIV in order. */}
         <ReportPlanetTable chart={sidereal} />
         <ReportHouses chart={sidereal} />
+        <ReportChartsPage chart={sidereal} />
+        <ReportDasha dashas={sidereal.dashas} />
         <ReportYogas
           yogas={sidereal.yogas}
           interpretation={readyInterpretation}
           audience={audience}
           stability={stability}
         />
-        <ReportDasha dashas={sidereal.dashas} />
         {readyInterpretation ? (
           <ReportInterpretation interpretation={readyInterpretation} audience={audience} />
         ) : null}
+        {/* Evidence & Confidence — the audit of everything above. Deterministic
+            (engine chart only), so it renders whether or not a reading exists;
+            without one, each row states plainly that it has no interpretation. */}
+        <ReportEvidence chart={sidereal} annotations={evidenceAnnotations} />
         {/* Predictive sections — rendered only when the lazy contexts are
-            computed (sections VIII–XI live after the fixed I–VII numbering). */}
+            computed. Their numerals come from the registry, so a section that
+            does not render never leaves a hole in the sequence for the ones
+            that do. */}
         {predictive.status === 'ready' && predictive.transitCtx && (
           <ReportTransits transitCtx={predictive.transitCtx} />
         )}
@@ -297,11 +311,11 @@ export default function ReportView(): ReactElement {
         {predictive.status === 'ready' && predictive.domainsCtx && (
           <ReportDomains domainsCtx={predictive.domainsCtx} stability={stability} />
         )}
-        {/* Birth Time Authority (XII) — only when a rectification was confirmed. */}
+        {/* Birth Time Authority — only when a rectification was confirmed. */}
         {rectificationRecord ? (
           <ReportRectification record={rectificationRecord} events={supportingEvents} />
         ) : null}
-        {/* Assumptions & provenance (XIII) — the four load-bearing choices every
+        {/* Assumptions & provenance — the four load-bearing choices every
             verdict above rests on, assembled from existing provenance. */}
         <ReportAssumptions
           lagna={lagna}

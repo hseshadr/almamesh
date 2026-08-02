@@ -15,6 +15,7 @@ import { SouthIndianChartSVG } from '../../chart/SouthIndianChartSVG';
 import { toVargaChart } from '../../../lib/predictive';
 import { grahaName, signName } from '../../../lib/predictiveEventCopy';
 import { ReportSectionHeading } from './ReportSectionHeading';
+import { sectionNumeral } from '../../../lib/reportSections';
 
 /** All sixteen Shodaśavarga plates, in canonical order (drawn when emitted). */
 const PLATE_VARGAS: readonly DivisionalChartId[] = [
@@ -56,7 +57,7 @@ export function ReportVargas({ vargaCtxFull }: ReportVargasProps): ReactElement 
 
   return (
     <section className="report-section" data-testid="report-vargas">
-      <ReportSectionHeading index="VIII" title={t('vargas_full.heading')} />
+      <ReportSectionHeading index={sectionNumeral('vargas')} title={t('vargas_full.heading')} />
       <p className="report-note">{t('vargas_full.all_charts_note')}</p>
 
       {plates.length > 0 && (

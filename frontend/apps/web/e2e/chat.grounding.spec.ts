@@ -148,6 +148,18 @@ function sectionFor(body: string | null): SectionKey | null {
   return null;
 }
 
+// The evidence-annotation call (`fetchEvidenceAnnotations`, fired once the
+// reading completes, on the DEEP interpretation config — not the chat one) is
+// a THIRD request shape: no `SECTION:<key>` marker, so without this check it
+// falls through to "no marker → chat turn" below and its deep-model body
+// becomes `chatRequestBodies[0]`, failing the fast-model assertion on a request
+// that was never the user's chat turn. `general_guidance` is a JSON key unique
+// to this call's output schema (evidence-annotation.ts) — it never appears in
+// a SECTION_JSON reading nor in a real chat prompt.
+function isEvidenceAnnotationRequest(body: string | null): boolean {
+  return (body ?? '').includes('general_guidance');
+}
+
 /** A minimal but valid OpenAI SSE chat stream: one content delta + [DONE]. */
 function chatSseStream(text: string): string {
   const delta = JSON.stringify({ choices: [{ delta: { content: text } }] });
@@ -180,6 +192,17 @@ test('[contract/stubbed] chat reuses the reading + sends the fast chat model on 
       // reading actually completes (non-streaming chatCompletionJson path).
       interpRequestCount.n += 1;
       const content = JSON.stringify(SECTION_JSON[section]);
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ choices: [{ message: { content } }] }),
+      });
+    }
+    if (isEvidenceAnnotationRequest(body)) {
+      // The optional evidence-annotation enhancement call: answer with an
+      // empty-but-valid payload (schema in evidence-annotation.ts) so it
+      // resolves cleanly without becoming part of the chat-turn capture below.
+      const content = JSON.stringify({ readings: [], general_guidance: [] });
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
