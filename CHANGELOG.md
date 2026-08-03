@@ -6,6 +6,33 @@ All notable changes to AlmaMesh are documented here. Format follows
 
 ## [Unreleased]
 
+### Added
+- **`bun install` now refuses packages published in the last 24 hours.** That
+  window is when a compromised or hijacked release is live and still undetected.
+  The sibling frontends in this portfolio have enforced a 24h cooldown for a
+  while via pnpm's `minimumReleaseAge: 1440`, but AlmaMesh uses bun and bun ships
+  the control *disabled* by default — so this repo had no release-age gate at
+  all. Not a decision, just a different package manager. Demonstrated on
+  2026-08-03: `@edgeproc/errors@0.1.0` (published 13:54Z) was refused by
+  aml-filter's pnpm gate and installed here 90 minutes later without a word.
+  The new `frontend/bunfig.toml` sets `install.minimumReleaseAge = 86400` —
+  **seconds**, bun's unit, where pnpm counts minutes; 86400s is the same 1440
+  minutes, and writing `1440` here would be a 24-*minute* cooldown that still
+  looked right next to the pnpm files. Proven refusing a real too-fresh package
+  rather than assumed: `bun add baseline-browser-mapping@2.11.11` (published
+  23.7h earlier) exits **1** with `error: No version matching
+  "baseline-browser-mapping" found for specifier "2.11.11" (blocked by
+  minimum-release-age: 86400 seconds)` and writes nothing, while `@2.11.10`
+  installs at exit 0 — and the same fresh version installs at exit 0 once the
+  config is removed, so the refusal is the gate, not the package. Scope is
+  stated rather than implied: it gates *resolution*, so versions already pinned
+  in `bun.lock` are not re-checked, and a package already in bun's global cache
+  is served from cache and skips the check (CI installs cold). Deleting the key,
+  deleting the file, slipping the unit to `1440`, or adding a
+  `minimumReleaseAgeExcludes` carve-out each fail
+  `apps/web/src/__tests__/supply-chain-cooldown.test.ts`; all four mutations were
+  watched going red.
+
 ### Changed
 - **`@edgeproc/errors` now comes from npm instead of a vendored copy.** The
   library was published as `@edgeproc/errors@0.1.0`, so
