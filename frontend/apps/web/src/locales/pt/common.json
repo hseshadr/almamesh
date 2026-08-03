@@ -23,6 +23,7 @@
     "rename_aria": "Renomear {{name}}",
     "delete_aria": "Excluir {{name}}",
     "delete_confirm": "Excluir {{name}} e os seus mapas? Isto não pode ser desfeito.",
+    "delete_error": "Não foi possível concluir a exclusão desta pessoa. Nada foi removido — tente novamente.",
     "new_person_name_aria": "Nome da nova pessoa"
   },
   "actions": {

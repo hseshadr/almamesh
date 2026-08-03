@@ -1,4 +1,5 @@
 import { useEffect, useId, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { cn } from './cn';
@@ -19,6 +20,15 @@ export interface DialogProps {
  * overlay click; locks body scroll while open; labelled by its title.
  * Animation is skipped automatically under prefers-reduced-motion (the global
  * CSS rule collapses transition/animation durations).
+ *
+ * Rendered through a PORTAL into `document.body`. `position: fixed` resolves
+ * against the viewport only while no ancestor establishes a containing block
+ * for it — and any non-`none` `backdrop-filter` / `filter` / `transform` /
+ * `perspective` on an ancestor does exactly that. The app shell's sticky,
+ * blurred header (`backdrop-blur-sm`, inner bar `h-14`) hosts the profile
+ * switcher, so its dialog resolved `fixed inset-0` against a 56px box and
+ * rendered clipped above the fold. Portalling fixes the RELATIONSHIP, at one
+ * file, for every dialog present and future — never patch the coordinates.
  */
 export function Dialog({ open, onClose, title, children, className }: DialogProps) {
   const { t } = useTranslation();
@@ -42,7 +52,14 @@ export function Dialog({ open, onClose, title, children, className }: DialogProp
     };
   }, [open, onClose]);
 
-  return (
+  // No document (SSR / non-DOM render target) means there is nothing to portal
+  // into; render nothing rather than throwing. Placed AFTER every hook so the
+  // hook order never varies between renders.
+  if (typeof document === 'undefined') {
+    return null;
+  }
+
+  return createPortal(
     <AnimatePresence>
       {open && (
         <motion.div
@@ -83,6 +100,7 @@ export function Dialog({ open, onClose, title, children, className }: DialogProp
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }

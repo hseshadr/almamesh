@@ -6,6 +6,8 @@
     "settings": "Settings",
     "settings_title": "Settings",
     "try_again": "Try Again",
+    "create_chart": "Add birth details",
+    "manage_people": "Manage people",
     "retry": "Retry",
     "regenerate": "Regenerate reading",
     "connect_ai": "Connect an AI model",
@@ -18,8 +20,11 @@
     "subtitle": "Please wait while we retrieve your birth chart..."
   },
   "error": {
-    "title": "Unable to Load Chart",
-    "body": "We couldn't load your chart data. This might be a temporary connection issue."
+    "title": "No chart for {{name}} yet",
+    "title_unnamed": "No chart yet",
+    "body": "Nothing broke and nothing was lost. This chart just hasn't been created on this device yet — add the birth details and AlmaMesh computes it right here.",
+    "read_failed_title": "Couldn't read this device's saved charts",
+    "read_failed_body": "Your charts live on this device and the read didn't finish. Nothing was deleted."
   },
   "narration": {
     "chart_complete_title": "Your chart is complete",

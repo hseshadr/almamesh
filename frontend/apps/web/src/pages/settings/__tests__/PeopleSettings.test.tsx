@@ -5,13 +5,47 @@
  * one-anchor "This is me" flow, the relationship picker, the honest empty
  * state, and the add-a-person CTA that reuses the existing onboarding flow.
  */
-import { describe, it, expect, beforeEach } from 'vitest';
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { render, screen, fireEvent, within, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useLanguageStore, useProfilesStore } from '@almamesh/store';
+
+/**
+ * happy-dom has NO IndexedDB (`typeof indexedDB === 'undefined'`), so the real
+ * `beginDatasetMutation()` returns the sentinel epoch `0` — which is NOT
+ * `undefined`, so `deleteProfileData` then calls `replaceLiveDataset()` to
+ * re-sync live memory against the durable dataset. In production that dataset
+ * holds the data; in this harness there is no durable layer at all, so EVERY
+ * store gets cleared and the delete fails with "profile does not exist" — while
+ * a naive test asserting only "the person is gone" still goes green, because a
+ * wipe removes them too. That is a guard measuring shape, not property.
+ *
+ * Stubbing this ONE unavailable environment primitive (the dataset lease)
+ * reproduces the "no lease" branch and leaves the ENTIRE real cascade under
+ * test. Every assertion below reads real store state, and the tests now also
+ * pin what must SURVIVE — which is what tells a cascade apart from a wipe.
+ */
+vi.mock('@almamesh/store', async () => {
+  const actual = await vi.importActual<typeof import('@almamesh/store')>('@almamesh/store');
+  return { ...actual, beginDatasetMutation: vi.fn().mockResolvedValue(undefined) };
+});
+
+import {
+  setActiveProfileScope,
+  useChartLibraryStore,
+  useChatStore,
+  useInterpretationStore,
+  useLanguageStore,
+  useLifeEventsStore,
+  useMeshStore,
+  usePredictiveStore,
+  useProfilesStore,
+  useRectificationRecordsStore,
+  type StoredChart,
+} from '@almamesh/store';
 
 import '../../../i18n/config';
+import { __resetMemoryForTest, __setMemoryForTest } from '../../../lib/chatMemory';
 import PeopleSettings from '../PeopleSettings';
 
 function renderPage() {
@@ -142,5 +176,140 @@ describe('PeopleSettings', () => {
     expect(created?.relationship).toBe('mother');
     expect(created?.relatedTo).toBe(me);
     expect(useProfilesStore.getState().activeProfileId).toBe(created?.id);
+  });
+});
+
+/**
+ * Rename + delete used to exist ONLY in the header ProfileSwitcher, so the page
+ * literally called "People" could neither rename nor remove a person. Both
+ * actions now live here, reusing the same store action (`renameProfile`) and
+ * the same cascading lifecycle coordinator (`deleteProfileData`) — never the
+ * raw `deleteProfile`, which would strand the person's charts and chat.
+ */
+function chartFor(profileId: string, chartId: string): StoredChart {
+  return {
+    chart_id: chartId,
+    profile_id: profileId,
+    person_name: profileId,
+    is_primary: true,
+  } as StoredChart;
+}
+
+describe('PeopleSettings — rename and delete', () => {
+  beforeEach(() => {
+    useLanguageStore.setState({ language: 'en' });
+    setActiveProfileScope(null);
+    useProfilesStore.setState({ profiles: {}, activeProfileId: null, hydrated: true });
+    useChartLibraryStore.setState({ charts: {} });
+    useChatStore.setState({ threads: {}, messages: {} });
+    useLifeEventsStore.setState({ eventsByProfile: {} });
+    useInterpretationStore.setState({ byChart: {} });
+    useRectificationRecordsStore.setState({ recordsByProfile: {} });
+    usePredictiveStore.getState().reset();
+    useMeshStore.setState({ edges: {} });
+    // The semantic-memory index is a wasm-backed worker singleton; the real
+    // cascade is exercised, only its embedder is stubbed via the module's
+    // own test seam. Every assertion below reads REAL store state.
+    __setMemoryForTest({
+      indexMessage: vi.fn().mockResolvedValue(undefined),
+      retrieve: vi.fn().mockResolvedValue([]),
+      deleteForProfile: vi.fn().mockResolvedValue(undefined),
+      deleteForThread: vi.fn().mockResolvedValue(undefined),
+      clear: vi.fn().mockResolvedValue(undefined),
+    });
+  });
+
+  afterEach(() => {
+    __resetMemoryForTest();
+  });
+
+  it('renames a person in place and shows the new name', () => {
+    const mom = seed('Amma');
+    seed('Asha');
+    renderPage();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Rename Amma' }));
+    const field = screen.getByLabelText('Rename Amma') as HTMLInputElement;
+    fireEvent.change(field, { target: { value: 'Amma Devi' } });
+    fireEvent.keyDown(field, { key: 'Enter' });
+
+    expect(useProfilesStore.getState().profiles[mom]?.name).toBe('Amma Devi');
+    expect(within(screen.getByTestId(`person-row-${mom}`)).getByText('Amma Devi')).toBeTruthy();
+  });
+
+  it('deletes a person only after a confirm, and cascades every artifact they own', async () => {
+    const mom = seed('Amma');
+    const asha = seed('Asha');
+    useChartLibraryStore.setState({
+      charts: {
+        'chart-amma': chartFor(mom, 'chart-amma'),
+        'chart-asha': chartFor(asha, 'chart-asha'),
+      },
+    });
+    // Life events + chat threads are cleared ONLY by the lifecycle coordinator.
+    // The chart store alone is NOT a witness: the profiles store drops a
+    // deleted person's charts by itself, so a raw `deleteProfile` would leave
+    // a chart-only assertion green. These two are what tell them apart.
+    useLifeEventsStore.getState().setEvents(mom, [{ date: '2020-01-01', description: 'new job' }]);
+    useLifeEventsStore
+      .getState()
+      .setEvents(asha, [{ date: '2021-01-01', description: 'promotion' }]);
+    useChatStore.getState().ensureThread(mom, 'chart-amma');
+    useChatStore.getState().ensureThread(asha, 'chart-asha');
+    renderPage();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete Amma' }));
+    // Destructive: the row asks first, and the person is still there.
+    expect(screen.getByText(/Delete Amma and their charts\?/)).toBeTruthy();
+    expect(useProfilesStore.getState().profiles[mom]).toBeDefined();
+
+    fireEvent.click(screen.getByTestId(`confirm-delete-${mom}`));
+
+    await waitFor(() => {
+      expect(useProfilesStore.getState().profiles[mom]).toBeUndefined();
+    });
+    await waitFor(() => {
+      expect(useLifeEventsStore.getState().eventsByProfile[mom] ?? []).toHaveLength(0);
+    });
+    expect(useChatStore.getState().listThreads(mom)).toHaveLength(0);
+    expect(useChartLibraryStore.getState().charts['chart-amma']).toBeUndefined();
+    // …and it was a CASCADE, not a wipe: everyone else keeps their data.
+    expect(useProfilesStore.getState().profiles[asha]).toBeDefined();
+    expect(useChartLibraryStore.getState().charts['chart-asha']).toBeDefined();
+    expect(useLifeEventsStore.getState().eventsByProfile[asha] ?? []).toHaveLength(1);
+    expect(useChatStore.getState().listThreads(asha)).toHaveLength(1);
+    expect(screen.queryByTestId('delete-person-error')).toBeNull();
+    expect(screen.queryByTestId(`person-row-${mom}`)).toBeNull();
+    expect(screen.getByTestId(`person-row-${asha}`)).toBeTruthy();
+  });
+
+  it('surfaces a failed delete instead of silently swallowing it', async () => {
+    const mom = seed('Amma');
+    seed('Asha');
+    // The cascade fails at its final step; the page must say so, not pretend.
+    useProfilesStore.setState({
+      deleteProfile: () => {
+        throw new Error('storage went away mid-delete');
+      },
+    });
+    renderPage();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete Amma' }));
+    fireEvent.click(screen.getByTestId(`confirm-delete-${mom}`));
+
+    const notice = await screen.findByTestId('delete-person-error');
+    expect(notice.textContent ?? '').toContain('storage went away mid-delete');
+    expect(useProfilesStore.getState().profiles[mom]).toBeDefined();
+  });
+
+  it('refuses to delete the last person — the store would throw', () => {
+    const only = seed('Asha');
+    renderPage();
+
+    const button = within(screen.getByTestId(`person-row-${only}`)).getByRole('button', {
+      name: 'Delete Asha',
+    }) as HTMLButtonElement;
+    expect(button.disabled).toBe(true);
+    expect(button.title).toBe('At least one person must remain');
   });
 });

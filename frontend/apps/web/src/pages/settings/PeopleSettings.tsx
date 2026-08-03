@@ -8,8 +8,10 @@
  * Legacy profiles without a relationship remain plain switchable users.
  */
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useQueryClient } from '@tanstack/react-query';
+import type { TFunction } from 'i18next';
 import {
   useAnchorProfile,
   useMembers,
@@ -17,8 +19,9 @@ import {
   useProfilesStore,
   type Profile,
 } from '@almamesh/store';
-import { Badge, Button, Select } from '../../components/ui';
+import { Badge, Button, Input, Select } from '../../components/ui';
 import { AvatarChip } from '../../components/features/profiles/AvatarChip';
+import { deleteProfileData } from '../../lib/profileDataLifecycle';
 import {
   AddPersonDialog,
   RelationshipOptions,
@@ -29,9 +32,90 @@ interface PersonRowProps {
   readonly profile: Profile;
   readonly isAnchor: boolean;
   readonly anchorAssigned: boolean;
+  /** False for the LAST remaining person — the store action throws on it. */
+  readonly canDelete: boolean;
+  readonly deleting: boolean;
   readonly onMarkMe: (id: string) => void;
   readonly onUnmark: (id: string) => void;
   readonly onRelationshipChange: (id: string, value: string) => void;
+  readonly onRename: (id: string, name: string) => void;
+  readonly onDelete: (id: string) => void;
+}
+
+interface RenameFieldProps {
+  readonly profile: Profile;
+  readonly t: TFunction;
+  readonly onCommit: (name: string) => void;
+}
+
+/** Inline rename — Enter commits, Save commits, blur-free (mirrors the switcher). */
+function RenameField({ profile, t, onCommit }: RenameFieldProps): ReactElement {
+  const [value, setValue] = useState(profile.name);
+  const commit = (): void => {
+    const next = value.trim();
+    if (next) {
+      onCommit(next);
+    }
+  };
+  return (
+    <>
+      <Input
+        autoFocus
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            commit();
+          }
+        }}
+        aria-label={t('common:profiles.rename_aria', { name: profile.name })}
+        className="h-8 w-44"
+      />
+      <Button size="sm" variant="ghost" onClick={commit}>
+        {t('common:actions.save')}
+      </Button>
+    </>
+  );
+}
+
+interface DeleteConfirmProps {
+  readonly profile: Profile;
+  readonly t: TFunction;
+  readonly deleting: boolean;
+  readonly onConfirm: () => void;
+  readonly onCancel: () => void;
+}
+
+/** Destructive actions ask first — this wipes charts, chat, and readings. */
+function DeleteConfirm({
+  profile,
+  t,
+  deleting,
+  onConfirm,
+  onCancel,
+}: DeleteConfirmProps): ReactElement {
+  return (
+    <span className="flex flex-col items-end gap-1.5">
+      <span className="text-xs text-text-secondary">
+        {t('common:profiles.delete_confirm', { name: profile.name })}
+      </span>
+      <span className="flex items-center gap-1.5">
+        <Button
+          size="sm"
+          variant="ghost"
+          className="text-status-error"
+          disabled={deleting}
+          data-testid={`confirm-delete-${profile.id}`}
+          onClick={onConfirm}
+        >
+          {t('common:profiles.delete')}
+        </Button>
+        <Button size="sm" variant="ghost" onClick={onCancel}>
+          {t('common:actions.cancel')}
+        </Button>
+      </span>
+    </span>
+  );
 }
 
 /** One person: avatar, name, relationship badge, and the mesh controls. */
@@ -39,11 +123,18 @@ function PersonRow({
   profile,
   isAnchor,
   anchorAssigned,
+  canDelete,
+  deleting,
   onMarkMe,
   onUnmark,
   onRelationshipChange,
+  onRename,
+  onDelete,
 }: PersonRowProps) {
-  const { t } = useTranslation('settings');
+  const { t } = useTranslation(['settings', 'common']);
+  const [renaming, setRenaming] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+
   return (
     <li
       data-testid={`person-row-${profile.id}`}
@@ -61,26 +152,69 @@ function PersonRow({
           )}
         </div>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        {!isAnchor && (
+          <Select
+            aria-label={t('people.relationship_select_aria', { name: profile.name })}
+            value={profile.relationship ?? ''}
+            onChange={(e) => onRelationshipChange(profile.id, e.target.value)}
+            className="h-8 w-44 text-xs"
+          >
+            <RelationshipOptions t={t} />
+          </Select>
+        )}
         {isAnchor ? (
           <Button variant="ghost" size="sm" onClick={() => onUnmark(profile.id)}>
             {t('people.unmark')}
           </Button>
         ) : (
+          !anchorAssigned && (
+            <Button variant="secondary" size="sm" onClick={() => onMarkMe(profile.id)}>
+              {t('people.this_is_me')}
+            </Button>
+          )
+        )}
+        {confirming ? (
+          <DeleteConfirm
+            profile={profile}
+            t={t}
+            deleting={deleting}
+            onConfirm={() => {
+              setConfirming(false);
+              onDelete(profile.id);
+            }}
+            onCancel={() => setConfirming(false)}
+          />
+        ) : renaming ? (
+          <RenameField
+            profile={profile}
+            t={t}
+            onCommit={(name) => {
+              onRename(profile.id, name);
+              setRenaming(false);
+            }}
+          />
+        ) : (
           <>
-            <Select
-              aria-label={t('people.relationship_select_aria', { name: profile.name })}
-              value={profile.relationship ?? ''}
-              onChange={(e) => onRelationshipChange(profile.id, e.target.value)}
-              className="h-8 w-44 text-xs"
+            <Button
+              size="sm"
+              variant="ghost"
+              aria-label={t('common:profiles.rename_aria', { name: profile.name })}
+              onClick={() => setRenaming(true)}
             >
-              <RelationshipOptions t={t} />
-            </Select>
-            {!anchorAssigned && (
-              <Button variant="secondary" size="sm" onClick={() => onMarkMe(profile.id)}>
-                {t('people.this_is_me')}
-              </Button>
-            )}
+              {t('common:profiles.rename')}
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              aria-label={t('common:profiles.delete_aria', { name: profile.name })}
+              className="text-text-muted hover:text-status-error"
+              disabled={!canDelete}
+              title={canDelete ? undefined : t('common:profiles.last_person_hint')}
+              onClick={() => setConfirming(true)}
+            >
+              {t('common:profiles.delete')}
+            </Button>
           </>
         )}
       </div>
@@ -89,12 +223,14 @@ function PersonRow({
 }
 
 export default function PeopleSettings() {
-  const { t } = useTranslation('settings');
+  const { t } = useTranslation(['settings', 'common']);
+  const queryClient = useQueryClient();
 
   const profiles = useProfilesStore((s) => s.profiles);
   const setAnchor = useProfilesStore((s) => s.setAnchor);
   const setRelationship = useProfilesStore((s) => s.setRelationship);
   const clearRelationship = useProfilesStore((s) => s.clearRelationship);
+  const renameProfile = useProfilesStore((s) => s.renameProfile);
 
   const anchor = useAnchorProfile();
   const members = useMembers();
@@ -102,6 +238,8 @@ export default function PeopleSettings() {
 
   const [addOpen, setAddOpen] = useState(false);
   const [anchorError, setAnchorError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const everyone = useMemo(
     () => Object.values(profiles).sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
@@ -126,6 +264,29 @@ export default function PeopleSettings() {
       setRelationship(id, relationship);
     } else {
       clearRelationship(id);
+    }
+  };
+
+  /**
+   * Delete through the LIFECYCLE coordinator, never the raw store action:
+   * `deleteProfileData` cascades charts, chat, life events, rectification,
+   * readings, predictive state, mesh edges, and memory vectors, and calls
+   * `deleteProfile` itself at the end.
+   */
+  const handleDelete = async (id: string): Promise<void> => {
+    setDeletingId(id);
+    setDeleteError(null);
+    try {
+      await deleteProfileData(id);
+      // The store re-points `activeProfileId` when the ACTIVE person is the one
+      // deleted. The primary chart is scoped to whoever is active now, so it
+      // must be re-resolved — exactly what ProfileSwitcher.handleDelete does
+      // before it routes. This page stays put; it is not scoped to one person.
+      void queryClient.invalidateQueries({ queryKey: ['primary-chart'] });
+    } catch (error) {
+      setDeleteError(error instanceof Error ? error.message : t('common:profiles.delete_error'));
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -154,6 +315,11 @@ export default function PeopleSettings() {
           {anchorError}
         </p>
       )}
+      {deleteError && (
+        <p role="alert" data-testid="delete-person-error" className="text-sm text-status-error">
+          {deleteError}
+        </p>
+      )}
 
       {/* Everyone on this device */}
       {everyone.length > 0 && (
@@ -165,9 +331,13 @@ export default function PeopleSettings() {
                 profile={p}
                 isAnchor={p.relationship === 'self'}
                 anchorAssigned={anchor !== undefined}
+                canDelete={everyone.length > 1}
+                deleting={deletingId === p.id}
                 onMarkMe={handleMarkMe}
                 onUnmark={clearRelationship}
                 onRelationshipChange={handleRelationshipChange}
+                onRename={renameProfile}
+                onDelete={(id) => void handleDelete(id)}
               />
             ))}
           </ul>
