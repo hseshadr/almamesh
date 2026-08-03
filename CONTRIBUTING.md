@@ -58,6 +58,11 @@ cd apps/web && bun run test:unit       # Vitest
 cd ../../packages/browser && bun run test:parity
 ```
 
+The PDF tests and the PDF verification scripts shell out to poppler — `pdftotext`
+to read a generated PDF back as text, `pdftoppm` to rasterize its pages. Install
+it first: `brew install poppler` (macOS) or `sudo apt-get install -y poppler-utils`
+(Debian/Ubuntu).
+
 ## Quality gates (must pass before a PR is mergeable)
 
 A change is not done until all of these are green:

@@ -123,9 +123,12 @@ allowance exists only for a user-configured localhost Ollama endpoint.
   derived search vectors without letting a stale tab resurrect them.
 - **Birth-time rectification** — set a rectified birth time and a confidence
   level per profile in Settings; the rectified instant recomputes the chart.
-- **PDF export** — once a chart exists, the deterministic report is available without AI:
+- **PDF export** — once a chart exists, the report is available without AI:
   open `/report` directly to export the branded chart, kundli, daśā, predictive,
-  strength, and rectification sections. The dashboard shortcut remains tied to a
+  strength, and rectification sections. **Deterministic** means what it says: export
+  the same chart twice and the two files are byte-for-byte identical, so you can hash
+  a report and check later that nobody edited it. The cover date is the chart's own
+  calculation time, not the moment you clicked Download. The dashboard shortcut remains tied to a
   completed reading; optional AI-written sections appear only when the stored
   interpretation provenance matches the current chart and predictive cache identity.
   Free-form life histories are normalized into dated, categorized rows so long
@@ -365,7 +368,7 @@ the app tag.
 | The mesh (relational astrology) | Per-pair relationship read of two whole charts: Ashtakoota Guna Milan + Mangal screening (cited classical tables, partner edges only), chart overlay, daśā synchrony, significators; role-anonymized AI narration, read-only by construction; `/mesh` constellation + `/mesh/:memberId` edge view | ✅ shipped |
 | Members | People you add to your mesh, with typed relationships (spouse/partner/family/friend/…), each owning a full chart; persisted with a versioned migration; managed in Settings → People | ✅ shipped |
 | AI interpretation + chat | Off by default (pure calculation); opt-in BYO OpenAI-compatible endpoint (one-click OpenRouter preset or a local Ollama); saving runs a connectivity test so a bad key/model is reported immediately; chart prompts are PII-redacted and life-event prose is disclosed separately; fail-closed | ✅ shipped |
-| PDF export | Deterministic report available after a chart exists (cover + D1/D9 + daśā + predictive sections VIII–XI + Birth Time Authority §XII); AI-written sections require current, provenance-matched interpretation | ✅ shipped |
+| PDF export | Report available after a chart exists (cover + D1/D9 + daśā + predictive sections VIII–XI + Birth Time Authority §XII); AI-written sections require current, provenance-matched interpretation. Byte-reproducible: two exports of one chart are the same file, asserted by SHA-256 in `e2e/report-pdf.e2e.spec.ts` | ✅ shipped |
 | Birth-time rectification | Per-profile rectified time + confidence in Settings; recomputes the chart | ✅ shipped |
 | Named profiles | Multiple password-less people per device, each owning its charts; rename + delete (chart cascade) | ✅ shipped |
 | Birthplace search | Online-primary Open-Meteo lookup with a bundled offline fallback; the city query and ordinary network metadata leave the device, never chart/profile data | ✅ shipped |

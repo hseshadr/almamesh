@@ -6,6 +6,60 @@ All notable changes to AlmaMesh are documented here. Format follows
 
 ## [Unreleased]
 
+### Fixed
+- **The PDF export is now actually deterministic.** `README.md` has told readers
+  the export is "deterministic (same input, same file every time)" for months and
+  it was **false**. Measured on 2026-08-03: two exports of one chart, both
+  129,913 bytes, SHA-256 `0e23f0f4…` vs `fbabb738…`, first differing byte at
+  offset 8413, 37 differing runs / 179 bytes. Three causes, largest first.
+  **(1) Random font subset tags — 30 of the 37 runs, across 8 faces.**
+  `@react-pdf/pdfkit` picks each embedded font's six-letter prefix with
+  `Math.random()` in `EmbeddedFont.embed()`, with no way to seed it. New seam
+  `frontend/apps/web/src/lib/reportPdfDeterminism.ts` rewrites those tags after
+  serialization to a value derived from the font's own PostScript name. The
+  rewrite is length-preserving, so every xref byte offset stays valid, and it
+  matches only `/FontName` and `/BaseFont` (pdfkit compresses stream *data*, not
+  dictionaries, and writes no object streams, so no tag hides behind a filter).
+  PDF 32000-1 §9.6.4 makes the tag arbitrary, so nothing a reader can observe
+  changes. **(2) A wall-clock `/CreationDate`.** `ReportDocument.tsx` never
+  passed the `creationDate` prop that @react-pdf already supports, so it
+  defaulted to `new Date()`; `buildReportPdfData.ts` separately stamped the cover
+  with `formatReportDate(new Date())`. Both now come from ONE instant — the
+  chart's own `astronomical_calculations.calculation_timestamp` — threaded as a
+  required, nullable `generatedAt` so no call site can quietly reach for the
+  clock again. A chart that records no instant prints no date and stamps the
+  epoch, rather than inventing one. **(3) The trailer `/ID`** needed no separate
+  fix: pdfkit derives it from an MD5 over the info dictionary, so pinning
+  `/CreationDate` pins it.
+
+  Nothing had ever byte-compared two renders. `renderToBytes.test.tsx` asserted
+  only `buf.length > 1000`, which passes at any content. Two new suites close
+  that: `__tests__/deterministicExport.test.tsx` (two renders, identical object
+  bodies, identical subset tags, `/CreationDate` pinned to a literal, stable
+  `/ID`) and `lib/__tests__/reportPdfDeterminism.test.ts` (the rewriter's own
+  properties). The whole-file SHA-256 comparison lives in
+  `e2e/report-pdf.e2e.spec.ts`, which exports the same chart twice from a real
+  Chromium *with the page clock moved on by a second between exports* — freezing
+  it would have let a clock-reading export pass. It has to be the browser: Node's
+  pdfkit build deflates through async `zlib.createDeflate()`, so its object write
+  order varies between runs; the shipped browser build is single-threaded pako.
+
+  One real bug fell out of writing those tests. The first cut of the rewriter used
+  `TextDecoder('latin1')`, which is an Encoding-Standard alias for **windows-1252**:
+  bytes 0x80–0x9F decode to printable code points (0x80 → U+20AC) and re-encode to
+  something else, silently corrupting any deflated stream containing them. The
+  "leaves every non-tag byte untouched" test caught it before it shipped.
+
+- **`verify-report-pdf.mjs` can no longer pass by skipping its own verification.**
+  The script rasterizes every PDF page to a PNG — that *is* the verification — and
+  when `pdftoppm` was absent it printed "PDF written, PNGs skipped" and exited 0.
+  It now preflights the binary before launching Chromium and exits 1 with install
+  instructions, fails if rasterization errors, and fails if `pdftoppm` exits 0
+  having written no PNGs (proven with a stub rasterizer: exit 1, was exit 0).
+  Console errors during the flow now fail the run too, instead of being printed
+  under a green exit. `pdftoppm`/`pdftotext` were undeclared binary dependencies;
+  `CONTRIBUTING.md` now names poppler where a contributor will look.
+
 ### Added
 - **`bun install` now refuses packages published in the last 24 hours.** That
   window is when a compromised or hijacked release is live and still undetected.

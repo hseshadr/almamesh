@@ -80,6 +80,10 @@ export function ReportDocument({ data }: ReportDocumentProps): ReactElement {
       subject="Vedic birth-chart report"
       creator="AlmaMesh"
       producer="AlmaMesh"
+      // Without this @react-pdf defaults to `new Date()`, which lands in
+      // `/CreationDate` AND in the trailer `/ID` (pdfkit hashes the info
+      // dictionary to build it) — two exports of one chart then differ.
+      creationDate={data.creationDate}
     >
       <Page size="A4" style={styles.page}>
         <ReportPdfCover data={data} />

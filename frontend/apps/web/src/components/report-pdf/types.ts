@@ -426,8 +426,19 @@ export interface ReportPdfData {
   readonly subtitle: string;
   /** Brand kicker on the cover (already localized). */
   readonly kicker: string;
-  /** "Generated on …" line, epoch-safe + locale-formatted. */
-  readonly generatedOn: string;
+  /**
+   * The cover's generation date, locale-formatted. Derived from the chart's own
+   * calculation instant — NEVER the wall clock, or the same chart would export
+   * to different bytes on every download. Omitted when the chart carries no
+   * usable instant: an absent date is honest, an invented one is not.
+   */
+  readonly generatedOn?: string;
+  /**
+   * The instant stamped into the PDF's `/CreationDate`. pdfkit derives the
+   * trailer `/ID` from the info dictionary (an MD5 over it), so pinning this
+   * pins both. Same source as `generatedOn`; the epoch stands for "unknown".
+   */
+  readonly creationDate: Date;
 
   /** The birth-details list (date, time, place, ascendant — all pre-formatted). */
   readonly birthDetails: ReadonlyArray<ReportPdfDetail>;

@@ -248,6 +248,9 @@ export function useReportPdfExport(audience: ReportAudience): UseReportPdfExport
 
     setPdfError(null);
     void downloadReportPdf({
+      // The chart's OWN calculation instant, not "now": the same chart has to
+      // export to the same bytes however many times a visitor downloads it.
+      generatedAt: storedChart.astronomical_calculations?.calculation_timestamp ?? null,
       birth,
       lagna,
       chart: { ayanamsa_value: sidereal.ayanamsa_value },

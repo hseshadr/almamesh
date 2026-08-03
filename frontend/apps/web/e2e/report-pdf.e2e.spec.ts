@@ -1,5 +1,6 @@
 import { test, expect, type Page, type Download } from '@playwright/test';
 import { execFile } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { promisify } from 'node:util';
 import { readFile, mkdir, writeFile } from 'node:fs/promises';
 import { resolve, dirname } from 'node:path';
@@ -59,6 +60,7 @@ const execFileAsync = promisify(execFile);
 const HERE = dirname(fileURLToPath(import.meta.url));
 const OUT_DIR = resolve(HERE, '../.report-out');
 const DOWNLOAD_PATH = resolve(OUT_DIR, 'e2e-download.pdf');
+const SECOND_DOWNLOAD_PATH = resolve(OUT_DIR, 'e2e-download-second.pdf');
 const DASHBOARD_SHOT = resolve(OUT_DIR, 'e2e-dashboard.png');
 const REPORT_SHOT = resolve(OUT_DIR, 'e2e-report.png');
 const MAXIMAL_DOWNLOAD_PATH = resolve(OUT_DIR, 'e2e-maximal-download.pdf');
@@ -901,6 +903,74 @@ function downloadedDashaRowTuples(
     });
 }
 
+function sha256Hex(bytes: Uint8Array): string {
+  return createHash('sha256').update(bytes).digest('hex');
+}
+
+/**
+ * The `calculation_timestamp` the app actually persisted for the primary chart —
+ * read straight out of its IndexedDB store rather than inferred from the test's
+ * own clock. This is the value the PDF cover date is now derived from, so the
+ * assertion that checks the cover has to read the same source the app did.
+ *
+ * Raw IndexedDB, not idb-keyval: this config builds WITHOUT the exit-gate hooks,
+ * so there is no dev module graph to import from.
+ */
+async function storedChartCalculationTimestamp(page: Page): Promise<string | null> {
+  return page.evaluate(async () => {
+    const raw = await new Promise<string | undefined>((resolve, reject) => {
+      const open = indexedDB.open('keyval-store');
+      open.onerror = () => reject(open.error);
+      open.onsuccess = () => {
+        const request = open.result
+          .transaction('keyval', 'readonly')
+          .objectStore('keyval')
+          .get('almamesh-chart-library');
+        request.onsuccess = () => resolve(request.result as string | undefined);
+        request.onerror = () => reject(request.error);
+      };
+    });
+    if (!raw) return null;
+    const charts = Object.values(
+      (JSON.parse(raw) as { state: { charts: Record<string, unknown> } }).state.charts,
+    ) as ReadonlyArray<{
+      astronomical_calculations?: { calculation_timestamp?: string };
+    }>;
+    return charts[0]?.astronomical_calculations?.calculation_timestamp ?? null;
+  });
+}
+
+/**
+ * The offset of the first byte two exports disagree on, or `null` when they are
+ * byte-identical. A shorter file that is a strict prefix of the longer one
+ * "differs" at its own length — the offset where it stopped.
+ */
+function firstDifferingByteOffset(first: Uint8Array, second: Uint8Array): number | null {
+  const shared = Math.min(first.length, second.length);
+  for (let offset = 0; offset < shared; offset += 1) {
+    if (first[offset] !== second[offset]) return offset;
+  }
+  return first.length === second.length ? null : shared;
+}
+
+/**
+ * The failure message for the determinism gate. "The hashes differ" names no
+ * culprit, so carry both digests, both byte lengths, and the offset of the
+ * first differing byte — enough to point at the actual non-determinism (a live
+ * `/CreationDate`, a cover date read off the wall clock, a random font subset
+ * tag) without re-running the 8-minute journey to find it.
+ */
+function pdfDeterminismReport(first: Uint8Array, second: Uint8Array): string {
+  const offset = firstDifferingByteOffset(first, second);
+  return [
+    `first  export: sha256=${sha256Hex(first)} bytes=${first.length}`,
+    `second export: sha256=${sha256Hex(second)} bytes=${second.length}`,
+    offset === null
+      ? 'the two exports are byte-identical'
+      : `first differing byte at offset ${offset}`,
+  ].join('\n');
+}
+
 test('REAL onboarding -> rectify -> offline reload -> predictive PDF is correct', async ({ page }) => {
   test.setTimeout(480_000);
   const { errors } = collectConsole(page);
@@ -1140,6 +1210,46 @@ test('REAL onboarding -> rectify -> offline reload -> predictive PDF is correct'
   ]);
   await download.saveAs(DOWNLOAD_PATH);
 
+  // ---- 6a. DETERMINISM: the same input must produce the same FILE ----
+  // The claim under test is README.md's promise that the PDF export is
+  // "deterministic (same input, same file every time)". Export the SAME chart a
+  // second time in the SAME page session and compare the whole files byte for
+  // byte.
+  //
+  // The page clock is MOVED ON by one second first. Step 5 froze it at
+  // TRANSIT_REFERENCE_TIME, and leaving it frozen would let a clock-reading
+  // export sail through — the defect being fixed here is exactly that
+  // `/CreationDate`, and the trailer `/ID` pdfkit hashes out of it, came from
+  // `new Date()`. A second is enough to change both and far too little to move
+  // anything this report renders, all of which is day-granular. Restored right
+  // after, so step 7's fixed-date assertions are untouched.
+  //
+  // This is also the check the Node unit test CANNOT make: Node's
+  // @react-pdf/pdfkit build deflates through async `zlib.createDeflate()`, whose
+  // completion order varies between runs, while the shipped browser build is
+  // single-threaded pako. The browser is the only place "same file every time"
+  // is testable end to end; the unit test guards the pieces.
+  await page.clock.setFixedTime(new Date(generatedOn.getTime() + 1_000));
+  const [secondDownload]: [Download, void] = await Promise.all([
+    page.waitForEvent('download', { timeout: 60_000 }),
+    downloadBtn.click(),
+  ]);
+  await secondDownload.saveAs(SECOND_DOWNLOAD_PATH);
+  await page.clock.setFixedTime(generatedOn);
+
+  const firstExportBytes = new Uint8Array(await readFile(DOWNLOAD_PATH));
+  const secondExportBytes = new Uint8Array(await readFile(SECOND_DOWNLOAD_PATH));
+  const firstExportDigest = sha256Hex(firstExportBytes);
+  const secondExportDigest = sha256Hex(secondExportBytes);
+  expect(
+    secondExportDigest,
+    `two exports of the same chart must be byte-identical:\n${pdfDeterminismReport(
+      firstExportBytes,
+      secondExportBytes,
+    )}`,
+  ).toBe(firstExportDigest);
+  console.log('[report-pdf] export sha256     :', firstExportDigest);
+
   // ---- 7. Parse the PDF text and ASSERT correctness ----
   const pdfText = await pdfToText(DOWNLOAD_PATH);
   await writeFile(resolve(OUT_DIR, 'e2e-download.assertions.txt'), pdfText, 'utf8');
@@ -1152,23 +1262,45 @@ test('REAL onboarding -> rectify -> offline reload -> predictive PDF is correct'
   }
   await page.clock.setFixedTime(realNow);
 
-  // 7a. The "generated on" date matches the fixed reference day (the
-  // `new Date(0)` bug
-  // would print 1969/1970). The cover renders the locale-formatted date
-  // ("July 11, 2026"); assert the exact long-form date is present and that
-  // no Unix-epoch year leaks anywhere in the document.
-  const generatedOnLong = generatedOn.toLocaleDateString('en-US', {
+  // 7a. INVERTED on 2026-08-03 — a stated contract is being reversed, on purpose.
+  //
+  // This block used to assert the cover carried the EXPORT-TIME clock: the page
+  // clock was frozen at TRANSIT_REFERENCE_TIME and the cover was expected to read
+  // "July 11, 2026". That assertion encoded the defect. Reading the clock at
+  // export time is exactly what made two downloads of one chart different files,
+  // contradicting README.md's "same input, same file every time".
+  //
+  // The cover date is now the chart's OWN `calculation_timestamp` — a value
+  // stored once, with the chart — so the assertion flips: the printed date must
+  // be the day this chart was COMPUTED, and must NOT follow the clock at export.
+  // The epoch guard below is unchanged and still load-bearing: a chart with no
+  // usable instant now prints no date at all, and must never print 1969/1970.
+  const computedAtIso = await storedChartCalculationTimestamp(page);
+  expect(computedAtIso, 'the stored chart must carry a calculation timestamp').not.toBeNull();
+  const computedAtLong = new Date(computedAtIso as string).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+  const exportClockLong = generatedOn.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
   });
   const dateLine = (
-    pdfText.split('\n').find((line) => line.includes(generatedOnLong)) ?? ''
+    pdfText.split('\n').find((line) => line.includes(computedAtLong)) ?? ''
   ).trim();
   expect(
     pdfText,
-    `the PDF must carry the reference generated-on date ("${generatedOnLong}")`,
-  ).toContain(generatedOnLong);
+    `the PDF cover must carry the chart's own computation date ("${computedAtLong}")`,
+  ).toContain(computedAtLong);
+  if (computedAtLong !== exportClockLong) {
+    expect(
+      pdfText,
+      `the PDF cover must NOT carry the export-time clock ("${exportClockLong}") — ` +
+        'the export must not read the clock at all',
+    ).not.toContain(exportClockLong);
+  }
   expect(pdfText, 'the PDF must NOT show the Unix-epoch year 1969').not.toMatch(/\b1969\b/);
   expect(pdfText, 'the PDF must NOT show the Unix-epoch year 1970').not.toMatch(/\b1970\b/);
 

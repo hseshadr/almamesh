@@ -30,6 +30,7 @@ import type { ReportAudience } from './reportSelectors';
 import type { ReportChartFields } from './reportData';
 import type { RectificationDelta } from './rectification';
 import { verifyStrengthProvenance, type StrengthProvenance } from './strengthProvenance';
+import { canonicalizeFontSubsetTags } from './reportPdfDeterminism';
 
 /** All localized chrome strings the document needs (passed from React/i18n). */
 export interface ReportPdfChrome {
@@ -61,6 +62,12 @@ export interface ReportPdfChrome {
 }
 
 export interface DownloadReportPdfInput {
+  /**
+   * The chart's own calculation instant — the date printed on the cover and
+   * stamped into `/CreationDate`. Required and nullable so no caller can quietly
+   * fall back to the clock; see `BuildReportPdfDataInput.generatedAt`.
+   */
+  readonly generatedAt: Date | string | number | null;
   readonly birth: ProcessedBirthData;
   readonly lagna: LagnaData;
   readonly chart: ReportChartFields;
@@ -157,6 +164,7 @@ export async function downloadReportPdf(input: DownloadReportPdfInput): Promise<
     audienceLabel: input.chrome.audienceLabel,
     subtitle: input.chrome.subtitle,
     kicker: input.chrome.kicker,
+    generatedAt: input.generatedAt,
     birth: input.birth,
     lagna: input.lagna,
     chart: input.chart,
@@ -189,8 +197,11 @@ export async function downloadReportPdf(input: DownloadReportPdfInput): Promise<
     evidence: input.evidence,
   });
 
-  const blob = await pdf(<ReportDocument data={data} />).toBlob();
-  triggerDownload(blob, `${input.fileBaseName}.pdf`);
+  const rendered = await pdf(<ReportDocument data={data} />).toBlob();
+  // The last step before the file leaves: pin the font subset tags @react-pdf
+  // draws from Math.random, so the same chart downloads as the same bytes.
+  const bytes = canonicalizeFontSubsetTags(new Uint8Array(await rendered.arrayBuffer()));
+  triggerDownload(new Blob([bytes], { type: 'application/pdf' }), `${input.fileBaseName}.pdf`);
 }
 
 /** Save a Blob to disk via a transient object-URL anchor. */
