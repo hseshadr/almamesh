@@ -71,12 +71,28 @@ build-backend = "hatchling.build"
 # Security floors for transitive dependencies (ENGINEERING-STANDARDS §4). Neither
 # is on the shipped PWA runtime, so neither affects engine byte-determinism.
 # - cryptography: pulled in by edge-proc[bundles] for ed25519 bundle signing —
-#   NOT by chart math. Bumps the lock 48.0.0 -> 48.0.1 (security patch); capped
-#   <49 to avoid the untested major.
+#   NOT by chart math. Floor is 50.0.0, the first release fixing all three of
+#   CVE-2026-69247 / -69248 / -69249. Note 49.0.0 fixes only two: the PKCS#7
+#   Bleichenbacher oracle (CVE-2026-69247) is fixed in 50.0.0 and nothing
+#   earlier, so "bump to the sibling repos' 49.0.0" would still audit red.
+#
+#   DELIBERATELY NO UPPER BOUND. This entry used to read `>=48.0.1,<49`, capped
+#   "to avoid the untested major" — and that ceiling is the whole reason the
+#   scheduled pip-audit sat red on `main`: the only fix upstream shipped was a
+#   major, and the cap made it unreachable. A ceiling on a *security floor*
+#   converts every major-delivered CVE fix into a blocked build. Reproducibility
+#   here comes from the committed `uv.lock` + `uv export --frozen` in CI, not
+#   from this bound, so the ceiling bought nothing it wasn't already getting.
+#   Neither 49.0.0 nor 50.0.0 touches the ed25519 sign/verify surface this repo
+#   actually reaches (edgeproc/bundles/signing.py imports only Ed25519{Private,
+#   Public}Key and InvalidSignature); the majors' breaking changes are in X.509
+#   parsing, ChaCha20 nonce semantics, FFDH, and macOS x86_64 wheels — all
+#   unreached here, and every CI runner is ubuntu-latest. Sibling repos agree:
+#   edge-reco pins `>=48.0.1` and edge-proc `>=44`, both uncapped.
 # - click: CLI-only, pulled in via typer for the almamesh-bundle CLI. Bumps
 #   8.3.1 -> 8.3.3 to clear PYSEC-2026-2132; capped <8.4 (untested major).
 [tool.uv]
-constraint-dependencies = ["cryptography>=48.0.1,<49", "click>=8.3.3,<8.4"]
+constraint-dependencies = ["cryptography>=50.0.0", "click>=8.3.3,<8.4"]
 
 # NOTE: there is deliberately no `[tool.uv.sources]` here. edge-proc used to be
 # vendored under backend/vendor/ because it was unpublished; it now resolves from
