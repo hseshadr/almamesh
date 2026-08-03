@@ -155,8 +155,9 @@ const NETWORK_MESSAGE_PATTERN = /failed to fetch|load failed|networkerror|networ
 
 /**
  * AlmaMesh's AI connection-error catalog, expressed in the shared
- * `@edgeproc/errors` vocabulary (the portfolio canonical-errors standard, vendored
- * at `packages/edgeproc-errors`). Each code is REUSED from the library's
+ * `@edgeproc/errors` vocabulary (the portfolio canonical-errors standard,
+ * installed from npm — this file is the ONE seam through which the library
+ * enters the app). Each code is REUSED from the library's
  * `starterPack`; on top of the starter data we attach the exact `match` predicate
  * the app has always used, so `registry.classify()` reproduces the previous
  * hand-written if-chain byte-for-byte.

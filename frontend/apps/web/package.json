@@ -40,7 +40,7 @@
     "@almamesh/memory": "workspace:*",
     "@almamesh/shared-types": "workspace:*",
     "@almamesh/store": "workspace:*",
-    "@edgeproc/errors": "workspace:*",
+    "@edgeproc/errors": "^0.1.0",
     "@edgeproc/receipt-ui": "0.1.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
