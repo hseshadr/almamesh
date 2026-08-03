@@ -62,9 +62,9 @@ cd frontend/apps/web && bun run build                 # module Workers resolve o
 cd frontend/apps/web && node scripts/verify-exit-gate.mjs   # live headless-Chromium engine boot
 ```
 
-CI secrets: only `OPENROUTER_API_KEY` (for the optional real-LLM e2e step). The
-formerly-private deps (edge-proc, shared-libs-python, `@edgeproc/browser`) are
-vendored in-repo, so CI runs from a single checkout with no fetch token. No
+CI secrets: only `OPENROUTER_API_KEY` (for the optional real-LLM e2e step).
+`edge-proc` resolves from PyPI and `@edgeproc/browser` is vendored in-repo, so CI
+runs from a single checkout with no fetch token. No
 `DATABASE_URL`/`SUPABASE_*`/`REDIS_URL` — those are gone.
 
 ## Deployment verification (static PWA, not a server)

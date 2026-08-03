@@ -51,7 +51,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "avow", marker = "extra == 'dev'", specifier = ">=0.1.1,<0.2" },
-    { name = "edge-proc", extras = ["bundles"], editable = "vendor/edge-proc" },
+    { name = "edge-proc", extras = ["bundles"], specifier = ">=0.3.0" },
     { name = "httpx", specifier = ">=0.28.0" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=2.3.0" },
     { name = "poethepoet", marker = "extra == 'dev'", specifier = ">=0.30" },
@@ -420,51 +420,48 @@ wheels = [
 
 [[package]]
 name = "edge-proc"
-source = { editable = "vendor/edge-proc" }
+version = "0.3.0"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
+    { name = "edgeproc-core" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
-    { name = "shared-libs-python" },
     { name = "typer" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/5a/74/c3abbadae47ba6e252d97109f1fc2848d2063a0789410240270b30136702/edge_proc-0.3.0.tar.gz", hash = "sha256:686ccfae916888ee644b9f50a4ef3a6b87e3771b25c4733da512855848ffb3f3", size = 116437, upload-time = "2026-08-03T18:45:47.769Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/fa/2c/577bde99dc88d97f995acb9455145b69f5028aed504729d84ce09b246fdc/edge_proc-0.3.0-py3-none-any.whl", hash = "sha256:2e8abde9b546f2b5bee14475fdd8c0719028799db92b9171142b955240f861a5", size = 65692, upload-time = "2026-08-03T18:45:46.425Z" },
 ]
 
 [package.optional-dependencies]
 bundles = [
     { name = "cryptography" },
+    { name = "filelock" },
     { name = "httpx" },
     { name = "packaging" },
     { name = "structlog" },
     { name = "zstandard" },
 ]
 
-[package.metadata]
-requires-dist = [
-    { name = "cryptography", marker = "extra == 'bundles'", specifier = ">=44" },
-    { name = "faiss-cpu", marker = "extra == 'localvec'", specifier = ">=1.14.3" },
-    { name = "httpx", marker = "extra == 'bundles'", specifier = ">=0.27" },
-    { name = "numpy", marker = "extra == 'localvec'", specifier = ">=2.5.1" },
-    { name = "packaging", marker = "extra == 'bundles'", specifier = ">=24" },
-    { name = "pydantic", specifier = ">=2.9" },
-    { name = "pydantic-settings", specifier = ">=2.5" },
-    { name = "rank-bm25", marker = "extra == 'localvec'", specifier = ">=0.2.2" },
-    { name = "sentence-transformers", marker = "extra == 'localvec'", specifier = ">=5.6.1" },
-    { name = "shared-libs-python", editable = "vendor/shared-libs-python" },
-    { name = "structlog", marker = "extra == 'bundles'", specifier = ">=26.1.0" },
-    { name = "typer", specifier = ">=0.27.0" },
-    { name = "zstandard", marker = "extra == 'bundles'", specifier = ">=0.25" },
+[[package]]
+name = "edgeproc-core"
+version = "0.4.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pydantic" },
 ]
-provides-extras = ["bundles", "localvec"]
+sdist = { url = "https://files.pythonhosted.org/packages/97/d3/40547e97dab99fa5d53c96afe53fe710440f56ff85432af3384bd716e05c/edgeproc_core-0.4.0.tar.gz", hash = "sha256:1d5363c97405320d4db2f988787d227b9b7532050a41aa9e5c319512f22ab78b", size = 91653, upload-time = "2026-08-03T18:49:57.488Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ad/c3/19a477ca0d4977e63a0e3b0920ed91e62cff97470afc9befdc7883fe08ff/edgeproc_core-0.4.0-py3-none-any.whl", hash = "sha256:74350004eb3f699fc9e7caba2f2e2f06c6da018610a2c9a68ef9479a35aefef9", size = 34228, upload-time = "2026-08-03T18:49:56.096Z" },
+]
 
-[package.metadata.requires-dev]
-dev = [
-    { name = "mypy", specifier = ">=2.2.0" },
-    { name = "poethepoet", specifier = ">=0.48.0" },
-    { name = "pytest", specifier = ">=9.1.1" },
-    { name = "pytest-asyncio", specifier = ">=0.24" },
-    { name = "pytest-cov", specifier = ">=6.0" },
-    { name = "radon", specifier = ">=6.0" },
-    { name = "ruff", specifier = ">=0.15.21" },
-    { name = "xenon", specifier = ">=0.9" },
+[[package]]
+name = "filelock"
+version = "3.32.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/f6/57/3ba6e6cb097f85b855b00163d169f35365f44277df044dcf96d55b8f62a3/filelock-3.32.2.tar.gz", hash = "sha256:c33351e1f49cae33414acbc6d56784e6ecee82514ec90795da1161fc4836b5b8", size = 217172, upload-time = "2026-07-29T22:46:04.895Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c1/e8/72f8cef9fdfeffe06213fe8508039396ee48daa0e3259457ed766173bfd6/filelock-3.32.2-py3-none-any.whl", hash = "sha256:87dd94cf281e586d135fa51132b8e3d9a598b316e90377a288663c9321036c82", size = 98830, upload-time = "2026-07-29T22:46:03.52Z" },
 ]
 
 [[package]]
@@ -1105,43 +1102,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/47/b7/1b680b5514586b3860500109ef37fd1761f21e6787f20a2597baa44d91a0/sgp4-2.25-cp313-cp313-win32.whl", hash = "sha256:94219b486def29aa1246f42de8bea05ccb8e98a5458dd08ce42b9811c79ca814", size = 161896, upload-time = "2025-08-04T18:02:08.062Z" },
     { url = "https://files.pythonhosted.org/packages/67/c1/a22be2e7886db40d1512969f3b8cc3ce989167e69ea8f308f26afd1dfd31/sgp4-2.25-cp313-cp313-win_amd64.whl", hash = "sha256:dec2f6c842d9bf40c67d5764bd752980844f91f338020d2af7f85847364d0ff7", size = 164142, upload-time = "2025-08-04T18:02:09Z" },
     { url = "https://files.pythonhosted.org/packages/3a/47/8231e3d4a88341316ec8d0eb98d3a8a972477d8b038555259522735a8371/sgp4-2.25-py3-none-any.whl", hash = "sha256:4f39ecf6c2663109fed04adfe9982815ac83893271b521d92d5b186820f8c78e", size = 137376, upload-time = "2026-04-27T18:29:23.71Z" },
-]
-
-[[package]]
-name = "shared-libs-python"
-version = "0.1.3"
-source = { editable = "vendor/shared-libs-python" }
-dependencies = [
-    { name = "pydantic" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.7.0" },
-    { name = "numpy", marker = "extra == 'pgvector'", specifier = ">=2.5.1" },
-    { name = "pgvector", marker = "extra == 'pgvector'", specifier = ">=0.5.0" },
-    { name = "poethepoet", marker = "extra == 'dev'", specifier = ">=0.30.0" },
-    { name = "pydantic", specifier = ">=2.13.4" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.4.3" },
-    { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.21.1" },
-    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=4.1.0" },
-    { name = "radon", marker = "extra == 'dev'", specifier = ">=6.0.0" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.16.0" },
-    { name = "sqlalchemy", extras = ["asyncio"], marker = "extra == 'pgvector'", specifier = ">=2.0.51" },
-    { name = "xenon", marker = "extra == 'dev'", specifier = ">=0.9.0" },
-]
-provides-extras = ["pgvector", "dev"]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "mypy", specifier = ">=1.7.0" },
-    { name = "poethepoet", specifier = ">=0.30.0" },
-    { name = "pytest", specifier = ">=7.4.3" },
-    { name = "pytest-asyncio", specifier = ">=0.21.1" },
-    { name = "pytest-cov", specifier = ">=4.1.0" },
-    { name = "radon", specifier = ">=6.0.0" },
-    { name = "ruff", specifier = ">=0.16.0" },
-    { name = "xenon", specifier = ">=0.9.0" },
 ]
 
 [[package]]

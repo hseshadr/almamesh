@@ -102,16 +102,18 @@ notices (the `OFL*.txt` files above) travel with them.
 
 | Path | Package | License | Copyright |
 |------|---------|---------|-----------|
-| `backend/vendor/edge-proc/` | edge-proc | MIT | © 2026 Harish Seshadri |
-| `backend/vendor/shared-libs-python/` | shared-libs-python | MIT | © 2025 Vector Management Team |
 | `frontend/packages/edgeproc-browser/` | @edgeproc/browser (edge-reco) | MIT | © 2026 Harish Seshadri |
+
+`edge-proc` (MIT, © 2026 Harish Seshadri) and its `edgeproc-core` dependency (MIT,
+© 2025 Vector Management Team) were vendored under `backend/vendor/` until
+2026-08-03; both now resolve from PyPI and are covered by section 1 alongside the
+other Python dependencies.
 
 Each vendored package keeps its own `LICENSE` in place; consult those files for
 the authoritative terms. In particular:
 
-- **`shared-libs-python`** is MIT-licensed and **© 2025 Vector Management Team** —
-  see [`backend/vendor/shared-libs-python/LICENSE`](./backend/vendor/shared-libs-python/LICENSE),
-  reproduced verbatim:
+- **`edgeproc-core`** (formerly `shared-libs-python`) is MIT-licensed and
+  **© 2025 Vector Management Team**, reproduced verbatim:
 
   ```
   MIT License
