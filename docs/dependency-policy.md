@@ -19,8 +19,27 @@ without one is a bug in this file.
 | `typescript` | `~5.7` | root + all `frontend/packages/*` and `apps/web` | TS6 needs ecosystem alignment (typescript-eslint, `tsc -b` project references) across all workspace packages at once — a single-package bump breaks the shared toolchain. edgeproc-browser (vendored) already runs `~6.0`. |
 | `three` (+ `@types/three`) | `^0.172` | `frontend/apps/web/package.json` | three's 0.x minors are de-facto majors; a bump must be validated live against `@react-three/fiber` in the 3D force-field hero, not just typechecked. |
 | `pyodide` | `^0.29` | `frontend/packages/browser/package.json` (mirrored by `PYODIDE_VERSION` in `frontend/apps/web/scripts/setup-dev-assets.sh`) | The version-pinned WASM runtime inside the signed bundle: a bump must re-pass the Pyodide==CPython byte-parity gate and re-ships the immutable `pyodide/*` CDN assets — see `docs/deploy/almamesh-com.md`. |
-| `cryptography` (Python) | `>=48.0.1,<49` | `backend/pyproject.toml` `[tool.uv]` `constraint-dependencies` | Security floor for the transitive ed25519 bundle-signing dep, capped below the untested major — rationale lives in-file next to the pin (bundle signing only; chart math and byte-determinism are unaffected). |
 | `tailwindcss` | `^3.4` | `frontend/apps/web/package.json` | The v3→v4 migration replaces the config model (JS `tailwind.config` → CSS-first `@theme`) and the build integration (PostCSS plugin → `@tailwindcss/vite`), and this app's theme rides a shared preset (`@almamesh/constants` `tailwind.preset.js`); the whole visual surface must be re-validated live on its own branch, not ride into auto-deploy. |
+
+## Never cap a security floor
+
+`cryptography` (Python) is **deliberately not held.** It sits at
+`>=50.0.0` — floor only, no ceiling — in `backend/pyproject.toml` `[tool.uv]`
+`constraint-dependencies`.
+
+It used to be held at `>=48.0.1,<49`, capped "to avoid the untested major." On
+2026-08-03 three advisories landed against 48.0.1 (CVE-2026-69247 / -69248 /
+-69249) and the scheduled `security-audit.yml` went red on `main`. Upstream's
+only fix was a major, so **the cap was the thing blocking the fix.**
+
+The lesson generalises: a ceiling on a floor whose entire job is "stay above
+known CVEs" turns every major-delivered fix into a blocked build. These two
+bounds want opposite things — do not put them on the same entry. Reproducibility
+comes from the committed `uv.lock` plus `uv export --frozen` in CI, so the
+ceiling was not buying determinism either.
+
+Hold a Python major the normal way if it ever genuinely needs a migration: add a
+row above with a real, specific reason. "Untested major" is not one.
 
 ## The 24-hour cooldown
 
