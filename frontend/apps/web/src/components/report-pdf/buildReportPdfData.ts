@@ -20,6 +20,7 @@ import {
   formatBirthDateTime,
   formatDegree,
   formatReportDate,
+  reportInstant,
   selectTechnicalFields,
   type ReportChartFields,
 } from '../../lib/reportData';
@@ -59,6 +60,13 @@ import {
   type ReportPdfTranslators,
 } from './buildComprehensiveSections';
 
+/**
+ * The `/CreationDate` stamped when a chart records no calculation instant. The
+ * epoch is the conventional "unknown time" and, unlike `new Date()`, it keeps
+ * the exported file reproducible.
+ */
+const UNKNOWN_INSTANT = new Date(0);
+
 /** The per-field labels the birth-details list needs (already localized). */
 export interface BirthDetailLabels {
   readonly dateOfBirth: string;
@@ -72,6 +80,17 @@ export interface BuildReportPdfDataInput {
   readonly audienceLabel: string;
   readonly subtitle: string;
   readonly kicker: string;
+  /**
+   * WHEN this report was generated, as a value carried by the chart itself
+   * (`astronomical_calculations.calculation_timestamp`) — never `new Date()`.
+   *
+   * It is REQUIRED and nullable on purpose: reading the clock here is what made
+   * "same input, same file every time" false, so every caller has to say which
+   * instant it means, and `null` is the honest way to say "this chart records
+   * none". A null instant prints no date and stamps the epoch into
+   * `/CreationDate`; it never reaches for the clock.
+   */
+  readonly generatedAt: Date | string | number | null;
   readonly birth: ProcessedBirthData;
   readonly lagna: LagnaData;
   readonly chart: ReportChartFields;
@@ -275,13 +294,15 @@ export function buildReportPdfData(input: BuildReportPdfDataInput): ReportPdfDat
   const d1Geometry = buildD1Geometry(input.sidereal);
   const { comprehensive } = input;
   const stabilityFlagFor = stabilityFlagResolver(input);
+  const generatedAt = reportInstant(input.generatedAt);
 
   return {
     personName: glyphSafe(input.personName),
     audienceLabel: glyphSafe(input.audienceLabel),
     subtitle: glyphSafe(input.subtitle),
     kicker: glyphSafe(input.kicker),
-    generatedOn: glyphSafe(formatReportDate(new Date())),
+    generatedOn: generatedAt ? glyphSafe(formatReportDate(generatedAt)) : undefined,
+    creationDate: generatedAt ?? UNKNOWN_INSTANT,
     birthDetails: buildBirthDetails(input),
     ascendantNote: input.ascendantNote ? glyphSafe(input.ascendantNote) : undefined,
     rectifiedNote: buildRectifiedNote(input),

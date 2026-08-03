@@ -59,6 +59,22 @@ function isRealDate(date: Date): boolean {
 }
 
 /**
+ * Resolve a stored value to a real calendar instant, or `null` when it is absent,
+ * epoch-shaped, or unparseable — WITHOUT falling back to the clock.
+ *
+ * `formatReportDate` below deliberately falls back to "now", which is right for
+ * the on-screen report but is a determinism leak in the PDF: the exported file
+ * must be reproducible from its inputs alone (README "same input, same file
+ * every time"). The PDF builder resolves its one instant through here instead
+ * and simply omits the date when there isn't one.
+ */
+export function reportInstant(value: Date | string | number | null | undefined): Date | null {
+  if (value === null || value === undefined || value === 0 || value === '') return null;
+  const candidate = value instanceof Date ? value : new Date(value);
+  return isRealDate(candidate) ? candidate : null;
+}
+
+/**
  * A human date in the active UI locale. Guards null / 0 / invalid inputs by falling
  * back to the current date (the cover/"Generated on" date), never the epoch.
  */

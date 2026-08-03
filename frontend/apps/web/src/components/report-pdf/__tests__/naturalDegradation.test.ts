@@ -137,6 +137,7 @@ function baseInput(): Omit<BuildReportPdfDataInput, 'interpretation'> {
     audienceLabel: 'For You',
     subtitle: 'subtitle',
     kicker: 'kicker',
+    generatedAt: '1990-03-30T06:30:00Z',
     birth: BIRTH,
     lagna: CHART.lagna,
     chart: { ayanamsa_value: CHART.ayanamsa_value },

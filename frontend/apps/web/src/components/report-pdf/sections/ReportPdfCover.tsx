@@ -118,7 +118,9 @@ export function ReportPdfCover({ data }: ReportPdfCoverProps): ReactElement {
 
       <View style={styles.coverMeta}>
         <Text style={styles.coverMetaValue}>{data.labels.footerNote}</Text>
-        <Text style={styles.coverGenerated}>{data.generatedOn}</Text>
+        {data.generatedOn ? (
+          <Text style={styles.coverGenerated}>{data.generatedOn}</Text>
+        ) : null}
       </View>
     </View>
   );

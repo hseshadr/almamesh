@@ -14,6 +14,12 @@
  * `almamesh-interpretations` localStorage store. It then opens /report, emulates
  * print media, and writes an A4 PDF + per-page PNGs.
  *
+ * Requires: `pdftoppm` from poppler-utils, on PATH. The per-page PNGs ARE the
+ * verification — a run that cannot rasterize has verified nothing — so a missing
+ * binary fails the run rather than skipping the step.
+ *   macOS:         brew install poppler
+ *   Debian/Ubuntu: sudo apt-get install -y poppler-utils
+ *
  * Usage (the caller builds + previews first, then passes the base URL):
  *   node scripts/verify-report-pdf.mjs http://localhost:4317
  *
@@ -24,7 +30,7 @@
 
 import { chromium } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, existsSync } from 'node:fs';
+import { mkdirSync, existsSync, readdirSync, unlinkSync } from 'node:fs';
 
 const BASE_URL = process.argv[2] ?? 'http://localhost:4317';
 // Output dir + per-page PNG prefix are overridable so the same harness can
@@ -212,7 +218,51 @@ async function seed(page) {
   );
 }
 
+/**
+ * Fail closed BEFORE the expensive work (a Chromium launch + a ~3 minute Pyodide
+ * boot): without pdftoppm this harness cannot produce the page images it exists
+ * to produce, so it must refuse to start rather than report success at the end.
+ */
+function requirePdftoppm() {
+  try {
+    execFileSync('pdftoppm', ['-v'], { stdio: 'ignore' });
+  } catch (err) {
+    console.error('Missing dependency: pdftoppm (poppler-utils) is not on PATH.');
+    console.error('  ' + err.message);
+    console.error('This script verifies the report by rasterizing every PDF page to a PNG,');
+    console.error('so it cannot run without it. Install poppler and re-run:');
+    console.error('  macOS:         brew install poppler');
+    console.error('  Debian/Ubuntu: sudo apt-get install -y poppler-utils');
+    process.exit(1);
+  }
+}
+
+/** The page PNGs this run's prefix owns. */
+function pagePngs() {
+  return readdirSync(OUT_DIR).filter((f) => f.startsWith(PAGE_PREFIX + '-') && f.endsWith('.png'));
+}
+
+/**
+ * Rasterize each PDF page to a PNG. Throws — and so exits non-zero — if pdftoppm
+ * fails OR if it exits 0 having written nothing. Stale PNGs from an earlier run
+ * are deleted first, so the count below is evidence about THIS invocation.
+ */
+function rasterize(pdfPath) {
+  pagePngs().forEach((f) => unlinkSync(OUT_DIR + '/' + f));
+  execFileSync('pdftoppm', ['-r', '120', '-png', pdfPath, OUT_DIR + '/' + PAGE_PREFIX], {
+    stdio: 'inherit',
+  });
+  const produced = pagePngs();
+  if (produced.length === 0) {
+    throw new Error('pdftoppm exited 0 but wrote no ' + PAGE_PREFIX + '-*.png in ' + OUT_DIR);
+  }
+  console.log(
+    'Rasterized ' + produced.length + ' page(s) to ' + OUT_DIR + '/' + PAGE_PREFIX + '-*.png',
+  );
+}
+
 async function main() {
+  requirePdftoppm();
   if (!existsSync(OUT_DIR)) mkdirSync(OUT_DIR, { recursive: true });
 
   const browser = await chromium.launch();
@@ -246,22 +296,17 @@ async function main() {
 
   await browser.close();
 
-  if (consoleErrors.length) {
-    console.log('CONSOLE ERRORS during flow:');
-    consoleErrors.forEach((e) => console.log('  - ' + e));
-  } else {
-    console.log('No console errors during the flow.');
-  }
+  rasterize(pdfPath);
 
-  // Rasterize each PDF page to PNG via pdftoppm (poppler) if available.
-  try {
-    execFileSync('pdftoppm', ['-r', '120', '-png', pdfPath, OUT_DIR + '/' + PAGE_PREFIX], {
-      stdio: 'inherit',
-    });
-    console.log('Rasterized pages to ' + OUT_DIR + '/' + PAGE_PREFIX + '-*.png');
-  } catch (err) {
-    console.log('pdftoppm unavailable (' + err.message + '); PDF written, PNGs skipped.');
+  // Same rule as the missing binary above: a run that saw the page throw has not
+  // verified the page. Printing the errors and exiting 0 is how a harness reports
+  // success it did not earn.
+  if (consoleErrors.length) {
+    console.error('CONSOLE ERRORS during flow:');
+    consoleErrors.forEach((e) => console.error('  - ' + e));
+    throw new Error(consoleErrors.length + ' console/page error(s) during the report flow');
   }
+  console.log('No console errors during the flow.');
 }
 
 main().catch((err) => {

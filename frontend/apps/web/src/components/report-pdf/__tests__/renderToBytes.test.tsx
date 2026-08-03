@@ -63,6 +63,7 @@ const BLOB = 'I got married in June 2015 in Bengaluru.\n\nThen we relocated to P
 function baseInput(rectification?: ReturnType<typeof buildRectificationPdf>) {
   return {
     personName: 'Asha Rao', audienceLabel: 'For You', subtitle: 'subtitle', kicker: 'kicker',
+    generatedAt: '1990-03-30T06:30:00Z',
     birth: BIRTH, lagna: CHART.lagna, chart: { ayanamsa_value: CHART.ayanamsa_value }, sidereal: CHART,
     interpretation: INTERPRETATION, audience: 'you' as const,
     chartCaptions: { rasi: 'Rasi', navamsa: 'Navamsa' },
