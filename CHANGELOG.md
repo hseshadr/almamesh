@@ -6,6 +6,20 @@ All notable changes to AlmaMesh are documented here. Format follows
 
 ## [Unreleased]
 
+### Changed
+- **`@edgeproc/errors` now comes from npm instead of a vendored copy.** The
+  library was published as `@edgeproc/errors@0.1.0`, so
+  `frontend/packages/edgeproc-errors` (a 509-line snapshot pinned to upstream
+  commit `7705a72`) is deleted and `apps/web` depends on `^0.1.0` like any other
+  package. No behaviour change: the published catalog is a strict superset of
+  the vendored one — same 18 codes, same registration order, same HTTP statuses,
+  same English text — verified by a 222-check differential run across
+  `classify` / `describe` / `httpStatusOf` / `errorNameOf` / `errorTextOf` and
+  every code, with zero diffs. The library enters the app through the single
+  seam `apps/web/src/lib/errors.ts`, which is unchanged apart from a comment.
+  The library's own 48 tests move upstream to `hseshadr/errors` (now 114 tests
+  across 13 files, with its own CI); AlmaMesh keeps its 43 consumer tests.
+
 ### Fixed
 - **The exported PDF dropped the AI interpretation the app was still showing you.**
   `ReportView` gated the export on `status === 'complete'`, but a natal-only

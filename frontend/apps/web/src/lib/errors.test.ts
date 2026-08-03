@@ -332,22 +332,22 @@ describe('connectionErrorDetail', () => {
 });
 
 describe('@edgeproc/errors adoption (canonical-errors standard)', () => {
-  // classifyConnectionError now routes through the VENDORED @edgeproc/errors
-  // registry (packages/edgeproc-errors) instead of an ad-hoc if-chain. These
-  // tests prove two things: (1) the vendored library is really what does the
+  // classifyConnectionError routes through the PUBLISHED @edgeproc/errors
+  // registry (installed from npm) instead of an ad-hoc if-chain. These
+  // tests prove two things: (1) the published library is really what does the
   // work — `aiErrorRegistry` is a genuine @edgeproc/errors Registry built from
   // its `starterPack` codes; and (2) the coded classification is UNCHANGED —
   // the same HTTP status → the same canonical code → the same
   // ConnectionErrorKind the app already rendered, so no user-visible string or
   // i18n key moved.
 
-  it('exposes a genuine @edgeproc/errors Registry built from the vendored starterPack', () => {
+  it('exposes a genuine @edgeproc/errors Registry built from the published starterPack', () => {
     // The Registry method surface from the library (proves we imported IT).
     for (const method of ['classify', 'describe', 'toProblemDetails', 'create'] as const) {
       expect(typeof (aiErrorRegistry as unknown as Record<string, unknown>)[method]).toBe('function');
     }
-    // The reused codes ARE the vendored starter-pack codes, carrying the
-    // vendored library's own data (impossible to satisfy from local-only logic).
+    // The reused codes ARE the published starter-pack codes, carrying the
+    // library's own data (impossible to satisfy from local-only logic).
     const reused = [
       'ai.provider.out_of_credits',
       'ai.provider.unauthorized',
