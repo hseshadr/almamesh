@@ -153,6 +153,31 @@ export default function OnboardingPage() {
   // the OnboardingRoute guard in App.tsx. This page can assume the user does NOT have a chart.
   // Loading state has been removed since the route guard handles it.
 
+  // The wizard already knows WHOSE chart this is — stop asking for the name.
+  //
+  // Every route in leaves an ACTIVE profile behind (the chart-less dashboard's
+  // "Add birth details" link, the header switcher, Settings → People, a pasted
+  // URL), but the wizard reads a DIFFERENT store whose `name` starts empty.
+  // Seeding here is the one seam that covers all of them, including the plain
+  // links that pass through no form at all.
+  //
+  // Seeded ONLY when the wizard's name is empty. The onboarding store is
+  // in-memory with NO persistence and `reset()` runs only after a chart is
+  // generated, so a non-empty name is always one THIS session typed — never
+  // overwrite it. Reading through `getState()` inside a mount-only effect also
+  // means clearing the field later cannot re-fire the seed and fight the edit.
+  useEffect(() => {
+    const onboarding = useOnboardingStore.getState();
+    if (onboarding.data.name.trim() !== "") {
+      return;
+    }
+    const { activeProfileId, profiles } = useProfilesStore.getState();
+    const activeName = activeProfileId ? profiles[activeProfileId]?.name : undefined;
+    if (activeName) {
+      onboarding.setName(activeName);
+    }
+  }, []);
+
   // Sync currentStep from store to local step key
   useEffect(() => {
     if (currentStep >= 1 && currentStep <= STEP_KEYS.length) {

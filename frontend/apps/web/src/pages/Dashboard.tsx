@@ -46,6 +46,10 @@ import {
   ReadingGrounding,
 } from "../components/features/dashboard";
 import { NarrationUnavailable } from "../components/features/dashboard/NarrationUnavailable";
+import {
+  ChartReadFailed,
+  NoChartYet,
+} from "../components/features/dashboard/ChartlessState";
 import { getUserFriendlyError, isModelUnavailableMessage } from "../lib/errors";
 import { narrationOutage } from "../lib/narrationOutage";
 import { isMappedChatStreamError } from "../hooks/useChatThread";
@@ -141,8 +145,11 @@ export default function DashboardPage() {
   }, [queryData, queryError]);
 
   // NOTE: Fallback redirect removed - RequiresChartRoute guard handles this.
-  // If chartData is null after loading, we show an error UI instead of redirecting,
-  // as this is likely a temporary network issue (the guard already verified has_chart=true).
+  // `chartData === null` after loading is NOT a failure: charts are computed
+  // on-device (no chart API exists to fail), so a miss means the ACTIVE person
+  // has no chart yet. `hasLocalChart()` routes device-wide, so a newly added
+  // second person lands here the moment they are created. A rejected read is
+  // the only genuine failure, and react-query surfaces that as `queryError`.
 
   const chartId = (chartData as unknown as { chart_id?: string | null })?.chart_id ?? null;
 
@@ -150,6 +157,11 @@ export default function DashboardPage() {
   // how charts are scoped per profile). Read it via the store HOOK so the chat
   // re-binds when the person switches.
   const activeProfileId = useProfilesStore((s) => s.activeProfileId);
+  // Whose chart is missing — named on the empty state so the screen is about a
+  // person, not an abstraction. Selected as a primitive so the hook is stable.
+  const activeProfileName = useProfilesStore((s) =>
+    s.activeProfileId ? (s.profiles[s.activeProfileId]?.name ?? null) : null,
+  );
 
   // The richest feed for the chart visualization is the engine's raw
   // SiderealChart, persisted on-device in the chart library. Thread it to
@@ -615,28 +627,13 @@ export default function DashboardPage() {
   }
 
   if (!chartData) {
-    // Chart data failed to load - show error with retry option
-    // Note: RequiresChartRoute guard already verified has_chart=true, so this is likely a network issue
-    return (
-      <div className="flex min-h-[60vh] flex-col items-center justify-center p-8">
-        <div className="text-center max-w-md">
-          <div className="mb-6">
-            <svg className="h-16 w-16 mx-auto text-status-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-          </div>
-          <h2 className="text-xl font-bold text-text-primary mb-2">{t('dashboard:error.title')}</h2>
-          <p className="text-text-secondary mb-6">
-            {t('dashboard:error.body')}
-          </p>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-6 py-3 bg-accent-gold text-background-primary font-semibold rounded-lg hover:bg-accent-gold/90 transition-colors"
-          >
-            {t('dashboard:actions.try_again')}
-          </button>
-        </div>
-      </div>
+    // Two genuinely different states, told apart by whether the read REJECTED.
+    // Reloading a missing chart only ever reproduces this screen; creating the
+    // chart is the action that changes the outcome.
+    return queryError ? (
+      <ChartReadFailed t={t} />
+    ) : (
+      <NoChartYet t={t} personName={activeProfileName} />
     );
   }
 

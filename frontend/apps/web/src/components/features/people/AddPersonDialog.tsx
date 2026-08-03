@@ -12,7 +12,7 @@ import { useState, type ReactElement } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
-import { useProfilesStore } from '@almamesh/store';
+import { useOnboardingStore, useProfilesStore } from '@almamesh/store';
 import { safeError } from '@almamesh/shared-types';
 import { MEMBER_RELATIONSHIPS, type MemberRelationship } from '@almamesh/shared-types';
 import { Button, Dialog, Input, Select } from '../../ui';
@@ -54,6 +54,10 @@ export function AddPersonDialog({ open, onClose }: AddPersonDialogProps): ReactE
   const createProfile = useProfilesStore((s) => s.createProfile);
   const setRelationship = useProfilesStore((s) => s.setRelationship);
   const setActiveProfile = useProfilesStore((s) => s.setActiveProfile);
+  // The wizard reads a DIFFERENT store than the profiles store this dialog
+  // writes to. Without this hand-off the very next screen asks for the name we
+  // just took. See `handOffNameToWizard`.
+  const setOnboardingName = useOnboardingStore((s) => s.setName);
 
   const [name, setName] = useState('');
   const [relationshipValue, setRelationshipValue] = useState('');
@@ -93,6 +97,11 @@ export function AddPersonDialog({ open, onClose }: AddPersonDialogProps): ReactE
       return;
     }
     handleClose();
+    // Hand the name to the wizard's own store BEFORE navigating so step 1 is
+    // already answered. Creating a person deliberately switches the active
+    // profile, so the wizard is now about THIS person — carrying a half-typed
+    // name over from a different one would be the bug, not this write.
+    setOnboardingName(trimmed);
     void queryClient.invalidateQueries({ queryKey: ['primary-chart'] });
     navigate('/onboarding');
   };

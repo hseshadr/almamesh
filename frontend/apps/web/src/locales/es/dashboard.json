@@ -9,6 +9,8 @@
     "settings": "Configuración",
     "settings_title": "Configuración",
     "try_again": "Intentar de nuevo",
+    "create_chart": "Añadir datos de nacimiento",
+    "manage_people": "Gestionar personas",
     "retry": "Reintentar",
     "regenerate": "Regenerar lectura",
     "connect_ai": "Conectar un modelo de IA",
@@ -21,8 +23,11 @@
     "subtitle": "Espera mientras recuperamos tu carta natal..."
   },
   "error": {
-    "title": "No se pudo cargar la carta",
-    "body": "No pudimos cargar los datos de tu carta. Puede tratarse de un problema temporal de conexión."
+    "title": "Aún no hay carta de {{name}}",
+    "title_unnamed": "Aún no hay carta",
+    "body": "No falló nada y no se perdió nada. Esta carta todavía no se ha creado en este dispositivo: añade los datos de nacimiento y AlmaMesh la calcula aquí mismo.",
+    "read_failed_title": "No se pudieron leer las cartas guardadas en este dispositivo",
+    "read_failed_body": "Tus cartas están en este dispositivo y la lectura no terminó. No se borró nada."
   },
   "narration": {
     "chart_complete_title": "Tu carta está completa",

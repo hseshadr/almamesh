@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import {
+  useOnboardingStore,
   useProfilesStore,
   useChartLibraryStore,
   type Profile,
@@ -35,6 +36,9 @@ export function ProfileSwitcher() {
   const createProfile = useProfilesStore((s) => s.createProfile);
   const renameProfile = useProfilesStore((s) => s.renameProfile);
   const setActiveProfile = useProfilesStore((s) => s.setActiveProfile);
+  // The onboarding wizard reads a DIFFERENT store than this one; without the
+  // hand-off in `handleAdd`, the wizard asks again for the name typed here.
+  const setOnboardingName = useOnboardingStore((s) => s.setName);
 
   const profiles = useMemo(
     () => Object.values(profilesMap).sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
@@ -74,8 +78,10 @@ export function ProfileSwitcher() {
     }
     const id = createProfile(name);
     setNewName('');
-    // A brand-new person has no chart yet → send them to onboarding.
+    // A brand-new person has no chart yet → send them to onboarding, with the
+    // name already answered so the wizard never asks for it twice.
     setActiveProfile(id);
+    setOnboardingName(name);
     setOpen(false);
     refreshForProfile(id);
   };
