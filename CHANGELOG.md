@@ -6,6 +6,70 @@ All notable changes to AlmaMesh are documented here. Format follows
 
 ## [Unreleased]
 
+### Security
+- **Bundle promotion refuses a rollback it cannot disprove — and this repo's own
+  gate no longer asserts the opposite.** `backend/vendor/edge-proc/` pinned a
+  0.1.4 snapshot that sat still through two upstream security releases. It
+  carried both anti-replay holes 0.3.0 closes: a promote at an **equal** version
+  was accepted, because `Version(x) < Version(x)` is `False` and that single
+  `False` was read as affirmative proof of freshness; and an `active` pointer
+  that existed but was not a regular file answered "nothing has ever been
+  promoted", which is the one answer that tells the guard it has nothing to be
+  fresher than, so the check was skipped outright. Replaying a genuinely signed
+  pointer needs no forgery, so this was reachable with a signature that verifies.
+
+  **A stated contract is reversed here, deliberately.** The vendored suite ran as
+  part of `uv run poe gate` and asserted the fail-open *as the requirement* —
+  `test_promote_allows_unparseable_version_covenant` was commented "the promote
+  must still succeed (fail-OPEN), never fail-closed on the guard", and
+  `test_promote_allows_equal_and_forward_versions` promoted a different bundle at
+  an equal version on purpose. The covenant behind them ("the guard must never
+  reject a validly-signed bundle") was the bug, not the contract: a signature
+  proves *authorship*, never *freshness*, and a replayed pointer is validly
+  signed by construction. Both assertions are now inverted, in
+  `backend/tests/test_bundle_rollback_guard.py` — an equal-version promote and an
+  unparseable-version promote must both raise `RollbackError` — with the
+  allow-cases (forward bump, first promote) kept so fail-closed cannot quietly
+  become fail-always.
+
+  Blast radius, stated plainly: **latent, not live.** No user device ever ran
+  this code. The device-side promote ships as TypeScript
+  (`frontend/packages/edgeproc-browser`, `canPromotePointer`), which already
+  refuses an equal `sequence` unless the pointer is byte-identical. The Python
+  path is reached only by the build-time publisher — which clears its origin dir
+  before every publish, so it is always a first promote — and by
+  `almamesh.edge.bundle.sync_constructs`, a public API of this package whose only
+  callers today are its own tests. What shipped was a published module promising
+  "fail-closed … never downgrades" over an implementation that did not, and a
+  gate that certified the gap as intended.
+
+### Changed
+- **`edge-proc` resolves from PyPI; `backend/vendor/` is gone.** The dependency
+  moves to `edge-proc[bundles]>=0.3.0` with no `[tool.uv.sources]` override, and
+  the vendored `edge-proc` + `shared-libs-python` snapshots (and the
+  `test-vendored` gate step that ran their suites) are deleted. The vendoring
+  existed because edge-proc was unpublished; it has been on PyPI since 0.1.5, and
+  a path source is exactly what let a snapshot drift two security releases behind
+  while looking pinned — `pip-audit` and Dependabot skip a package that does not
+  resolve from an index. `edgeproc-core` replaces `shared-libs-python` as the
+  transitive dependency, also from PyPI.
+
+  **Breaking for publishers, inherited from edge-proc 0.3.0:** re-shipping under
+  one version label now needs a strictly greater `--sequence`. AlmaMesh's own
+  production publish is unaffected — `frontend/apps/web/scripts/build-prod.sh`
+  clears `backend/origin-prod` before every run, so each publish is a first
+  promote.
+
+### Added
+- **The Ashtakoota `excellent` band has a test.** `_band`'s top arm (`>= 33` of
+  36) had no test and no fixture — every reference match landed in one of the
+  three lower bands, so the threshold could have been any number, or the band
+  unreachable, and the suite would have stayed green.
+  `backend/tests/test_ashtakoota_bands.py` pins all four cut points to the
+  literals `tables.BAND_SOURCE` prints for the reader, asserts every band is
+  reachable by some real total, and fails if the code and the prose stop naming
+  the same numbers.
+
 ### Fixed
 - **The PDF export is now actually deterministic.** `README.md` has told readers
   the export is "deterministic (same input, same file every time)" for months and

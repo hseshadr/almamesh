@@ -35,7 +35,7 @@ This repo builds against `~/dev/project-ideas/oss/ENGINEERING-STANDARDS.md`
   `engines.bun` sets the floor).
 - **The gate** is `make gate` (dual-stack): fans out to `backend` (`uv run poe
   gate`: ruff lint → format check → mypy strict → xenon → pytest with coverage
-  floor → vendored edge-proc suite) and `frontend` (`bun run gate`: declarations
+  floor) and `frontend` (`bun run gate`: declarations
   build → typecheck → lint → unit tests → build). CI runs the same two commands
   — the gate and CI mirror exactly, both directions.
 - **xenon grandfather (2026-07-11):** the gate pins `--max-absolute C

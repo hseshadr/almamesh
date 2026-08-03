@@ -14,10 +14,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-# Every job runs from a SINGLE checkout of this repo. The formerly-private
-# dependencies are vendored in-tree (backend/vendor/{edge-proc,shared-libs-python}
-# and frontend/packages/edgeproc-browser — see each VENDORED.md), so CI needs no
-# extra tokens, no sibling checkouts, and no path patching.
+# Every job runs from a SINGLE checkout of this repo. Python dependencies,
+# edge-proc included, resolve from PyPI; `@edgeproc/browser` is vendored in-tree
+# at frontend/packages/edgeproc-browser (see its VENDORED.md). CI needs no extra
+# tokens, no sibling checkouts, and no path patching.
 
 jobs:
   # Secret scan: fail the build if any credential/key is committed (e.g. a
@@ -88,14 +88,13 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.cache/uv
-          key: ${{ runner.os }}-uv-${{ hashFiles('backend/uv.lock', 'backend/vendor/edge-proc/uv.lock') }}
+          key: ${{ runner.os }}-uv-${{ hashFiles('backend/uv.lock') }}
           restore-keys: |
             ${{ runner.os }}-uv-
 
-      # edge-proc + shared-libs-python are vendored in-repo (backend/vendor/)
-      # as local path sources, recorded as such in the checked-in uv.lock —
-      # `--locked` asserts the lock still matches pyproject and installs
-      # exactly what's committed.
+      # Every dependency, edge-proc included, resolves from PyPI and is pinned in
+      # the checked-in uv.lock — `--locked` asserts the lock still matches
+      # pyproject and installs exactly what's committed.
       - name: Install dependencies
         run: uv sync --locked --extra dev
 
@@ -103,12 +102,11 @@ jobs:
       # (`make gate` fans out to it). Composition lives in ONE place,
       # backend/pyproject.toml [tool.poe.tasks]: ruff lint → ruff format
       # --check → mypy strict → xenon (grandfathered C/C/A, see CLAUDE.md) →
-      # pytest with the coverage floor (addopts) → the vendored edge-proc
-      # suite (its own pinned .venv; see backend/vendor/edge-proc/VENDORED.md).
+      # pytest with the coverage floor (addopts).
       # Running the gate command itself (not a re-listing of its steps) is what
       # keeps CI and the local gate mirrored both directions
       # (ENGINEERING-STANDARDS §3/§4).
-      - name: Run the backend gate (lint, types, complexity, tests+coverage, vendored suite)
+      - name: Run the backend gate (lint, types, complexity, tests+coverage)
         run: uv run poe gate
 
   frontend:
@@ -183,10 +181,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      # Both dependency layers the gate needs live IN this checkout:
-      #  - edge-proc + shared-libs-python (Python): vendored under
-      #    backend/vendor/ — setup-dev-assets.sh's `uv build --wheel` +
-      #    `almamesh-bundle` resolve them as local path sources.
+      # The two dependency layers the gate needs:
+      #  - edge-proc (Python): from PyPI, pinned in backend/uv.lock —
+      #    setup-dev-assets.sh's `uv build --wheel` + `almamesh-bundle` use it.
       #  - @edgeproc/browser (TS): vendored at frontend/packages/edgeproc-browser,
       #    a regular bun workspace member.
 
@@ -206,7 +203,7 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.cache/uv
-          key: ${{ runner.os }}-uv-${{ hashFiles('backend/uv.lock', 'backend/vendor/edge-proc/uv.lock') }}
+          key: ${{ runner.os }}-uv-${{ hashFiles('backend/uv.lock') }}
           restore-keys: |
             ${{ runner.os }}-uv-
 
@@ -446,7 +443,7 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.cache/uv
-          key: ${{ runner.os }}-uv-${{ hashFiles('backend/uv.lock', 'backend/vendor/edge-proc/uv.lock') }}
+          key: ${{ runner.os }}-uv-${{ hashFiles('backend/uv.lock') }}
           restore-keys: |
             ${{ runner.os }}-uv-
 

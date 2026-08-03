@@ -44,15 +44,18 @@ jobs:
           version: "latest"
 
       # The §4 standard invocation: export the frozen lock to requirements and
-      # audit that (pip-audit's default venv mode is fragile). The vendored
-      # local path sources (edge-proc, shared-libs-python) are excluded — they
-      # have no registry release to audit — but their third-party dependencies
-      # remain in the export and ARE audited.
+      # audit that (pip-audit's default venv mode is fragile).
+      #
+      # Nothing is excluded. This step used to pass `--no-emit-package edge-proc
+      # --no-emit-package shared-libs-python`, because both were vendored local
+      # path sources with "no registry release to audit" — which made the audit
+      # structurally blind to the substrate that verifies every signed bundle, and
+      # kept it silent while the vendored snapshot sat two security releases behind
+      # upstream. Both now resolve from PyPI and are audited like any other
+      # dependency. Do not re-add an exclusion here.
       - name: Export locked dependencies
         run: >-
           uv export --frozen --all-extras --no-emit-project --no-hashes
-          --no-emit-package edge-proc
-          --no-emit-package shared-libs-python
           -o requirements.txt
 
       - name: Audit against known CVEs

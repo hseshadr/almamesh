@@ -28,7 +28,7 @@ uv run almamesh-chart "1990-01-15T12:00:00+00:00" 40.7128 -74.0060   # a New Yor
 ## The quality gate
 
 ```bash
-make gate        # backend (ruff, mypy, xenon, pytest+coverage, vendored suite) + frontend (typecheck, lint, unit tests, build)
+make gate        # backend (ruff, mypy, xenon, pytest+coverage) + frontend (typecheck, lint, unit tests, build)
 ```
 
 CI runs exactly the same two commands — if the gate is green locally, CI agrees.

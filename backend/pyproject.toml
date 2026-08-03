@@ -20,7 +20,15 @@ dependencies = [
     "types-pyyaml>=6.0.12.20260724",
     # Local-first substrate: signed content-addressed bundle delivery + the
     # Task/Runtime/Router core. Only [bundles] — no FAISS/vector extras needed.
-    "edge-proc[bundles]>=0.1.0",
+    # FLOOR IS SECURITY-LOAD-BEARING, do not lower: 0.3.0 is the first release
+    # whose promote-time anti-replay guard fails CLOSED. Before it, a promote at
+    # an EQUAL version was accepted (`Version(x) < Version(x)` is `False`, and
+    # that single `False` was read as proof of freshness), so replaying a
+    # genuinely-signed pointer moved a device's content backwards under an
+    # unchanged version label — no forgery needed. 0.2.0 closed the same hole for
+    # unparseable versions and missing sequences. Proven by
+    # tests/test_bundle_rollback_guard.py, which fails on any older edge-proc.
+    "edge-proc[bundles]>=0.3.0",
     # Bundle-publisher CLI (almamesh-bundle).
     "typer>=0.27.0",
 ]
@@ -70,13 +78,12 @@ build-backend = "hatchling.build"
 [tool.uv]
 constraint-dependencies = ["cryptography>=48.0.1,<49", "click>=8.3.3,<8.4"]
 
-# In-repo vendored sources for the unpublished edge-proc substrate and its
-# shared-libs-python dependency — a single clone builds with no private
-# siblings. Provenance + re-vendor policy: backend/vendor/*/VENDORED.md.
-# TODO(publish): replace with PyPI versions once edge-proc is released.
-[tool.uv.sources]
-edge-proc = { path = "vendor/edge-proc", editable = true }
-shared-libs-python = { path = "vendor/shared-libs-python", editable = true }
+# NOTE: there is deliberately no `[tool.uv.sources]` here. edge-proc used to be
+# vendored under backend/vendor/ because it was unpublished; it now resolves from
+# PyPI like every other dependency, which is what keeps `pip-audit` and Dependabot
+# able to see it (a path/git source makes them skip the package entirely) and what
+# stops a snapshot silently drifting behind upstream security releases. The old
+# vendored snapshot sat at 0.1.4 for two upstream security releases.
 
 # The backend quality gate (ENGINEERING-STANDARDS §3): `uv run poe gate`.
 # CI's backend job runs exactly this command — gate and CI mirror both ways.
@@ -89,11 +96,7 @@ lint = { shell = "ruff check . && ruff format --check . && mypy src/ && xenon --
 typecheck = "mypy src/"
 complexity = "xenon --max-absolute C --max-modules C --max-average A src/"
 test = "pytest -q"
-# The vendored edge-proc substrate ships its own pinned suite (private .venv
-# under vendor/edge-proc) — run it so a re-vendor or local patch can never
-# silently break the bundle/signing substrate (see vendor/edge-proc/VENDORED.md).
-test-vendored = { shell = "cd vendor/edge-proc && uv run --all-extras pytest -q" }
-gate = ["lint", "test", "test-vendored"]
+gate = ["lint", "test"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
@@ -114,9 +117,6 @@ filterwarnings = [
 [tool.ruff]
 line-length = 100
 target-version = "py311"
-# Vendored upstream packages keep their upstream style/config — never
-# reformat or lint them with this project's rules (see vendor/*/VENDORED.md).
-exclude = ["vendor"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP"]

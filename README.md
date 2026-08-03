@@ -175,12 +175,11 @@ use a loopback endpoint or OpenRouter.
 ## Building from source — prerequisites
 
 **TL;DR: this repo is self-contained — a single `git clone` builds everything.**
-The three formerly-private dependencies are **vendored in-repo**, each with
-provenance, license, and re-vendor policy documented in a `VENDORED.md` next to
-the code:
+The Python side resolves every dependency from PyPI, including
+[`edge-proc`](https://pypi.org/project/edge-proc/) — the signed local-data engine.
+One dependency is still vendored in-repo, with provenance, license, and re-vendor
+policy documented in a `VENDORED.md` next to the code:
 
-- `backend/vendor/edge-proc` — the signed local-data engine (Python)
-- `backend/vendor/shared-libs-python` — its transitive dependency (Python)
 - `frontend/packages/edgeproc-browser` — `@edgeproc/browser`, the in-browser
   bundle-sync tier (a regular Bun workspace package)
 
