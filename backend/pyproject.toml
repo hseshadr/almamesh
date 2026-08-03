@@ -47,7 +47,7 @@ dev = [
     "pytest>=8.3.0",
     "pytest-asyncio>=1.4.0",
     "pytest-cov>=7.1.0",
-    "ruff>=0.16.0",
+    "ruff>=0.16.1",
     "mypy>=2.3.0",
     # Complexity gate (radon-based) — see [tool.poe.tasks.lint].
     "xenon>=0.9.3",
