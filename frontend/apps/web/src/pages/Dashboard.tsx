@@ -58,6 +58,7 @@ import { useContentModeStore } from "../stores/contentMode";
 import type { ViewMode } from "../lib/types";
 import {
   READING_MODEL_UNAVAILABLE,
+  automaticNarrationAttemptKey,
   currentInterpretationForChart,
   isAutomaticNarrationInputSettled,
   resolveInterpretationConfig,
@@ -196,6 +197,10 @@ export default function DashboardPage() {
   const interpretationEntry = useInterpretationStore((s) =>
     chartId ? s.byChart[chartId] : undefined,
   );
+
+  // Spends / releases this chart's ONE automatic generation. Persisted, so the
+  // cap holds across navigation and reload instead of only within this mount.
+  const markAutomaticAttempt = useInterpretationStore((s) => s.markAutomaticAttempt);
 
   // Whether an AI endpoint is configured (local or cloud) — gates
   // auto-generation and decides between the progress panel and the CTA. LIVE
@@ -483,9 +488,12 @@ export default function DashboardPage() {
       if (!configChanged) {
         // A successful, current reading completes the previous one-shot cycle.
         // Reset only here (never on error) so a later predictive day/input can
-        // auto-regenerate once while a failed attempt still cannot spin.
+        // auto-regenerate once while a failed attempt still cannot spin. The
+        // persisted marker is released for the same reason: the cycle closed
+        // with a usable reading, so nothing is owed against this identity.
         autoGenerationTriggeredRef.current = false;
         versionCheckRef.current = 'done';
+        void markAutomaticAttempt(chartId, undefined);
         return;
       }
       // Config changed: fall through to the single-shot trigger below. The refs
@@ -496,7 +504,19 @@ export default function DashboardPage() {
     // Skip if this input/config already consumed its one automatic attempt.
     // This guard comes AFTER the successful-current branch above so completion
     // can close that cycle and admit one attempt for a later predictive day.
-    if (autoGenerationTriggeredRef.current || versionCheckRef.current === 'checking') {
+    //
+    // Two caps, deliberately: the ref stops a re-fire within this mount, and
+    // the PERSISTED `automaticAttemptKey` stops one across mounts. Only the
+    // second survives navigation, and navigation is what was re-spending — a
+    // failed run leaves a valid-but-stale reading on the entry, so coming back
+    // to the dashboard found the same open gate and paid for the same six
+    // section calls again, every time, with no bound.
+    const attemptKey = automaticNarrationAttemptKey(chartId);
+    if (
+      autoGenerationTriggeredRef.current ||
+      versionCheckRef.current === 'checking' ||
+      useInterpretationStore.getState().getEntry(chartId)?.automaticAttemptKey === attemptKey
+    ) {
       return;
     }
 
@@ -505,6 +525,7 @@ export default function DashboardPage() {
     // Auto-trigger a single generation (first reading, or config-change regen).
     versionCheckRef.current = 'done';
     autoGenerationTriggeredRef.current = true;
+    void markAutomaticAttempt(chartId, attemptKey);
     handleGenerateSeparatedInterpretation();
   }, [
     aiConfigured,
@@ -514,33 +535,31 @@ export default function DashboardPage() {
     interpretationStatus,
     isLoading,
     isStreamingInterpretation,
+    markAutomaticAttempt,
     predictiveRequestIdentity,
     predictiveStatus,
     regenerationQueued,
   ]);
 
-  // Enrich-when-ready (Spec 065): the reading paints fast (natal, above), then
-  // auto-upgrades ONCE the moment the predictive layer (LifeAtlas's
-  // usePredictiveLayer, auto-kicked-off elsewhere) reaches `ready` — so the
-  // reading re-streams composing the full predictive superset (current
-  // transits, dasha-transit fusion, Sade Sati, dated domain windows) instead
-  // of staying natal-only for the session. Guarded so it NEVER loops and NEVER
-  // replaces an already predictive-aware reading:
-  //   - `enrichFiredRef` caps this to at most one attempt per mount.
-  //   - `readingIsPredictiveAware` skips entirely once the reading already
-  //     carries the superset (including the "ready at first paint" case,
-  //     where the very first generation was already predictive-aware).
-  const enrichFiredRef = useRef(false);
+  // Enrich-when-ready (Spec 065) has NO effect of its own any more, and must
+  // not grow one back. The reading paints fast (natal), then auto-upgrades to
+  // the full predictive superset the moment the predictive layer is genuinely
+  // ready for THIS chart — but that is already exactly what the auto-generate
+  // effect above does: once predictive facts exist, the natal reading's
+  // `inputProvenance` stops being current, `interpretationStatus` reports
+  // `idle`, and the single-shot trigger regenerates once.
+  //
+  // A second effect used to do the same job off a LOOSER gate
+  // (`predictiveStatus === 'ready'`) than the postcondition that would satisfy
+  // it (`predictiveAware`, which additionally needs raw contexts and a matching
+  // profile + request key). Whenever those disagreed — a pre-v2 persisted
+  // predictive blob with no raw contexts, facts belonging to another profile —
+  // it bought a full six-section generation that came back non-predictive-aware
+  // again, so the gate reopened and the next visit bought another one. It also
+  // called `handleRegenerateReading`, which re-armed the auto-generate ref, so
+  // a single visit could spend three generations. Deleting it leaves ONE gate
+  // keyed on the identity rule that actually decides the outcome.
   const readingIsPredictiveAware = interpretationEntry?.provenance?.predictiveAware === true;
-  useEffect(() => {
-    if (enrichFiredRef.current) return;
-    if (predictiveStatus !== 'ready') return;
-    if (!aiConfigured || isStreamingInterpretation) return;
-    if (!hasValidInterpretation || readingIsPredictiveAware) return;
-    enrichFiredRef.current = true; // one-shot: never re-arms this mount
-    handleRegenerateReading(); // re-streams composing the now-ready superset
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- fire-once via enrichFiredRef; handleRegenerateReading is stable per render and re-including it would re-trigger on every render
-  }, [predictiveStatus, aiConfigured, isStreamingInterpretation, hasValidInterpretation, readingIsPredictiveAware]);
 
   // Quiet affordance: the reading is "deepening" while an upgrade streams over
   // an already-visible (natal) reading — so the visible refinement reads as

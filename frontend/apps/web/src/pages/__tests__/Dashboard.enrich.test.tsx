@@ -15,6 +15,7 @@ import { render, screen, waitFor, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
+  predictiveRequestKey,
   useChartLibraryStore,
   useInterpretationStore,
   useContentModeStore,
@@ -22,7 +23,12 @@ import {
   useProfilesStore,
   type StoredChart,
 } from '@almamesh/store';
-import type { BirthChartGenerationResponse, VedicInterpretation } from '@almamesh/shared-types';
+import type { PredictiveContexts } from '@almamesh/browser/types';
+import type {
+  BirthChartGenerationResponse,
+  ProcessedBirthData,
+  VedicInterpretation,
+} from '@almamesh/shared-types';
 
 import '../../i18n/config';
 
@@ -70,6 +76,7 @@ import {
 } from '@almamesh/llm';
 import { readLocalPrimaryChart } from '../../lib/localChartRead';
 import { resolveInterpretationConfig } from '../../hooks/useStreamingInterpretation';
+import { buildEnsurePredictiveInput, predictiveReferenceInstant } from '../../lib/predictive';
 import DashboardPage from '../Dashboard';
 
 const mockedStream = vi.mocked(streamStructuredInterpretation);
@@ -152,6 +159,72 @@ function completingStream(
   };
 }
 
+/** A generator that dies mid-run, like a provider outage would: no reading. */
+function failingStream(): () => AsyncGenerator<InterpretationEvent> {
+  return async function* (): AsyncGenerator<InterpretationEvent> {
+    yield { type: 'section_start', section: 'core' } as InterpretationEvent;
+    throw new Error('synthetic provider outage');
+  };
+}
+
+/**
+ * The deterministic predictive identity this chart expects RIGHT NOW — the same
+ * value `useStreamingInterpretation` derives before it will compose predictive
+ * facts into a reading.
+ */
+function expectedPredictiveKeyForChart(): string {
+  const input = buildEnsurePredictiveInput(
+    'chart-1',
+    storedChart().birth_data as ProcessedBirthData,
+    predictiveReferenceInstant(),
+  );
+  if (input === null) {
+    throw new Error('fixture chart is missing the birth fields the predictive key needs');
+  }
+  return predictiveRequestKey(input);
+}
+
+const RAW_CONTEXTS = {} as unknown as PredictiveContexts;
+
+/**
+ * Predictive facts that are genuinely usable for THIS chart: `ready`, with raw
+ * contexts, this chart's profile, and today's expected request key. Only in this
+ * state can a regeneration actually produce a predictive-aware reading.
+ */
+function predictiveReadyForThisChart(): void {
+  usePredictiveStore.setState({
+    status: 'ready',
+    profileKey: 'chart-1',
+    requestKey: expectedPredictiveKeyForChart(),
+    rawContexts: RAW_CONTEXTS,
+  });
+}
+
+/**
+ * Predictive `ready` for this chart's request key but carrying NO raw contexts —
+ * exactly what a pre-v2 persisted predictive blob rehydrates to (see
+ * `coercePersistedPredictive`). The status says ready; there is nothing for a
+ * reading to actually compose.
+ */
+function predictiveReadyWithoutFacts(): void {
+  usePredictiveStore.setState({
+    status: 'ready',
+    profileKey: 'chart-1',
+    requestKey: expectedPredictiveKeyForChart(),
+    rawContexts: undefined,
+  });
+}
+
+/** Predictive `ready` with facts, but they belong to a DIFFERENT profile. */
+function predictiveReadyForAnotherProfile(): void {
+  usePredictiveStore.setState({
+    status: 'ready',
+    profileKey: 'some-other-profile',
+    requestKey: expectedPredictiveKeyForChart(),
+    rawContexts: RAW_CONTEXTS,
+  });
+}
+
 /** Configure a synthetic cloud tier (configured, NOT on-device). */
 function configureCloudAi(): void {
   writeLlmSettings(openRouterPreset('sk-or-v1-0000-synthetic-test-key', 'test-org/test-model'));
@@ -216,8 +289,16 @@ describe('Dashboard — enrich-when-ready (Spec 065)', () => {
     expect(mockedStream).not.toHaveBeenCalled();
 
     mockedStream.mockImplementation(completingStream(INTERPRETATION));
+    // CONTRACT REVERSED (see the two convergence tests at the bottom of this
+    // file). This step used to set `{ status: 'ready', profileKey: 'chart-1' }`
+    // — no request key, no raw contexts — and assert that the dashboard spent a
+    // generation on it. It must not: with nothing to compose, the regenerated
+    // reading comes back non-predictive-aware, the gate reopens, and the next
+    // visit buys another one. The test now hands over a predictive state that
+    // is genuinely usable for this chart, where the upgrade really does converge
+    // and this "exactly once" assertion has teeth.
     act(() => {
-      usePredictiveStore.setState({ status: 'ready', profileKey: 'chart-1' });
+      predictiveReadyForThisChart();
     });
 
     await waitFor(() => expect(mockedStream).toHaveBeenCalledTimes(1));
@@ -252,6 +333,56 @@ describe('Dashboard — enrich-when-ready (Spec 065)', () => {
       usePredictiveStore.setState({ status: 'loading', profileKey: 'chart-1' });
     });
     await settle();
+    expect(mockedStream).not.toHaveBeenCalled();
+  });
+
+  // -------------------------------------------------------------------------
+  // The upgrade must CONVERGE. Every automatic generation costs six parallel
+  // LLM section calls plus an evidence-annotation call, so an upgrade that can
+  // never satisfy its own gate spends that bill again on every single visit.
+  // -------------------------------------------------------------------------
+
+  it('does NOT buy the same failed upgrade again when the user navigates away and comes back', async () => {
+    configureCloudAi();
+    seedCompleteReading({ ...currentProvenance(), predictiveAware: false });
+    predictiveReadyForThisChart();
+    // The provider is down, so the upgrade never lands and the reading stays
+    // non-predictive-aware — the state that used to re-arm on every mount.
+    mockedStream.mockImplementation(failingStream());
+
+    const firstVisit = renderDashboard();
+    await screen.findByTestId('reading-section');
+    await settle();
+    expect(mockedStream).toHaveBeenCalledTimes(1);
+
+    firstVisit.unmount();
+
+    renderDashboard();
+    await settle();
+    await settle();
+    expect(mockedStream).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    ['predictive is ready but carries no facts', predictiveReadyWithoutFacts],
+    ['predictive facts belong to another profile', predictiveReadyForAnotherProfile],
+  ])('does NOT spend a generation when %s', async (_label, makePredictiveReady) => {
+    configureCloudAi();
+    seedCompleteReading({ ...currentProvenance(), predictiveAware: false });
+    renderDashboard();
+
+    await screen.findByTestId('reading-section');
+    await settle();
+    expect(mockedStream).not.toHaveBeenCalled();
+
+    mockedStream.mockImplementation(completingStream(INTERPRETATION));
+    act(() => {
+      makePredictiveReady();
+    });
+    await settle();
+    await settle();
+    // A run launched from here could not come back predictive-aware, so the
+    // gate that asked for it would stay open and ask again on every visit.
     expect(mockedStream).not.toHaveBeenCalled();
   });
 });
