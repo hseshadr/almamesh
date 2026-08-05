@@ -115,6 +115,23 @@ export interface ChartInterpretationEntry {
    * empty interpretation cell — which loses nothing deterministic.
    */
   readonly evidenceAnnotations?: RawEvidenceAnnotationPayload;
+  /**
+   * The identity ONE automatic generation has already been spent on for this
+   * chart — the caller's `(config, predictive-input)` fingerprint.
+   *
+   * Automatic generation used to be capped by a component ref, which made it
+   * "once per MOUNT": navigating away and back destroyed the ref and bought
+   * another six-section LLM run, forever, whenever the run could not produce a
+   * reading its own gate would accept. Persisting the attempt makes the cap
+   * "once per READING", so a return visit costs nothing — while a genuinely new
+   * predictive day or a changed model yields a different key and therefore
+   * earns exactly one fresh attempt.
+   *
+   * Optional and purely additive (same class as `evidenceAnnotations`): an entry
+   * written before this field existed hydrates byte-identical and simply gets
+   * its one attempt.
+   */
+  readonly automaticAttemptKey?: string;
 }
 
 /** Ephemeral identity for one generation attempt; never persisted. */
@@ -143,6 +160,15 @@ export interface InterpretationStore {
     section: string,
     runToken?: InterpretationRunToken,
   ) => void;
+  /**
+   * Spend this chart's ONE automatic generation for `attemptKey`, or release it.
+   *
+   * Passing a key records the attempt so no later visit repeats it; passing
+   * `undefined` clears the marker, which is how a run that ended in a current,
+   * usable reading closes its cycle. Persisted, so the cap survives navigation
+   * and reload — the whole point of the field.
+   */
+  markAutomaticAttempt: (chartId: string, attemptKey: string | undefined) => Promise<void>;
   /**
    * Store the finished reading: status -> 'complete'. `provenance` is the
    * identity of the config that produced it; omitting it (legacy callers)
@@ -412,6 +438,13 @@ export const interpretationStoreCreator: StateCreator<InterpretationStore> = (se
             sections: {},
             ...kept,
             ...(owner !== undefined ? { profileId: owner } : {}),
+            // Survives every run, including a failed one and a brand-new chart's
+            // first: the automatic attempt was SPENT the moment it started, so
+            // clearing it here would hand the next visit a free repeat — the
+            // exact unbounded re-spend this marker exists to stop.
+            ...(current.automaticAttemptKey !== undefined
+              ? { automaticAttemptKey: current.automaticAttemptKey }
+              : {}),
           }),
         };
       });
@@ -438,6 +471,20 @@ export const interpretationStoreCreator: StateCreator<InterpretationStore> = (se
         const failedSections = { ...current.failedSections, [section]: true };
         return { byChart: withEntry(state.byChart, chartId, { ...current, failedSections }) };
       });
+    },
+
+    markAutomaticAttempt: async (chartId, attemptKey) => {
+      set((state) => {
+        const current = entryOf(state.byChart, chartId);
+        if (current.automaticAttemptKey === attemptKey) {
+          return state;
+        }
+        const { automaticAttemptKey: _spent, ...rest } = current;
+        const entry: ChartInterpretationEntry =
+          attemptKey === undefined ? rest : { ...rest, automaticAttemptKey: attemptKey };
+        return { byChart: withEntry(state.byChart, chartId, entry) };
+      });
+      await persistInterpretationSnapshot(get());
     },
 
     setInterpretation: async (

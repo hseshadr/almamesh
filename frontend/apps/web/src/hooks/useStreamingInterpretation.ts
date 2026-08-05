@@ -21,6 +21,7 @@
 import { useCallback, useRef } from 'react';
 import {
   applyInterpretationSettings,
+  configFingerprint,
   configProvenance,
   PrivacyViolationError,
   resolveProviderConfig,
@@ -191,6 +192,25 @@ export function isAutomaticNarrationInputSettled(chartId: string | null): boolea
     return false;
   }
   return status !== 'loading';
+}
+
+/**
+ * The identity that ONE automatic generation is allowed per, for this chart.
+ *
+ * Two things legitimately earn a fresh automatic attempt: a different model /
+ * endpoint (the config fingerprint), and a genuinely new deterministic
+ * predictive input — a new reference day, or a rectified birth time (the
+ * expected request key). Nothing else does. Persisting this key on the reading
+ * entry is what turns "one attempt per component mount" into "one attempt per
+ * reading", so navigating away and back cannot buy the same run twice.
+ *
+ * Derived here, beside `expectedPredictiveKey`, so the rule has exactly one
+ * definition. A caller that rebuilt it from store fields would be a second,
+ * drifting copy — which is the defect this key exists to close.
+ */
+export function automaticNarrationAttemptKey(chartId: string | null): string {
+  const fingerprint = configFingerprint(resolveInterpretationConfig());
+  return `${fingerprint}::${expectedPredictiveKey(chartId) ?? 'natal-only'}`;
 }
 
 /** Return predictive facts only when every identity and readiness guard agrees. */
