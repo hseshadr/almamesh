@@ -20,8 +20,10 @@ const baseBirth: BirthMeta = {
   longitude: 77.209,
   timezone: 'Asia/Kolkata',
   location_name: 'New Delhi, India',
-  referenceDate: '2024-01-01T00:00:00.000Z',
 };
+
+/** The chart's reference instant — pinned here so these tests read no clock. */
+const REFERENCE_INSTANT = '2024-01-01T00:00:00.000Z';
 
 /** An in-memory chart library satisfying `RegenerateDeps['library']`. */
 function makeFakeLibrary(seed: StoredChart | readonly StoredChart[]) {
@@ -47,7 +49,7 @@ function makeFakeLibrary(seed: StoredChart | readonly StoredChart[]) {
 }
 
 function seededPrimary(birth: BirthMeta, profileId: string): StoredChart {
-  const data = siderealChartToChartData(fakeSiderealChart, birth);
+  const data = siderealChartToChartData(fakeSiderealChart, birth, REFERENCE_INSTANT);
   return {
     ...data,
     chart_id: data.chart_id,
@@ -63,7 +65,12 @@ describe('regenerateOnBirthChange', () => {
     const lib = makeFakeLibrary(seededPrimary(baseBirth, 'p1'));
     const engine = { generateChart: vi.fn() };
     const onRegenerated = vi.fn();
-    const deps: RegenerateDeps = { engine, library: lib, onRegenerated };
+    const deps: RegenerateDeps = {
+      engine,
+      library: lib,
+      onRegenerated,
+      referenceInstant: REFERENCE_INSTANT,
+    };
 
     await regenerateOnBirthChange({ birth: baseBirth, profileId: 'p1' }, deps);
 
@@ -79,7 +86,12 @@ describe('regenerateOnBirthChange', () => {
     const newId = chartId(changedBirth);
     const engine = { generateChart: vi.fn().mockResolvedValue(fakeSiderealChart) };
     const onRegenerated = vi.fn();
-    const deps: RegenerateDeps = { engine, library: lib, onRegenerated };
+    const deps: RegenerateDeps = {
+      engine,
+      library: lib,
+      onRegenerated,
+      referenceInstant: REFERENCE_INSTANT,
+    };
 
     await regenerateOnBirthChange({ birth: changedBirth, profileId: 'p1' }, deps);
 
@@ -101,12 +113,53 @@ describe('regenerateOnBirthChange', () => {
 
     await regenerateOnBirthChange(
       { birth: changedBirth, profileId: 'profile-a' },
-      { engine, library: lib, onRegenerated },
+      { engine, library: lib, onRegenerated, referenceInstant: REFERENCE_INSTANT },
     );
 
     expect(lib.getChart(profileB.chart_id)).toEqual(profileB);
     expect(lib.getChart(profileA.chart_id)).toBeUndefined();
     expect(lib.primaryFor('profile-a')?.chart_id).toBe(chartId(changedBirth));
     expect(lib.primaryFor('profile-b')).toEqual(profileB);
+  });
+
+  it('sends the engine the SAME instant it stamps on the chart', async () => {
+    // The determinism claim rests on this identity. If the engine input and the
+    // stored `calculation_timestamp` came from two clock reads, the generation
+    // date printed on the report would not be the key that reproduces the
+    // chart — which is exactly the state this seam replaced.
+    const lib = makeFakeLibrary(seededPrimary(baseBirth, 'p1'));
+    const engine = { generateChart: vi.fn().mockResolvedValue(fakeSiderealChart) };
+    const changedBirth: BirthMeta = { ...baseBirth, time: '18:00' };
+
+    await regenerateOnBirthChange(
+      { birth: changedBirth, profileId: 'p1' },
+      { engine, library: lib, onRegenerated: vi.fn(), referenceInstant: REFERENCE_INSTANT },
+    );
+
+    const sent = engine.generateChart.mock.calls[0]?.[0] as { referenceDate: string };
+    const stored = lib.primaryFor('p1');
+    expect(sent.referenceDate).toBe(REFERENCE_INSTANT);
+    expect(stored?.astronomical_calculations?.calculation_timestamp).toBe(REFERENCE_INSTANT);
+    expect(stored?.astronomical_calculations?.calculation_timestamp).toBe(sent.referenceDate);
+  });
+
+  it('regenerates identically when the same event is replayed at the same instant', async () => {
+    // Same inputs -> same stored chart. The instant is now one of the inputs,
+    // so this is a statement about the whole path, not just the engine.
+    const run = async (): Promise<StoredChart | undefined> => {
+      const lib = makeFakeLibrary(seededPrimary(baseBirth, 'p1'));
+      await regenerateOnBirthChange(
+        { birth: { ...baseBirth, time: '18:00' }, profileId: 'p1' },
+        {
+          engine: { generateChart: vi.fn().mockResolvedValue(fakeSiderealChart) },
+          library: lib,
+          onRegenerated: vi.fn(),
+          referenceInstant: REFERENCE_INSTANT,
+        },
+      );
+      return lib.primaryFor('p1');
+    };
+
+    expect(JSON.stringify(await run())).toBe(JSON.stringify(await run()));
   });
 });

@@ -69,6 +69,12 @@ allowance exists only for a user-configured localhost Ollama endpoint.
   Python `almamesh` package compiled to WebAssembly via **Pyodide** and run in a
   Web Worker. The chart you see in the browser is **byte-identical** to the one
   CPython computes.
+- **The engine reads no clock:** a chart is a pure function of four recorded
+  inputs — birth instant, latitude, longitude, and the *reference instant* that
+  decides which Vimshottari daśā is "current". That fourth input is what the app
+  stamps on the chart as its generation date, so the date printed on your report
+  is the key that reproduces it. Ask for the same four and you get the same
+  bytes, on any machine, on any day.
 - **Why it works offline:** a **signed, content-addressed bundle** (the DE421
   ephemeris + the Skyfield/Pyodide wheels + the `almamesh` wheel + provenance
   metadata) is synced once into OPFS, the browser's private on-disk storage.
@@ -144,8 +150,9 @@ allowance exists only for a user-configured localhost Ollama endpoint.
 
 ## Runtime network and data flow
 
-The chart engine is zero-egress: chart computation remains local and
-deterministic. The complete browser network inventory is:
+The chart engine is zero-egress: chart computation stays on your device, and it
+is deterministic in the sense above — same four recorded inputs, same bytes. The
+complete browser network inventory is:
 
 | Trigger | Destination | Data sent | Explicitly not sent |
 |---|---|---|---|

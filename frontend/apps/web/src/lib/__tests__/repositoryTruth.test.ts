@@ -51,7 +51,16 @@ describe('repository truth', () => {
     );
     expect(readme).toContain('| Birthplace search while online | Open-Meteo geocoding |');
     expect(readme).toContain('an offline city-list fallback is bundled');
-    expect(readme).toMatch(/chart computation remains local and\s+deterministic/);
+    // Same lesson as the PDF line above, now applied to the CHART. "local and
+    // deterministic" was an unqualified adjective and it was false: the engine
+    // read the wall clock, so one birth record produced a different chart on a
+    // different day. The README must now name the four inputs and say the
+    // engine reads no clock, which is a claim a reader can actually check.
+    expect(readme).toMatch(/chart computation stays on your device/);
+    expect(readme).toContain('The engine reads no clock');
+    expect(readme).toMatch(
+      /pure function of four recorded\s+inputs — birth instant, latitude, longitude, and the \*reference instant\*/,
+    );
     expect(readme).not.toContain('It stays disabled until a real interpretation has completed');
     expect(readme).not.toContain('birth location with zero network');
     expect(readme).not.toMatch(/exactly two (?:runtime )?(?:egresses|network|outbound)/i);

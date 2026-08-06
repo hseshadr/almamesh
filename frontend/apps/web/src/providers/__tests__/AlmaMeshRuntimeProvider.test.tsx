@@ -139,6 +139,7 @@ describe('AlmaMeshRuntimeProvider — retryable bootstrap', () => {
       datetimeUtc: '1990-03-30T06:30:00Z',
       latitude: 12.97,
       longitude: 77.59,
+      referenceDate: '2025-01-01T00:00:00+00:00',
     };
     await expect(window.__almameshGenerate?.(birth)).resolves.toBe(chart);
     expect(ready.generateChart).toHaveBeenCalledWith(birth);
