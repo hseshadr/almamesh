@@ -38,6 +38,13 @@ export interface RegenerateDeps {
   readonly library: RegenerateLibrary;
   /** Reset ephemeral interpretation/chat + trigger the interpretation re-stream. */
   readonly onRegenerated: () => void;
+  /**
+   * The instant this chart is computed "as of" — mint it with
+   * `newChartReferenceInstant()`. Injected rather than read here so this module
+   * touches no clock: the same event + the same instant regenerates the same
+   * chart, which is the whole determinism claim.
+   */
+  readonly referenceInstant: string;
 }
 
 /** Build the new primary `StoredChart`, preserving the owning profile. */
@@ -45,8 +52,9 @@ function buildPrimary(
   chart: SiderealChart,
   birth: BirthMeta,
   profileId: string | null,
+  referenceInstant: string,
 ): StoredChart {
-  const data = siderealChartToChartData(chart, birth);
+  const data = siderealChartToChartData(chart, birth, referenceInstant);
   return {
     ...data,
     chart_id: data.chart_id,
@@ -86,8 +94,10 @@ export async function regenerateOnBirthChange(
   if (prior?.chart_id === nextId) {
     return;
   }
-  const chart = await deps.engine.generateChart(toBirthInput(birth));
-  deps.library.saveChart(buildPrimary(chart, birth, profileId));
+  // ONE instant for both the engine input and the stored `calculation_timestamp`.
+  const { referenceInstant } = deps;
+  const chart = await deps.engine.generateChart(toBirthInput(birth, referenceInstant));
+  deps.library.saveChart(buildPrimary(chart, birth, profileId, referenceInstant));
   if (prior && prior.chart_id !== nextId) {
     deps.library.deleteChart(prior.chart_id);
   }

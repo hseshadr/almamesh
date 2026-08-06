@@ -48,6 +48,16 @@ house diagram format).*
 ## Load-bearing invariants
 
 - **Determinism:** same inputs → byte-identical chart on CPython and Pyodide.
+  The inputs are `(datetimeUtc, latitude, longitude, referenceDate)` — all four,
+  including the reference instant that pins the "current" Vimshottari daśā. The
+  engine reads no clock: `BirthInput.referenceDate` is REQUIRED and the shipped
+  glue raises rather than substituting `now()`
+  (`chartWorker.ts` `_almamesh_generate_chart`). The app mints that instant once
+  per generation in `packages/store/src/chartReferenceInstant.ts` and stores it
+  as the chart's `calculation_timestamp`, so the printed generation date is the
+  key that reproduces the chart. Guarded by
+  `backend/tests/test_chart_worker_glue.py`, which runs the SHIPPED glue —
+  extracted from the TypeScript, not re-implemented — against the CPython golden.
 - **Zero egress on the chart path;** exactly two disclosed opt-in egresses
   (cloud AI, birthplace geocoding) — see the data-contract section of
   [CLAUDE.md](../CLAUDE.md#data-contract-no-api-its-a-transform--signed-bundle).

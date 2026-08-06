@@ -69,8 +69,13 @@ Two Workers, off the UI thread, driven by `AlmaMeshRuntime.bootstrap()`:
 2. **Pyodide Worker** — `ChartEngineClient` boots Pyodide from the self-hosted
    dist, installs the wheels from OPFS, and calls the *same* Python entrypoint
    the CLI uses: `calculate_sidereal_context(dt, lat, lon, reference_date=...)`.
-   The fixed `reference_date` pins the "current" Vimshottari dasha, which makes a
-   chart reproducible byte-for-byte against CPython.
+   `reference_date` pins the "current" Vimshottari dasha, and it is **required**
+   at this boundary — the worker glue raises rather than falling back to the wall
+   clock, so a chart is a pure function of its four recorded inputs and is
+   reproducible byte-for-byte against CPython. Callers mint it once with
+   `newChartReferenceInstant()` (`@almamesh/store`) and pass that same value to
+   both `toBirthInput` and `siderealChartToChartData`, which is what makes the
+   stored `calculation_timestamp` the key that regenerates the chart.
 
 The Worker emits a `SiderealChart` (a TS mirror of the Python `SiderealContext`).
 `@almamesh/store`'s adapter reshapes it into `ChartData` for the UI. After the

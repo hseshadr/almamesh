@@ -10,7 +10,9 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from functools import cache
 
-from almamesh.calculations import calculate_sidereal_context
+import pytest
+
+from almamesh.calculations import PlanetName, calculate_sidereal_context
 from almamesh.constants.astrology import NAKSHATRA_NAMES, ZodiacSign
 from almamesh.mesh import compute_ashtakoota, compute_ashtakoota_from_moons, moon_summary
 from almamesh.mesh.tables import (
@@ -194,3 +196,19 @@ def test_moon_summary_reads_engine_values_verbatim() -> None:
     assert NAKSHATRA_NAMES[summary.nakshatra_index] == summary.nakshatra
     assert summary.sign is ZodiacSign.LEO
     assert summary.nakshatra_pada == 4
+
+
+def test_moon_summary_refuses_a_nakshatra_it_cannot_place() -> None:
+    """An unrecognised nakshatra REFUSES; it never scores a match on a guess.
+
+    Every koota table is indexed by `nakshatra_index`, so a name outside
+    `NAKSHATRA_NAMES` has no row anywhere. Falling through would either raise a
+    bare `ValueError` from `.index()` deep inside a koota, or -- worse -- score a
+    compatibility verdict against the wrong row. This refusal was reachable code
+    that no test executed.
+    """
+    ctx = _chart(*DELHI).model_copy(deep=True)
+    ctx.planets[PlanetName.MOON].nakshatra = "Betelgeuse"
+
+    with pytest.raises(ValueError, match="unknown nakshatra 'Betelgeuse'"):
+        moon_summary(ctx)

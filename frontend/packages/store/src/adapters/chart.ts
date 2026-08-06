@@ -36,6 +36,10 @@ import type {
 import type { TimeConfidence } from "@almamesh/constants";
 
 import {
+  chartReferenceInstantAsDate,
+  requireChartReferenceInstant,
+} from "../chartReferenceInstant";
+import {
   toDomainsCtx,
   toStrengthCtx,
   toTransitCtx,
@@ -64,8 +68,11 @@ export interface LocalBirthInput {
   readonly longitude: number;
   /** IANA timezone name (e.g. `Asia/Kolkata`). The engine has no geocoder. */
   readonly timezone: string;
-  /** Optional ISO-8601 instant that pins the "current" dasha for reproducibility. */
-  readonly referenceDate?: string;
+  // NO `referenceDate` here, deliberately. The instant that pins the "current"
+  // dasha is not birth data — it is a parameter of the computation, and mixing
+  // it into the birth record is exactly what let it go missing: an optional
+  // field nobody set, silently replaced by the wall clock. It is now a required
+  // ARGUMENT of `toBirthInput`, so the type system asks every call site for it.
 }
 
 /** The clock the engine should use: the rectified time when set, else entered. */
@@ -89,13 +96,8 @@ function requireFinite(value: number, field: string): void {
   }
 }
 
-/**
- * Convert a local civil date+time in an IANA timezone into the engine's
- * `BirthInput` (UTC instant + coordinates). Fails closed: the engine cannot
- * geocode or guess a zone, so `timezone`, `latitude`, and `longitude` are all
- * mandatory.
- */
-export function toBirthInput(input: LocalBirthInput): BirthInput {
+/** The birth instant as UTC. Pure birth data — no reference instant involved. */
+function birthDatetimeUtc(input: LocalBirthInput): string {
   if (!input.timezone) {
     throw new Error(
       "toBirthInput: timezone (IANA) is required (the engine has no geocoder)",
@@ -111,20 +113,30 @@ export function toBirthInput(input: LocalBirthInput): BirthInput {
       `toBirthInput: could not parse local datetime "${input.date}T${clock}" in zone "${input.timezone}"`,
     );
   }
-  const datetimeUtc = local.utc().toISOString();
+  return local.utc().toISOString();
+}
 
-  return input.referenceDate === undefined
-    ? {
-        datetimeUtc,
-        latitude: input.latitude,
-        longitude: input.longitude,
-      }
-    : {
-        datetimeUtc,
-        latitude: input.latitude,
-        longitude: input.longitude,
-        referenceDate: input.referenceDate,
-      };
+/**
+ * Convert a local civil date+time in an IANA timezone into the engine's
+ * `BirthInput` (UTC instant + coordinates + reference instant).
+ *
+ * Fails closed on every input the engine cannot guess: it has no geocoder, so
+ * `timezone`/`latitude`/`longitude` are mandatory — and it has no clock, so
+ * `referenceInstant` is mandatory too. Mint that one with
+ * `newChartReferenceInstant()` and pass the SAME value to
+ * `siderealChartToChartData`, so the chart's stamped `calculation_timestamp` is
+ * the key that reproduces it.
+ */
+export function toBirthInput(
+  input: LocalBirthInput,
+  referenceInstant: string,
+): BirthInput {
+  return {
+    datetimeUtc: birthDatetimeUtc(input),
+    latitude: input.latitude,
+    longitude: input.longitude,
+    referenceDate: requireChartReferenceInstant(referenceInstant, "toBirthInput: referenceInstant"),
+  };
 }
 
 function toSiderealCtx(chart: SiderealChart): SiderealContext {
@@ -358,7 +370,7 @@ function toYogaData(yoga: EngineYogaData): YogaData {
 }
 
 export function toBirthData(birth: BirthMeta): ProcessedBirthData {
-  const utc = toBirthInput(birth).datetimeUtc;
+  const utc = birthDatetimeUtc(birth);
   // The local wall-clock reflects the EFFECTIVE (rectified) time the chart used.
   const local = dayjs.tz(`${birth.date}T${effectiveTime(birth)}`, birth.timezone);
   return {
@@ -405,8 +417,12 @@ export function chartId(birth: BirthMeta): string {
 export function siderealChartToChartData(
   chart: SiderealChart,
   birth: BirthMeta,
-  now: Date = new Date(),
+  referenceInstant: string,
 ): ChartData & { readonly chart_id: string } {
+  const stampedAt = chartReferenceInstantAsDate(
+    referenceInstant,
+    "siderealChartToChartData: referenceInstant",
+  );
   // Additive predictive contexts: each adapter returns undefined when the
   // engine payload omits its raw context (older bundles), and the conditional
   // spreads keep the keys entirely absent in that case.
@@ -431,11 +447,14 @@ export function siderealChartToChartData(
       ...(vargaCtxFull ? { varga_ctx_full: vargaCtxFull } : {}),
       ...(strengthCtx ? { strength_ctx: strengthCtx } : {}),
       ...(domainsCtx ? { domains_ctx: domainsCtx } : {}),
-      // The real generation instant — metadata, NOT astrology (it never feeds
-      // chartId or any sidereal calc, so it does not break determinism). The
-      // injectable `now` keeps tests deterministic. NEVER `new Date(0)`: the
-      // epoch leaked through as the report/dashboard "Generated on Dec 31 1969".
-      calculation_timestamp: now.toISOString(),
+      // The chart's reference instant — the SAME value passed to the engine as
+      // `referenceDate`, not a second, independent clock read. That identity is
+      // what makes the claim checkable: this printed timestamp is the input
+      // that reproduces the chart, so a reader can regenerate it from what the
+      // report shows. It used to be its own `new Date()`, which meant the cover
+      // date and the "current" dasha came from two different instants.
+      // NEVER `new Date(0)`: the epoch leaked through as "Generated on Dec 31 1969".
+      calculation_timestamp: stampedAt.toISOString(),
       software_version: SOFTWARE_VERSION,
     },
     interpretation: undefined,

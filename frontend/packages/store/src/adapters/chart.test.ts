@@ -29,8 +29,10 @@ const DELHI_BIRTH: BirthMeta = {
   longitude: 77.209,
   timezone: "Asia/Kolkata",
   location_name: "New Delhi, India",
-  referenceDate: "2024-01-01T00:00:00.000Z",
 };
+
+/** The chart's reference instant — a required ARGUMENT, never a birth field. */
+const REF = "2024-01-01T00:00:00.000Z";
 
 describe("toBirthInput", () => {
   it("converts a local civil time + IANA zone to a UTC ISO instant", () => {
@@ -40,31 +42,46 @@ describe("toBirthInput", () => {
       latitude: 28.6139,
       longitude: 77.209,
       timezone: "Asia/Kolkata",
-    });
+    }, REF);
     expect(result.datetimeUtc).toBe("1990-01-15T12:00:00.000Z");
     expect(result.latitude).toBe(28.6139);
     expect(result.longitude).toBe(77.209);
   });
 
-  it("passes referenceDate through when given, omits it otherwise", () => {
-    const withRef = toBirthInput({
-      date: "1990-01-15",
-      time: "17:30",
-      latitude: 28.6139,
-      longitude: 77.209,
-      timezone: "Asia/Kolkata",
-      referenceDate: "2024-01-01T00:00:00.000Z",
-    });
-    expect(withRef.referenceDate).toBe("2024-01-01T00:00:00.000Z");
+  // INVERTED (was "passes referenceDate through when given, omits it
+  // otherwise"). That test asserted the defect as the requirement: it PROVED
+  // the engine input could be built with no reference instant, which is exactly
+  // how the shipped chart came to read the wall clock. "Omits it" is no longer
+  // a legal outcome — the instant is a required argument.
+  it("always carries the reference instant it was given", () => {
+    const result = toBirthInput(
+      {
+        date: "1990-01-15",
+        time: "17:30",
+        latitude: 28.6139,
+        longitude: 77.209,
+        timezone: "Asia/Kolkata",
+      },
+      "2024-01-01T00:00:00.000Z",
+    );
+    expect(result.referenceDate).toBe("2024-01-01T00:00:00.000Z");
+  });
 
-    const withoutRef = toBirthInput({
-      date: "1990-01-15",
-      time: "17:30",
-      latitude: 28.6139,
-      longitude: 77.209,
-      timezone: "Asia/Kolkata",
-    });
-    expect(withoutRef).not.toHaveProperty("referenceDate");
+  it("fails closed when the reference instant is not a parseable ISO instant", () => {
+    // A Worker turns a Python ValueError into an opaque string on the far side,
+    // so the boundary rejects here, on the thread that supplied the bad value.
+    expect(() =>
+      toBirthInput(
+        {
+          date: "1990-01-15",
+          time: "17:30",
+          latitude: 28.6139,
+          longitude: 77.209,
+          timezone: "Asia/Kolkata",
+        },
+        "not-an-instant",
+      ),
+    ).toThrow(/referenceInstant/i);
   });
 
   it("honors DST-bearing zones (America/New_York EST offset)", () => {
@@ -75,7 +92,7 @@ describe("toBirthInput", () => {
       latitude: 40.7128,
       longitude: -74.006,
       timezone: "America/New_York",
-    });
+    }, REF);
     expect(result.datetimeUtc).toBe("1990-01-15T12:00:00.000Z");
   });
 
@@ -87,7 +104,7 @@ describe("toBirthInput", () => {
         latitude: 28.6139,
         longitude: 77.209,
         timezone: "",
-      }),
+      }, REF),
     ).toThrow(/timezone/i);
   });
 
@@ -99,7 +116,7 @@ describe("toBirthInput", () => {
         latitude: Number.NaN,
         longitude: 77.209,
         timezone: "Asia/Kolkata",
-      }),
+      }, REF),
     ).toThrow(/latitude/i);
   });
 
@@ -111,7 +128,7 @@ describe("toBirthInput", () => {
         latitude: 28.6139,
         longitude: Number.NaN,
         timezone: "Asia/Kolkata",
-      }),
+      }, REF),
     ).toThrow(/longitude/i);
   });
 });
@@ -125,7 +142,7 @@ describe("birth-time rectification", () => {
       rectifiedTime: "18:00",
       timeConfidence: "approximate",
     };
-    expect(toBirthInput(meta).datetimeUtc).toBe("1990-01-15T12:30:00.000Z");
+    expect(toBirthInput(meta, REF).datetimeUtc).toBe("1990-01-15T12:30:00.000Z");
 
     const stored = toBirthData(meta);
     // The effective (rectified) instant drives the stored UTC + local clock.
@@ -137,7 +154,7 @@ describe("birth-time rectification", () => {
   });
 
   it("falls back to the entered time when no rectification is set", () => {
-    expect(toBirthInput(DELHI_BIRTH).datetimeUtc).toBe("1990-01-15T12:00:00.000Z");
+    expect(toBirthInput(DELHI_BIRTH, REF).datetimeUtc).toBe("1990-01-15T12:00:00.000Z");
     const stored = toBirthData(DELHI_BIRTH);
     expect(stored.birth_datetime_utc).toBe("1990-01-15T12:00:00.000Z");
     expect(stored.birth_time_original).toBeUndefined();
@@ -161,8 +178,8 @@ describe("birth-time rectification", () => {
     const rectified: BirthMeta = { ...entered, rectifiedTime: "06:00" };
 
     // 05:45 IST == 00:15 UTC; 06:00 IST == 00:30 UTC — a real 15-min move.
-    expect(toBirthInput(entered).datetimeUtc).toBe("1990-01-15T00:15:00.000Z");
-    expect(toBirthInput(rectified).datetimeUtc).toBe("1990-01-15T00:30:00.000Z");
+    expect(toBirthInput(entered, REF).datetimeUtc).toBe("1990-01-15T00:15:00.000Z");
+    expect(toBirthInput(rectified, REF).datetimeUtc).toBe("1990-01-15T00:30:00.000Z");
 
     // The id the change-detector keys on must differ so the chart regenerates.
     expect(chartId(rectified)).not.toBe(chartId(entered));
@@ -175,7 +192,7 @@ describe("birth-time rectification", () => {
 });
 
 describe("siderealChartToChartData", () => {
-  const data = siderealChartToChartData(delhiChart, DELHI_BIRTH);
+  const data = siderealChartToChartData(delhiChart, DELHI_BIRTH, REF);
   const astro = data.astronomical_calculations;
 
   it("wraps the flat chart into sidereal_ctx with all 9 planets", () => {
@@ -292,38 +309,49 @@ describe("siderealChartToChartData", () => {
   });
 
   it("produces a stable, deterministic chart_id", () => {
-    const again = siderealChartToChartData(delhiChart, DELHI_BIRTH);
+    const again = siderealChartToChartData(delhiChart, DELHI_BIRTH, REF);
     expect(data.chart_id).toBe(again.chart_id);
     expect(data.chart_id).toMatch(/^[0-9a-f]{8}$/);
   });
 });
 
 describe("siderealChartToChartData — calculation_timestamp (the epoch guard)", () => {
-  // The regenerate path passes NO referenceDate. The stored chart must still
-  // carry a REAL generation instant — never the Unix epoch (which rendered as
-  // "December 31, 1969"/"January 1, 1970" in the report and dashboard).
-  const { referenceDate, ...birthWithoutRef } = DELHI_BIRTH;
-  void referenceDate;
+  // PREMISE INVERTED. This block used to open "The regenerate path passes NO
+  // referenceDate" and build a `birthWithoutRef` to prove the stamp survived
+  // that. It did survive — from a SECOND, independent `new Date()`, while the
+  // engine read its own clock. So the printed generation date and the chart's
+  // "current" dasha came from two different instants, and neither reproduced
+  // the chart. The regenerate path now passes exactly one instant, and this
+  // block asserts the stamp IS that instant. The epoch guard itself stays:
+  // `new Date(0)` once rendered as "December 31, 1969" in report and dashboard.
 
-  it("stamps a finite, real instant on the regenerate path (no referenceDate)", () => {
-    const data = siderealChartToChartData(delhiChart, birthWithoutRef);
-    const ts = data.astronomical_calculations.calculation_timestamp;
-    const ms = new Date(ts).getTime();
-    expect(Number.isNaN(ms)).toBe(false);
-    expect(ms).not.toBe(0);
+  it("stamps the reference instant it was given, exactly", () => {
+    const data = siderealChartToChartData(delhiChart, DELHI_BIRTH, REF);
+    expect(data.astronomical_calculations.calculation_timestamp).toBe(REF);
   });
 
   it("never emits the Unix epoch as calculation_timestamp", () => {
-    const data = siderealChartToChartData(delhiChart, birthWithoutRef);
+    const data = siderealChartToChartData(delhiChart, DELHI_BIRTH, REF);
     const ts = data.astronomical_calculations.calculation_timestamp;
     expect(ts).not.toBe(new Date(0).toISOString());
     expect(new Date(ts).getFullYear()).toBeGreaterThan(1970);
   });
 
-  it("uses the injected generation instant when provided (deterministic)", () => {
-    const now = new Date("2026-06-20T08:30:00.000Z");
-    const data = siderealChartToChartData(delhiChart, birthWithoutRef, now);
-    expect(data.astronomical_calculations.calculation_timestamp).toBe(now.toISOString());
+  it("is the SAME value the engine receives as referenceDate", () => {
+    // The identity that makes the printed date a reproducibility key rather
+    // than decoration: regenerate a chart from what the report shows and you
+    // get the same bytes.
+    const data = siderealChartToChartData(delhiChart, DELHI_BIRTH, REF);
+    const engineInput = toBirthInput(DELHI_BIRTH, REF);
+    expect(data.astronomical_calculations.calculation_timestamp).toBe(
+      engineInput.referenceDate,
+    );
+  });
+
+  it("fails closed on an unparseable reference instant", () => {
+    expect(() => siderealChartToChartData(delhiChart, DELHI_BIRTH, "nonsense")).toThrow(
+      /referenceInstant/i,
+    );
   });
 });
 
@@ -419,6 +447,7 @@ describe("siderealChartToChartData — additive predictive contexts", () => {
     const astro = siderealChartToChartData(
       delhiChart,
       DELHI_BIRTH,
+      REF,
     ).astronomical_calculations;
     expect(astro.transit_ctx).toBeUndefined();
     expect(astro.varga_ctx_full).toBeUndefined();
@@ -446,6 +475,7 @@ describe("siderealChartToChartData — additive predictive contexts", () => {
     const astro = siderealChartToChartData(
       enriched,
       DELHI_BIRTH,
+      REF,
     ).astronomical_calculations;
 
     expect(astro.transit_ctx?.fusion.maha_lord).toBe("rahu");
@@ -455,7 +485,7 @@ describe("siderealChartToChartData — additive predictive contexts", () => {
 
     // The legacy D9-only varga_ctx (kundli renderers) is byte-compatible.
     expect(astro.varga_ctx).toEqual(
-      siderealChartToChartData(delhiChart, DELHI_BIRTH).astronomical_calculations
+      siderealChartToChartData(delhiChart, DELHI_BIRTH, REF).astronomical_calculations
         .varga_ctx,
     );
   });

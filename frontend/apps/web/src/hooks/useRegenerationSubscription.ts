@@ -21,6 +21,7 @@ import { useEffect, useRef } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import {
   appEvents,
+  newChartReferenceInstant,
   regenerateOnBirthChange,
   useChartLibraryStore,
   usePredictiveStore,
@@ -58,6 +59,9 @@ export function useRegenerationSubscription(): void {
     void regenerateOnBirthChange(event, {
       engine: currentEngine,
       library: useChartLibraryStore.getState(),
+      // The app's "as of now" — read here, at the edge, and recorded on the
+      // chart. Everything below this line is a pure function of it.
+      referenceInstant: newChartReferenceInstant(),
       onRegenerated: () => {
         // The predictive superset is natal-input-dependent. A rectification,
         // birth-time edit, or location edit must never leave the previous
