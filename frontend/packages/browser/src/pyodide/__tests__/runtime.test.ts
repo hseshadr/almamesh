@@ -7,7 +7,7 @@ import type { MeshEdgeContext } from "../mesh";
 import type { PredictiveContexts } from "../predictive";
 import type { BirthInput, BootConfig, MeshEdgeInput, PredictiveInput } from "../protocol";
 import type { RectificationInput, RectificationResultRaw } from "../rectification";
-import type { SyncResult } from "@edgeproc/browser/engine";
+import type { SyncResult } from "@edgeproc/browser";
 
 const CONFIG: RuntimeConfig = {
   bundleBaseUrl: "https://cdn.test/almamesh",

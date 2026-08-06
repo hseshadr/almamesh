@@ -50,7 +50,7 @@ frontend/
 | `@almamesh/shared-types` | The UI contract (`ChartData` and friends). UI code depends on this, not on the engine's raw shapes. |
 | `@almamesh/constants` | The **single design-token source** (colors, typography, astrology constants); also exports a Tailwind preset (`@almamesh/constants/tailwind.preset`). |
 | `@almamesh/browser` | The in-browser engine. Bundle sync + Pyodide chart Worker + `AlmaMeshRuntime`. |
-| `@edgeproc/browser` | **Vendored** copy of the edge-proc browser sync tier (signed-bundle sync into OPFS, ed25519 + sha256 fail-closed), from the `edge-reco` repo. Apache-2.0; see `packages/edgeproc-browser/VENDORED.md` for provenance + re-vendor policy. |
+| `@edgeproc/browser` | *(external dependency, not a workspace package)* The edge-proc browser substrate: signed-bundle sync into OPFS, ed25519 + sha256 fail-closed. MIT; published from [`hseshadr/edgeproc-browser`](https://github.com/hseshadr/edgeproc-browser). |
 | `@almamesh/store` | Zustand stores + **pure** adapters, all reshape-only with **no astrology math**: `chart.ts` (`SiderealChart → ChartData`), `chartGeometry.ts` (`buildChartGeometry` → N/S kundli geometry), `energy.ts` (`buildEnergyFrame(chart, t)` → 3D force-field frame), plus the `profiles` store (named, password-less people; each owns its charts). |
 | `@almamesh/llm` | Optional narration + multi-turn chat — **no AI by default** (the chart is pure calculation). Opt-in **cloud/BYO** only: any OpenAI-compatible endpoint (`engine:'openai-http'`) — a one-click OpenRouter preset (stronger) or a local Ollama. Saving runs a real connectivity probe (`testProviderConnection`); PII-redacted, fail-closed `local_only`. Never required to draw a chart. |
 | `apps/web` | The React/Vite "Observatory" PWA: UI primitives (`src/components/ui/`), `AppLayout` shell, N/S charts, and the `forcefield/` 3D hero. Self-hosted fonts (`@fontsource-variable/*`) — no font CDN. |
@@ -61,11 +61,11 @@ frontend/
 
 Two Workers, off the UI thread, driven by `AlmaMeshRuntime.bootstrap()`:
 
-1. **Sync tier** — the edge-proc `EngineClient` (from `@edgeproc/browser/engine`,
-   vendored at `packages/edgeproc-browser/`) pulls the **signed,
-   content-addressed bundle** from a static origin, verifies it **ed25519 +
-   sha256 fail-closed**, and materializes the DE421 ephemeris + the
-   Skyfield/Pyodide/`almamesh` wheels into **OPFS**.
+1. **Sync tier** — the edge-proc `EngineClient` (from the published
+   `@edgeproc/browser` package) pulls the **signed, content-addressed bundle**
+   from a static origin, verifies it **ed25519 + sha256 fail-closed**, and
+   materializes the DE421 ephemeris + the Skyfield/Pyodide/`almamesh` wheels
+   into **OPFS**.
 2. **Pyodide Worker** — `ChartEngineClient` boots Pyodide from the self-hosted
    dist, installs the wheels from OPFS, and calls the *same* Python entrypoint
    the CLI uses: `calculate_sidereal_context(dt, lat, lon, reference_date=...)`.
@@ -77,10 +77,9 @@ The Worker emits a `SiderealChart` (a TS mirror of the Python `SiderealContext`)
 first bootstrap everything needed lives in OPFS, so reloads are offline.
 
 > **No sibling checkout required:** `@almamesh/browser` resolves
-> `@edgeproc/browser/engine` as a normal **workspace dependency** — the package
-> is vendored into this repo at `packages/edgeproc-browser/` (Apache-2.0, see
-> its `VENDORED.md` for the source commit and re-vendor policy). A fresh clone
-> typechecks and builds with `bun install` alone.
+> `@edgeproc/browser` as a normal **npm dependency** (MIT, published from
+> [`hseshadr/edgeproc-browser`](https://github.com/hseshadr/edgeproc-browser)).
+> A fresh clone typechecks and builds with `bun install` alone.
 
 ## How `@almamesh/llm` works
 

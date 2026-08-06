@@ -31,13 +31,23 @@ describe('repository truth', () => {
       'frontend/packages/shared-types',
       'frontend/packages/constants',
       'frontend/packages/memory',
-      'frontend/packages/edgeproc-browser',
       'backend/src/almamesh',
     ];
     for (const path of paths) {
       expect(architecture).toContain(path);
       expect(existsSync(resolve(root, path))).toBe(true);
     }
+  });
+
+  // The inverse of the check above, and it is load-bearing rather than
+  // decorative: `@edgeproc/browser` used to be a vendored copy at
+  // frontend/packages/edgeproc-browser, and the README described it as such.
+  // It is now a published npm dependency. If a future change re-vendors it
+  // without saying so, or leaves the old prose behind after deleting the code,
+  // one of these two goes red instead of the README quietly lying.
+  it('no longer vendors @edgeproc/browser, and does not claim to', () => {
+    expect(existsSync(resolve(root, 'frontend/packages/edgeproc-browser'))).toBe(false);
+    expect(readRoot('README.md')).not.toContain('frontend/packages/edgeproc-browser');
   });
 
   it('describes PDF and network behavior without contradictions', () => {

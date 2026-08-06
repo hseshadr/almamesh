@@ -6,6 +6,25 @@ All notable changes to AlmaMesh are documented here. Format follows
 
 ## [Unreleased]
 
+### Changed
+- **`@edgeproc/browser` is a published npm dependency instead of a vendored
+  copy.** `frontend/packages/edgeproc-browser/` (138 files, 16,181 lines) is
+  deleted; `@almamesh/browser` now depends on the external package and imports
+  from `@edgeproc/browser` rather than `@edgeproc/browser/engine`. Nothing is
+  vendored in this repo any more. The substrate the app relies on is unchanged
+  or stricter — the zstd expansion bound is now checked against the frame header
+  *before* the decoder runs, and anti-rollback refuses a promote that nothing
+  proves is fresher rather than treating "cannot compare" as "not a rollback".
+
+  What this costs, stated plainly: the vendored copy's 27 test files ran inside
+  `frontend`'s gate and no longer do — a dependency's suite belongs in its own
+  repo. To keep the properties AlmaMesh actually depends on asserted from this
+  side, `packages/browser`'s suite gained eight tests that drive the real
+  published artefact and *break* the property rather than re-checking the happy
+  path: a flipped byte must fail the content-address check, a malformed
+  signature must raise `SignatureError`, a replayed sequence and a same-sequence
+  fork must both be refused.
+
 ### Security
 - **Bundle promotion refuses a rollback it cannot disprove — and this repo's own
   gate no longer asserts the opposite.** `backend/vendor/edge-proc/` pinned a

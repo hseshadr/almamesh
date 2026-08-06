@@ -15,9 +15,9 @@ concurrency:
   cancel-in-progress: true
 
 # Every job runs from a SINGLE checkout of this repo. Python dependencies,
-# edge-proc included, resolve from PyPI; `@edgeproc/browser` is vendored in-tree
-# at frontend/packages/edgeproc-browser (see its VENDORED.md). CI needs no extra
-# tokens, no sibling checkouts, and no path patching.
+# edge-proc included, resolve from PyPI; `@edgeproc/browser` resolves from npm.
+# Nothing is vendored. CI needs no extra tokens, no sibling checkouts, and no
+# path patching.
 
 jobs:
   # Secret scan: fail the build if any credential/key is committed (e.g. a
@@ -120,9 +120,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      # The whole frontend — including @edgeproc/browser, the edge-proc browser
-      # sync tier vendored at packages/edgeproc-browser — is a single bun
-      # workspace installed from this checkout. Bun is the sanctioned toolchain
+      # The whole frontend is a single bun workspace installed from this
+      # checkout; @edgeproc/browser (the edge-proc browser sync substrate) comes
+      # from npm like any other dependency. Bun is the sanctioned toolchain
       # exception (ENGINEERING-STANDARDS §2), pinned in frontend/.bun-version.
       - name: Set up Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
@@ -184,8 +184,8 @@ jobs:
       # The two dependency layers the gate needs:
       #  - edge-proc (Python): from PyPI, pinned in backend/uv.lock —
       #    setup-dev-assets.sh's `uv build --wheel` + `almamesh-bundle` use it.
-      #  - @edgeproc/browser (TS): vendored at frontend/packages/edgeproc-browser,
-      #    a regular bun workspace member.
+      #  - @edgeproc/browser (TS): from npm, pinned in frontend/bun.lock —
+      #    @almamesh/browser's signed-bundle sync substrate.
 
       # ---- Python toolchain (for the bundle publisher) ----
       - name: Set up Python 3.13

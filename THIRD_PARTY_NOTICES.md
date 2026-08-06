@@ -98,19 +98,22 @@ notices (the `OFL*.txt` files above) travel with them.
   `nreimers/MiniLM-L6-H384-uncased`; ONNX conversion by the Xenova / Hugging Face
   Transformers.js project. See https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2.
 
-## 5. Vendored first-/related-party packages
+## 5. First-/related-party packages (no longer vendored)
 
-| Path | Package | License | Copyright |
-|------|---------|---------|-----------|
-| `frontend/packages/edgeproc-browser/` | @edgeproc/browser (edge-reco) | MIT | © 2026 Harish Seshadri |
+**Nothing is vendored in this repository any more.** Every first-party dependency
+resolves from a public registry:
 
-`edge-proc` (MIT, © 2026 Harish Seshadri) and its `edgeproc-core` dependency (MIT,
-© 2025 Vector Management Team) were vendored under `backend/vendor/` until
-2026-08-03; both now resolve from PyPI and are covered by section 1 alongside the
-other Python dependencies.
+| Package | Source | License | Copyright |
+|---------|--------|---------|-----------|
+| `edge-proc` | PyPI | MIT | © 2026 Harish Seshadri |
+| `edgeproc-core` | PyPI | MIT | © 2025 Vector Management Team |
+| `@edgeproc/browser` | npm ([hseshadr/edgeproc-browser](https://github.com/hseshadr/edgeproc-browser)) | MIT | © 2026 Harish Seshadri |
 
-Each vendored package keeps its own `LICENSE` in place; consult those files for
-the authoritative terms. In particular:
+`edge-proc` and `edgeproc-core` were vendored under `backend/vendor/` until
+2026-08-03 and are covered by section 1 alongside the other Python dependencies;
+`@edgeproc/browser` was vendored at `frontend/packages/edgeproc-browser/` until
+this change. Each package ships its own `LICENSE` inside its published artefact;
+consult those files for the authoritative terms. In particular:
 
 - **`edgeproc-core`** (formerly `shared-libs-python`) is MIT-licensed and
   **© 2025 Vector Management Team**, reproduced verbatim:
@@ -139,9 +142,10 @@ the authoritative terms. In particular:
   SOFTWARE.
   ```
 
-- **`@edgeproc/browser`** is the owner's own code (from the edge-reco project),
-  relicensed to **MIT** for this release — see
-  [`frontend/packages/edgeproc-browser/LICENSE`](./frontend/packages/edgeproc-browser/LICENSE).
+- **`@edgeproc/browser`** is the owner's own code, **MIT**-licensed and published
+  from [`hseshadr/edgeproc-browser`](https://github.com/hseshadr/edgeproc-browser).
+  Its `LICENSE` travels inside the published npm package
+  (`node_modules/@edgeproc/browser/LICENSE`).
 
 ## 6. Offline city / location data (`frontend/apps/web/src/data/cities.min.json`)
 

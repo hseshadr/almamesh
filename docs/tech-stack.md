@@ -62,8 +62,8 @@ cd frontend/apps/web && node scripts/verify-exit-gate.mjs # live headless-Chromi
 ```
 
 > The `frontend/` monorepo packages are `@almamesh/{shared-types,constants,
-> browser,store,llm,memory}` + the vendored `@edgeproc/browser` bundle-sync tier,
-> plus `apps/web` (the "Observatory" PWA). See
+> browser,store,llm,memory}` plus `apps/web` (the "Observatory" PWA). The
+> bundle-sync tier comes from the external `@edgeproc/browser` npm package. See
 > [`../frontend/README.md`](../frontend/README.md).
 
 ## Not using

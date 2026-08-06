@@ -175,13 +175,11 @@ use a loopback endpoint or OpenRouter.
 ## Building from source — prerequisites
 
 **TL;DR: this repo is self-contained — a single `git clone` builds everything.**
-The Python side resolves every dependency from PyPI, including
-[`edge-proc`](https://pypi.org/project/edge-proc/) — the signed local-data engine.
-One dependency is still vendored in-repo, with provenance, license, and re-vendor
-policy documented in a `VENDORED.md` next to the code:
-
-- `frontend/packages/edgeproc-browser` — `@edgeproc/browser`, the in-browser
-  bundle-sync tier (a regular Bun workspace package)
+Every dependency resolves from a public registry: the Python side from PyPI,
+including [`edge-proc`](https://pypi.org/project/edge-proc/) (the signed
+local-data engine), and the frontend from npm, including
+[`@edgeproc/browser`](https://github.com/hseshadr/edgeproc-browser) (the
+in-browser bundle-sync substrate). Nothing is vendored in-repo any more.
 
 No sibling checkouts, no private access, no tokens: `git clone`, then
 `uv sync` + `bun install`, then run. CI builds from this same single checkout.
@@ -305,8 +303,9 @@ Browser (the product) ─ installable PWA, offline after first load
 │                                (no names leave the device)
 ├─ frontend/packages/shared-types      UI-facing TypeScript contracts
 ├─ frontend/packages/constants         single design-token source
-├─ frontend/packages/memory            local semantic chat memory
-└─ frontend/packages/edgeproc-browser  signed-bundle sync and verification
+└─ frontend/packages/memory            local semantic chat memory
+      (signed-bundle sync and verification comes from the external
+       @edgeproc/browser npm package, not from a directory in this repo)
 
 Build-time (Python, no server)
 │

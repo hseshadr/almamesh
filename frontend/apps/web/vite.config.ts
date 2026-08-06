@@ -534,17 +534,16 @@ export default defineConfig({
       // `/types` must precede the bare alias so the more specific one wins.
       '@almamesh/browser/types': path.resolve(__dirname, '../../packages/browser/src/types'),
       '@almamesh/browser': path.resolve(__dirname, '../../packages/browser/src'),
-      // Transitive `@edgeproc/browser/*` imports (the edge-proc sync tier) resolve
-      // through the workspace: it is vendored at packages/edgeproc-browser and its
-      // package.json `exports` map points at TS source, which Vite compiles.
+      // Transitive `@edgeproc/browser` imports (the edge-proc sync substrate)
+      // need no alias: it is a published npm dependency resolved from
+      // node_modules through its `exports` map, shipping built ESM.
     },
   },
   server: {
     port: 3000,
     allowedHosts: ['host.docker.internal', 'localhost', '127.0.0.1'],
-    // Allow serving workspace files above apps/web (packages/*, incl. the
-    // vendored packages/edgeproc-browser sync Worker entry) in dev. (No effect
-    // on the production build / preview.)
+    // Allow serving workspace files above apps/web (packages/*) in dev. (No
+    // effect on the production build / preview.)
     fs: {
       allow: ['..'],
     },

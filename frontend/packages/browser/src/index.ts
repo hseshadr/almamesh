@@ -5,9 +5,9 @@
 // OPFS, then the chart is computed in a Web Worker by the UNCHANGED Python
 // engine under Pyodide. No backend, no account.
 //
-// The signed-bundle sync + OPFS + Worker tier is reused verbatim from
-// @edgeproc/browser/engine (the proven edge-reco pattern); this package layers
-// the Pyodide chart compute on top (see ./pyodide, added in P2.3).
+// The signed-bundle sync + OPFS + Worker tier comes from @edgeproc/browser, the
+// published edge-proc browser substrate; this package layers the Pyodide chart
+// compute on top (see ./pyodide, added in P2.3).
 
 // --- the reused sync foundation (edge-proc browser tier) ---
 export {
@@ -16,7 +16,7 @@ export {
   MemoryCacheStore,
   OpfsCacheStore,
   syncIndex,
-} from "@edgeproc/browser/engine";
+} from "@edgeproc/browser";
 export type {
   CacheStore,
   FetchBytes,
@@ -24,7 +24,7 @@ export type {
   SyncResult,
   Verify,
   VersionPointer,
-} from "@edgeproc/browser/engine";
+} from "@edgeproc/browser";
 
 // --- the runtime: sync the bundle -> boot Pyodide -> on-device chart engine ---
 export { AlmaMeshRuntime, defaultRuntimeDeps } from "./pyodide/runtime";

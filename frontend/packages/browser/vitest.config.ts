@@ -1,8 +1,8 @@
 import { defineConfig } from "vitest/config";
 
-// `@edgeproc/browser/*` (the reusable edge-proc sync tier) is a workspace
-// package vendored at ../edgeproc-browser; it ships raw TS which Vitest
-// compiles as source via its package.json `exports` map — no aliases needed.
+// `@edgeproc/browser` (the edge-proc sync substrate) is a published npm
+// dependency shipping built ESM + .d.ts, so Vitest resolves it from
+// node_modules through its `exports` map — no aliases needed.
 export default defineConfig({
   test: {
     environment: "happy-dom",

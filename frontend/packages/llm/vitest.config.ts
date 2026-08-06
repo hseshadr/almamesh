@@ -1,8 +1,8 @@
 import { defineConfig } from "vitest/config";
 
-// `@almamesh/browser`'s `@edgeproc/browser/*` imports resolve through the
-// workspace (vendored at ../edgeproc-browser, TS source via `exports`), so no
-// alias mirroring is needed here anymore.
+// `@almamesh/browser`'s `@edgeproc/browser` imports resolve from node_modules
+// (a published package shipping built ESM via its `exports` map), so no alias
+// mirroring is needed here.
 export default defineConfig({
   test: {
     environment: "node",
