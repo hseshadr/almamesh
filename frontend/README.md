@@ -144,9 +144,6 @@ cd apps/web && bun run test:unit
 cd packages/store && bun run test
 cd packages/llm && bun run test
 
-# Byte-parity gate: Pyodide == CPython golden (boots ~38 MB Pyodide, offline)
-cd packages/browser && bun run test:parity
-
 # Live-browser exit gate: boots the real engine in headless Chromium, asserts
 # no backend, no login, offline-capable, same-origin-only traffic.
 # See the script header for the exact build+preview it expects, e.g.:
@@ -154,6 +151,19 @@ cd apps/web
 VITE_API_URL= VITE_EXIT_GATE_HOOKS=1 ./node_modules/.bin/vite build --outDir dist-verify
 VITE_API_URL= ./node_modules/.bin/vite preview --outDir dist-verify --port 4199 --strictPort &
 node scripts/verify-exit-gate.mjs http://localhost:4199
+
+# Byte-parity gate: the REAL browser Worker == the committed CPython golden.
+# This is the gate the README badge points at, and it runs in CI. Reuses the
+# same build + preview as the exit gate above. The reference date is an
+# argument, never a constant in the script — see the script header for why.
+node scripts/verify-browser-parity.mjs http://localhost:4199 \
+  --reference-date=2025-01-01T00:00:00+00:00
+
+# Optional local helper (NOT the gate, and not run by CI): the same golden
+# compared against Pyodide hosted in *node*. It needs a hand-provisioned
+# ~38 MB spike dir and proves nothing about a browser, so treat it as a
+# debugging aid only. See packages/browser/integration/README.md.
+cd packages/browser && bun run test:parity
 # (one-time browser install: bunx playwright install chromium)
 
 # Regenerate the offline geocoder dataset

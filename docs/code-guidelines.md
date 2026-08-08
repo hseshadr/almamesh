@@ -232,8 +232,10 @@ cd backend && uv run ruff format --check . && uv run ruff check . && uv run mypy
 # Frontend
 cd frontend && bun run --filter '*' typecheck
 cd frontend/apps/web && bun run test:unit
-# Pyodide==CPython byte-parity gate:
-cd frontend/packages/browser && bun run test:parity
+# Pyodide==CPython byte-parity gate (real browser; needs a build + preview
+# running — see apps/web/scripts/verify-browser-parity.mjs header):
+cd frontend/apps/web && node scripts/verify-browser-parity.mjs \
+  http://localhost:4199 --reference-date=2025-01-01T00:00:00+00:00
 ```
 
 ### Key Files
