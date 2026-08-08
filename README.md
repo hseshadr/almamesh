@@ -341,6 +341,37 @@ or API call at test time).
 cd backend && uv run pytest tests/validation/test_ground_truth.py tests/test_transit_reference.py -q
 ```
 
+### Is the browser chart really byte-identical?
+
+Yes, and you can watch it being checked. `verify-browser-parity.mjs` boots the
+app in headless Chromium from a served origin, drives the **real** Pyodide Web
+Worker, and asserts every fixture in the committed CPython golden comes back
+byte-for-byte identical. It runs on every PR and every push to `main`.
+
+```bash
+cd frontend && bun install && bash apps/web/scripts/setup-dev-assets.sh && cd apps/web
+bunx playwright install chromium                       # one time
+VITE_API_URL= VITE_EXIT_GATE_HOOKS=1 ./node_modules/.bin/vite build --outDir dist-verify
+VITE_API_URL= ./node_modules/.bin/vite preview --outDir dist-verify --port 4199 --strictPort &
+node scripts/verify-browser-parity.mjs http://localhost:4199 \
+  --reference-date=2025-01-01T00:00:00+00:00
+```
+
+The reference date is an **argument, not a constant baked into the gate**. That
+matters: the date pins the "current" dasha, and a gate that hardcodes the one
+value it is pinning cannot tell you whether the pin ever reached the engine. So
+the gate also runs a *sensitivity control* — the same chart at a different
+reference date must produce different bytes. If it doesn't, the gate fails,
+because a parity result that ignores its own inputs proves nothing. Pass a
+different `--reference-date` yourself and watch the comparison go red.
+
+**What this gate does and does not cover.** It covers the **natal chart**: all
+seven fixtures in `backend/tests/fixtures/chart_golden_de421.json`, and it fails
+if the golden gains a fixture the gate does not compute. The transit,
+predictive, and mesh goldens are enforced **CPython-side** by the backend test
+suite; their Pyodide-in-a-browser parity is *not* browser-gated yet. Saying so
+here rather than letting the badge imply more than it checks.
+
 See [`frontend/README.md`](frontend/README.md) for the monorepo layout and the
 full set of dev/build/test commands.
 
@@ -358,7 +389,7 @@ the app tag.
 | Engine validation | External golden-reference check: astropy (independent code path) + committed JPL Horizons cross-check, agreeing to sub-arcsecond; license-clean (no Swiss Ephemeris) | ✅ shipped, tested |
 | Bundle publisher | Signed, content-addressed bundle publish/sync | ✅ shipped, tested |
 | Offline CLI | `almamesh-chart`, `almamesh-bundle` | ✅ shipped, tested |
-| In-browser engine | The Python wheel in Pyodide/WASM, off the UI thread | ✅ shipped (byte-parity gated) |
+| In-browser engine | The Python wheel in Pyodide/WASM, off the UI thread | ✅ shipped (byte-parity gated in CI, [in a real browser](#is-the-browser-chart-really-byte-identical)) |
 | N/S Indian charts | Degree-accurate SVG kundli off a pure geometry adapter | ✅ shipped |
 | 3D force-field | three.js hero, planets at real ecliptic longitude | ✅ shipped |
 | D9 Navamsa | Engine computes the Navamsa; renders in both kundli styles + the print report | ✅ shipped |
@@ -390,8 +421,9 @@ uv run ruff format . && uv run ruff check . && uv run mypy src/ && uv run pytest
 cd frontend && bun install
 cd frontend && bun run --filter '*' typecheck
 cd frontend/apps/web && bun run test:unit                    # Vitest unit suite
-cd frontend/packages/browser && bun run test:parity          # Pyodide == CPython byte-parity gate
 cd frontend/apps/web && node scripts/verify-exit-gate.mjs    # live headless-Chromium exit gate (see script header)
+cd frontend/apps/web && node scripts/verify-browser-parity.mjs \
+  http://localhost:4199 --reference-date=2025-01-01T00:00:00+00:00   # byte-parity gate (real browser)
 ```
 
 ## License

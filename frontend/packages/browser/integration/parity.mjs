@@ -1,16 +1,27 @@
-// parity.mjs — P2.6 OFFLINE byte-parity exit-gate (CPython == Pyodide).
+// parity.mjs — LOCAL node parity helper (CPython == Pyodide-in-node).
 //
-// Proves the in-browser AlmaMesh engine — the UNCHANGED `almamesh` Python wheel
-// running under Pyodide — produces a chart byte-identical to the committed
-// CPython golden, with ZERO network access.
+// !! THIS IS NOT THE BYTE-PARITY GATE AND CI DOES NOT RUN IT. !!
 //
-// This is NOT part of the vitest unit suite: it boots ~38 MB of Pyodide and must
-// not slow `bun run test`. Run it explicitly:
+// The gate is apps/web/scripts/verify-browser-parity.mjs, which drives the REAL
+// browser Worker from a served origin on every PR and push to main. This file
+// previously described itself as "the P2.6 exit-gate" while no workflow
+// referenced it and its inputs did not exist in the tree — the README badge
+// pointed at a script that had never run. That claim is gone.
+//
+// Node-hosted Pyodide is not browser Pyodide: different host, different worker
+// semantics, different asset delivery (readFileSync here vs a signed bundle
+// synced into OPFS there). A green run here says nothing about what users run.
+//
+// What it IS good for: bisecting an engine change without a browser in the loop.
+//
+// It does NOT run out of the box — it needs a hand-provisioned ~38 MB spike dir
+// (see INPUTS below) that nothing in this repo creates. Without it the script
+// exits on `missing required input`.
 //
 //     node integration/parity.mjs        (from packages/browser)
 //     bun run test:parity                 (same, via package.json)
 //
-// What it asserts, per the P2.6 gate:
+// What it asserts:
 //   1. Pyodide boots OFFLINE from a self-hosted dist + local wheels (a network
 //      tripwire hard-fails any http(s):// fetch — if boot completes, it was
 //      provably offline).

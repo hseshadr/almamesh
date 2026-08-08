@@ -31,7 +31,11 @@ house diagram format).*
    a bad signature raises, never downgrades), syncs chunks into **OPFS** (the
    browser's private on-disk storage), and boots the **unchanged wheel** under
    Pyodide in a Web Worker. Charts compute off the UI thread, byte-identical
-   to CPython — a golden parity gate (`test:parity`) enforces that identity.
+   to CPython — `apps/web/scripts/verify-browser-parity.mjs` enforces that
+   identity in CI by driving the real Worker in headless Chromium and
+   byte-comparing every natal fixture against the committed CPython golden.
+   (Transit, predictive, and mesh goldens are enforced CPython-side by the
+   backend suite; their Pyodide parity is not yet browser-gated.)
 4. **UI** — React reshapes `SiderealChart → ChartData` and renders. TypeScript
    never computes astrology (house rule #2).
 
