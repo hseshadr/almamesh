@@ -28,9 +28,9 @@ dependencies = [
     # unchanged version label — no forgery needed. 0.2.0 closed the same hole for
     # unparseable versions and missing sequences. Proven by
     # tests/test_bundle_rollback_guard.py, which fails on any older edge-proc.
-    "edge-proc[bundles]>=0.3.0",
+    "edge-proc[bundles]>=0.3.1",
     # Bundle-publisher CLI (almamesh-bundle).
-    "typer>=0.27.0",
+    "typer>=0.27.1",
 ]
 
 # NOTE: `avow` is deliberately NOT a runtime dependency. The engine computes
@@ -57,7 +57,7 @@ dev = [
     # dependencies): the Python Avow kernel that produced testdata/vectors/.
     # Never imported by `src/almamesh` — tests/test_engine_is_crypto_free.py
     # fails the build if it ever is.
-    "avow>=0.1.1,<0.2",
+    "avow>=0.3.0,<0.4",
 ]
 
 [project.scripts]

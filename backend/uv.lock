@@ -50,8 +50,8 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "avow", marker = "extra == 'dev'", specifier = ">=0.1.1,<0.2" },
-    { name = "edge-proc", extras = ["bundles"], specifier = ">=0.3.0" },
+    { name = "avow", marker = "extra == 'dev'", specifier = ">=0.3.0,<0.4" },
+    { name = "edge-proc", extras = ["bundles"], specifier = ">=0.3.1" },
     { name = "httpx", specifier = ">=0.28.0" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=2.3.0" },
     { name = "poethepoet", marker = "extra == 'dev'", specifier = ">=0.30" },
@@ -66,7 +66,7 @@ requires-dist = [
     { name = "pyyaml", specifier = ">=6.0.2" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.16.1" },
     { name = "skyfield", specifier = ">=1.54" },
-    { name = "typer", specifier = ">=0.27.0" },
+    { name = "typer", specifier = ">=0.27.1" },
     { name = "types-pyyaml", specifier = ">=6.0.12.20260724" },
     { name = "xenon", marker = "extra == 'dev'", specifier = ">=0.9.3" },
 ]
@@ -180,7 +180,7 @@ wheels = [
 
 [[package]]
 name = "avow"
-version = "0.1.1"
+version = "0.3.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pydantic" },
@@ -188,9 +188,9 @@ dependencies = [
     { name = "pynacl" },
     { name = "rfc8785" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ff/f1/54174faec8e2a0b58a2c9e1c452479bdf290aaa6bdf791d74c0f5c6db92e/avow-0.1.1.tar.gz", hash = "sha256:d05ca59cf3e9df824c96f9acc1c5e0d8d0f483fefa3d2f0cb8328825b794fe9d", size = 55593, upload-time = "2026-07-22T02:56:23.12Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/d3/72/1f9a1be2bc45651e02c6af7ec0bc803fbad1eec5090ae7761a9e6a14ee39/avow-0.3.0.tar.gz", hash = "sha256:2e30e1818bd905703fa9cb399d41a97b09f21f02e8bf0b1aa5d192c573b9c7c5", size = 102023, upload-time = "2026-08-03T14:24:20.108Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/08/4b/a59033caa3c9bbf2b27d9aeb13d445e076a0eb38bedba9afb217909afc21/avow-0.1.1-py3-none-any.whl", hash = "sha256:0c4db9d6d6c90504c2aad2d9eda86ace6f685686bf3c2abf8ab5c1708430ad99", size = 34909, upload-time = "2026-07-22T02:56:21.9Z" },
+    { url = "https://files.pythonhosted.org/packages/a5/49/0b17517aa13eb8273e81f8e0db622d2d3188e71e21fac3cf38e6ecd85735/avow-0.3.0-py3-none-any.whl", hash = "sha256:4170868fc4e26f3dfddbb507502ee48b619b9c338a1cbea8fd224ebeb82873e2", size = 52383, upload-time = "2026-08-03T14:24:18.669Z" },
 ]
 
 [[package]]
@@ -417,7 +417,7 @@ wheels = [
 
 [[package]]
 name = "edge-proc"
-version = "0.3.0"
+version = "0.3.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "edgeproc-core" },
@@ -425,9 +425,9 @@ dependencies = [
     { name = "pydantic-settings" },
     { name = "typer" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/5a/74/c3abbadae47ba6e252d97109f1fc2848d2063a0789410240270b30136702/edge_proc-0.3.0.tar.gz", hash = "sha256:686ccfae916888ee644b9f50a4ef3a6b87e3771b25c4733da512855848ffb3f3", size = 116437, upload-time = "2026-08-03T18:45:47.769Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/62/2f/2b9e0bf0ac06385cabe744daa157f0241d1ceb2d011100364a75cef3e412/edge_proc-0.3.1.tar.gz", hash = "sha256:b084f4c86ccdb7236f156ba7e7ac9e92a1b3f0761af02fa3c705d5e8a02adc1c", size = 118579, upload-time = "2026-08-03T23:32:04.157Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/fa/2c/577bde99dc88d97f995acb9455145b69f5028aed504729d84ce09b246fdc/edge_proc-0.3.0-py3-none-any.whl", hash = "sha256:2e8abde9b546f2b5bee14475fdd8c0719028799db92b9171142b955240f861a5", size = 65692, upload-time = "2026-08-03T18:45:46.425Z" },
+    { url = "https://files.pythonhosted.org/packages/24/b6/109acc33a712e8d1fdad570d71c6e9586cb12e532f886b008f80e0a93316/edge_proc-0.3.1-py3-none-any.whl", hash = "sha256:51b3e167bb90317c9a4a0be80b5195ab38b5ae65b21757b57be104907c2a8b68", size = 65689, upload-time = "2026-08-03T23:32:03.057Z" },
 ]
 
 [package.optional-dependencies]
@@ -1145,7 +1145,7 @@ wheels = [
 
 [[package]]
 name = "typer"
-version = "0.27.0"
+version = "0.27.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "annotated-doc" },
@@ -1153,9 +1153,9 @@ dependencies = [
     { name = "rich" },
     { name = "shellingham" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/37/78/fda3361b56efc27944f24225f6ecd13d96d6fcfe37bd0eb34e2f4c63f9fc/typer-0.27.0.tar.gz", hash = "sha256:629bd12ea5d13a17148125d9a264f949eb171fb3f120f9b04d85873cab054fa5", size = 203430, upload-time = "2026-07-15T19:21:07.007Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ae/40/4a3db7990d1f62a53182aa96eaef57aeb2886a27f90a195bc66713565d31/typer-0.27.1.tar.gz", hash = "sha256:a79bef8469a79c45498e7b814ecf8d603cc7644e9acbd9e19cac0334240b18df", size = 203994, upload-time = "2026-08-03T14:41:03.438Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/40/03/26a383c9e58c213199d1aad1c3d353cfc22d4444ec6d2c0bf8ad02523843/typer-0.27.0-py3-none-any.whl", hash = "sha256:6f4b27631e47f077871b7dc30e933ec0131c1390fbe0e387ea5574b5bac9ccf1", size = 122716, upload-time = "2026-07-15T19:21:05.553Z" },
+    { url = "https://files.pythonhosted.org/packages/43/89/9518bc0c3929bee36b3a4a8e3daddd6e03f92f9961c66d4983b837160543/typer-0.27.1-py3-none-any.whl", hash = "sha256:53150287edd11baeb4e4722c8e394fcdf8181c0ae89485cba8d25c778d5edd56", size = 122874, upload-time = "2026-08-03T14:41:04.391Z" },
 ]
 
 [[package]]
