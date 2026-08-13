@@ -246,6 +246,7 @@ describe('AlmaMeshRuntimeProvider — retryable bootstrap', () => {
   });
 
   it('retries one failed offline bootstrap when connectivity returns without duplicating boots', async () => {
+    const online = vi.spyOn(window.navigator, 'onLine', 'get').mockReturnValue(false);
     const recovered = makeFakeEngine('online-recovery');
     const runtime = makeFakeRuntime([
       () => Promise.reject(new Error('network unreachable')),
@@ -278,9 +279,11 @@ describe('AlmaMeshRuntimeProvider — retryable bootstrap', () => {
       window.dispatchEvent(new Event('online'));
     });
     expect(runtime.bootstrapCalls).toBe(2);
+    online.mockRestore();
   });
 
   it('does not miss connectivity returning while the failing bootstrap is still in flight', async () => {
+    const online = vi.spyOn(window.navigator, 'onLine', 'get').mockReturnValue(false);
     let rejectOffline!: (error: Error) => void;
     const recovered = makeFakeEngine('online-during-boot');
     const runtime = makeFakeRuntime([
@@ -305,6 +308,80 @@ describe('AlmaMeshRuntimeProvider — retryable bootstrap', () => {
 
     await waitFor(() => expect(screen.getByTestId('engine').textContent).toBe('engine-ready'));
     expect(runtime.bootstrapCalls).toBe(2);
+    online.mockRestore();
+  });
+
+  it('retries a transport failure once when the browser still reports online', async () => {
+    const recovered = makeFakeEngine('partial-connectivity-recovery');
+    const runtime = makeFakeRuntime([
+      () => Promise.reject(new Error('failed to fetch public key')),
+      () => Promise.resolve(recovered),
+    ]);
+
+    render(
+      <AlmaMeshRuntimeProvider runtime={runtime}>
+        <Probe capture={() => {}} />
+      </AlmaMeshRuntimeProvider>,
+    );
+
+    await waitFor(() => expect(screen.getByTestId('engine').textContent).toBe('engine-ready'), {
+      timeout: 2_000,
+    });
+    expect(screen.getByTestId('error').textContent).toBe('no-error');
+    expect(runtime.bootstrapCalls).toBe(2);
+  });
+
+  it('recovers when transport returns later without an online event', async () => {
+    vi.useFakeTimers();
+    let transportAvailable = false;
+    const runtime = makeFakeRuntime([
+      () => Promise.reject(new Error('failed to fetch public key')),
+      () => Promise.reject(new Error('network unreachable')),
+      () => transportAvailable
+        ? Promise.resolve(makeFakeEngine('later-recovery'))
+        : Promise.reject(new Error('load failed')),
+    ]);
+
+    try {
+      render(
+        <AlmaMeshRuntimeProvider runtime={runtime}>
+          <Probe capture={() => {}} />
+        </AlmaMeshRuntimeProvider>,
+      );
+      await act(async () => Promise.resolve());
+      await act(async () => vi.advanceTimersByTimeAsync(250));
+      expect(runtime.bootstrapCalls).toBe(2);
+      transportAvailable = true;
+      await act(async () => vi.advanceTimersByTimeAsync(1_000));
+      expect(screen.getByTestId('engine').textContent).toBe('engine-ready');
+      expect(runtime.bootstrapCalls).toBe(3);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('stops the reported-online retry window after four attempts', async () => {
+    vi.useFakeTimers();
+    const runtime = makeFakeRuntime([
+      () => Promise.reject(new Error('failed to fetch public key')),
+    ]);
+
+    try {
+      render(
+        <AlmaMeshRuntimeProvider runtime={runtime}>
+          <Probe capture={() => {}} />
+        </AlmaMeshRuntimeProvider>,
+      );
+      await act(async () => Promise.resolve());
+      for (const delay of [250, 1_000, 5_000, 15_000]) {
+        await act(async () => vi.advanceTimersByTimeAsync(delay));
+      }
+      await act(async () => vi.runOnlyPendingTimersAsync());
+      expect(runtime.bootstrapCalls).toBe(5);
+      expect(screen.getByTestId('engine').textContent).toBe('no-engine');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('does not auto-retry an integrity failure on an online event', async () => {

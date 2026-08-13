@@ -86,14 +86,51 @@ async function waitForEngine(page) {
   }))
 }
 
-async function waitForRecoveredEngine(page) {
-  await page.waitForFunction(
-    () =>
-      window.__ALMAMESH_STAGE__ === 'ready' &&
-      typeof window.__almameshGenerate === 'function',
-    undefined,
-    { timeout: 300_000 },
-  )
+async function runtimeEvidence(page) {
+  return page.evaluate(async () => {
+    const registration = await navigator.serviceWorker.getRegistration()
+    const cacheNames = await caches.keys()
+    const trustCaches = []
+    for (const name of cacheNames.filter((entry) => entry.startsWith('almamesh-pubkey-'))) {
+      const response = await (await caches.open(name)).match('/public.key')
+      trustCaches.push({
+        name,
+        status: response?.status ?? null,
+        bytes: response ? (await response.arrayBuffer()).byteLength : null,
+      })
+    }
+    return {
+      stage: window.__ALMAMESH_STAGE__ ?? null,
+      error: window.__ALMAMESH_ERROR__ ?? null,
+      hasGenerator: typeof window.__almameshGenerate === 'function',
+      controller: navigator.serviceWorker.controller?.scriptURL ?? null,
+      activeWorker: registration?.active?.state ?? null,
+      cacheNames,
+      trustCaches,
+      databases: (await indexedDB.databases()).flatMap((database) =>
+        database.name ? [database.name] : [],
+      ),
+    }
+  })
+}
+
+async function waitForRecoveredEngine(page, label, externalEvidence = () => ({})) {
+  try {
+    await page.waitForFunction(
+      () =>
+        window.__ALMAMESH_STAGE__ === 'ready' &&
+        typeof window.__almameshGenerate === 'function',
+      undefined,
+      { timeout: 120_000 },
+    )
+  } catch (error) {
+    const evidence = await runtimeEvidence(page).catch((diagnosticError) => ({
+      diagnosticError: diagnosticError instanceof Error ? diagnosticError.message : String(diagnosticError),
+    }))
+    throw new Error(`${label} failed: ${JSON.stringify({ ...evidence, ...externalEvidence() })}`, {
+      cause: error,
+    })
+  }
   return waitForEngine(page)
 }
 
@@ -224,9 +261,15 @@ async function verifyFirstSessionOffline() {
     })
 
     await openEngineRoute(page)
-    const cold = await waitForRecoveredEngine(page)
+    const cold = await waitForRecoveredEngine(page, 'first-session cold boot')
     const coldChart = await generateReferenceChart(page)
     invariant(coldChart.lagna === 'gemini', `unexpected first-session chart: ${JSON.stringify(coldChart)}`)
+
+    const trustRootBeforeCutoff = await runtimeEvidence(page)
+    invariant(
+      trustRootBeforeCutoff.trustCaches.some((cache) => cache.bytes === 32 && cache.status === 200),
+      `first-session trust root was not durably cached: ${JSON.stringify(trustRootBeforeCutoff)}`,
+    )
 
     const firstTimeOrigin = await page.evaluate(() => performance.timeOrigin)
     proxy.state.blocked = true
@@ -235,7 +278,10 @@ async function verifyFirstSessionOffline() {
     invariant(secondTimeOrigin !== firstTimeOrigin, 'offline reload did not create a new document')
     const controlled = await page.evaluate(() => navigator.serviceWorker.controller !== null)
     invariant(controlled, 'offline reload was not controlled by the installed service worker')
-    const offline = await waitForRecoveredEngine(page)
+    const offline = await waitForRecoveredEngine(page, 'first-session offline reload', () => ({
+      rejectedTransportPaths: proxy.state.rejected,
+      requestedTransportPaths: proxy.state.requests,
+    }))
     const offlineChart = await generateReferenceChart(page)
     invariant(offlineChart.lagna === 'gemini', `unexpected offline first-session chart: ${JSON.stringify(offlineChart)}`)
     invariant(
@@ -259,6 +305,7 @@ async function verifyFirstSessionOffline() {
     const evidence = {
       cold,
       coldChart,
+      trustRootBeforeCutoff,
       offline,
       offlineChart,
       initialDocumentControlled: !uncontrolled,
@@ -325,10 +372,10 @@ async function main() {
     invariant(cachedChart.lagna === 'gemini', `unexpected cached chart: ${JSON.stringify(cachedChart)}`)
 
     // A hard-offline boot failure used to remain latched after connectivity
-    // returned: the provider held the rejected promise forever and `online`
-    // could not spawn a fresh worker. Reproduce that transport-shaped failure
-    // in WebKit by blocking the trust-root fetch, then restore the route and
-    // dispatch the browser connectivity transition. This is intentionally
+    // returned: the provider held the rejected promise forever when WebKit
+    // continued reporting `navigator.onLine`. Reproduce that transport-shaped
+    // failure, keep the route blocked through the first backoff attempt, then
+    // restore it WITHOUT a synthetic online event. This is intentionally
     // after the durable-cache proof above, so the retry reuses IndexedDB data.
     await context.unroute('**/bundle/**')
     const blockedKeys = []
@@ -346,11 +393,12 @@ async function main() {
     )
     invariant(blockedKeys.length > 0, 'transport-failure recovery was vacuous: public.key was not blocked')
 
+    await new Promise((resolve) => setTimeout(resolve, 500))
     await context.unroute('**/public.key')
-    await page.evaluate(() => window.dispatchEvent(new Event('online')))
-    const recovered = await waitForRecoveredEngine(page)
+    const recovered = await waitForRecoveredEngine(page, 'forced-cache transport recovery')
     const recoveredChart = await generateReferenceChart(page)
     invariant(recoveredChart.lagna === 'gemini', `unexpected recovered chart: ${JSON.stringify(recoveredChart)}`)
+    invariant(blockedKeys.length >= 2, 'public-key recovery did not outlive the first retry')
 
     console.log(
       JSON.stringify(

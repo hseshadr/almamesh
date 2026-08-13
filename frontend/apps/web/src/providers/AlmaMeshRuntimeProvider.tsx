@@ -129,6 +129,7 @@ export interface BootstrapRuntime {
 }
 
 const TRANSIENT_BOOT_FAILURE = /network unreachable|failed to fetch|load failed|networkerror|timed out after/i
+const REPORTED_ONLINE_RETRY_DELAYS_MS = [250, 1_000, 5_000, 15_000] as const
 
 function isTransientBootFailure(error: Error): boolean {
   return TRANSIENT_BOOT_FAILURE.test(error.message)
@@ -162,6 +163,7 @@ export function AlmaMeshRuntimeProvider({ children, runtime }: ProviderProps) {
   const bootstrapFailedRef = useRef(false)
   const retryableFailureRef = useRef(false)
   const consumedOnlineEpochRef = useRef(0)
+  const reportedOnlineRetryCountRef = useRef(0)
 
   const onStage = useCallback<OnStage>((next) => {
     setStage(next)
@@ -192,6 +194,7 @@ export function AlmaMeshRuntimeProvider({ children, runtime }: ProviderProps) {
           return ready
         }
         bootstrapFailedRef.current = false
+        reportedOnlineRetryCountRef.current = 0
         setEngine(ready)
         setMeta(ready.meta())
         setError(null)
@@ -253,6 +256,7 @@ export function AlmaMeshRuntimeProvider({ children, runtime }: ProviderProps) {
     setEngine(null)
     setError(null)
     setStage(null)
+    reportedOnlineRetryCountRef.current = 0
     // Drop the stale verify key / update pointer first: a CacheFirst-pinned dev
     // key is the classic cause of a fail-closed "signature verification failed",
     // and a plain reboot would just re-read the same stale key. Best-effort.
@@ -280,17 +284,26 @@ export function AlmaMeshRuntimeProvider({ children, runtime }: ProviderProps) {
     return () => window.removeEventListener('online', recordOnline)
   }, [])
 
-  // Consume at most one retry for each connectivity transition. Integrity and
-  // signature failures remain fail-closed; only transport-shaped failures are
-  // retried, and the idempotency latch prevents duplicate worker boots.
+  // Consume at most one retry for each connectivity transition. Browsers can
+  // also keep `navigator.onLine === true` during a partial origin outage (or a
+  // just-restored service-worker route), so keep a short bounded backoff window
+  // without depending on an event. Attempts remain sequential; success,
+  // unmount, or a real online transition cancels/accelerates the next timer.
+  // Integrity/signature failures always remain fail-closed.
   useEffect(() => {
-    if (
-      !bootstrapFailedRef.current ||
-      !retryableFailureRef.current ||
-      onlineEpoch <= consumedOnlineEpochRef.current
-    ) return
-    consumedOnlineEpochRef.current = onlineEpoch
-    startBootstrap()
+    if (!bootstrapFailedRef.current || !retryableFailureRef.current) return
+    const hasOnlineTransition = onlineEpoch > consumedOnlineEpochRef.current
+    if (hasOnlineTransition) {
+      consumedOnlineEpochRef.current = onlineEpoch
+      reportedOnlineRetryCountRef.current = 0
+      startBootstrap()
+      return
+    }
+    const retryIndex = reportedOnlineRetryCountRef.current
+    if (!navigator.onLine || retryIndex >= REPORTED_ONLINE_RETRY_DELAYS_MS.length) return
+    reportedOnlineRetryCountRef.current += 1
+    const timer = window.setTimeout(startBootstrap, REPORTED_ONLINE_RETRY_DELAYS_MS[retryIndex])
+    return () => window.clearTimeout(timer)
   }, [error, onlineEpoch, startBootstrap])
 
   // Workers and Pyodide hold substantial resources outside React's tree. Stop
@@ -300,6 +313,7 @@ export function AlmaMeshRuntimeProvider({ children, runtime }: ProviderProps) {
     bootstrapFailedRef.current = false
     retryableFailureRef.current = false
     consumedOnlineEpochRef.current = 0
+    reportedOnlineRetryCountRef.current = 0
     inFlightRef.current = null
     void runtimeRef.current?.dispose?.()
   }, [])
