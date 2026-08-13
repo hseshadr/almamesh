@@ -42,12 +42,12 @@ describe('repository truth', () => {
 
   it('describes PDF and network behavior without contradictions', () => {
     const readme = readRoot('README.md');
-    expect(readme).toContain('the report is available without AI');
+    expect(readme).toMatch(/the report is available without AI/i);
     // "Deterministic" used to be an unqualified adjective, and it was false:
     // two exports of one chart differed at 37 places. The README now has to say
     // what it means, so a reader can check it — and so can this test.
     expect(readme).toMatch(
-      /export\s+the same chart twice and the two files are byte-for-byte identical/,
+      /export\s+the same chart twice and the two files are\s+byte-for-byte identical/,
     );
     expect(readme).toContain('| Birthplace search while online | Open-Meteo geocoding |');
     expect(readme).toContain('an offline city-list fallback is bundled');

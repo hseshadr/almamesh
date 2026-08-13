@@ -17,136 +17,35 @@ PWA and it works offline after the first load.
 
 ![AlmaMesh landing — the Observatory PWA](docs/assets/landing.png)
 
-## Status (verified 2026-07-22)
+## Why it is different
 
-**The shipped app is local-first by default, signed at the edge, and recoverable.**
-The live production identity is whatever
-[`almamesh.com/build.json`](https://almamesh.com/build.json) reports — it serves
-the deployed commit and build time directly, so this README never has to chase a
-SHA (compare it with `git rev-parse main`). At the 2026-07-22 verification the
-hosted Test, Deploy, and 11-flow nightly E2E workflows were all green on the
-deployed commit.
-The live bundle pointer, immutable manifest bytes, SHA-256 hash, and Ed25519
-signature were checked against the pinned public key; a fresh browser context
-imported a backup and restored both a profile and chart with no console or page
-errors.
+Most astrology apps ask you to trust a server with personal birth data. AlmaMesh
+does not have a chart-data server. The browser downloads a signed engine once,
+verifies it, and computes charts locally in a Web Worker.
 
-Verify the live identity yourself:
+**The engine reads no clock.** A chart is a pure function of four recorded
+inputs — birth instant, latitude, longitude, and the *reference instant* that
+selects the current Vimshottari period. The app stores that fourth input with the
+chart, so the same inputs produce the same bytes on CPython and in the browser.
 
-```bash
-curl -fsSL https://almamesh.com/build.json
-curl -fsSL https://almamesh.com/version.json
-```
+## What ships
 
-The app still has honest boundaries: birthplace lookup is an optional external
-request, AI is opt-in and BYO endpoint, and the feedback form is the only production
-write path. Chart computation and saved chart data remain local; CSP's `http:`
-allowance exists only for a user-configured localhost Ollama endpoint.
+- Degree-accurate North- and South-Indian charts, D1–D60 divisional charts,
+  Vimshottari periods, transits, Shadbala, Ashtakavarga, and life-domain timing.
+- Multiple local profiles plus relationship readings between two finished charts.
+- Birth-time rectification from dated life events. The accepted time becomes the
+  chart authority; rejected candidates never feed transit houses or the report.
+- The report is available without AI: export the same chart twice and the two files are
+  byte-for-byte identical. Long life histories become dated,
+  categorized table rows with bounded text and controlled page breaks.
+- English, Spanish, and Portuguese, bundled for offline use.
+- Optional AI interpretation and chat. AI is off by default. If you enable it,
+  requests go directly from your browser to the endpoint you configure. Asking
+  AI to organize free-form life events sends that narrative as written only
+  after the in-product disclosure.
 
-- **Why it exists:** astrology apps are riddled with paywalls, account walls, and
-  quiet data harvesting. AlmaMesh is the opposite — auditable, gratis, private by
-  construction, and the same on every OS because it's just a browser tab. The
-  "Observatory" UI ships self-hosted fonts (no font CDN), so a freshly loaded
-  app makes **zero cross-origin requests** to draw a chart.
-- **Why it's a *mesh*:** the people close to you are part of your sky too. Add
-  them as profiles and AlmaMesh reads the **relationship between two whole
-  charts** — classical compatibility (Guna Milan) for partners, the planetary
-  conversation between any two people, and the times your life-chapters overlap.
-  Every relationship is computed on *your* device from two finished charts;
-  neither chart is ever changed by the other.
-- **Status:** **shipped and tested.** The in-browser engine, the North/South
-  charts, the **D9 Navamsa** divisional chart, the 3D force-field, online-primary
-  birthplace search with a bundled offline fallback, named profiles (create /
-  rename / delete), deterministic (same input, same file every time) **PDF export**, optional AI interpretation + chat, the **mesh** (relationship
-  readings between people) and the **Sky & Timing** predictive layer, and
-  PWA/offline delivery all work today — see [Status](#status). There is **no
-  account or chart-data backend**: Python is a build-time bundle publisher plus
-  the engine; the optional feedback form is the isolated server touchpoint.
-
-## Under the hood
-
-- **The engine is real Python, unchanged:** the chart engine is the *unchanged*
-  Python `almamesh` package compiled to WebAssembly via **Pyodide** and run in a
-  Web Worker. The chart you see in the browser is **byte-identical** to the one
-  CPython computes.
-- **The engine reads no clock:** a chart is a pure function of four recorded
-  inputs — birth instant, latitude, longitude, and the *reference instant* that
-  decides which Vimshottari daśā is "current". That fourth input is what the app
-  stamps on the chart as its generation date, so the date printed on your report
-  is the key that reproduces it. Ask for the same four and you get the same
-  bytes, on any machine, on any day.
-- **Why it works offline:** a **signed, content-addressed bundle** (the DE421
-  ephemeris + the Skyfield/Pyodide wheels + the `almamesh` wheel + provenance
-  metadata) is synced once into OPFS, the browser's private on-disk storage.
-  After that, every chart is pure on-device compute — no cloud call is ever
-  needed to draw a chart.
-
-## What you get
-
-- **North + South Indian charts** — degree-accurate `SVG` kundli rendered off a
-  pure `@almamesh/store` geometry adapter (`buildChartGeometry(SiderealChart)`);
-  toggle styles with `ChartStyleToggle`, read placements in the planetary table.
-- **3D planetary force-field** — a `three.js` hero (`apps/web/src/components/forcefield/`)
-  that places each graha at its real ecliptic longitude from a pure
-  `buildEnergyFrame(SiderealChart, t)` adapter, with 2D⇄3D cross-highlighting.
-- **AI is off by default — the chart is pure calculation** — nothing leaves your
-  device until you opt in. When you do, `@almamesh/llm` talks to any
-  **OpenAI-compatible endpoint** you bring: a one-click **OpenRouter** preset for
-  stronger models, or a local **Ollama**-style endpoint. Your API key lives only
-  in the browser and is never bundled; saving runs a real **connectivity test**
-  so a bad key or model is reported immediately, not silently. Chart-derived
-  prompts are **PII-redacted**. If you explicitly ask AI to organize a free-form
-  life-event narrative, that narrative is sent as written after an in-product
-  disclosure; birth details and the chart are not attached. `local_only` is
-  **fail-closed** (a cloud host is refused under the privacy gate). AI is **never
-  required to draw a chart**.
-- **D9 Navamsa divisional chart** — the engine computes the Navamsa (D9) and it
-  renders alongside the rasi (D1) in both kundli styles (and in the print report).
-  Reshaped by the same pure store adapter; the astrology stays in Python.
-- **The mesh — relationship readings between people** — the namesake feature.
-  Add the people close to you (each gets a full chart of their own) and open the
-  **`/mesh` constellation**; click any thread for a side-by-side read of two
-  whole charts. **Partner edges** show the classical 36-point **Ashtakoota Guna
-  Milan** and **Mangal (Kuja) dosha** screening (cited tables, fear-free); every
-  edge shows the two-way chart overlay, the **daśā windows where both lives
-  turn at once**, and the shared house/kāraka significators. The compatibility
-  band is labeled a *classical convention, never a verdict*, the AI narration is
-  role-anonymized (you and "your spouse", never a name), and the engine's
-  read-only promise — relations are read *from* two finished charts and change
-  neither — is printed at the foot of every edge.
-- **"Sky & Timing" predictive layer** — a second on-device engine pass computes
-  current transits (Gochara) + Sade Sati, dasha depth (antar/pratyantar), the full
-  D1–D60 divisional-chart set, Ashtakavarga + Shadbala planetary strength, and
-  per-life-domain forecasts (career, finances, health, relationships, …). It
-  surfaces on the `/predictive` route — including a full **Periods** explorer
-  (the 120-year Vimśottarī tree, drillable to antar/pratyantar) and a **Road
-  Ahead** timeline — plus a dashboard timing section and report sections VIII–XI,
-  same zero-egress, byte-identical determinism as the natal chart.
-- **Named profiles** — multiple people share one device with **no passwords**;
-  each profile owns its own saved charts, switchable from the header. Profiles
-  can be renamed and deleted. Deletion is generation-fenced across tabs and
-  cascade-removes that profile's charts, life events, chat, saved readings, and
-  derived search vectors without letting a stale tab resurrect them.
-- **Birth-time rectification** — set a rectified birth time and a confidence
-  level per profile in Settings; the rectified instant recomputes the chart.
-- **PDF export** — once a chart exists, the report is available without AI:
-  open `/report` directly to export the branded chart, kundli, daśā, predictive,
-  strength, and rectification sections. **Deterministic** means what it says: export
-  the same chart twice and the two files are byte-for-byte identical, so you can hash
-  a report and check later that nobody edited it. The cover date is the chart's own
-  calculation time, not the moment you clicked Download. The dashboard shortcut remains tied to a
-  completed reading; optional AI-written sections appear only when the stored
-  interpretation provenance matches the current chart and predictive cache identity.
-  Free-form life histories are normalized into dated, categorized rows so long
-  narratives paginate as a readable evidence table instead of a prose blob.
-- **Languages (English / Spanish / Portuguese)** — the whole UI is
-  internationalized with [react-i18next](https://react.i18next.com/). Switch language in **Settings →
-  Preferences → Language**; the choice is persisted and `<html lang>` follows it.
-  The **optional AI also answers in the chosen language** (only the narration
-  changes — the chart engine and canonical Sanskrit terms stay untouched).
-  Catalogs are **bundled and service-worker precached, so it works fully offline
-  with zero extra network requests** — no runtime translation fetch. English is
-  authoritative; **es/pt are machine-translated** and tracked against it.
+For the complete capability matrix, see [Status](#status). For implementation
+details, see [Architecture](#architecture).
 
 ## Runtime network and data flow
 
@@ -420,18 +319,12 @@ See [`CHANGELOG.md`](CHANGELOG.md).
 ## Development
 
 ```bash
-# Engine + publisher
-cd backend
-uv run ruff format . && uv run ruff check . && uv run mypy src/ && uv run pytest -q
-
-# Frontend
-cd frontend && bun install
-cd frontend && bun run --filter '*' typecheck
-cd frontend/apps/web && bun run test:unit                    # Vitest unit suite
-cd frontend/apps/web && node scripts/verify-exit-gate.mjs    # live headless-Chromium exit gate (see script header)
-cd frontend/apps/web && node scripts/verify-browser-parity.mjs \
-  http://localhost:4199 --reference-date=2025-01-01T00:00:00+00:00   # byte-parity gate (real browser)
+# From the repository root: Python quality + frontend quality + tests + builds.
+make gate
 ```
+
+The required CI exit gate then generates the signed browser assets and drives
+the real onboarding, parity, offline, and report-PDF journeys in Chromium.
 
 ## License
 
