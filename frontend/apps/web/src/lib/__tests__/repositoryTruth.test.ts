@@ -142,6 +142,8 @@ describe('repository truth', () => {
     expect(gate).toContain('offlineDocumentControlled: controlled');
     expect(gate).toContain("proxy.state.rejected.includes('/public.key')");
     expect(gate).toContain('keyRequestsAfterRotation > keyRequestsBeforeRotation');
+    expect(gate).toContain('blockedKeys.length >= 2');
+    expect(gate).not.toContain("window.dispatchEvent(new Event('online'))");
     const provider = readRoot(
       'frontend/apps/web/src/providers/AlmaMeshRuntimeProvider.tsx',
     );
