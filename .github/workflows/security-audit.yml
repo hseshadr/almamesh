@@ -3,17 +3,9 @@
 # they don't block merges and rot silently, so check them explicitly:
 #   gh run list --workflow=security-audit.yml
 #
-# SCOPE (2026-07-11): Python (pip-audit) only. A `bun audit` job is
-# deliberately absent: the JS dev/transitive chain currently carries known
-# advisories that span deep third-party trees (node-tar + @xmldom/xmldom via
-# @huggingface/transformers and @react-three/fiber's expo chain, ajv via
-# eslint/vite-plugin-pwa, …) — none exploitable through the shipped app's
-# runtime surface (static PWA, no server, no tar extraction or XML parsing of
-# untrusted input at runtime), and none fixable by an in-range bump today.
-# Adding the job now would be a permanently-red signal with no action path.
-# Remediating the JS chain and then adding the `bun audit` job here is a
-# labeled backlog item (see the PR that introduced this workflow). Run it
-# locally anytime with: cd frontend && bun audit
+# SCOPE: both locked dependency graphs. Python is exported from uv.lock for
+# pip-audit; Bun audits the exact frozen workspace lock. A red scheduled run is
+# a red repository even though schedules do not participate in branch rules.
 name: Security Audit
 
 on:
@@ -60,3 +52,25 @@ jobs:
 
       - name: Audit against known CVEs
         run: uvx pip-audit -r requirements.txt --disable-pip --no-deps
+
+  bun-audit:
+    name: bun audit (frontend, locked deps)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version-file: frontend/.bun-version
+
+      - name: Install the exact lock
+        run: bun install --frozen-lockfile
+
+      - name: Audit against known advisories
+        run: bun audit

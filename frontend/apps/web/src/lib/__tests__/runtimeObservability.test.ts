@@ -25,6 +25,7 @@ describe('runtime observability', () => {
       datetimeUtc: '1990-03-30T06:30:00Z',
       latitude: 12.97,
       longitude: 77.59,
+      referenceDate: '2025-01-01T00:00:00+00:00',
     }
     const chart = { ayanamsa_value: 23.86 } as SiderealChart
     const generate = vi.fn(async (_birth: BirthInput): Promise<SiderealChart> => chart)

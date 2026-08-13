@@ -72,13 +72,10 @@ This repo builds against `~/dev/project-ideas/oss/ENGINEERING-STANDARDS.md`
 - **Release discipline:** Keep-a-Changelog + annotated tags, tag-forward-only.
   Tags start at v0.4.0 (v0.1.0–v0.3.0 were never cut; never backfill). Cut the
   tag at merged HEAD on main, never mid-PR.
-- **JS dependency-audit backlog (2026-07-11):** the weekly `security-audit.yml`
-  covers Python (pip-audit) only. `bun audit` currently reports advisories
-  across deep dev/transitive JS chains (node-tar + xmldom via
-  `@huggingface/transformers` / `@react-three/fiber`'s expo chain, ajv via
-  eslint/vite-plugin-pwa) — not exploitable through the shipped static PWA's
-  runtime surface and not fixable by in-range bumps. Remediate the chain, then
-  add the `bun audit` job to security-audit.yml.
+- **Dependency audits are gates:** the weekly `security-audit.yml` runs both
+  `pip-audit` against the exported uv lock and `bun audit` against the frozen
+  frontend lock. A red schedule is a red repository; update or floor the
+  vulnerable dependency and rerun the product gates before release.
 
 ---
 
@@ -175,7 +172,7 @@ cd frontend/packages/browser && bun run test:parity
 
 1. **Local-first, no server** — No FastAPI/DB/auth. Compute stays on-device; the network is delivery-only (signed bundle).
 2. **Engine math lives in Python** — The TS adapter RESHAPES `SiderealChart → ChartData` only; never reimplement astrology in TypeScript.
-3. **Determinism** — Same inputs → byte-identical chart on CPython and Pyodide. Pin `reference_date` in fixtures.
+3. **Determinism** — Same inputs → byte-identical chart on CPython and Pyodide, where the inputs are all four of `(datetimeUtc, latitude, longitude, referenceDate)`. `referenceDate` is REQUIRED at the worker boundary — never optional, never a wall-clock fallback (that gap is what made the shipped chart differ run to run). Mint it once per generation with `newChartReferenceInstant()` and pass the same value to `toBirthInput` and `siderealChartToChartData`.
 
 (On top of these: the global defaults — tools/skills-first, parallel superpower
 agents, library-first, minimal code, TDD, type-safety, test-always, no dead code.)

@@ -12,7 +12,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 import type { ChartEngine } from '@almamesh/browser';
-import { type LocalBirthInput, toBirthInput } from '@almamesh/store';
+import { type LocalBirthInput, newChartReferenceInstant, toBirthInput } from '@almamesh/store';
 
 /** The minimal lagna read-out the preview renders. */
 export interface LagnaPreview {
@@ -100,7 +100,13 @@ export function useLagnaPreview(
     const timer = setTimeout(() => {
       void (async () => {
         try {
-          const chart = await engine.generateChart(toBirthInput(keyedInput));
+          // Preview-only and never stored, but the engine still takes the
+          // instant as an input rather than reaching for a clock. The preview
+          // reads only `chart.lagna`, which is pure birth data, so the instant
+          // it happens to be given does not move anything on screen.
+          const chart = await engine.generateChart(
+            toBirthInput(keyedInput, newChartReferenceInstant()),
+          );
           if (cancelled) {
             return;
           }

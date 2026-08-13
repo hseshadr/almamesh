@@ -18,11 +18,10 @@ from almamesh.calculations import calculate_sidereal_context
 from almamesh.constants.astrology import PlanetName
 from almamesh.domains import compute_life_domains
 from almamesh.domains.recipes import DOMAIN_RECIPES
-from almamesh.domains.strength_summary import _pct_sav, _pct_shadbala
+from almamesh.domains.strength_summary import _band, _pct_sav, _pct_shadbala
 from almamesh.schemas.domains import (
     LifeDomain,
     LifeDomainsContext,
-    StrengthBand,
     WindowSource,
 )
 from almamesh.schemas.transits import TransitEventKind
@@ -242,7 +241,8 @@ def test_strength_summary_fuses_shadbala_and_sav(pipelines: dict[str, Pipeline])
             assert summary.key_graha_rupas == bala.total_rupas
             assert summary.key_graha_meets_minimum == bala.meets_minimum
             assert summary.sav_bindus == expected_bindus
-            assert summary.band in StrengthBand
+            expected_avg = expected_bindus / len(recipe.houses)
+            assert summary.band is _band(bala.meets_minimum, expected_avg)
             assert summary.approximated is True  # banding is a flagged heuristic
 
 

@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
+import i18next from 'i18next';
 import { useLanguageStore } from '@almamesh/store';
 
 import '../../../../i18n/config';
@@ -7,8 +8,9 @@ import { TransitsPanel } from '../TransitsPanel';
 import { TRANSIT_CTX } from '../../../../test/predictiveFixtures';
 
 describe('TransitsPanel', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     useLanguageStore.setState({ language: 'en' });
+    await i18next.changeLanguage('en');
   });
 
   it('renders the gochara table with localized graha/sign names and houses', () => {
@@ -22,6 +24,27 @@ describe('TransitsPanel', () => {
     // Retrograde motion labelled.
     expect(within(table).getByText('Retrograde')).toBeTruthy();
   });
+
+  it.each([
+    ['en', 'House 1'],
+    ['es', 'Casa 1'],
+    ['pt', 'Casa 1'],
+  ] as const)(
+    'keeps Saturn in house 1 from the accepted Pisces Lagna in %s',
+    async (language, houseLabel) => {
+      useLanguageStore.setState({ language });
+      await i18next.changeLanguage(language);
+      const { unmount } = render(<TransitsPanel transitCtx={TRANSIT_CTX} />);
+
+      const table = screen.getByTestId('gochara-table');
+      const saturnRow = within(table)
+        .getByText(language === 'en' ? 'Saturn' : 'Saturno')
+        .closest('tr');
+      expect(saturnRow).not.toBeNull();
+      expect(within(saturnRow as HTMLElement).getByText(houseLabel)).toBeTruthy();
+      unmount();
+    },
+  );
 
   it('shows the Sade Sati phase, activity badge and dated cycle', () => {
     render(<TransitsPanel transitCtx={TRANSIT_CTX} />);

@@ -1,21 +1,32 @@
-# Parity exit-gate — `integration/parity.mjs`
+# Local node parity helper — `integration/parity.mjs`
 
-**TL;DR:** Proves the in-browser engine computes the *exact same chart* as the
-trusted backend — byte-for-byte — with **zero network**. This is the P2.6 exit
-gate: if it passes, the unchanged `almamesh` Python wheel running under Pyodide
-== CPython.
+> **This is not the byte-parity gate, and CI does not run it.**
+>
+> The gate is
+> [`apps/web/scripts/verify-browser-parity.mjs`](../../../apps/web/scripts/verify-browser-parity.mjs),
+> which drives the **real browser Worker** from a served origin on every PR and
+> push to `main`. Node-hosted Pyodide is a different host with different worker
+> semantics and different asset delivery, so a green run here says nothing about
+> what users actually run. This file used to call itself "the P2.6 exit gate"
+> while no workflow referenced it; that claim was false and has been removed.
 
-## Run it
+**What it is now:** a debugging aid. It compares the committed CPython golden
+against Pyodide hosted in *node*, which is useful when you want to bisect an
+engine change without a browser in the loop.
+
+**It does not run out of the box.** It needs a hand-provisioned ~38 MB spike
+directory (see [Inputs](#inputs-all-local--nothing-is-fetched)) that no script in
+this repo creates; without it the script exits on `missing required input`.
 
 ```bash
-# from frontend/packages/browser
+# from frontend/packages/browser — only after provisioning the inputs below
 node integration/parity.mjs
 # or, equivalently:
 bun run test:parity
 ```
 
-Exit `0` = all 5 fixtures byte-identical and offline. Exit non-zero = mismatch
-or a network access was attempted (the script prints the first diff path).
+Exit `0` = all fixtures byte-identical and offline. Exit non-zero = mismatch or a
+network access was attempted (the script prints the first diff path).
 
 It is **deliberately not** part of `bun run test` (vitest) — it boots ~38 MB of
 Pyodide (~1.3 s cold) and would slow the unit suite. Keep it separate.
@@ -65,19 +76,18 @@ cd backend && uv build --wheel
 A `globalThis.fetch` tripwire hard-fails any `http(s)://` request, so a green run
 is itself proof the boot + compute touched no network.
 
-## What a real browser harness still needs (beyond this gate)
+## What the browser gate covers that this script cannot
 
-This node gate proves *compute parity* against the golden. The remaining
-**manual / browser** verification — not covered here — is the engine running in
-an actual browser:
+Everything below is why the CI gate lives in a browser and this script does not
+gate anything. This script reads wheels off disk with `readFileSync` and calls
+the Python entrypoint in-process; the shipped app does none of that.
 
-- A **real `Worker`** (`src/pyodide/chartWorker.ts`) booted from a **served
-  origin** (HTTPS/localhost), receiving wheel + ephemeris **bytes** in the boot
-  message rather than `readFileSync`.
-- **OPFS sync** of the signed edge-proc bundle (the `@edgeproc/browser` sync
-  tier) into Origin-Private FileStorage, then handing those bytes to the worker.
-- Cross-origin isolation headers (`COOP`/`COEP`) if/when threaded Pyodide is
-  used.
-
-That harness page is the P2.6 *browser* verification; this script is the P2.6
-*offline byte-parity* verification.
+| | `parity.mjs` (here) | `verify-browser-parity.mjs` (the gate) |
+|---|---|---|
+| Host | node | headless Chromium, served origin |
+| Execution | in-process | a real `Worker`, off the UI thread |
+| Asset delivery | `readFileSync` from a spike dir | signed edge-proc bundle synced into OPFS |
+| Reference date | hardcoded constant | required CLI argument |
+| Proves the date reaches the engine | no | yes — sensitivity control |
+| Runs in CI | no | yes, every PR and push to `main` |
+| Fixtures | 6 of 7 golden entries | all 7, enforced against the golden's key set |

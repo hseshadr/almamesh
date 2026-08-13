@@ -42,16 +42,25 @@ describe('repository truth', () => {
 
   it('describes PDF and network behavior without contradictions', () => {
     const readme = readRoot('README.md');
-    expect(readme).toContain('the report is available without AI');
+    expect(readme).toMatch(/the report is available without AI/i);
     // "Deterministic" used to be an unqualified adjective, and it was false:
     // two exports of one chart differed at 37 places. The README now has to say
     // what it means, so a reader can check it — and so can this test.
     expect(readme).toMatch(
-      /export\s+the same chart twice and the two files are byte-for-byte identical/,
+      /export\s+the same chart twice and the two files are\s+byte-for-byte identical/,
     );
     expect(readme).toContain('| Birthplace search while online | Open-Meteo geocoding |');
     expect(readme).toContain('an offline city-list fallback is bundled');
-    expect(readme).toMatch(/chart computation remains local and\s+deterministic/);
+    // Same lesson as the PDF line above, now applied to the CHART. "local and
+    // deterministic" was an unqualified adjective and it was false: the engine
+    // read the wall clock, so one birth record produced a different chart on a
+    // different day. The README must now name the four inputs and say the
+    // engine reads no clock, which is a claim a reader can actually check.
+    expect(readme).toMatch(/chart computation stays on your device/);
+    expect(readme).toContain('The engine reads no clock');
+    expect(readme).toMatch(
+      /pure function of four recorded\s+inputs — birth instant, latitude, longitude, and the \*reference instant\*/,
+    );
     expect(readme).not.toContain('It stays disabled until a real interpretation has completed');
     expect(readme).not.toContain('birth location with zero network');
     expect(readme).not.toMatch(/exactly two (?:runtime )?(?:egresses|network|outbound)/i);

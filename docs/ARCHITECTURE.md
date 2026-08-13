@@ -31,7 +31,11 @@ house diagram format).*
    a bad signature raises, never downgrades), syncs chunks into **OPFS** (the
    browser's private on-disk storage), and boots the **unchanged wheel** under
    Pyodide in a Web Worker. Charts compute off the UI thread, byte-identical
-   to CPython — a golden parity gate (`test:parity`) enforces that identity.
+   to CPython — `apps/web/scripts/verify-browser-parity.mjs` enforces that
+   identity in CI by driving the real Worker in headless Chromium and
+   byte-comparing every natal fixture against the committed CPython golden.
+   (Transit, predictive, and mesh goldens are enforced CPython-side by the
+   backend suite; their Pyodide parity is not yet browser-gated.)
 4. **UI** — React reshapes `SiderealChart → ChartData` and renders. TypeScript
    never computes astrology (house rule #2).
 
@@ -48,6 +52,16 @@ house diagram format).*
 ## Load-bearing invariants
 
 - **Determinism:** same inputs → byte-identical chart on CPython and Pyodide.
+  The inputs are `(datetimeUtc, latitude, longitude, referenceDate)` — all four,
+  including the reference instant that pins the "current" Vimshottari daśā. The
+  engine reads no clock: `BirthInput.referenceDate` is REQUIRED and the shipped
+  glue raises rather than substituting `now()`
+  (`chartWorker.ts` `_almamesh_generate_chart`). The app mints that instant once
+  per generation in `packages/store/src/chartReferenceInstant.ts` and stores it
+  as the chart's `calculation_timestamp`, so the printed generation date is the
+  key that reproduces the chart. Guarded by
+  `backend/tests/test_chart_worker_glue.py`, which runs the SHIPPED glue —
+  extracted from the TypeScript, not re-implemented — against the CPython golden.
 - **Zero egress on the chart path;** exactly two disclosed opt-in egresses
   (cloud AI, birthplace geocoding) — see the data-contract section of
   [CLAUDE.md](../CLAUDE.md#data-contract-no-api-its-a-transform--signed-bundle).

@@ -6,7 +6,79 @@ All notable changes to AlmaMesh are documented here. Format follows
 
 ## [Unreleased]
 
+### Fixed
+- **The shipped chart was not deterministic, and the README said it was.** The
+  engine's `reference_date` — the instant that decides which Vimshottari mahā
+  daśā is "current" — defaulted to `datetime.now(UTC)`, and the browser's chart
+  glue passed nothing, so the SAME birth record produced a DIFFERENT chart on a
+  different day. Reproduced against the shipped glue before any fix: identical
+  input, two runs, `sha256 3b4ccf8a4ae01f4a` (31,996 bytes, `current_maha=sun`)
+  versus `970082abe9eacc39` (31,977 bytes, `current_maha=rahu`). README
+  ("chart computation remains local and deterministic") and `docs/ARCHITECTURE.md`
+  ("same inputs → byte-identical chart on CPython and Pyodide") were both false
+  on the path users actually walk.
+
+  **The promise is kept, not narrowed.** `BirthInput.referenceDate` is now
+  REQUIRED and `_almamesh_generate_chart` raises rather than substituting
+  `now()` — the same rule `_almamesh_compute_predictive` and
+  `_almamesh_compute_mesh` have always enforced; the natal path was the last
+  straggler. A chart is a pure function of four recorded inputs
+  `(datetimeUtc, latitude, longitude, referenceDate)`. Nothing on screen moved:
+  the app mints that instant once per generation
+  (`packages/store/src/chartReferenceInstant.ts` — the one sanctioned clock read
+  on the chart path, sibling to `reportPdfDeterminism.ts`) and passes the SAME
+  value to the engine and to the stored `calculation_timestamp`, which used to be
+  a second, independent `new Date()`. The generation date printed on the report is
+  now the key that reproduces the chart.
+
+  **Two stated contracts are reversed here, deliberately.** The suite asserted the
+  defect as the requirement. `chart.test.ts`'s "passes referenceDate through when
+  given, **omits it otherwise**" proved the engine input could be built with no
+  reference instant — the exact hole — and the `calculation_timestamp` block
+  opened "The regenerate path passes NO referenceDate" and built a
+  `birthWithoutRef` fixture to prove the stamp survived it. Both are inverted, not
+  deleted. Worth naming: every e2e fixture and every harness already pinned
+  `referenceDate`, which is precisely why no test ever caught that production did
+  not — the guards measured a shape the tests supplied and the app did not.
+
+  New guard: `backend/tests/test_chart_worker_glue.py` extracts `PY_BOOTSTRAP`
+  from `chartWorker.ts` and runs the SHIPPED glue under CPython, so there is no
+  second copy to drift. It pins the instant as load-bearing, the refusal, no-clock
+  behaviour with `datetime.now` moved thirty years, and parity with
+  `chart_golden_de421.json`.
+
+- **The domain-strength band cut points were guarded by nothing that could
+  fail.** `strength_summary.py` sets `_SAV_STRONG_AVG = 28.0` and
+  `_SAV_WEAK_AVG = 25.0`, consumed only inside `_band()`, and no test imported
+  `_band`. The nearest assertion, `test_life_domains.py:245`, read
+  `assert summary.band in StrengthBand` — a tautology true at any cut point, so
+  28.0 could be moved to 30.0 and the suite stayed green.
+  `backend/tests/test_domain_strength_band.py` now pins both literals at their
+  exact pivots (27.9 → MODERATE / 28.0 → STRONG, 24.9 → WEAK / 25.0 → MODERATE)
+  plus the conjunctive `meets_minimum` interaction, and the tautology is inverted
+  to assert the emitted band equals `_band()` over the emitted inputs.
+
+- **Ashtakoota `EXCELLENT` had a guard but no fixture.** The `>= 33.0` cut point
+  was already pinned by `test_ashtakoota_bands.py`; what nothing showed was that
+  a real pair of Moons can reach it. Sweeping all 11,664 nakshatra×pada pairs
+  found the perfect 36 — Rohini bride × Mrigashira groom, both in Taurus (164
+  pairs band EXCELLENT) — now a test with all eight koota scores hand-derived.
+
+- **`moon_summary` refused an unplaceable nakshatra, and no test ever ran that
+  line.** Every koota table is indexed by `nakshatra_index`, so a name outside
+  `NAKSHATRA_NAMES` has no row anywhere and a fall-through would score a
+  compatibility verdict against the wrong row. The refusal is now executed by
+  `test_moon_summary_refuses_a_nakshatra_it_cannot_place`.
+
 ### Security
+- **The JavaScript dependency audit is green instead of documented away.** A
+  fresh `bun audit` found 92 advisories (3 critical, 55 high) across the
+  browser, build, and test dependency graph. Compatible workspace updates plus
+  explicit patched transitive floors now produce `No vulnerabilities found`.
+  `@hpcc-js/wasm-zstd` stays on the behaviorally verified 1.13 API because 1.15
+  removed the compression-level argument; browser byte-parity, real onboarding,
+  offline recovery, and report-PDF gates protect that deliberate pin.
+
 - **Bundle promotion refuses a rollback it cannot disprove — and this repo's own
   gate no longer asserts the opposite.** `backend/vendor/edge-proc/` pinned a
   0.1.4 snapshot that sat still through two upstream security releases. It

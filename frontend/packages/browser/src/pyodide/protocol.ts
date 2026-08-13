@@ -7,17 +7,24 @@ import type { MatchRole, MeshEdgeContext, MeshRelationship } from "./mesh";
 import type { PredictiveContexts } from "./predictive";
 import type { RectificationInput, RectificationResultRaw } from "./rectification";
 
-/** Birth data for a chart. `referenceDate` pins the "current" dasha for reproducibility. */
+/**
+ * Birth data for a chart. All four fields are REQUIRED: birth data alone does
+ * not determine a chart, because `referenceDate` picks which Vimshottari maha
+ * dasha is "current". It used to be optional, and the shipped app never passed
+ * it, so the engine substituted the wall clock and the SAME input produced a
+ * different chart on a different day. With the instant recorded as an input,
+ * `generateChart` is a pure function of this object.
+ */
 export interface BirthInput {
   readonly datetimeUtc: string; // ISO-8601 UTC
   readonly latitude: number;
   readonly longitude: number;
-  readonly referenceDate?: string; // ISO-8601; omit to use the wall clock
+  readonly referenceDate: string; // ISO-8601 — explicit, never wall-clock
 }
 
 /**
  * Input for the LAZY predictive computation (transits + vargas + strength +
- * life domains). Unlike `BirthInput.referenceDate`, `referenceInstant` is
+ * life domains). Like `BirthInput.referenceDate`, `referenceInstant` is
  * REQUIRED — the engine never silently reads the wall clock; the caller pins
  * the instant, which pins both the "current" dasha and the transit "now".
  */

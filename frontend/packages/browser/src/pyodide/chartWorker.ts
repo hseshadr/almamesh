@@ -58,12 +58,18 @@ from datetime import UTC, datetime
 from almamesh.calculations import calculate_sidereal_context
 
 def _almamesh_generate_chart(birth_json):
+    # referenceDate is REQUIRED — no silent now(); a KeyError here is a caller
+    # bug, surfaced through the worker's error envelope. Birth data ALONE does
+    # not determine a chart: the instant picks which Vimshottari maha dasha is
+    # "current", so a path that accepted birth data alone was guessing, and the
+    # guess was the wall clock — which made the SAME input produce a different
+    # chart on a different day. Same rule the predictive and mesh entries below
+    # have always enforced.
     birth = json.loads(birth_json)
     dt = datetime.fromisoformat(birth["datetimeUtc"])
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=UTC)
-    ref = birth.get("referenceDate")
-    reference_date = datetime.fromisoformat(ref) if ref else None
+    reference_date = datetime.fromisoformat(birth["referenceDate"])
     ctx = calculate_sidereal_context(
         dt, birth["latitude"], birth["longitude"], reference_date=reference_date
     )

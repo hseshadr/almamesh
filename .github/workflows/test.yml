@@ -316,6 +316,19 @@ jobs:
           # the job). The preview is torn down by the trap above on step exit.
           node scripts/verify-i18n.mjs http://localhost:4199
 
+          # BYTE-PARITY gate — the check the README badge points at. Reuses the
+          # SAME already-running preview (4199): drives the REAL Pyodide Worker
+          # from a served origin and asserts every fixture in the committed
+          # CPython golden comes back byte-identical.
+          #
+          # The reference date is passed IN, not hardcoded in the script, and the
+          # gate runs a sensitivity control (the same fixture at a different
+          # reference date MUST diverge) so a green here cannot mean "the pin
+          # never reached the engine". It must stay equal to FIXED_REFERENCE_DATE
+          # in backend/tests/test_chart_golden.py, which built the golden.
+          node scripts/verify-browser-parity.mjs http://localhost:4199 \
+            --reference-date=2025-01-01T00:00:00+00:00
+
       # Stubbed Playwright "human tests": boot the SAME real in-browser engine
       # (Pyodide dist + signed bundle already generated above) but stub the
       # OpenAI-compatible LLM via page.route — so they need NO API key and are

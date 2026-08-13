@@ -26,6 +26,7 @@ const BIRTH: BirthInput = {
   datetimeUtc: "1990-01-15T12:00:00+00:00",
   latitude: 28.6139,
   longitude: 77.209,
+  referenceDate: "2025-01-01T00:00:00+00:00",
 };
 
 const SYNC_RESULT: SyncResult = {
