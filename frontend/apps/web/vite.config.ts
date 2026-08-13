@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import { vitePrerenderPlugin } from 'vite-prerender-plugin'
 import path from 'path'
-import { writeFileSync, readFileSync, readdirSync } from 'fs'
+import { existsSync, writeFileSync, readFileSync, readdirSync } from 'fs'
 import { createHash } from 'crypto'
 import { PUBLIC_ROUTE_PATHS, prerenderOutputFile } from './src/seo/routeHead'
 import { createBuildIdentity } from './src/lib/buildIdentity'
@@ -22,15 +22,22 @@ const APP_VERSION: string = JSON.parse(
 // A waiting service worker can warm the new cache without mutating the active
 // release's cache; after activation, NetworkFirst still refreshes from origin
 // and falls back to this release-matched key while offline.
-const TRUST_KEY_BYTES = readFileSync(path.resolve(__dirname, 'public/public.key'))
-const TRUST_KEY_HASH = createHash('sha256')
-  .update(TRUST_KEY_BYTES)
-  .digest('hex')
-  .slice(0, 16)
-const TRUST_KEY_CACHE = `almamesh-pubkey-${TRUST_KEY_HASH}`
-const TRUST_KEY_CONFIG = `engine-trust-config-${TRUST_KEY_HASH}.js`
+const TRUST_KEY_PATH = path.resolve(__dirname, 'public/public.key')
+const TRUST_KEY_BYTES = existsSync(TRUST_KEY_PATH) ? readFileSync(TRUST_KEY_PATH) : null
+const TRUST_KEY_HASH = TRUST_KEY_BYTES === null
+  ? null
+  : createHash('sha256').update(TRUST_KEY_BYTES).digest('hex').slice(0, 16)
+const TRUST_KEY_CACHE = TRUST_KEY_HASH === null
+  ? 'almamesh-pubkey-unconfigured'
+  : `almamesh-pubkey-${TRUST_KEY_HASH}`
+const TRUST_KEY_CONFIG = TRUST_KEY_HASH === null
+  ? null
+  : `engine-trust-config-${TRUST_KEY_HASH}.js`
 
 function trustKeyConfigPlugin(): Plugin {
+  if (TRUST_KEY_BYTES === null || TRUST_KEY_HASH === null || TRUST_KEY_CONFIG === null) {
+    return { name: 'trust-key-config-unconfigured' }
+  }
   const source = [
     `self.__ALMAMESH_TRUST_KEY_B64__=${JSON.stringify(TRUST_KEY_BYTES.toString('base64'))};`,
     `self.__ALMAMESH_TRUST_KEY_HASH__=${JSON.stringify(TRUST_KEY_HASH)};`,
@@ -248,7 +255,9 @@ function pwaPlugin(): Plugin[] {
       // Activation-time warm of the VERSIONED NetworkFirst fallback. This is not
       // a precache entry: /public.key must keep reaching the NetworkFirst route
       // online so key rotation and bundle-pointer updates stay paired.
-      importScripts: [TRUST_KEY_CONFIG, 'engine-trust-install.js'],
+      importScripts: TRUST_KEY_CONFIG === null
+        ? []
+        : [TRUST_KEY_CONFIG, 'engine-trust-install.js'],
       // `wasm` covers ONLY the small hashed yoga-layout asset under /assets/
       // (yogaWasmAssetPlugin, ~90 KB) so offline PDF export keeps working — it
       // used to ride inside the precached react-pdf JS chunk as base64. The

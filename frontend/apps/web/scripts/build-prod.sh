@@ -125,6 +125,18 @@ if ! cmp -s "${DIST}/public.key" "${KEYS_DIR}/public.key"; then
   echo "!! dist/public.key is not the production key" >&2
   exit 1
 fi
+# The activation warmer must be bound to the exact production trust root. A
+# successful UI build without this check could still lose first-session offline
+# recovery while keeping signature verification fail-closed.
+TRUST_KEY_HASH="$(shasum -a 256 "${KEYS_DIR}/public.key" | awk '{print substr($1, 1, 16)}')"
+TRUST_KEY_B64="$(base64 < "${KEYS_DIR}/public.key" | tr -d '\n')"
+TRUST_KEY_CONFIG="engine-trust-config-${TRUST_KEY_HASH}.js"
+if [[ ! -f "${DIST}/${TRUST_KEY_CONFIG}" ]] || \
+   ! grep -Fq "__ALMAMESH_TRUST_KEY_B64__=\"${TRUST_KEY_B64}\"" "${DIST}/${TRUST_KEY_CONFIG}" || \
+   ! grep -Fq "importScripts(\"${TRUST_KEY_CONFIG}\",\"engine-trust-install.js\")" "${DIST}/sw.js"; then
+  echo "!! service worker trust fallback is not bound to the production public key" >&2
+  exit 1
+fi
 echo "==> Done. Deploy artifact: ${DIST} ($(du -sh "${DIST}" | cut -f1), $(find "${DIST}" -type f | wc -l | tr -d ' ') files)"
 echo "==> Largest files (Cloudflare Pages cap is 25 MiB/file):"
 find "${DIST}" -type f -size +8M -exec ls -lh {} \; | awk '{print "    " $5 "  " $9}'

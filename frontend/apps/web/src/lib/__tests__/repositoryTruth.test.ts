@@ -154,6 +154,40 @@ describe('repository truth', () => {
     expect(worker).toContain('withCacheLock(() => handleReadFileUnlocked(req))');
   });
 
+  it('keeps ordinary builds keyless while production and engine gates fail closed on trust assets', () => {
+    const config = readRoot('frontend/apps/web/vite.config.ts');
+    const testWorkflow = readRoot('.github/workflows/test.yml');
+    const deployWorkflow = readRoot('.github/workflows/deploy.yml');
+    const productionBuild = readRoot('frontend/apps/web/scripts/build-prod.sh');
+
+    expect(config).toContain('existsSync(TRUST_KEY_PATH)');
+    expect(config).not.toContain('ALMAMESH_TRUST_KEY_PATH');
+    expect(config).toContain("return { name: 'trust-key-config-unconfigured' }");
+    expect(config).toMatch(/importScripts:\s*TRUST_KEY_CONFIG === null\s*\? \[\]/);
+
+    const generateAssets = testWorkflow.indexOf('Generate dev assets (Pyodide dist + signed bundle)');
+    const buildExitGate = testWorkflow.indexOf('Build verification bundle (exit-gate hooks)');
+    expect(generateAssets).toBeGreaterThan(-1);
+    expect(buildExitGate).toBeGreaterThan(generateAssets);
+
+    const restoreProductionKey = deployWorkflow.indexOf('Restore the production signing keypair');
+    const buildProduction = deployWorkflow.indexOf('Build the production artifact');
+    expect(restoreProductionKey).toBeGreaterThan(-1);
+    expect(buildProduction).toBeGreaterThan(restoreProductionKey);
+
+    expect(productionBuild).toContain(
+      'if [[ ! -f "${KEYS_DIR}/private.key" || ! -f "${KEYS_DIR}/public.key" ]]',
+    );
+    expect(productionBuild).toContain(
+      'cp "${KEYS_DIR}/public.key" "${PUBLIC_DIR}/public.key"',
+    );
+    expect(productionBuild).toContain('for must in index.html sw.js manifest.webmanifest');
+    expect(productionBuild).toContain('dist/public.key is not the production key');
+    expect(productionBuild).toContain('engine-trust-config-${TRUST_KEY_HASH}.js');
+    expect(productionBuild).toContain('__ALMAMESH_TRUST_KEY_B64__=\\"${TRUST_KEY_B64}\\"');
+    expect(productionBuild).toContain('importScripts(\\"${TRUST_KEY_CONFIG}\\",\\"engine-trust-install.js\\")');
+  });
+
   it('keeps the production private key outside the checkout and shreds it after deploy', () => {
     const build = readRoot('frontend/apps/web/scripts/build-prod.sh');
     const workflow = readRoot('.github/workflows/deploy.yml');
