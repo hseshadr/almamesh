@@ -1158,9 +1158,11 @@ test('REAL onboarding -> rectify -> offline reload -> predictive PDF is correct'
   }
 
   const offlineErrors = errors.splice(offlineConsoleStart);
+  // Chromium reports the same intentional context-offline abort as either
+  // ERR_INTERNET_DISCONNECTED or ERR_FAILED across Playwright browser builds.
   const unexpectedOfflineErrors = offlineErrors.filter(
     (message) =>
-      !/^\[console\.error\] Failed to load resource: net::ERR_INTERNET_DISCONNECTED$/.test(
+      !/^\[console\.error\] Failed to load resource: net::ERR_(?:INTERNET_DISCONNECTED|FAILED)$/.test(
         message,
       ),
   );

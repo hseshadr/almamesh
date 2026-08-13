@@ -71,6 +71,14 @@ All notable changes to AlmaMesh are documented here. Format follows
   `test_moon_summary_refuses_a_nakshatra_it_cannot_place`.
 
 ### Security
+- **The JavaScript dependency audit is green instead of documented away.** A
+  fresh `bun audit` found 92 advisories (3 critical, 55 high) across the
+  browser, build, and test dependency graph. Compatible workspace updates plus
+  explicit patched transitive floors now produce `No vulnerabilities found`.
+  `@hpcc-js/wasm-zstd` stays on the behaviorally verified 1.13 API because 1.15
+  removed the compression-level argument; browser byte-parity, real onboarding,
+  offline recovery, and report-PDF gates protect that deliberate pin.
+
 - **Bundle promotion refuses a rollback it cannot disprove — and this repo's own
   gate no longer asserts the opposite.** `backend/vendor/edge-proc/` pinned a
   0.1.4 snapshot that sat still through two upstream security releases. It

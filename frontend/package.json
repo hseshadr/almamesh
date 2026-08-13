@@ -24,8 +24,8 @@
   },
   "devDependencies": {
     "husky": "^9.1.7",
-    "lint-staged": "^16.0.0",
-    "typescript": "~5.7.0"
+    "lint-staged": "^16.4.0",
+    "typescript": "~5.7.3"
   },
   "//engines": "Bun is the sanctioned toolchain exception (ENGINEERING-STANDARDS §2) — pinned exactly in .bun-version (CI reads it via setup-bun's bun-version-file); engines.bun is the floor for humans.",
   "engines": {
@@ -33,19 +33,35 @@
     "bun": ">=1.3.5"
   },
   "dependencies": {
-    "baseline-browser-mapping": "^2.10.38",
-    "caniuse-lite": "^1.0.30001799"
+    "baseline-browser-mapping": "^2.11.13",
+    "caniuse-lite": "^1.0.30001809"
   },
   "//overrides": "Force a single fresh caniuse-lite across the tree: autoprefixer + browserslist otherwise each pin their own nested (stale) copy, which trips the 'caniuse-lite is N months old' build notice even after `update-browserslist-db`. Refresh both this range and the DB periodically (a `bunx update-browserslist-db@latest` step in release/CI keeps it current).",
   "//overrides.protobufjs": "RUNTIME security floor. protobufjs arrives transitively via @huggingface/transformers > onnxruntime-web and had resolved to 7.6.2, which is vulnerable to GHSA-j3f2-48v5-ccww (moderate: DoS via infinite loop in .proto option parsing; vulnerable >=7.5.0 <=7.6.4, patched >=7.6.5). The `<8` bound is deliberate: onnxruntime-web declares `protobufjs: ^7.2.4`, and 8.x carries its own live advisories (GHSA-jfj6-75fj-8934; j3f2 again through <=8.6.5). 7.6.5 is the patched 7.x line (npm `latest-7`).",
   "//overrides.postcss": "BUILD-TIME security floor. postcss is the CSS pipeline behind vite + tailwindcss + autoprefixer and resolved to four copies (8.4.49 / 8.5.6 / 8.5.15 / 8.5.16), every one inside the vulnerable range of GHSA-r28c-9q8g-f849 (high: path traversal in previous-source-map auto-loading via sourceMappingURL, disclosing arbitrary .map files; vulnerable <=8.5.17, first patched 8.5.18). The floor collapses all four to a single 8.5.23 (npm `latest`). postcss 8.5.x is patch-level throughout, so there is no API change — but because postcss emits the shipped stylesheet, this bump is validated by a real build + browser run, not by unit tests alone.",
-  "//overrides.brace-expansion": "DEV-CHAIN security floor — and the reason `minimatch` and `filelist` are floored alongside it. brace-expansion resolved to 1.1.12 + 2.0.2, both inside GHSA-mh99-v99m-4gvg (high: unbounded expansion length causes an out-of-memory process crash; vulnerable <=5.0.7 across EVERY major, patched ONLY in 5.0.8 — upstream shipped no 1.x/2.x backport, so raising the floor is the only remediation; there is no patched-and-callable version to fall back to). The trap: brace-expansion 5.x is a tshy rewrite that exports a NAMED `expand`, while minimatch <10.2 consumes it as a CALLABLE CJS DEFAULT. Flooring brace-expansion alone installs green and then dies at runtime — reproduced here as `TypeError: expand is not a function` (minimatch@3.1.2, reached via eslint / @eslint/eslintrc / @eslint/config-array / test-exclude / glob@7) and `TypeError: (0 , brace_expansion_1.default) is not a function` (minimatch@9.0.5, reached via @typescript-eslint/typescript-estree and the @expo chain under @react-three/fiber). Both only fire on a pattern that actually contains braces, so a smoke test using `a/*` passes while the property is broken. minimatch@10.2.5 is the first line that consumes brace-expansion ^5.0.5 through its named export, so the `minimatch` floor is what makes the brace-expansion floor safe; `filelist` >=2.0.2 is needed because filelist@1.0.6 pins minimatch ^5.0.1 and would otherwise hold a vulnerable copy in the graph. Net effect: exactly one brace-expansion (5.0.8) and one minimatch (10.2.5) tree-wide, and @isaacs/brace-expansion + concat-map drop out entirely.",
+  "//overrides.brace-expansion": "DEV-CHAIN security floor. brace-expansion 5 exports a named `expand`; minimatch >=10.2.5 is the compatible consumer, and filelist >=2.0.2 prevents an old minimatch copy from re-entering the tree. Keep these three floors together. The 5.0.9 floor includes the follow-up GHSA-rgw5-rvv9-x895 fix.",
+  "//overrides.audit-2026-08-12": "Transitive security floors from the reproducible `bun audit` gate. Every override stays on the dependency's existing major line except adm-zip and sharp, whose vulnerable 0.x lines have no patched release in-range. The full frontend gate, real Worker parity, onboarding/offline recovery, and real report-PDF journey validate the assembled tree.",
+  "//overrides.wasm-zstd": "1.15 changed the compression API from `(bytes, level)` to `(bytes)`. Keep the behaviorally verified 1.13 adapter contract until the vendored browser Lego migrates deliberately with parity tests.",
   "overrides": {
-    "caniuse-lite": "^1.0.30001799",
+    "caniuse-lite": "^1.0.30001809",
     "protobufjs": ">=7.6.5 <8",
     "postcss": ">=8.5.23",
-    "brace-expansion": ">=5.0.8",
+    "brace-expansion": ">=5.0.9",
     "filelist": ">=2.0.2",
-    "minimatch": ">=10.2.5"
+    "minimatch": ">=10.2.5",
+    "tar": ">=7.5.7 <8",
+    "adm-zip": ">=0.6.0 <1",
+    "undici": ">=7.29.0 <8",
+    "yaml": ">=1.10.3 <2",
+    "flatted": ">=3.4.0 <4",
+    "rollup": ">=4.59.0 <5",
+    "nanoid": ">=3.3.17 <4",
+    "@babel/plugin-transform-modules-systemjs": ">=7.29.4 <8",
+    "sharp": ">=0.35.0 <1",
+    "@babel/core": ">=7.29.1 <8",
+    "ws": ">=8.20.1 <9",
+    "fast-uri": ">=3.1.5 <4",
+    "picomatch": ">=2.3.2 <3",
+    "@hpcc-js/wasm-zstd": "1.13.0"
   }
 }
