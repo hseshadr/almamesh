@@ -13,11 +13,21 @@ describe('clearStaleEngineCaches', () => {
     vi.restoreAllMocks()
   })
 
-  function stubCaches(impl: (name: string) => Promise<boolean>): string[] {
+  function stubCaches(
+    impl: (name: string) => Promise<boolean>,
+    names = [
+      'almamesh-pubkey-0123456789abcdef',
+      'almamesh-pubkey-legacy',
+      'almamesh-signals',
+      'almamesh-bundle-immutable',
+      'almamesh-pyodide-immutable',
+    ],
+  ): string[] {
     const deleted: string[] = []
     Object.defineProperty(globalThis, 'caches', {
       configurable: true,
       value: {
+        keys: vi.fn(() => Promise.resolve(names)),
         delete: vi.fn((name: string) => {
           deleted.push(name)
           return impl(name)
@@ -30,7 +40,11 @@ describe('clearStaleEngineCaches', () => {
   it('deletes the mutable verify-key + signal caches, never the immutable ones', async () => {
     const deleted = stubCaches(() => Promise.resolve(true))
     await clearStaleEngineCaches()
-    expect(deleted).toEqual(expect.arrayContaining(['almamesh-pubkey', 'almamesh-signals']))
+    expect(deleted).toEqual(expect.arrayContaining([
+      'almamesh-pubkey-0123456789abcdef',
+      'almamesh-pubkey-legacy',
+      'almamesh-signals',
+    ]))
     expect(deleted).not.toContain('almamesh-bundle-immutable')
     expect(deleted).not.toContain('almamesh-pyodide-immutable')
   })

@@ -18,6 +18,10 @@ export const publishRuntimeError = (message: string): void => {
   window.__ALMAMESH_ERROR__ = message
 }
 
+export const clearRuntimeError = (): void => {
+  delete window.__ALMAMESH_ERROR__
+}
+
 export const publishRuntimeGenerator = (generate: RuntimeChartGenerator): void => {
   window.__almameshGenerate = generate
 }

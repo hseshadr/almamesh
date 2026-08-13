@@ -127,6 +127,9 @@ describe('repository truth', () => {
     expect(workflow).toContain(
       'node scripts/verify-webkit-engine.mjs http://localhost:4200',
     );
+    expect(workflow).toContain(
+      'node scripts/verify-webkit-engine.mjs http://localhost:4200 --first-session',
+    );
     expect(gate).toContain('webkit.launch({ headless: true })');
     expect(gate).toContain("u.includes('/bundle/latest')");
     expect(gate).toContain("'edgeproc-browser-cache'");
@@ -134,6 +137,11 @@ describe('repository truth', () => {
     expect(gate).toContain("storage.opfs === 'forced-unavailable'");
     expect(gate).toContain("storage.selectedCache === 'indexeddb'");
     expect(gate).toContain("context.route('**/bundle/**'");
+    expect(gate).toContain("serviceWorkers: 'allow'");
+    expect(gate).toContain('initialDocumentControlled: !uncontrolled');
+    expect(gate).toContain('offlineDocumentControlled: controlled');
+    expect(gate).toContain("proxy.state.rejected.includes('/public.key')");
+    expect(gate).toContain('keyRequestsAfterRotation > keyRequestsBeforeRotation');
     const provider = readRoot(
       'frontend/apps/web/src/providers/AlmaMeshRuntimeProvider.tsx',
     );

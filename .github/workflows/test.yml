@@ -351,6 +351,7 @@ jobs:
           done
           curl -fsS -o /dev/null "http://localhost:4200"
           node scripts/verify-webkit-engine.mjs http://localhost:4200
+          node scripts/verify-webkit-engine.mjs http://localhost:4200 --first-session
 
       # Stubbed Playwright "human tests": boot the SAME real in-browser engine
       # (Pyodide dist + signed bundle already generated above) but stub the

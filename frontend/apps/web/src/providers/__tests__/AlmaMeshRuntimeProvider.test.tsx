@@ -245,6 +245,124 @@ describe('AlmaMeshRuntimeProvider — retryable bootstrap', () => {
     await waitFor(() => expect(screen.getByTestId('error').textContent).toBe('second fail'));
   });
 
+  it('retries one failed offline bootstrap when connectivity returns without duplicating boots', async () => {
+    const recovered = makeFakeEngine('online-recovery');
+    const runtime = makeFakeRuntime([
+      () => Promise.reject(new Error('network unreachable')),
+      () => Promise.resolve(recovered),
+    ]);
+    let captured: ReturnType<typeof useChartEngine> | null = null;
+
+    render(
+      <AlmaMeshRuntimeProvider runtime={runtime}>
+        <Probe capture={(value) => {
+          captured = value;
+        }} />
+      </AlmaMeshRuntimeProvider>,
+    );
+
+    await waitFor(() => expect(screen.getByTestId('error').textContent).toBe('network unreachable'));
+    expect(runtime.bootstrapCalls).toBe(1);
+
+    await act(async () => {
+      window.dispatchEvent(new Event('online'));
+    });
+
+    await waitFor(() => expect(screen.getByTestId('engine').textContent).toBe('engine-ready'));
+    await expect(captured!.whenReady()).resolves.toBe(recovered);
+    expect(screen.getByTestId('error').textContent).toBe('no-error');
+    expect(runtime.bootstrapCalls).toBe(2);
+
+    await act(async () => {
+      window.dispatchEvent(new Event('online'));
+      window.dispatchEvent(new Event('online'));
+    });
+    expect(runtime.bootstrapCalls).toBe(2);
+  });
+
+  it('does not miss connectivity returning while the failing bootstrap is still in flight', async () => {
+    let rejectOffline!: (error: Error) => void;
+    const recovered = makeFakeEngine('online-during-boot');
+    const runtime = makeFakeRuntime([
+      () => new Promise<ChartEngine>((_resolve, reject) => {
+        rejectOffline = reject;
+      }),
+      () => Promise.resolve(recovered),
+    ]);
+
+    render(
+      <AlmaMeshRuntimeProvider runtime={runtime}>
+        <Probe capture={() => {}} />
+      </AlmaMeshRuntimeProvider>,
+    );
+    await waitFor(() => expect(runtime.bootstrapCalls).toBe(1));
+
+    await act(async () => {
+      window.dispatchEvent(new Event('online'));
+      window.dispatchEvent(new Event('online'));
+      rejectOffline(new Error('network unreachable'));
+    });
+
+    await waitFor(() => expect(screen.getByTestId('engine').textContent).toBe('engine-ready'));
+    expect(runtime.bootstrapCalls).toBe(2);
+  });
+
+  it('does not auto-retry an integrity failure on an online event', async () => {
+    const runtime = makeFakeRuntime([
+      () => Promise.reject(new Error('signature verification failed')),
+      () => Promise.resolve(makeFakeEngine('must-not-run')),
+    ]);
+
+    render(
+      <AlmaMeshRuntimeProvider runtime={runtime}>
+        <Probe capture={() => {}} />
+      </AlmaMeshRuntimeProvider>,
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('error').textContent).toBe('signature verification failed'),
+    );
+
+    await act(async () => {
+      window.dispatchEvent(new Event('online'));
+    });
+    expect(runtime.bootstrapCalls).toBe(1);
+  });
+
+  it('does not let a stale failed bootstrap overwrite a newer successful reboot', async () => {
+    let rejectStale!: (error: Error) => void;
+    const recovered = makeFakeEngine('newer-reboot');
+    const runtime = makeFakeRuntime([
+      () => new Promise<ChartEngine>((_resolve, reject) => {
+        rejectStale = reject;
+      }),
+      () => Promise.resolve(recovered),
+    ]);
+    let captured: ReturnType<typeof useChartEngine> | null = null;
+
+    render(
+      <AlmaMeshRuntimeProvider runtime={runtime}>
+        <Probe capture={(value) => {
+          captured = value;
+        }} />
+      </AlmaMeshRuntimeProvider>,
+    );
+    await waitFor(() => expect(runtime.bootstrapCalls).toBe(1));
+
+    await act(async () => {
+      await captured!.reboot();
+    });
+    await waitFor(() => expect(screen.getByTestId('engine').textContent).toBe('engine-ready'));
+
+    await act(async () => {
+      rejectStale(new Error('network unreachable'));
+    });
+
+    expect(screen.getByTestId('engine').textContent).toBe('engine-ready');
+    expect(screen.getByTestId('error').textContent).toBe('no-error');
+    await expect(captured!.whenReady()).resolves.toBe(recovered);
+    expect(runtime.bootstrapCalls).toBe(2);
+  });
+
   it('disposes the runtime and resets lifecycle refs on unmount', async () => {
     const runtime = makeFakeRuntime([(onStage) => {
       onStage({ kind: 'ready' } as BootStage);

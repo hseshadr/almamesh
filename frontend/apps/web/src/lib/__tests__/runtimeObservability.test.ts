@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { BirthInput, SiderealChart } from '@almamesh/browser'
 import {
+  clearRuntimeError,
   clearRuntimeGenerator,
   publishRuntimeError,
   publishRuntimeGenerator,
@@ -18,6 +19,8 @@ describe('runtime observability', () => {
 
     expect(window.__ALMAMESH_STAGE__).toBe('ready')
     expect(window.__ALMAMESH_ERROR__).toBe('signature failed')
+    clearRuntimeError()
+    expect(window.__ALMAMESH_ERROR__).toBeUndefined()
   })
 
   it('publishes and clears the engine generator with its real input/output contract', async () => {

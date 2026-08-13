@@ -120,7 +120,7 @@ It writes:
 
 - `apps/web/public/pyodide/` — a self-hosted, offline Pyodide dist
 - `apps/web/public/bundle/`  — a signed dev edge-proc bundle (origin layout)
-- `apps/web/public/public.key` — the pinned ed25519 verify key for that bundle
+- `apps/web/public/public.key` — the release-matched ed25519 verify key for that bundle
 
 It copies a Pyodide dist (override the source with `PYODIDE_DIST=/path/...`),
 builds the `almamesh` wheel (`uv build --wheel`), and uses `almamesh-bundle`

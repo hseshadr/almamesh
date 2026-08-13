@@ -159,9 +159,11 @@ network and no account. (`examples/run_chart.sh` wraps the same call.)
 ## Publish a signed bundle (build-time)
 
 The engine's data and wheels are delivered to browsers as a **signed,
-content-addressed bundle**. A device verifies an ed25519 signature against a
-pinned key and **fails closed** on any tampering. Compute always stays local; the
-network is delivery-only.
+content-addressed bundle**. A device verifies its ed25519 signature against the
+same-origin release key and **fails closed** on any mismatch. The service worker
+keeps a release-matched offline copy, while online loads revalidate the key so a
+key and its newly signed bundle can rotate together. Compute always stays local;
+the network is delivery-only.
 
 ```bash
 cd backend
@@ -170,10 +172,10 @@ uv run almamesh-bundle bundle ./origin ./keys/private.key --version v1
 ```
 
 `./origin` is a static directory any web server or CDN can serve; `public.key` is
-pinned into the client as the trust root. (`setup-dev-assets.sh` runs this for you
-to produce the local dev bundle.)
+the release verification key delivered from that same origin. (`setup-dev-assets.sh`
+runs this for you to produce the local dev bundle.)
 
-One identity note for cold readers: the pinned key is per-environment and never
+One identity note for cold readers: the signing key is per-environment and never
 committed. A local build uses a throwaway **dev** key that `setup-dev-assets.sh`
 generates into `frontend/apps/web/public/public.key` (git-ignored), while the
 production deploy injects the separate **prod** key from CI secrets — so the live

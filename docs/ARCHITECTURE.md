@@ -34,8 +34,9 @@ house diagram format).*
 1. **Build time** — `almamesh-bundle` (the Python CLI in `backend/`) assembles
    the engine wheel, the JPL DE421 ephemeris, and the Pyodide/Skyfield wheels
    into a content-addressed bundle and signs it with an ed25519 key. The
-   private key never enters the repo (CI tree-guard enforces it); the public
-   key ships with the app as `/public.key`.
+   private key never enters the repo (CI tree-guard enforces it); the release
+   verification key ships from the same origin as `/public.key`, with a
+   hash-versioned service-worker fallback for offline boots.
 2. **Delivery** — the bundle is static files on Cloudflare Pages. One-way:
    nothing ever flows back.
 3. **In the tab** — `@almamesh/browser` verifies the signature (fail-closed:
