@@ -7,6 +7,7 @@
 // patch re-sync can prove only-changed-chunks were fetched.
 
 import { sha256Hex } from "./crypto";
+import { parseStoredPointer } from "./activePointer";
 import { decompressAndVerify, IntegrityError } from "./integrity";
 import type { CacheStore, VersionPointer } from "./types";
 
@@ -217,21 +218,32 @@ export class OpfsCacheStore implements CacheStore {
 		});
 	}
 
+	public async clearActiveIf(expected: VersionPointer): Promise<boolean> {
+		return this.withMutationLock(async () => {
+			const current = selectHighestPointer(
+				await Promise.all(
+					[ACTIVE_FILE, ...ACTIVE_SLOTS].map((name) => this.readPointer(name)),
+				),
+			);
+			if (JSON.stringify(current) !== JSON.stringify(expected)) return false;
+			await Promise.all(
+				[ACTIVE_FILE, ...ACTIVE_SLOTS].map((name) =>
+					this.evict(this.#root, name),
+				),
+			);
+			return true;
+		});
+	}
+
+	public pruneInactive(): Promise<void> {
+		return Promise.resolve();
+	}
+
 	private async readPointer(name: string): Promise<VersionPointer | null> {
 		try {
 			const raw = await this.readFile(this.#root, name, MAX_ACTIVE_BYTES);
 			const value: unknown = JSON.parse(DECODER.decode(raw));
-			if (
-				typeof value !== "object" ||
-				value === null ||
-				Array.isArray(value)
-			) {
-				return null;
-			}
-			const pointer = value as VersionPointer;
-			return Number.isSafeInteger(pointer.sequence) && pointer.sequence >= 0
-				? pointer
-				: null;
+			return parseStoredPointer(value);
 		} catch {
 			return null;
 		}

@@ -6,6 +6,8 @@
 interface ImportMetaEnv {
 	/** Origin serving the signed, content-addressed bundle (`/latest`, `/manifest/*`, `/chunk/*`). */
 	readonly VITE_BUNDLE_BASE_URL: string;
+	/** Opts a dedicated verification build into browser-only exit-gate hooks. */
+	readonly VITE_EXIT_GATE_HOOKS?: string;
 }
 
 interface ImportMeta {

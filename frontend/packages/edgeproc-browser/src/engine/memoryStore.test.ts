@@ -91,5 +91,14 @@ describe("MemoryCacheStore content-address integrity", () => {
 			signature: "s",
 		});
 		expect((await store.readActive())?.version).toBe("v1");
+		await expect(store.pruneInactive()).resolves.toBeUndefined();
+	});
+
+	it("fails loudly when requested content is absent", async () => {
+		const store = new MemoryCacheStore();
+		await expect(store.getChunk(REAL_CHUNK, REAL_CHUNK_SIZE)).rejects.toThrow(
+			"not in store",
+		);
+		expect(() => store.getManifest("missing")).toThrow("not in store");
 	});
 });

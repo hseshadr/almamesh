@@ -12,6 +12,8 @@ export interface SyncRequest {
 	readonly pubkeyUrl: string;
 	readonly expectedBundleId: string;
 	readonly expectedChannel: string;
+	/** Exit-gate-only seam: deterministically exercise the durable fallback. */
+	readonly forceIndexedDbCache?: boolean;
 }
 
 /** Materialize a synced file's bytes from the active manifest. */
@@ -28,6 +30,7 @@ interface SyncOk {
 	readonly id: number;
 	readonly kind: "sync";
 	readonly result: SyncResult;
+	readonly cacheBackend: "indexeddb" | "opfs+indexeddb";
 }
 
 interface ReadFileOk {

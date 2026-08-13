@@ -56,7 +56,7 @@ export interface SyncResult {
 }
 
 /**
- * Local content-addressed store. The OPFS-backed and in-memory implementations
+ * Local content-addressed store. OPFS, IndexedDB, and in-memory implementations
  * share this surface — the seam edge-proc's `cas.py` `CacheStore` Protocol names.
  */
 export interface CacheStore {
@@ -73,6 +73,10 @@ export interface CacheStore {
 	getManifest(manifestHash: string): Promise<Uint8Array>;
 	readActive(): Promise<VersionPointer | null>;
 	promote(pointer: VersionPointer): Promise<void>;
+	/** Remove only the exact rejected pointer; a racing newer promotion survives. */
+	clearActiveIf(expected: VersionPointer): Promise<boolean>;
+	/** Drop content unreachable from active while the caller holds the sync lock. */
+	pruneInactive(): Promise<void>;
 }
 
 /** Transport seam: fetch raw bytes for a URL (injectable for tests). */

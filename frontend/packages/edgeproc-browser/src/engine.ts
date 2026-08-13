@@ -1,9 +1,9 @@
 // @edgeproc/browser/engine — the reusable, domain-agnostic sync tier.
 //
 // This is the PRODUCTION surface for building a new in-browser edge-proc
-// consumer. It syncs a signed, content-addressed bundle into OPFS (ed25519 +
-// sha256, fail-closed), reassembles files, and runs the sync entirely in a Web
-// Worker — with ZERO domain coupling (no search, no embeddings, no astrology).
+// consumer. It syncs a signed, content-addressed bundle into durable browser
+// storage (ed25519 + sha256, fail-closed), reassembles files, and runs the sync
+// entirely in a Web Worker — with ZERO domain coupling.
 //
 // The pattern: spawn an `EngineClient`, `sync()` a bundle, `readFile()` the
 // synced assets, then run your OWN compute over them. edge-reco layers hybrid
@@ -19,8 +19,9 @@ export { EngineClient } from "./engine/client";
 export { SignatureError, sha256Hex, verifyEd25519 } from "./engine/crypto";
 // --- the default byte fetcher + its network-unreachable sentinel ---
 export { fetchBytes, NetworkError } from "./engine/fetchBytes";
+export { IndexedDbCacheStore } from "./engine/indexedDbStore";
 export { MemoryCacheStore } from "./engine/memoryStore";
-// --- content-addressed stores: OPFS for production, in-memory for tests ---
+// --- content-addressed stores: OPFS primary, IndexedDB durable fallback ---
 export { OpfsCacheStore } from "./engine/opfsStore";
 // --- the main<->worker postMessage wire contract ---
 export type {

@@ -14,9 +14,9 @@ exception). `make demo` does everything else, including fetching the Pyodide
 dist and signing a local dev bundle with a throwaway key.
 
 Then: onboard with any name + birth date/time, search a city, hit **Generate**,
-and wait for the ~38 MB engine bootstrap (first run only — it's cached in OPFS
-after that). A full sidereal chart renders on the dashboard, computed entirely
-in your tab.
+and wait for the ~38 MB engine bootstrap (first run only — it's cached in
+durable browser storage after that). A full sidereal chart renders on the
+dashboard, computed entirely in your tab.
 
 ## Try the engine without the browser
 
@@ -38,8 +38,8 @@ nightly full suite) are documented in [CLAUDE.md](../CLAUDE.md) under
 
 ## More
 
-- [ARCHITECTURE.md](ARCHITECTURE.md) — how the signed bundle → OPFS → Pyodide
-  flow works, with the diagram.
+- [ARCHITECTURE.md](ARCHITECTURE.md) — how the signed bundle → durable cache →
+  Pyodide flow works, with the diagram.
 - [README](../README.md) — the product story and full command reference.
 - [CLAUDE.md](../CLAUDE.md) — the canonical engineering reference (stack,
   contracts, non-negotiable gates).

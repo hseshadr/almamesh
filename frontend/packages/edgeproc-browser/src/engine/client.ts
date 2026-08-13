@@ -1,9 +1,16 @@
+/// <reference types="vite/client" />
+
 // Thin main-thread client over the Worker engine. The main thread cannot touch
 // OPFS sync access handles, so it only sends typed requests and awaits replies.
 // One in-flight map keyed by request id correlates responses to promises.
 
 import type { EngineRequest, EngineResponse } from "./protocol";
 import type { SyncResult } from "./types";
+
+// Vite folds this constant out of ordinary production bundles. The globals are
+// an exit-gate seam, not a user-configurable runtime switch.
+const EXIT_GATE_HOOKS =
+	import.meta.env.DEV || import.meta.env.VITE_EXIT_GATE_HOOKS === "1";
 
 interface Pending {
 	readonly resolve: (response: EngineResponse) => void;
@@ -69,6 +76,11 @@ export class EngineClient {
 		expectedBundleId: string,
 		expectedChannel: string,
 	): Promise<SyncResult> {
+		const forceIndexedDbCache =
+			EXIT_GATE_HOOKS &&
+			(globalThis as typeof globalThis & {
+				__EDGEPROC_FORCE_INDEXEDDB_CACHE__?: boolean;
+			}).__EDGEPROC_FORCE_INDEXEDDB_CACHE__ === true;
 		const response = await this.#send({
 			kind: "sync",
 			id: this.#allocId(),
@@ -76,8 +88,14 @@ export class EngineClient {
 			pubkeyUrl,
 			expectedBundleId,
 			expectedChannel,
+			forceIndexedDbCache,
 		});
 		if (response.ok && response.kind === "sync") {
+			if (EXIT_GATE_HOOKS && forceIndexedDbCache) {
+				(globalThis as typeof globalThis & {
+					__EDGEPROC_SELECTED_CACHE__?: string;
+				}).__EDGEPROC_SELECTED_CACHE__ = response.cacheBackend;
+			}
 			return response.result;
 		}
 		throw new Error(this.#errorOf(response));

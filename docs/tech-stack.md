@@ -1,14 +1,15 @@
 # AlmaMesh Tech Stack
 
-**Last Updated**: 2026-07-03
+**Last Updated**: 2026-08-12
 
 **TL;DR — AlmaMesh is a static, local-first PWA. There is no server, no
 database, no accounts.** The chart engine is the unchanged Python `almamesh`
 package running in the browser under Pyodide (WebAssembly) in a Web Worker,
-**byte-identical to CPython**. The network is used exactly twice: once to load
-the app, once to sync a **signed, content-addressed bundle** into the browser's
-private storage (OPFS) — after that the app works fully offline. **AI is off by
-default** (the chart is pure calculation) and strictly opt-in.
+**byte-identical to CPython**. The network delivers the app and syncs a
+**signed, content-addressed bundle** into the browser's private storage (OPFS,
+with a persistent IndexedDB fallback and shared rollback floor); after the first
+complete load, the app works fully offline. **AI is off by default** (the chart is pure calculation)
+and strictly opt-in.
 
 Why this shape: local-first is the anti-scam guarantee. If the compute never
 leaves the device, there is nothing to harvest, nothing to paywall, and every
@@ -21,7 +22,7 @@ result can be reproduced bit-for-bit from the open engine.
 | Engine | Python 3.13 `almamesh` package | Pydantic models, `uv` deps; deterministic — same inputs → byte-identical chart on CPython and Pyodide |
 | Astronomy | Skyfield + DE421 ephemeris | Sidereal; Lahiri ayanamsa default (True-Chitra + True-node selectable); externally validated against astropy + JPL Horizons to sub-arcsecond (no Swiss Ephemeris) |
 | Delivery | `almamesh-bundle` CLI (build-time) | ed25519-signed, content-addressed bundle: DE421 + Skyfield/Pyodide wheels + the `almamesh` wheel + provenance metadata; verification is fail-closed |
-| In-browser engine | Pyodide (WASM) in a Web Worker | `@almamesh/browser` syncs the signed bundle into OPFS, boots the unchanged wheel, computes off the UI thread |
+| In-browser engine | Pyodide (WASM) in a Web Worker | `@almamesh/browser` syncs the signed bundle into OPFS or its durable IndexedDB fallback, boots the unchanged wheel, computes off the UI thread |
 | Frontend | React ^19 + Vite ^6 + TypeScript ~5.7 + Tailwind ^3.4 | Bun-workspace monorepo; installable PWA (vite-plugin-pwa + service worker), offline after first load |
 | State | Zustand ^5 | Persisted stores + pure adapters in `@almamesh/store` — reshape only, **no astrology in TypeScript** |
 | AI (optional) | Client-side, BYO endpoint (`@almamesh/llm`) | **Default: none** — the chart is pure calculation. Opt-in **cloud/BYO**: a one-click OpenRouter preset (stronger) or any OpenAI-compatible endpoint (incl. a local Ollama). Saving runs a real connectivity test so a bad key/model is reported immediately. Prompts are PII-redacted; `local_only` fail-closes against cloud hosts. Never required to draw a chart |
@@ -33,7 +34,9 @@ result can be reproduced bit-for-bit from the open engine.
 ## How a chart happens (one paragraph)
 
 The browser app (`@almamesh/browser`) verifies and syncs the signed bundle into
-OPFS, boots the `almamesh` wheel under Pyodide in a Web Worker, and calls the
+OPFS and its persistent IndexedDB safety copy. IndexedDB supplies the fallback
+when OPFS cannot open and keeps one rollback floor across storage changes. It
+then boots the `almamesh` wheel under Pyodide in a Web Worker and calls the
 same `calculate_sidereal_context()` entrypoint the offline CLI calls. TypeScript
 then only *reshapes* the result (`SiderealChart → ChartData` plus kundli
 geometry and the 3D force-field frame) — every piece of astrology math lives in

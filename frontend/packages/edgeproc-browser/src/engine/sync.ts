@@ -2,7 +2,7 @@
 // bounded before allocation/fetch, and promotion remains the final operation.
 
 import { canonicalBytes, type JsonValue } from "./canonical";
-import { sha256Hex } from "./crypto";
+import { sha256Hex, SignatureError } from "./crypto";
 import { NetworkError } from "./fetchBytes";
 import { IntegrityError, MAX_DECOMPRESSED_CHUNK_BYTES } from "./integrity";
 import type {
@@ -92,7 +92,10 @@ function assertBoundedInteger(
 	}
 }
 
-function assertVersionPointer(value: unknown): asserts value is VersionPointer {
+function assertVersionPointer(
+	value: unknown,
+	allowLegacySequence = false,
+): asserts value is VersionPointer {
 	const pointer = objectAt(value, "signed latest pointer");
 	assertHash(pointer.manifest_hash, "pointer manifest_hash");
 	if (
@@ -108,9 +111,14 @@ function assertVersionPointer(value: unknown): asserts value is VersionPointer {
 		);
 	}
 	if (
-		!Number.isSafeInteger(pointer.sequence) ||
-		(pointer.sequence as number) < 0
+		pointer.sequence !== undefined &&
+		(!Number.isSafeInteger(pointer.sequence) || (pointer.sequence as number) < 0)
 	) {
+		throw new IntegrityError(
+			"signed latest pointer is missing a non-negative monotonic sequence",
+		);
+	}
+	if (pointer.sequence === undefined && !allowLegacySequence) {
 		throw new IntegrityError(
 			"signed latest pointer is missing a non-negative monotonic sequence",
 		);
@@ -356,6 +364,12 @@ function totalFetchLimit(args: SyncArgs): number {
 	return Math.min(requested, MAX_TOTAL_FETCH_BYTES);
 }
 
+function isQuotaExceeded(error: unknown): boolean {
+	return (
+		error instanceof DOMException && error.name === "QuotaExceededError"
+	);
+}
+
 async function fetchMissing(
 	baseUrl: string,
 	missing: ReadonlyArray<ChunkRef>,
@@ -483,7 +497,7 @@ async function syncFromCache(
 	// Offline fallback is still a trust boundary: a cached pointer may have
 	// been corrupted or replaced while the tab was closed. Re-validate its
 	// shape, identity binding, and detached signature before serving it.
-	assertVersionPointer(active);
+	assertVersionPointer(active, true);
 	await verify(pointerSigningBytes(active), active.signature);
 	assertExpectedIdentity(active, args);
 	const raw = await store.getManifest(active.manifest_hash);
@@ -499,6 +513,28 @@ async function syncFromCache(
 	};
 }
 
+async function authenticatedActive(
+	store: CacheStore,
+	args: SyncArgs,
+	verify: Verify,
+): Promise<VersionPointer | null> {
+	for (let attempt = 0; attempt < 4; attempt += 1) {
+		const active = await store.readActive();
+		if (active === null) return null;
+		assertVersionPointer(active, true);
+		try {
+			await verify(pointerSigningBytes(active), active.signature);
+		} catch (error) {
+			if (!(error instanceof SignatureError)) throw error;
+			if (await store.clearActiveIf(active)) return null;
+			continue;
+		}
+		assertExpectedIdentity(active, args);
+		return active;
+	}
+	throw new IntegrityError("persistent active pointer changed during verification");
+}
+
 export async function syncIndex(args: SyncArgs): Promise<SyncResult> {
 	const { baseUrl, store, fetchBytes, verify } = args;
 	let pointer: VersionPointer;
@@ -512,30 +548,38 @@ export async function syncIndex(args: SyncArgs): Promise<SyncResult> {
 		throw error;
 	}
 	assertExpectedIdentity(pointer, args);
-	const active = await store.readActive();
+	const active = await authenticatedActive(store, args, verify);
 	if (active !== null && isRollback(active, pointer)) {
 		throw new RollbackError(
 			`refusing sequence ${pointer.sequence} over active sequence ${String(active.sequence)}`,
 		);
 	}
-	const manifest = await fetchManifest(baseUrl, pointer, fetchBytes, store);
-	const { missing, reused } = await missingChunks(manifest, store);
-	const bytesFetched = await fetchMissing(
-		baseUrl,
-		missing,
-		fetchBytes,
-		store,
-		totalFetchLimit(args),
-	);
-	await verifyReassembly(manifest, store);
-	await store.promote(pointer);
-	return {
-		version: pointer.version,
-		manifestHash: pointer.manifest_hash,
-		chunksFetched: missing.length,
-		chunksReused: reused,
-		bytesFetched,
-	};
+	try {
+		const manifest = await fetchManifest(baseUrl, pointer, fetchBytes, store);
+		const { missing, reused } = await missingChunks(manifest, store);
+		const bytesFetched = await fetchMissing(
+			baseUrl,
+			missing,
+			fetchBytes,
+			store,
+			totalFetchLimit(args),
+		);
+		await verifyReassembly(manifest, store);
+		await store.promote(pointer);
+		return {
+			version: pointer.version,
+			manifestHash: pointer.manifest_hash,
+			chunksFetched: missing.length,
+			chunksReused: reused,
+			bytesFetched,
+		};
+	} catch (error) {
+		if (active !== null && isQuotaExceeded(error)) {
+			const cached = await syncFromCache(store, args, verify);
+			if (cached !== null) return cached;
+		}
+		throw error;
+	}
 }
 
 function fileEntry(manifest: IndexManifest, path: string): FileEntry {
