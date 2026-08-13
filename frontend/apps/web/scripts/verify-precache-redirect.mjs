@@ -113,6 +113,27 @@ function readPrecacheUrls() {
     .map((u) => (u.startsWith('/') ? u : `/${u}`))
 }
 
+function verifyTrustRootRouting(urls, failures) {
+  const sw = readFileSync(join(DIST, 'sw.js'), 'utf-8')
+  const installerPath = join(DIST, 'engine-trust-install.js')
+  const configMatch = sw.match(/engine-trust-config-([0-9a-f]{16})\.js/)
+  if (urls.includes('/public.key')) {
+    failures.push('/public.key must NOT be precached (it would shadow NetworkFirst key rotation)')
+  }
+  if (urls.includes('/engine-trust-install.js')) {
+    failures.push('imported trust-root lifecycle script must not also be precached')
+  }
+  if (!existsSync(installerPath) || !sw.includes('engine-trust-install.js')) {
+    failures.push('service worker is missing the activation-time trust-root cache warmer')
+  }
+  if (!configMatch || !existsSync(join(DIST, configMatch[0]))) {
+    failures.push('service worker is missing its build-bound trust-root config')
+  }
+  if (!/almamesh-pubkey-[0-9a-f]{16}/.test(sw)) {
+    failures.push('public.key NetworkFirst cache is not versioned by its pinned key hash')
+  }
+}
+
 async function main() {
   if (!existsSync(join(DIST, 'sw.js'))) {
     console.error('FATAL: dist/sw.js not found — run `bun run build` first.')
@@ -147,6 +168,7 @@ async function main() {
   if (!urls.includes('/')) {
     failures.push('precache manifest is MISSING the canonical shell "/" (navigateFallback target)')
   }
+  verifyTrustRootRouting(urls, failures)
   // Negative assertion: no redirecting `.html` shell may be precached.
   const leaked = urls.filter((u) => CANONICAL[u])
   for (const u of leaked) {
@@ -163,7 +185,7 @@ async function main() {
     process.exit(1)
   }
   console.log(`  [PASS] every precache URL resolves 200 with no redirect on a CF-like server`)
-  console.log(`  [PASS] canonical shell "/" precached; no redirecting .html shells in the manifest`)
+  console.log(`  [PASS] canonical shell "/" precached; public.key keeps NetworkFirst + release-matched offline fallback`)
   console.log('\n✅ precache is robust to Cloudflare Pages clean-URL redirects.')
   process.exit(0)
 }

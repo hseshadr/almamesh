@@ -8,11 +8,14 @@
  * WebKit storage/runtime boundary. CSP and deployed headers have separate gates.
  */
 
+import { createServer, request as httpRequest } from 'node:http'
 import { devices, webkit } from '@playwright/test'
 
 const BASE_URL = process.argv[2] ?? 'http://localhost:4200'
+const FIRST_SESSION_ONLY = process.argv.includes('--first-session')
 const CACHE_DATABASE = 'edgeproc-browser-cache'
 const FALLBACK_PARAMETER = 'force-indexeddb-engine-cache'
+const PRERENDERED_SHELLS = new Set(['/welcome', '/privacy', '/terms', '/data-deletion'])
 const BIRTH = {
   datetimeUtc: '1990-01-15T12:00:00.000Z',
   latitude: 28.6139,
@@ -24,11 +27,48 @@ function invariant(condition, message) {
   if (!condition) throw new Error(message)
 }
 
+async function bounded(promise, milliseconds, label) {
+  let timer
+  try {
+    return await Promise.race([
+      promise,
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`${label} timed out`)), milliseconds)
+      }),
+    ])
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
 async function openEngineRoute(page) {
   await page.evaluate(() => {
     window.history.pushState({}, '', `/onboarding${window.location.search}`)
     window.dispatchEvent(new window.PopStateEvent('popstate'))
   })
+}
+
+async function waitForActiveServiceWorker(page) {
+  const deadline = Date.now() + 60_000
+  while (Date.now() < deadline) {
+    const state = await page.evaluate(async () => {
+      const registration = await navigator.serviceWorker.getRegistration()
+      return registration?.active?.state ?? null
+    })
+    if (state === 'activated') return
+    await new Promise((resolve) => setTimeout(resolve, 250))
+  }
+  const evidence = await page.evaluate(async () => {
+    const registration = await navigator.serviceWorker.getRegistration()
+    return {
+      active: registration?.active?.state ?? null,
+      cacheNames: await caches.keys(),
+      controller: navigator.serviceWorker.controller?.scriptURL ?? null,
+      installing: registration?.installing?.state ?? null,
+      waiting: registration?.waiting?.state ?? null,
+    }
+  })
+  throw new Error(`first-session service worker did not activate: ${JSON.stringify(evidence)}`)
 }
 
 async function waitForEngine(page) {
@@ -44,6 +84,17 @@ async function waitForEngine(page) {
     error: window.__ALMAMESH_ERROR__ ?? null,
     hasGenerator: typeof window.__almameshGenerate === 'function',
   }))
+}
+
+async function waitForRecoveredEngine(page) {
+  await page.waitForFunction(
+    () =>
+      window.__ALMAMESH_STAGE__ === 'ready' &&
+      typeof window.__almameshGenerate === 'function',
+    undefined,
+    { timeout: 300_000 },
+  )
+  return waitForEngine(page)
 }
 
 async function generateReferenceChart(page) {
@@ -86,7 +137,150 @@ async function storageEvidence(page) {
   })
 }
 
+async function startCutoffProxy(upstreamUrl) {
+  const upstream = new URL(upstreamUrl)
+  const state = {
+    blocked: false,
+    keyOverride: null,
+    requests: [],
+    rejected: [],
+  }
+  const server = createServer((req, res) => {
+    const target = new URL(req.url ?? '/', upstream)
+    if (PRERENDERED_SHELLS.has(target.pathname)) target.pathname += '.html'
+    state.requests.push(target.pathname)
+    if (state.blocked) {
+      state.rejected.push(target.pathname)
+      req.socket.destroy()
+      return
+    }
+    if (target.pathname === '/public.key' && state.keyOverride !== null) {
+      res.writeHead(200, {
+        'cache-control': 'no-store',
+        'content-length': state.keyOverride.byteLength,
+        'content-type': 'application/octet-stream',
+      })
+      res.end(state.keyOverride)
+      return
+    }
+    const forwarded = httpRequest(target, {
+      headers: { ...req.headers, host: upstream.host },
+      method: req.method,
+    }, (upstreamResponse) => {
+      res.writeHead(upstreamResponse.statusCode ?? 502, upstreamResponse.headers)
+      upstreamResponse.pipe(res)
+    })
+    forwarded.on('error', () => req.socket.destroy())
+    req.pipe(forwarded)
+  })
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))
+  const address = server.address()
+  invariant(address && typeof address === 'object', 'cutoff proxy did not bind')
+  return {
+    // WebKit's Service Worker implementation treats the localhost hostname as
+    // a trustworthy development origin more consistently than a numeric loopback.
+    origin: `http://localhost:${address.port}`,
+    state,
+    close: () => {
+      server.closeAllConnections?.()
+      server.close()
+    },
+  }
+}
+
+async function verifyFirstSessionOffline() {
+  const browser = await webkit.launch({ headless: true })
+  const proxy = await startCutoffProxy(BASE_URL)
+  const context = await browser.newContext({
+    ...devices['iPhone 13'],
+    serviceWorkers: 'allow',
+  })
+  try {
+    let page = await context.newPage()
+    const url = new URL(proxy.origin)
+    await bounded(
+      page.goto(url.href, { waitUntil: 'domcontentloaded' }),
+      60_000,
+      'first-session navigation',
+    )
+    const uncontrolled = await page.evaluate(() => navigator.serviceWorker.controller === null)
+    invariant(uncontrolled, 'first-session proof was vacuous: the initial document was already controlled')
+    await waitForActiveServiceWorker(page)
+    await page.waitForFunction(() => navigator.serviceWorker.controller !== null, undefined, {
+      timeout: 10_000,
+    }).catch(async (error) => {
+      const evidence = await page.evaluate(async () => {
+        const registration = await navigator.serviceWorker.getRegistration()
+        return {
+          active: registration?.active?.state ?? null,
+          activeUrl: registration?.active?.scriptURL ?? null,
+          cacheNames: await caches.keys(),
+          controller: navigator.serviceWorker.controller?.scriptURL ?? null,
+          scope: registration?.scope ?? null,
+          waiting: registration?.waiting?.state ?? null,
+        }
+      })
+      throw new Error(`first worker did not claim its page: ${JSON.stringify(evidence)}`, { cause: error })
+    })
+
+    await openEngineRoute(page)
+    const cold = await waitForRecoveredEngine(page)
+    const coldChart = await generateReferenceChart(page)
+    invariant(coldChart.lagna === 'gemini', `unexpected first-session chart: ${JSON.stringify(coldChart)}`)
+
+    const firstTimeOrigin = await page.evaluate(() => performance.timeOrigin)
+    proxy.state.blocked = true
+    await page.reload({ waitUntil: 'domcontentloaded', timeout: 120_000 })
+    const secondTimeOrigin = await page.evaluate(() => performance.timeOrigin)
+    invariant(secondTimeOrigin !== firstTimeOrigin, 'offline reload did not create a new document')
+    const controlled = await page.evaluate(() => navigator.serviceWorker.controller !== null)
+    invariant(controlled, 'offline reload was not controlled by the installed service worker')
+    const offline = await waitForRecoveredEngine(page)
+    const offlineChart = await generateReferenceChart(page)
+    invariant(offlineChart.lagna === 'gemini', `unexpected offline first-session chart: ${JSON.stringify(offlineChart)}`)
+    invariant(
+      proxy.state.rejected.includes('/public.key'),
+      `offline trust-root proof was vacuous: ${JSON.stringify(proxy.state.rejected)}`,
+    )
+
+    // Simulate a rotated 32-byte trust root. A controlled online fetch must
+    // reach the origin and return the new bytes; if precache shadowed the
+    // NetworkFirst route this would return the install-time key instead.
+    proxy.state.blocked = false
+    proxy.state.keyOverride = new Uint8Array(32).fill(0x5a)
+    const keyRequestsBeforeRotation = proxy.state.requests.filter((path) => path === '/public.key').length
+    const rotatedKey = await page.evaluate(async () =>
+      Array.from(new Uint8Array(await (await fetch('/public.key', { cache: 'no-store' })).arrayBuffer())),
+    )
+    const keyRequestsAfterRotation = proxy.state.requests.filter((path) => path === '/public.key').length
+    invariant(keyRequestsAfterRotation > keyRequestsBeforeRotation, 'online key rotation did not reach the origin')
+    invariant(rotatedKey.length === 32 && rotatedKey.every((byte) => byte === 0x5a), 'online key rotation returned a stale key')
+
+    const evidence = {
+      cold,
+      coldChart,
+      offline,
+      offlineChart,
+      initialDocumentControlled: !uncontrolled,
+      offlineDocumentControlled: controlled,
+      rejectedTransportPaths: proxy.state.rejected,
+      keyRequestsBeforeRotation,
+      keyRequestsAfterRotation,
+    }
+    console.log(JSON.stringify({ firstSessionOffline: evidence }, null, 2))
+    return evidence
+  } finally {
+    await context.close()
+    proxy.close()
+    await browser.close()
+  }
+}
+
 async function main() {
+  if (FIRST_SESSION_ONLY) {
+    await verifyFirstSessionOffline()
+    return
+  }
   const browser = await webkit.launch({ headless: true })
   try {
     const context = await browser.newContext({
@@ -130,6 +324,34 @@ async function main() {
     const cachedChart = await generateReferenceChart(page)
     invariant(cachedChart.lagna === 'gemini', `unexpected cached chart: ${JSON.stringify(cachedChart)}`)
 
+    // A hard-offline boot failure used to remain latched after connectivity
+    // returned: the provider held the rejected promise forever and `online`
+    // could not spawn a fresh worker. Reproduce that transport-shaped failure
+    // in WebKit by blocking the trust-root fetch, then restore the route and
+    // dispatch the browser connectivity transition. This is intentionally
+    // after the durable-cache proof above, so the retry reuses IndexedDB data.
+    await context.unroute('**/bundle/**')
+    const blockedKeys = []
+    await context.route('**/public.key', (route) => {
+      blockedKeys.push(route.request().url())
+      return route.abort('failed')
+    })
+    await page.evaluate(() => window.history.replaceState({}, '', `/${window.location.search}`))
+    await page.reload({ waitUntil: 'domcontentloaded' })
+    await openEngineRoute(page)
+    const failedOfflineBoot = await waitForEngine(page)
+    invariant(
+      failedOfflineBoot.stage !== 'ready' && /network unreachable/i.test(failedOfflineBoot.error ?? ''),
+      `WebKit transport failure was not reproduced: ${JSON.stringify(failedOfflineBoot)}`,
+    )
+    invariant(blockedKeys.length > 0, 'transport-failure recovery was vacuous: public.key was not blocked')
+
+    await context.unroute('**/public.key')
+    await page.evaluate(() => window.dispatchEvent(new Event('online')))
+    const recovered = await waitForRecoveredEngine(page)
+    const recoveredChart = await generateReferenceChart(page)
+    invariant(recoveredChart.lagna === 'gemini', `unexpected recovered chart: ${JSON.stringify(recoveredChart)}`)
+
     console.log(
       JSON.stringify(
         {
@@ -138,12 +360,17 @@ async function main() {
           storage,
           firstChart,
           cachedChart,
+          failedOfflineBoot,
+          recovered,
+          recoveredChart,
           blockedBundleRequests: blocked.length,
+          blockedPublicKeyRequests: blockedKeys.length,
         },
         null,
         2,
       ),
     )
+    await context.close()
   } finally {
     await browser.close()
   }

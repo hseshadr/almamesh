@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import { vitePrerenderPlugin } from 'vite-prerender-plugin'
 import path from 'path'
-import { writeFileSync, readFileSync, readdirSync } from 'fs'
+import { existsSync, writeFileSync, readFileSync, readdirSync } from 'fs'
 import { createHash } from 'crypto'
 import { PUBLIC_ROUTE_PATHS, prerenderOutputFile } from './src/seo/routeHead'
 import { createBuildIdentity } from './src/lib/buildIdentity'
@@ -17,6 +17,38 @@ import { selectSourcemapArtifacts, sourcemapLeakMessage } from './src/lib/noSour
 const APP_VERSION: string = JSON.parse(
   readFileSync(path.resolve(__dirname, 'package.json'), 'utf-8'),
 ).version
+
+// Version the offline trust-root cache by the exact release key in THIS build.
+// A waiting service worker can warm the new cache without mutating the active
+// release's cache; after activation, NetworkFirst still refreshes from origin
+// and falls back to this release-matched key while offline.
+const TRUST_KEY_PATH = path.resolve(__dirname, 'public/public.key')
+const TRUST_KEY_BYTES = existsSync(TRUST_KEY_PATH) ? readFileSync(TRUST_KEY_PATH) : null
+const TRUST_KEY_HASH = TRUST_KEY_BYTES === null
+  ? null
+  : createHash('sha256').update(TRUST_KEY_BYTES).digest('hex').slice(0, 16)
+const TRUST_KEY_CACHE = TRUST_KEY_HASH === null
+  ? 'almamesh-pubkey-unconfigured'
+  : `almamesh-pubkey-${TRUST_KEY_HASH}`
+const TRUST_KEY_CONFIG = TRUST_KEY_HASH === null
+  ? null
+  : `engine-trust-config-${TRUST_KEY_HASH}.js`
+
+function trustKeyConfigPlugin(): Plugin {
+  if (TRUST_KEY_BYTES === null || TRUST_KEY_HASH === null || TRUST_KEY_CONFIG === null) {
+    return { name: 'trust-key-config-unconfigured' }
+  }
+  const source = [
+    `self.__ALMAMESH_TRUST_KEY_B64__=${JSON.stringify(TRUST_KEY_BYTES.toString('base64'))};`,
+    `self.__ALMAMESH_TRUST_KEY_HASH__=${JSON.stringify(TRUST_KEY_HASH)};`,
+  ].join('\n')
+  return {
+    name: 'trust-key-config',
+    generateBundle() {
+      this.emitFile({ fileName: TRUST_KEY_CONFIG, source, type: 'asset' })
+    },
+  }
+}
 
 // Pyodide's `pyodide.mjs` statically imports Node builtins (`node:fs`, `node:url`,
 // …) behind runtime environment guards that NEVER execute in the browser. Vite
@@ -214,6 +246,18 @@ function pwaPlugin(): Plugin[] {
       // `sw.js.map` (20 KB) and `workbox-<hash>.js.map` (228 KB). Pinning it
       // here is what actually stops them.
       sourcemap: false,
+      // A first install has no older worker to protect. Claim the already-open
+      // first-session page as soon as install/activation (including the trust-
+      // root warm below) completes, so its very next offline reload is served
+      // by this worker. Updates still wait for explicit user acceptance because
+      // skipWaiting remains disabled under registerType: 'prompt'.
+      clientsClaim: true,
+      // Activation-time warm of the VERSIONED NetworkFirst fallback. This is not
+      // a precache entry: /public.key must keep reaching the NetworkFirst route
+      // online so key rotation and bundle-pointer updates stay paired.
+      importScripts: TRUST_KEY_CONFIG === null
+        ? []
+        : [TRUST_KEY_CONFIG, 'engine-trust-install.js'],
       // `wasm` covers ONLY the small hashed yoga-layout asset under /assets/
       // (yogaWasmAssetPlugin, ~90 KB) so offline PDF export keeps working — it
       // used to ride inside the precached react-pdf JS chunk as base64. The
@@ -224,6 +268,8 @@ function pwaPlugin(): Plugin[] {
         'pyodide/**',
         'bundle/**',
         '**/*.map',
+        'engine-trust-install.js',
+        'engine-trust-config-*.js',
         'public.key',
         'planets/**',
         // The self-hosted RAG embedding model + onnxruntime-web wasm (~25 MB).
@@ -335,7 +381,7 @@ function pwaPlugin(): Plugin[] {
           urlPattern: ({ url }) => url.pathname === '/public.key',
           handler: 'NetworkFirst',
           options: {
-            cacheName: 'almamesh-pubkey',
+            cacheName: TRUST_KEY_CACHE,
             networkTimeoutSeconds: 5,
             expiration: { maxEntries: 2, maxAgeSeconds: 60 * 60 * 24 * 365 },
             cacheableResponse: { statuses: [0, 200] },
@@ -494,6 +540,7 @@ export default defineConfig({
   plugins: [
     react(),
     versionPlugin(),
+    trustKeyConfigPlugin(),
     yogaWasmAssetPlugin(),
     noSourcemapsPlugin(),
     previewProdCspPlugin(),

@@ -30,16 +30,19 @@ Add `www.almamesh.com` the same way if wanted.
 ## Key custody — the one rule that cannot be broken
 
 The chart engine only runs bundles whose ed25519 signature verifies against the
-public key pinned in the build (`dist/public.key`). Installed clients keep that
-pin (PWA + service worker + OPFS).
+same release's `dist/public.key`. The service worker keeps that key in a
+content-hash-versioned offline cache and revalidates it online. Deploy the key,
+signed pointer, manifest, and chunks as one release; a mismatched or unavailable
+pair fails closed.
 
 - **The local production private key is `backend/keys-prod/private.key`**
   (gitignored; the whole `backend/keys-prod/` + `backend/origin-prod/` dirs are
   ignored). CI does not recreate that path: it decodes the secret only into
   `${{ runner.temp }}/almamesh-keys-prod`, outside the checkout, and passes that
   directory to `build-prod.sh` through `PRODUCTION_KEYS_DIR`.
-- **Losing it = every installed client stops accepting bundle updates** until
-  they are re-onboarded against a new pin shipped in a new app build. Treat it
+- **Losing it = you cannot sign a continuity-preserving bundle update.** A
+  deliberate key rotation requires one deployment containing both the new
+  public key and bundles signed by its matching private key. Treat it
   like a release-signing key.
 - **Back it up OUTSIDE the repo and outside this machine** immediately after
   keygen — e.g. a password manager secure note / encrypted vault:
@@ -91,7 +94,7 @@ cd apps/web && npx wrangler pages deploy dist --project-name=almamesh --branch=m
 
 Bundle updates for already-installed clients flow through `/bundle/latest`
 (no-cache) → new manifest hash → content-addressed chunk sync into OPFS,
-verified against the pinned key. App-shell updates flow through `sw.js`
+verified against the release key. App-shell updates flow through `sw.js`
 (no-cache) → the in-app "update available" prompt.
 
 The signed sequence is the rollback/fork fence. Never deploy an older Pages
@@ -136,7 +139,7 @@ green CI run on `main` auto-deploys. Until then nothing ships and main stays gre
 | `assets/*` (hashed) | immutable, 1y | JS/CSS chunks |
 | `sw.js`, `manifest.webmanifest`, `version.json`, `build.json` | `no-cache` | update and exact-build identity signals |
 | `workbox-*.js` (hashed) | immutable, 1y | SW runtime |
-| `public.key` | `no-cache` | pinned ed25519 verify key |
+| `public.key` | `no-cache` | release ed25519 verify key; SW keeps a hash-versioned offline fallback |
 | `bundle/latest` | `no-cache` | MUTABLE bundle pointer |
 | `bundle/chunk(s)/*`, `bundle/manifest(s)/*` | immutable, 1y | content-addressed (sha256 names) |
 | `pyodide/*` | immutable, 1y | version-pinned WASM runtime |

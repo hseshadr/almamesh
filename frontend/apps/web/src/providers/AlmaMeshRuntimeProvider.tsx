@@ -24,6 +24,7 @@ import type { BootStage, BundleMeta, ChartEngine, OnStage, RuntimeConfig } from 
 import { ChartEngineContext } from './chartEngineContext'
 import { hasLocalChart } from '../lib/localChart'
 import {
+  clearRuntimeError,
   clearRuntimeGenerator,
   publishRuntimeError,
   publishRuntimeGenerator,
@@ -91,9 +92,10 @@ export function readRuntimeConfig(): RuntimeConfig {
 export async function clearStaleEngineCaches(): Promise<void> {
   try {
     if (typeof caches === 'undefined') return
-    await Promise.all(
-      ['almamesh-pubkey', 'almamesh-signals'].map((name) => caches.delete(name)),
-    )
+    const names = await caches.keys()
+    await Promise.all(names
+      .filter((name) => name === 'almamesh-signals' || name.startsWith('almamesh-pubkey'))
+      .map((name) => caches.delete(name)))
   } catch {
     // ignore — recovery must never fail on cache cleanup
   }
@@ -126,6 +128,12 @@ export interface BootstrapRuntime {
   dispose?(): Promise<void> | void
 }
 
+const TRANSIENT_BOOT_FAILURE = /network unreachable|failed to fetch|load failed|networkerror|timed out after/i
+
+function isTransientBootFailure(error: Error): boolean {
+  return TRANSIENT_BOOT_FAILURE.test(error.message)
+}
+
 interface ProviderProps {
   children: ReactNode
   /** Injectable for tests; defaults to a real `AlmaMeshRuntime`. */
@@ -145,10 +153,15 @@ export function AlmaMeshRuntimeProvider({ children, runtime }: ProviderProps) {
   const [stage, setStage] = useState<BootStage | null>(null)
   const [error, setError] = useState<Error | null>(null)
   const [meta, setMeta] = useState<BundleMeta | null>(null)
+  const [onlineEpoch, setOnlineEpoch] = useState(0)
 
   // The CURRENT in-flight (or last) bootstrap promise, shared by every awaiter
   // of whenReady(). A ref (not state) so stable callbacks always see the latest.
   const inFlightRef = useRef<Promise<ChartEngine> | null>(null)
+  const startedRef = useRef(false)
+  const bootstrapFailedRef = useRef(false)
+  const retryableFailureRef = useRef(false)
+  const consumedOnlineEpochRef = useRef(0)
 
   const onStage = useCallback<OnStage>((next) => {
     setStage(next)
@@ -169,25 +182,43 @@ export function AlmaMeshRuntimeProvider({ children, runtime }: ProviderProps) {
     if (EXIT_GATE_HOOKS) {
       clearRuntimeGenerator()
     }
-    const promise = runtimeInstance
+    bootstrapFailedRef.current = false
+    retryableFailureRef.current = false
+    let promise: Promise<ChartEngine>
+    promise = runtimeInstance
       .bootstrap(readRuntimeConfig(), onStage)
       .then((ready) => {
+        if (inFlightRef.current !== promise) {
+          return ready
+        }
+        bootstrapFailedRef.current = false
         setEngine(ready)
         setMeta(ready.meta())
         setError(null)
         // Dev-only test hook: drive the booted engine directly, bypassing the
         // geocode-dependent onboarding UI. Returns the raw SiderealChart.
         if (EXIT_GATE_HOOKS) {
+          clearRuntimeError()
           publishRuntimeGenerator((birth) => ready.generateChart(birth))
         }
         return ready
       })
       .catch((err: unknown) => {
         const e = err instanceof Error ? err : new Error(String(err))
-        setError(e)
-        if (EXIT_GATE_HOOKS) {
-          clearRuntimeGenerator()
-          publishRuntimeError(e.message)
+        // Release only THIS failed attempt. The runtime already discarded its
+        // failed workers and bootstrap promise; keeping the provider's rejected
+        // promise latched made every later whenReady()/online recovery return
+        // the same failure forever.
+        if (inFlightRef.current === promise) {
+          inFlightRef.current = null
+          startedRef.current = false
+          bootstrapFailedRef.current = true
+          retryableFailureRef.current = isTransientBootFailure(e)
+          setError(e)
+          if (EXIT_GATE_HOOKS) {
+            clearRuntimeGenerator()
+            publishRuntimeError(e.message)
+          }
         }
         throw e
       })
@@ -201,7 +232,6 @@ export function AlmaMeshRuntimeProvider({ children, runtime }: ProviderProps) {
   // launching a second bundle sync. The rejection is swallowed here for the same
   // reason as the mount boot: it is published via `error` and recovered through
   // whenReady()/reboot(); an unhandled rejection would noise the console.
-  const startedRef = useRef(false)
   const startBootstrap = useCallback((): void => {
     if (startedRef.current) {
       return
@@ -241,10 +271,35 @@ export function AlmaMeshRuntimeProvider({ children, runtime }: ProviderProps) {
     startBootstrap()
   }, [startBootstrap])
 
+  // Count browser `online` transitions even while bootstrap is still pending.
+  // The failure may arrive after connectivity returned; retaining the epoch
+  // prevents that event from being missed without spawning a parallel worker.
+  useEffect(() => {
+    const recordOnline = () => setOnlineEpoch((epoch) => epoch + 1)
+    window.addEventListener('online', recordOnline)
+    return () => window.removeEventListener('online', recordOnline)
+  }, [])
+
+  // Consume at most one retry for each connectivity transition. Integrity and
+  // signature failures remain fail-closed; only transport-shaped failures are
+  // retried, and the idempotency latch prevents duplicate worker boots.
+  useEffect(() => {
+    if (
+      !bootstrapFailedRef.current ||
+      !retryableFailureRef.current ||
+      onlineEpoch <= consumedOnlineEpochRef.current
+    ) return
+    consumedOnlineEpochRef.current = onlineEpoch
+    startBootstrap()
+  }, [error, onlineEpoch, startBootstrap])
+
   // Workers and Pyodide hold substantial resources outside React's tree. Stop
   // them on unmount, and reset the refs so a StrictMode remount can boot again.
   useEffect(() => () => {
     startedRef.current = false
+    bootstrapFailedRef.current = false
+    retryableFailureRef.current = false
+    consumedOnlineEpochRef.current = 0
     inFlightRef.current = null
     void runtimeRef.current?.dispose?.()
   }, [])
