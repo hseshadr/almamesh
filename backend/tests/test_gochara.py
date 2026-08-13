@@ -11,6 +11,9 @@ from almamesh.transits.gochara import build_gochara_context
 _BIRTH = datetime(1990, 1, 15, 12, 0, 0, tzinfo=UTC)  # Delhi canonical fixture
 _DELHI = (28.6139, 77.2090)
 _TRANSIT = datetime(2026, 6, 9, 12, 0, 0, tzinfo=UTC)
+_PISCES_BIRTH = datetime(1983, 4, 5, 0, 20, 0, tzinfo=UTC)
+_CHENNAI = (13.0827, 80.2707)
+_REPORT_TRANSIT = datetime(2026, 7, 11, 12, 0, 0, tzinfo=UTC)
 
 
 def _natal():
@@ -53,3 +56,24 @@ def test_should_resolve_ayanamsa_at_transit_instant() -> None:
     ctx = build_gochara_context(astro, natal, _TRANSIT)
     # Then the recorded ayanamsa is the larger (later) one, not the 1990 natal
     assert ctx.transit_ayanamsa > natal.ayanamsa_value
+
+
+def test_should_count_from_accepted_pisces_lagna_for_report_transits() -> None:
+    # Given the accepted Pisces-Lagna chart used by the report regression
+    natal = calculate_sidereal_context(
+        _PISCES_BIRTH,
+        *_CHENNAI,
+        reference_date=datetime(2026, 7, 11, tzinfo=UTC),
+    )
+    assert natal.lagna.sign == ZodiacSign.PISCES
+
+    # When the report-date gochara is computed from that natal chart
+    ctx = build_gochara_context(SkyfieldAstronomy(), natal, _REPORT_TRANSIT)
+
+    # Then the engine counts from Pisces, never the rejected Aquarius candidate
+    assert ctx.placements[PlanetName.SATURN].sign == ZodiacSign.PISCES
+    assert ctx.placements[PlanetName.SATURN].house_from_lagna == 1
+    assert ctx.placements[PlanetName.SUN].sign == ZodiacSign.GEMINI
+    assert ctx.placements[PlanetName.SUN].house_from_lagna == 4
+    assert ctx.placements[PlanetName.RAHU].sign == ZodiacSign.AQUARIUS
+    assert ctx.placements[PlanetName.RAHU].house_from_lagna == 12
