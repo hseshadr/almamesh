@@ -32,11 +32,9 @@ import { DURATIONS, EASINGS } from '../constants';
 export const pageVariants: Variants = {
   initial: {
     opacity: 0,
-    x: 20,
   },
   animate: {
     opacity: 1,
-    x: 0,
     transition: {
       duration: DURATIONS.medium,
       ease: EASINGS.smooth,
@@ -44,7 +42,6 @@ export const pageVariants: Variants = {
   },
   exit: {
     opacity: 0,
-    x: -20,
     transition: {
       duration: DURATIONS.fast,
       ease: EASINGS.accelerate,
