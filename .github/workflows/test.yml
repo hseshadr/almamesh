@@ -249,10 +249,11 @@ jobs:
       - name: Generate dev assets (Pyodide dist + signed bundle)
         run: bash apps/web/scripts/setup-dev-assets.sh
 
-      # Install only the Chromium browser + its OS deps for Playwright.
-      - name: Install Playwright Chromium
+      # Chromium drives the broad exit gate; WebKit locks the iPhone storage
+      # boundary that previously failed before chart generation.
+      - name: Install Playwright Chromium and WebKit
         working-directory: frontend/apps/web
-        run: bunx playwright install --with-deps chromium
+        run: bunx playwright install --with-deps chromium webkit
 
       # Build a REAL production build with the exit-gate observability hooks
       # opted in (window.__ALMAMESH_STAGE__ / __almameshGenerate). The dev server
@@ -328,6 +329,28 @@ jobs:
           # in backend/tests/test_chart_golden.py, which built the golden.
           node scripts/verify-browser-parity.mjs http://localhost:4199 \
             --reference-date=2025-01-01T00:00:00+00:00
+
+      - name: Run WebKit engine and persistent-cache gate (iPhone 13)
+        working-directory: frontend/apps/web
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4200 --directory dist-verify > /tmp/almamesh-webkit-server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+
+          for i in $(seq 1 60); do
+            if curl -fsS -o /dev/null "http://localhost:4200"; then
+              echo "WebKit static server ready (attempt $i)"
+              break
+            fi
+            if ! kill -0 "$server_pid" 2>/dev/null; then
+              cat /tmp/almamesh-webkit-server.log
+              exit 1
+            fi
+            sleep 1
+          done
+          curl -fsS -o /dev/null "http://localhost:4200"
+          node scripts/verify-webkit-engine.mjs http://localhost:4200
 
       # Stubbed Playwright "human tests": boot the SAME real in-browser engine
       # (Pyodide dist + signed bundle already generated above) but stub the

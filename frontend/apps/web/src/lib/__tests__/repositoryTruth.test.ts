@@ -117,6 +117,35 @@ describe('repository truth', () => {
     expect(readRoot('.github/workflows/deploy.yml')).toContain('EXPECTED_BUNDLE_IDENTITY');
   });
 
+  it('requires the live-like WebKit engine and persistent fallback gate in CI', () => {
+    const workflow = readRoot('.github/workflows/test.yml');
+    const gate = readRoot('frontend/apps/web/scripts/verify-webkit-engine.mjs');
+    const frontendPackage = readRoot('frontend/package.json');
+
+    expect(workflow).toContain('playwright install --with-deps chromium webkit');
+    expect(frontendPackage).toContain('@edgeproc/browser test:coverage');
+    expect(workflow).toContain(
+      'node scripts/verify-webkit-engine.mjs http://localhost:4200',
+    );
+    expect(gate).toContain('webkit.launch({ headless: true })');
+    expect(gate).toContain("u.includes('/bundle/latest')");
+    expect(gate).toContain("'edgeproc-browser-cache'");
+    expect(gate).toContain("'force-indexeddb-engine-cache'");
+    expect(gate).toContain("storage.opfs === 'forced-unavailable'");
+    expect(gate).toContain("storage.selectedCache === 'indexeddb'");
+    expect(gate).toContain("context.route('**/bundle/**'");
+    const provider = readRoot(
+      'frontend/apps/web/src/providers/AlmaMeshRuntimeProvider.tsx',
+    );
+    expect(provider).toContain(
+      "if (typeof window !== 'undefined' && EXIT_GATE_HOOKS)",
+    );
+    const worker = readRoot(
+      'frontend/packages/edgeproc-browser/src/engine/worker.ts',
+    );
+    expect(worker).toContain('withCacheLock(() => handleReadFileUnlocked(req))');
+  });
+
   it('keeps the production private key outside the checkout and shreds it after deploy', () => {
     const build = readRoot('frontend/apps/web/scripts/build-prod.sh');
     const workflow = readRoot('.github/workflows/deploy.yml');

@@ -3,7 +3,9 @@
 **TL;DR:** AlmaMesh is a Vedic astrology app with **no server**. The Python
 chart engine — the same `almamesh` package you can run on your laptop — runs
 *inside the browser tab* under Pyodide (Python compiled to WebAssembly), fed by
-an ed25519-signed, content-addressed bundle cached in OPFS. The network carries
+an ed25519-signed, content-addressed bundle cached in durable browser storage.
+OPFS is the fast path; IndexedDB is the persistent fallback when a browser
+exposes OPFS but cannot open it. The network carries
 delivery metadata and the explicitly disclosed city-search/optional-AI flows;
 birth details and computed charts are not sent by the engine or geocoder.
 
@@ -15,7 +17,16 @@ standard, this repo is the exemplar for the "Pyodide app engine" pattern
 
 ## The delivery + compute flow
 
-![Signed bundle → OPFS → Pyodide engine](assets/delivery-flow.svg)
+![Signed bundle → OPFS primary path → Pyodide engine](assets/delivery-flow.svg)
+
+The diagram shows the primary OPFS path. IndexedDB implements the same cache
+contract when OPFS cannot open and always retains the shared monotonic release
+floor, so switching storage backends cannot accept an older signed bundle. That
+small IndexedDB control plane is required even on the OPFS fast path; serialized
+reads and syncs ensure pruning cannot invalidate an in-flight reader. Successful
+syncs prune its content to the active release when Web Locks are available;
+otherwise pruning is skipped. Quota failures keep serving the last authenticated
+complete release.
 
 *Diagram source: [assets/delivery-flow.d2](assets/delivery-flow.d2) (d2, the
 house diagram format).*
@@ -28,8 +39,9 @@ house diagram format).*
 2. **Delivery** — the bundle is static files on Cloudflare Pages. One-way:
    nothing ever flows back.
 3. **In the tab** — `@almamesh/browser` verifies the signature (fail-closed:
-   a bad signature raises, never downgrades), syncs chunks into **OPFS** (the
-   browser's private on-disk storage), and boots the **unchanged wheel** under
+   a bad signature raises, never downgrades), syncs chunks into a private,
+   durable content-addressed cache (**OPFS**, or **IndexedDB** when OPFS cannot
+   open), and boots the **unchanged wheel** under
    Pyodide in a Web Worker. Charts compute off the UI thread, byte-identical
    to CPython — `apps/web/scripts/verify-browser-parity.mjs` enforces that
    identity in CI by driving the real Worker in headless Chromium and

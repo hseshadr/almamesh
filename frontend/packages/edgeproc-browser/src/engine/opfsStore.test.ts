@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { parseStoredPointer } from "./activePointer";
 import { canPromotePointer, selectHighestPointer } from "./opfsStore";
 import type { VersionPointer } from "./types";
 
@@ -23,5 +24,20 @@ describe("durable OPFS active pointer selection", () => {
 		expect(canPromotePointer(current, pointer(6))).toBe(false);
 		expect(canPromotePointer(current, pointer(7, "b".repeat(64)))).toBe(false);
 		expect(canPromotePointer(current, pointer(8))).toBe(true);
+	});
+
+	it("rejects a high-sequence pointer whose signed identity is incomplete", () => {
+		expect(parseStoredPointer({ sequence: 11 })).toBeNull();
+		expect(parseStoredPointer(pointer(10))).toEqual(pointer(10));
+	});
+
+	it("obeys monotonic ordering across the bounded sequence domain", () => {
+		for (let current = 0; current <= 32; current += 1) {
+			for (let incoming = 0; incoming <= 32; incoming += 1) {
+				expect(canPromotePointer(pointer(current), pointer(incoming))).toBe(
+					incoming >= current,
+				);
+			}
+		}
 	});
 });

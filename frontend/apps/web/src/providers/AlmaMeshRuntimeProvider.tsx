@@ -105,6 +105,17 @@ export async function clearStaleEngineCaches(): Promise<void> {
 const EXIT_GATE_HOOKS =
   import.meta.env.DEV || import.meta.env.VITE_EXIT_GATE_HOOKS === '1'
 
+if (typeof window !== 'undefined' && EXIT_GATE_HOOKS) {
+  const forceIndexedDb = new URL(window.location.href).searchParams.has(
+    'force-indexeddb-engine-cache',
+  )
+  ;(
+    globalThis as typeof globalThis & {
+      __EDGEPROC_FORCE_INDEXEDDB_CACHE__?: boolean
+    }
+  ).__EDGEPROC_FORCE_INDEXEDDB_CACHE__ = forceIndexedDb
+}
+
 /**
  * The minimal runtime surface the provider drives. `AlmaMeshRuntime` satisfies
  * it; tests inject a fake so the retry orchestration can be exercised without

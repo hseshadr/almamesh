@@ -1,18 +1,25 @@
 # @edgeproc/browser
 
 **The in-browser tier of edge-proc.** Sync a signed, content-addressed catalog
-bundle into OPFS (ed25519 + sha256, fail-closed), reassemble its index files,
+bundle into durable browser storage (OPFS primary, IndexedDB fallback; ed25519
+and sha256, fail-closed), reassemble its index files,
 and run the full hybrid-search + session-aware reranker — BM25 ⊕ vector → RRF →
 rerank — entirely in the tab. No application backend in the request path.
+IndexedDB also coordinates the monotonic release floor while OPFS is primary,
+so a transient backend switch cannot reset rollback protection. It is therefore
+a required control-plane store, not an optional copy; successful serialized
+reads and syncs retain only the active release when Web Locks are available.
+Without Web Locks, pruning is skipped so an older tab's reader remains safe.
+Quota failures keep the last verified release usable.
 
-This is the engine the [Nimbus storefront demo](../../README.md) runs on. It
+This package originated in the
+[EdgeReco Nimbus storefront](https://github.com/hseshadr/edge-reco/tree/main/demo). It
 publishes the same wire format and the same scoring formula as the Python core
-in [`src/edgereco/`](../../../backend/src/edgereco) — the two are top-k parity-tested
+in [`src/edgereco/`](https://github.com/hseshadr/edge-reco/tree/main/src/edgereco) — the two are top-k parity-tested
 against the same committed bundle (see `src/engine/hybridParity.test.ts`).
 
-> **Status:** private pnpm workspace member of `edge-reco`. Not published to npm.
-> Reusable by other workspace packages today; a public release will follow once
-> the package surface stabilizes.
+> **Status:** vendored private workspace package, not published to npm. AlmaMesh
+> uses its signed-bundle cache; EdgeReco uses its complete search pipeline.
 
 ## TL;DR
 
@@ -20,7 +27,7 @@ against the same committed bundle (see `src/engine/hybridParity.test.ts`).
 import { EngineRuntime, configFromEnv } from "@edgeproc/browser";
 
 // In your SPA: spin up the sync + embedder Workers, pull and verify the signed
-// bundle into OPFS, load the embedding model. Resolves with a SearchEngine.
+// bundle into durable browser storage, load the embedding model.
 const runtime = new EngineRuntime();
 const engine = await runtime.bootstrap(configFromEnv(), (stage) => {
 	console.log("boot stage:", stage.kind); // syncing | reassembling | loading-model | ready
@@ -56,7 +63,7 @@ SPA tab
 ├── EngineRuntime.bootstrap(config)
 │     ├── sync Worker   (worker.ts)
 │     │     └── pull /latest -> verify ed25519 -> fetch chunks ->
-│     │         verify sha256 -> reassemble files into OPFS
+│     │         verify sha256 -> durable cache (OPFS; IndexedDB fallback)
 │     └── embedder Worker (embedderWorker.ts)
 │           └── load Xenova/all-MiniLM-L6-v2 (~25 MB) -> ONNX session
 └── SearchEngine
@@ -67,8 +74,8 @@ SPA tab
 
 Both Workers are lazy: the model is fetched only on the first `embed()`; the
 bundle is fetched only on the first `bootstrap()`. After the first run the
-bundle lives in OPFS and the model lives in the HTTP cache, so reloads are
-near-instant and offline-capable.
+bundle lives in a durable content-addressed cache and the model lives in the
+HTTP cache, so reloads are near-instant and offline-capable.
 
 ## Package layout
 

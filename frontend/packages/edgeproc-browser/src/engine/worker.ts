@@ -1,12 +1,17 @@
-// The sync engine's Worker entry. It owns the OPFS store (sync access handles
-// are Worker-only) and the engine; the main thread drives it over postMessage.
+// The sync engine's Worker entry. It owns the durable cache (OPFS primary,
+// IndexedDB fallback) and the engine; the main thread drives it over postMessage.
 // One concern: route a request to the engine, reply with a typed envelope.
 
 /// <reference lib="webworker" />
 
 import { verifyEd25519 } from "./crypto";
+import { runWithCacheLock } from "./cacheLock";
 import { fetchBytes } from "./fetchBytes";
-import { OpfsCacheStore } from "./opfsStore";
+import {
+	openPersistentCacheStore,
+	requestPersistentStorage,
+	type PersistentCacheStore,
+} from "./persistentStore";
 import type {
 	EngineRequest,
 	EngineResponse,
@@ -14,45 +19,66 @@ import type {
 	SyncRequest,
 } from "./protocol";
 import { materializeFile, syncIndex } from "./sync";
-import type { IndexManifest, VersionPointer } from "./types";
+import type {
+	IndexManifest,
+	SyncResult,
+	VersionPointer,
+} from "./types";
 
 const DECODER = new TextDecoder();
 
-let storePromise: Promise<OpfsCacheStore> | null = null;
-let activeManifest: IndexManifest | null = null;
+let storePromise: Promise<PersistentCacheStore> | null = null;
 
-function store(): Promise<OpfsCacheStore> {
+function store(forceIndexedDb = false): Promise<PersistentCacheStore> {
 	if (storePromise === null) {
-		storePromise = OpfsCacheStore.open();
+		storePromise = openPersistentCacheStore(undefined, forceIndexedDb);
 	}
 	return storePromise;
 }
+
+const withCacheLock = <T>(operation: () => Promise<T>): Promise<T> =>
+	runWithCacheLock(navigator.locks, operation);
 
 async function loadPubkey(pubkeyUrl: string): Promise<Uint8Array> {
 	return fetchBytes(pubkeyUrl);
 }
 
 async function handleSync(req: SyncRequest): Promise<EngineResponse> {
-	void navigator.storage.persist?.().catch(() => false); // best-effort, never blocks
-	const cacheStore = await store();
+	requestPersistentStorage(navigator.storage); // best-effort, never blocks
+	const cacheStore = await store(req.forceIndexedDbCache === true);
 	const pubkey = await loadPubkey(req.pubkeyUrl);
-	const result = await syncIndex({
-		baseUrl: req.baseUrl,
-		store: cacheStore,
-		fetchBytes,
-		verify: (message, signature) => verifyEd25519(pubkey, message, signature),
-		expectedBundleId: req.expectedBundleId,
-		expectedChannel: req.expectedChannel,
-	});
-	const raw = await cacheStore.getManifest(result.manifestHash);
-	activeManifest = JSON.parse(DECODER.decode(raw)) as IndexManifest;
-	return { ok: true, id: req.id, kind: "sync", result };
+	const sync = async (prune: boolean): Promise<SyncResult> => {
+		const result = await syncIndex({
+			baseUrl: req.baseUrl,
+			store: cacheStore,
+			fetchBytes,
+			verify: (message, signature) => verifyEd25519(pubkey, message, signature),
+			expectedBundleId: req.expectedBundleId,
+			expectedChannel: req.expectedChannel,
+		});
+		if (prune) await cacheStore.pruneInactive().catch(() => undefined);
+		return result;
+	};
+	const result = await withCacheLock(() => sync(navigator.locks !== undefined));
+	return {
+		ok: true,
+		id: req.id,
+		kind: "sync",
+		result,
+		cacheBackend: cacheStore.cacheBackend,
+	};
 }
 
-async function handleReadFile(req: ReadFileRequest): Promise<EngineResponse> {
-	const manifest = activeManifest ?? (await loadActiveManifest());
+async function handleReadFileUnlocked(
+	req: ReadFileRequest,
+): Promise<EngineResponse> {
+	const manifest = await loadActiveManifest();
 	const bytes = await materializeFile(await store(), manifest, req.path);
 	return { ok: true, id: req.id, kind: "readFile", bytes };
+}
+
+function handleReadFile(req: ReadFileRequest): Promise<EngineResponse> {
+	return withCacheLock(() => handleReadFileUnlocked(req));
 }
 
 async function loadActiveManifest(): Promise<IndexManifest> {
@@ -63,7 +89,6 @@ async function loadActiveManifest(): Promise<IndexManifest> {
 	}
 	const raw = await cacheStore.getManifest(active.manifest_hash);
 	const manifest = JSON.parse(DECODER.decode(raw)) as IndexManifest;
-	activeManifest = manifest;
 	return manifest;
 }
 

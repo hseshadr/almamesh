@@ -183,7 +183,7 @@ Verify live bundles against the live `/public.key`.
 ## Architecture
 
 Deeper dives: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) (the signed-bundle →
-OPFS → Pyodide flow, with the d2 diagram) and
+durable browser cache → Pyodide flow, with the d2 diagram) and
 [docs/QUICKSTART.md](docs/QUICKSTART.md) (`make demo` to a rendered chart).
 
 ```
@@ -193,7 +193,8 @@ Browser (the product) ─ installable PWA, offline after first load
 │    └─ birthplace search        Open-Meteo first, bundled city fallback
 │
 ├─ frontend/packages/browser     the in-browser engine
-│    ├─ edge-proc bundle sync ──▶ verifies ed25519 + sha256, materializes into OPFS
+│    ├─ edge-proc bundle sync ──▶ verifies ed25519 + sha256
+│    │                              OPFS primary; IndexedDB fallback + shared rollback floor
 │    └─ Pyodide Web Worker  ────▶ boots the UNCHANGED almamesh wheel, computes the chart
 │         │  emits SiderealChart (TS mirror of the Python SiderealContext)
 │         ▼

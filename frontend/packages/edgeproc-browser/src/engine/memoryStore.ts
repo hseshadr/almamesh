@@ -69,4 +69,21 @@ export class MemoryCacheStore implements CacheStore {
 		this.#active = pointer;
 		return Promise.resolve();
 	}
+
+	public clearActiveIf(expected: VersionPointer): Promise<boolean> {
+		if (!samePointer(this.#active, expected)) return Promise.resolve(false);
+		this.#active = null;
+		return Promise.resolve(true);
+	}
+
+	public pruneInactive(): Promise<void> {
+		return Promise.resolve();
+	}
+}
+
+function samePointer(
+	left: VersionPointer | null,
+	right: VersionPointer,
+): boolean {
+	return left !== null && JSON.stringify(left) === JSON.stringify(right);
 }

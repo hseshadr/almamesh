@@ -2,7 +2,8 @@
 
 This directory is a **vendored copy** of the `@edgeproc/browser` package from the
 (public) `edge-reco` repository. It is the in-browser edge-proc tier AlmaMesh
-reuses for **signed-bundle sync into OPFS** (ed25519 + sha256, fail-closed). It
+reuses for **signed-bundle sync into durable browser storage** (OPFS primary,
+IndexedDB fallback; ed25519 + sha256, fail-closed). It
 was vendored so a fresh clone of this repo builds with `bun install` alone — no
 sibling checkout, no extra credentials.
 
@@ -12,8 +13,8 @@ sibling checkout, no extra credentials.
 | Source path | `frontend/packages/edgeproc-browser/` |
 | Base vendored commit | `2471b0b0c6bc2f1ce84aceb34754f33f98f13a56` (main; includes PR #26 + `0da71f5` fail-closed bundle validation) |
 | Vendored on | 2026-07-11 |
-| AlmaMesh security refresh | 2026-07-15 (downstream adaptations below; covered by the vendored package gate) |
-| License | Apache-2.0 (see `LICENSE` + `NOTICE` in this directory, copied verbatim from the edge-reco repo root) |
+| AlmaMesh security refresh | 2026-08-12 (downstream adaptations below; covered by the vendored package gate) |
+| License | MIT (see `LICENSE` + `NOTICE` in this directory, copied verbatim from the edge-reco repo root) |
 
 ## What was copied / what wasn't
 
@@ -22,14 +23,14 @@ sibling checkout, no extra credentials.
   `tsconfig.json`, `vite.config.ts`, `biome.json`, `README.md`, `.gitignore`.
   The exact downstream security changes since that copy are enumerated below.
 - **Not copied:** git history, `node_modules/`, `*.tsbuildinfo`.
-- **Added here (not upstream):** `LICENSE`, `NOTICE` (from the edge-reco repo
-  root, required to travel with an Apache-2.0 redistribution), and this file.
+- **Added here (not upstream):** `LICENSE`, `NOTICE` (the upstream MIT license
+  and attribution notice from the edge-reco repo root), and this file.
 
 ## Local adaptations (the only diffs from the base commit)
 
 1. `package.json`: removed the `"lint": "biome check ."` script and the
    `@biomejs/biome` devDependency. Vitest and its V8 coverage provider are
-   pinned to the same exact `4.0.16` release so coverage never runs across an
+   pinned to the same exact `4.1.0` release so coverage never runs across an
    unsupported mixed-version pair. Vendored code keeps **upstream style**
    (Biome, tab indentation — `biome.json` is retained for reference); it is
    deliberately **not** covered by this repo's ESLint. `typecheck`, `test`, and
@@ -64,11 +65,18 @@ sibling checkout, no extra credentials.
 6. `vite.config.ts` enforces at least 90% statements, branches, functions, and
    lines on the unit-tested core. Boundary modules remain assigned to real-
    browser Playwright lanes as documented in the config.
+7. WebKit may expose OPFS but fail when opening it. `persistentStore.ts` keeps
+   OPFS as the fast path and mirrors verified content into an IndexedDB fallback
+   with one shared monotonic floor. Signed pointers authenticate before rollback
+   comparison; compare-and-delete recovery cannot erase a racing newer release;
+   serialized syncs and reads keep pruning from invalidating an older tab;
+   quota failures retain the last complete authenticated release. The required
+   iPhone-WebKit CI gate deterministically forces and reloads this fallback with
+   bundle traffic blocked.
 
 Do not add an unrecorded local diff. Every necessary downstream change belongs
-in the numbered list above with a regression test. Upstream's `README.md`
-relative links (`../../README.md`, `../../../src/edgereco`) still refer to the
-edge-reco repo layout, not this one.
+in the numbered list above with a regression test. README links to EdgeReco use
+absolute GitHub URLs so they remain valid in this downstream layout.
 
 ## Notes for running its test suite
 

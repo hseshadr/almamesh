@@ -1,6 +1,6 @@
 import { Zstd } from "@hpcc-js/wasm-zstd";
 import { describe, expect, it } from "vitest";
-import { sha256Hex } from "./crypto";
+import { sha256Hex, SignatureError } from "./crypto";
 import { NetworkError } from "./fetchBytes";
 import { IntegrityError } from "./integrity";
 import { MemoryCacheStore } from "./memoryStore";
@@ -92,6 +92,91 @@ function emptyFile(path = "empty.bin") {
 }
 
 describe("signed monotonic pointer contract", () => {
+	it("quarantines an unauthenticated cached floor before rollback comparison", async () => {
+		const origin = await originFor(emptyManifest(), new Map(), 100);
+		const store = new MemoryCacheStore();
+		await store.promote({
+			...origin.pointer,
+			sequence: Number.MAX_SAFE_INTEGER,
+			signature: "forged-cache-signature",
+		});
+		const verify: Verify = (_message, signature) =>
+			signature === origin.pointer.signature
+				? Promise.resolve()
+				: Promise.reject(new SignatureError("bad signature"));
+
+		await expect(
+			syncIndex({ baseUrl: "/o", store, ...origin, verify }),
+		).resolves.toMatchObject({ version: origin.pointer.version });
+		expect(await store.readActive()).toEqual(origin.pointer);
+	});
+
+	it("does not erase active state for an unrelated verifier failure", async () => {
+		const origin = await originFor(emptyManifest(), new Map(), 1);
+		const store = new MemoryCacheStore();
+		await store.promote(origin.pointer);
+		const verify: Verify = () => Promise.reject(new Error("crypto unavailable"));
+
+		await expect(
+			syncIndex({ baseUrl: "/o", store, ...origin, verify }),
+		).rejects.toThrow("crypto unavailable");
+		expect(await store.readActive()).toEqual(origin.pointer);
+	});
+
+	it("does not clear a newer promotion while quarantining a stale forged floor", async () => {
+		const origin = await originFor(emptyManifest(), new Map(), 100);
+		const store = new MemoryCacheStore();
+		const forged = {
+			...origin.pointer,
+			sequence: Number.MAX_SAFE_INTEGER,
+			signature: "forged-cache-signature",
+		};
+		await store.promote(forged);
+		let rejectForged: ((error: Error) => void) | undefined;
+		let forgedStarted: (() => void) | undefined;
+		const started = new Promise<void>((resolve) => {
+			forgedStarted = resolve;
+		});
+		const forgedCheck = new Promise<void>((_resolve, reject) => {
+			rejectForged = reject;
+		});
+		const verify: Verify = (_message, signature) => {
+			if (signature !== forged.signature) return Promise.resolve();
+			forgedStarted?.();
+			return forgedCheck;
+		};
+		const syncing = syncIndex({ baseUrl: "/o", store, ...origin, verify });
+		const rejected = expect(syncing).rejects.toBeInstanceOf(RollbackError);
+		await started;
+		const newer = { ...origin.pointer, sequence: 200 };
+		await store.promote(newer);
+		rejectForged?.(new SignatureError("bad signature"));
+
+		await rejected;
+		expect(await store.readActive()).toEqual(newer);
+	});
+
+	it("keeps serving the authenticated active release when an update hits quota", async () => {
+		const store = new MemoryCacheStore();
+		const first = await originFor(emptyManifest({ version: "v1" }), new Map(), 1);
+		await syncIndex({ baseUrl: "/o", store, ...first, verify: passVerify });
+		const second = await originFor(emptyManifest({ version: "v2" }), new Map(), 2);
+		const originalPut = store.putManifest.bind(store);
+		let rejected = false;
+		store.putManifest = (bytes) => {
+			if (!rejected) {
+				rejected = true;
+				return Promise.reject(new DOMException("full", "QuotaExceededError"));
+			}
+			return originalPut(bytes);
+		};
+
+		await expect(
+			syncIndex({ baseUrl: "/o", store, ...second, verify: passVerify }),
+		).resolves.toMatchObject({ version: "v1", chunksFetched: 0 });
+		expect((await store.readActive())?.version).toBe("v1");
+	});
+
 	it.each([
 		["null pointer", null],
 		["invalid manifest hash", { manifest_hash: "not-a-hash" }],
