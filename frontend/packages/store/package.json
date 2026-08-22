@@ -22,10 +22,10 @@
     "@almamesh/constants": "workspace:*",
     "@almamesh/llm": "workspace:*",
     "@almamesh/shared-types": "workspace:*",
-    "dayjs": "^1.11.21",
+    "dayjs": "^1.11.23",
     "idb-keyval": "^6.3.0",
     "mitt": "^3.0.1",
-    "zustand": "^5.0.14"
+    "zustand": "^5.0.15"
   },
   "peerDependencies": {
     "@react-native-async-storage/async-storage": ">=1.23.0"
@@ -37,7 +37,7 @@
   },
   "devDependencies": {
     "fake-indexeddb": "^6.2.5",
-    "typescript": "~5.7.3",
-    "vitest": "^4.1.10"
+    "typescript": "~7.0.2",
+    "vitest": "^4.1.11"
   }
 }
