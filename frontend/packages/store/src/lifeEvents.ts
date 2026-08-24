@@ -18,6 +18,7 @@ import type { EventDatePrecision, LifeEventCategory } from '@almamesh/shared-typ
 import { create, type StateCreator } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { deletionAwareIdbStorage } from './deletionTombstones';
+import { whenHydrated } from './hydrationBarrier';
 
 /** A persisted life-event note belonging to one profile. */
 export interface LifeEvent {
@@ -358,14 +359,5 @@ export const useLifeEventsStore = create<LifeEventsStore>()(
  * the persisted truth (avoids the async-rehydrate false-empty race).
  */
 export function whenLifeEventsHydrated(): Promise<void> {
-  const { persist: persistApi } = useLifeEventsStore;
-  if (!persistApi?.hasHydrated || persistApi.hasHydrated()) {
-    return Promise.resolve();
-  }
-  return new Promise<void>((resolve) => {
-    const unsubscribe = persistApi.onFinishHydration(() => {
-      unsubscribe?.();
-      resolve();
-    });
-  });
+  return whenHydrated(useLifeEventsStore.persist);
 }

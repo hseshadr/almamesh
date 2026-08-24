@@ -32,6 +32,7 @@ import {
   toVargaCtx,
 } from './adapters/predictive';
 import { deletionAwareIdbStorage } from './deletionTombstones';
+import { whenHydrated } from './hydrationBarrier';
 
 export type PredictiveStatus = 'idle' | 'loading' | 'ready' | 'error';
 
@@ -357,14 +358,5 @@ export const usePredictiveStore = create<PredictiveStore>()(
 
 /** Resolve once the persisted predictive cache has finished IndexedDB hydration. */
 export function whenPredictiveHydrated(): Promise<void> {
-  const { persist: persistApi } = usePredictiveStore;
-  if (!persistApi?.hasHydrated || persistApi.hasHydrated()) {
-    return Promise.resolve();
-  }
-  return new Promise<void>((resolve) => {
-    const unsubscribe = persistApi.onFinishHydration(() => {
-      unsubscribe?.();
-      resolve();
-    });
-  });
+  return whenHydrated(usePredictiveStore.persist);
 }

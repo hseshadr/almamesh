@@ -14,6 +14,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import type { ChartData } from '@almamesh/shared-types';
 import type { SiderealChart } from '@almamesh/browser/types';
 import { deletionAwareIdbStorage } from './deletionTombstones';
+import { whenHydrated } from './hydrationBarrier';
 
 /** A chart as held on-device: the rendered shape plus its identity + primacy. */
 export interface StoredChart extends ChartData {
@@ -258,17 +259,7 @@ export const useChartLibraryStore = create<ChartLibraryStore>()(
  * persist internals.
  */
 export function whenChartLibraryHydrated(): Promise<void> {
-  const { persist: persistApi } = useChartLibraryStore;
-  // Defensive: if the persist API or its hooks are absent, treat as hydrated.
-  if (!persistApi?.hasHydrated || persistApi.hasHydrated()) {
-    return Promise.resolve();
-  }
-  return new Promise<void>((resolve) => {
-    const unsubscribe = persistApi.onFinishHydration(() => {
-      unsubscribe?.();
-      resolve();
-    });
-  });
+  return whenHydrated(useChartLibraryStore.persist);
 }
 
 /**

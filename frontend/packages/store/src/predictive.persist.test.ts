@@ -310,6 +310,30 @@ describe("usePredictiveStore persistence", () => {
       onFinishHydration.mockRestore();
     }
   });
+
+  it("resolves when hydration finishes between its initial check and subscription", async () => {
+    const hasHydrated = vi
+      .spyOn(usePredictiveStore.persist, "hasHydrated")
+      .mockReturnValueOnce(false)
+      .mockReturnValue(true);
+    const onFinishHydration = vi
+      .spyOn(usePredictiveStore.persist, "onFinishHydration")
+      .mockReturnValue(vi.fn());
+
+    try {
+      let settled = false;
+      void predictiveModule.whenPredictiveHydrated().then(() => {
+        settled = true;
+      });
+      await Promise.resolve();
+
+      expect(settled).toBe(true);
+      expect(onFinishHydration).toHaveBeenCalledTimes(1);
+    } finally {
+      hasHydrated.mockRestore();
+      onFinishHydration.mockRestore();
+    }
+  });
 });
 
 // Spec 062 (LLM delta 1): the engine's calculation contexts are persisted

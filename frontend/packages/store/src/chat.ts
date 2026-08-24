@@ -17,6 +17,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 
 import type { ChatMessage, ChatThread } from '@almamesh/shared-types';
 import { deletionAwareIdbStorage } from './deletionTombstones';
+import { whenHydrated } from './hydrationBarrier';
 
 type ChatRole = ChatMessage['role'];
 
@@ -295,16 +296,7 @@ export const useChatStore = create<ChatStore>()(
  * that must reflect the persisted truth (avoids the async-rehydrate race).
  */
 export function whenChatHydrated(): Promise<void> {
-  const { persist: persistApi } = useChatStore;
-  if (!persistApi?.hasHydrated || persistApi.hasHydrated()) {
-    return Promise.resolve();
-  }
-  return new Promise<void>((resolve) => {
-    const unsubscribe = persistApi.onFinishHydration(() => {
-      unsubscribe?.();
-      resolve();
-    });
-  });
+  return whenHydrated(useChatStore.persist);
 }
 
 /**
