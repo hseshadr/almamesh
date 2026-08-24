@@ -113,7 +113,7 @@ verifies the candidate's signature; production CI always sets it.
 ### CI variant (auto-deploy after CI, + manual GitHub Action)
 
 `.github/workflows/deploy.yml` does the same thing on ubuntu-latest. It triggers
-**automatically after the "Test" workflow passes on `main`** (deploying the exact
+**automatically after the "Dagger" workflow passes on `main`** (deploying the exact
 commit that passed CI) and also on manual `workflow_dispatch`. It is inert until
 these repo secrets exist — when they are absent the **auto-run skips cleanly**
 (no red X on every push); a **manual run fails fast** at the guard step.

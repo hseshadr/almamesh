@@ -1,6 +1,6 @@
 # Nightly full Playwright lane (ENGINEERING-STANDARDS §4: heavyweight browser
 # suites split into a PR smoke lane + a scheduled nightly full lane — this is
-# the full half; test.yml's e2e-smoke + exit-gate jobs are the PR half).
+# the full half; Dagger's browser + PDF checks are the PR half).
 #
 # Runs ALL 12 flow specs in frontend/apps/web/e2e/. Each playwright config
 # self-builds its production bundle (most with VITE_EXIT_GATE_HOOKS=1; the

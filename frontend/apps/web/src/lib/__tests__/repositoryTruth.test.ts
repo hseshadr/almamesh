@@ -118,17 +118,18 @@ describe('repository truth', () => {
   });
 
   it('requires the live-like WebKit engine and persistent fallback gate in CI', () => {
-    const workflow = readRoot('.github/workflows/test.yml');
+    const workflow = readRoot('dagger/src/index.ts');
     const gate = readRoot('frontend/apps/web/scripts/verify-webkit-engine.mjs');
     const frontendPackage = readRoot('frontend/package.json');
 
-    expect(workflow).toContain('playwright install --with-deps chromium webkit');
+    expect(workflow).toContain('["chromium", "webkit"]');
+    expect(workflow).toContain('"playwright", "install", "--with-deps", ...browsers');
     expect(frontendPackage).toContain('@edgeproc/browser test:coverage');
     expect(workflow).toContain(
-      'node scripts/verify-webkit-engine.mjs http://localhost:4200',
+      'node scripts/verify-webkit-engine.mjs http://127.0.0.1:4200',
     );
     expect(workflow).toContain(
-      'node scripts/verify-webkit-engine.mjs http://localhost:4200 --first-session',
+      'node scripts/verify-webkit-engine.mjs http://127.0.0.1:4200 --first-session',
     );
     expect(gate).toContain('webkit.launch({ headless: true })');
     expect(gate).toContain("u.includes('/bundle/latest')");
@@ -158,7 +159,7 @@ describe('repository truth', () => {
 
   it('keeps ordinary builds keyless while production and engine gates fail closed on trust assets', () => {
     const config = readRoot('frontend/apps/web/vite.config.ts');
-    const testWorkflow = readRoot('.github/workflows/test.yml');
+    const testWorkflow = readRoot('dagger/src/index.ts');
     const deployWorkflow = readRoot('.github/workflows/deploy.yml');
     const productionBuild = readRoot('frontend/apps/web/scripts/build-prod.sh');
 
@@ -167,8 +168,8 @@ describe('repository truth', () => {
     expect(config).toContain("return { name: 'trust-key-config-unconfigured' }");
     expect(config).toMatch(/importScripts:\s*TRUST_KEY_CONFIG === null\s*\? \[\]/);
 
-    const generateAssets = testWorkflow.indexOf('Generate dev assets (Pyodide dist + signed bundle)');
-    const buildExitGate = testWorkflow.indexOf('Build verification bundle (exit-gate hooks)');
+    const generateAssets = testWorkflow.indexOf('["bash", "apps/web/scripts/setup-dev-assets.sh"]');
+    const buildExitGate = testWorkflow.indexOf('private builtBrowser(');
     expect(generateAssets).toBeGreaterThan(-1);
     expect(buildExitGate).toBeGreaterThan(generateAssets);
 

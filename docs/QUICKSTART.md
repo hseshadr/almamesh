@@ -31,9 +31,10 @@ uv run almamesh-chart "1990-01-15T12:00:00+00:00" 40.7128 -74.0060   # a New Yor
 make gate        # backend (ruff, mypy, xenon, pytest+coverage) + frontend (typecheck, lint, unit tests, build)
 ```
 
-CI runs exactly the same two commands — if the gate is green locally, CI agrees.
-The heavyweight Playwright lanes (live exit gate, real-onboarding drives, the
-nightly full suite) are documented in [CLAUDE.md](../CLAUDE.md) under
+`dagger check` composes that dual-stack gate with the browser, PDF, and privacy
+journeys used by CI. The heavyweight Playwright lanes (live exit gate,
+real-onboarding drives, and the nightly full suite) are documented in
+[CLAUDE.md](../CLAUDE.md) under
 "Playwright e2e tiering".
 
 ## More
