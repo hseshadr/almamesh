@@ -326,8 +326,9 @@ See [`CHANGELOG.md`](CHANGELOG.md).
 make gate
 ```
 
-The required CI exit gate then generates the signed browser assets and drives
-the real onboarding, parity, offline, and report-PDF journeys in Chromium.
+The required native Dagger checks generate the signed browser assets and drive
+real onboarding, parity, offline, privacy/reset, Chromium/WebKit, and report-PDF
+journeys. Run the same contract locally or in CI with `dagger check`.
 
 ## License
 

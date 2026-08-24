@@ -34,7 +34,7 @@ export class AlmameshCi {
     return dag
       .container()
       .from(BUN_IMAGE)
-      .withDirectory(ROOT, this.source([".gitignore", ".github/workflows/deploy.yml", ".github/workflows/test.yml", "CHANGELOG.md", "README.md", "SECURITY.md", "backend/offline_wheels/**", "backend/src/**", "backend/tests/**", "docs/**", "frontend/**", "testdata/**"]))
+      .withDirectory(ROOT, this.source([".gitignore", ".github/workflows/dagger.yml", ".github/workflows/deploy.yml", "CHANGELOG.md", "README.md", "SECURITY.md", "backend/offline_wheels/**", "backend/src/**", "backend/tests/**", "dagger/src/index.ts", "docs/**", "frontend/**", "testdata/**"]))
       .withWorkdir(FRONTEND)
       .withEnvVariable("ALMAMESH_CI_CONTRACT", "modern-v13")
       .withEnvVariable("HUSKY", "0")
@@ -188,10 +188,10 @@ export class AlmameshCi {
     return this.preview(built, "dist", 4173)
   }
   @func()
-  nightly(openrouterApiKey: Secret): Container {
-    return this.browserBase(["chromium"])
+  nightly(openrouterApiKey?: Secret): Container {
+    const runner = this.browserBase(["chromium"])
       .withoutMount("/root/.cache/uv").withoutMount("/root/.bun/install/cache").withoutMount("/root/.skyfield-data")
-      .withSecretVariable("OPENROUTER_API_KEY", openrouterApiKey)
+    return (openrouterApiKey ? runner.withSecretVariable("OPENROUTER_API_KEY", openrouterApiKey) : runner)
       .withExec(["node", "scripts/build-sw-update-fixtures.mjs"])
       .withExec(["bun", "run", "test:e2e:sw-update"])
       .withExec(["bun", "run", "test:e2e:ai"])

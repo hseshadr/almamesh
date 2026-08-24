@@ -81,7 +81,7 @@ The rest of this file is the full reference for re-running or auditing the pipel
 ## What you're activating
 
 ```
-push to main ──► "Test" workflow (gates) ──► passes ──► deploy.yml (workflow_run)
+push to main ──► "Dagger" workflow (gates) ──► passes ──► deploy.yml (workflow_run)
                                                           │
                                                   preflight: secrets set?
                                                    ├─ no  → SKIP (main stays green)
@@ -243,7 +243,7 @@ offline". Check, in a browser, at https://almamesh.com :
 
 ## 🔁 Step 7 — Confirm auto-deploy
 
-After Steps 1–5, normal flow takes over: **merge a PR to `main` → "Test" passes →
+After Steps 1–5, normal flow takes over: **merge a PR to `main` → "Dagger" passes →
 `deploy.yml` auto-runs and ships almamesh.com.** Confirm once:
 
 ```bash

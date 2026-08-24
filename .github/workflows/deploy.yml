@@ -1,6 +1,6 @@
 # Deploy https://almamesh.com — Cloudflare Pages (static, local-first PWA).
 #
-# AUTO-DEPLOY: runs automatically after the "Test" workflow passes on `main`
+# AUTO-DEPLOY: runs automatically after the "Dagger" workflow passes on `main`
 # (and on manual workflow_dispatch). It stays INERT until these repository
 # secrets exist — when they are absent the auto-run SKIPS cleanly (no red X);
 # a manual run fails fast at the guard step. Secrets required:
@@ -26,7 +26,7 @@ name: Deploy almamesh.com
 on:
   # Auto-deploy the commit that just passed CI on main.
   workflow_run:
-    workflows: ["Test"]
+    workflows: ["Dagger"]
     types: [completed]
     branches: [main]
   workflow_dispatch:
@@ -158,7 +158,7 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      # Same as test.yml: composite project references need the shared dists
+      # Same as dagger.yml: composite project references need the shared dists
       # present before `tsc -b` in the app build (build-prod.sh runs `bun run
       # build` = `tsc -b && vite build`).
       - name: Build package declarations (forced, dependency order)
