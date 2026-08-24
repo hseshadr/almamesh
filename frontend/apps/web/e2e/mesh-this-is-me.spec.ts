@@ -41,7 +41,7 @@ test('the mesh journey is reachable end-to-end: create yourself, mark "this is m
 
   // 3. Back on the mesh: still the invitation (no anchor yet). Its body says
   //    to mark "this is me" — so it MUST link to where that control lives.
-  await page.goto('/mesh');
+  await page.goBack();
   await expect(page.getByTestId('mesh-invitation')).toBeVisible();
   const manageLink = page.getByTestId('mesh-invitation-manage-link');
   await expect(

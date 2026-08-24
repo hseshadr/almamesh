@@ -31,16 +31,16 @@ import { bootEngine, seedChart, LLM_SETTINGS_KEY } from './interpretation.helper
  */
 
 const OLLAMA_BASE = 'http://localhost:11434/v1';
+const OLLAMA_MODEL = 'gemma3:4b';
 
 /**
- * Probe the local Ollama server BEFORE the test body runs. An opt-in suite must
- * never fail (or hang for minutes) because a local dev server happens to be
- * powered off — unreachable means SKIP, loudly and quickly.
+ * Probe the required local Ollama model BEFORE the test body runs. An opt-in
+ * suite must never hang because the server is running without its test model.
  */
-async function ollamaReachable(): Promise<boolean> {
+async function ollamaModelAvailable(): Promise<boolean> {
   try {
     const res = await fetch(`${OLLAMA_BASE}/models`, { signal: AbortSignal.timeout(3_000) });
-    return res.ok;
+    return res.ok && (await res.text()).includes(`"${OLLAMA_MODEL}"`);
   } catch {
     return false;
   }
@@ -130,8 +130,8 @@ function assertConsoleClean(errors: string[]): void {
 // ===========================================================================
 test('[real] interpretation renders against a live local Ollama model', async ({ page }) => {
   test.skip(
-    !(await ollamaReachable()),
-    `Ollama not reachable at ${OLLAMA_BASE} — start \`ollama serve\` to exercise this opt-in local test`,
+    !(await ollamaModelAvailable()),
+    `${OLLAMA_MODEL} unavailable at ${OLLAMA_BASE} — pull it to exercise this opt-in local test`,
   );
   // Real local inference (5 parallel sections, CPU) is slow — give it room.
   test.setTimeout(600_000);
@@ -143,7 +143,7 @@ test('[real] interpretation renders against a live local Ollama model', async ({
   // an Apple-silicon laptop (the heavier qwen2.5:14b is reliable but too slow).
   const config = JSON.stringify({
     apiBase: OLLAMA_BASE,
-    model: 'gemma3:4b',
+    model: OLLAMA_MODEL,
     privacyMode: 'local_only',
     engine: 'openai-http',
   });
