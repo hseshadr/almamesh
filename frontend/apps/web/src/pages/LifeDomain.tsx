@@ -31,7 +31,7 @@ import {
   WorkingBlock,
 } from '../components/features/predictive/DomainsPanel';
 import { BandBadge } from '../components/features/predictive/PredictiveBadges';
-import { StrengthReceiptPanel } from '../components/features/predictive/StrengthReceiptBadge';
+import { StrengthEvidencePanels } from '../components/features/predictive/StrengthEvidencePanels';
 import { useElapsedSeconds, formatElapsed } from '../hooks/useElapsedSeconds';
 import { usePredictiveLayer, type PredictiveLayer } from '../hooks/usePredictiveLayer';
 import { currentInterpretationForChart } from '../hooks/useStreamingInterpretation';
@@ -128,15 +128,12 @@ function EngineSection({
         <div className="space-y-5">
           <EmphasisBlock forecast={forecast} />
           <WindowsBlock forecast={forecast} maxWindows={12} />
-          {/* On-screen proof the strength band shown for this domain has not been
-              altered since it was sealed — the same tamper-evidence check the PDF
-              export runs silently. Present only when the compute produced a
-              receipt + signer; otherwise the section is unchanged. */}
-          {receipt && signerPublicKey ? (
-            <div data-testid={`domain-receipt-detail-${forecast.domain}`}>
-              <StrengthReceiptPanel receipt={receipt} expectedPublicKey={signerPublicKey} />
-            </div>
-          ) : null}
+          <StrengthEvidencePanels
+            forecast={forecast}
+            receipt={receipt}
+            signerPublicKey={signerPublicKey}
+            showReceiptDetails
+          />
           <Disclosure
             toggleLabel={t('predictive:domains.details_show')}
             toggleLabelOpen={t('predictive:domains.details_hide')}

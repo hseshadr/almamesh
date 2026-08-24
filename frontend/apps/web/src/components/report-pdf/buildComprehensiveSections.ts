@@ -44,6 +44,7 @@ import { paperTint, type StabilityFlagFor } from './buildReportSections';
 import { glyphSafe } from './glyphSafe';
 import type {
   ReportPdfDomains,
+  ReportPdfDomainBlock,
   ReportPdfLabeledValue,
   ReportPdfSectionChrome,
   ReportPdfStrength,
@@ -443,6 +444,68 @@ function domainStrengthAxes(
   })} · ${tp('domains.strength_tier_model')}`;
 }
 
+function exactPct(value: number): string {
+  return `${value.toFixed(2)}%`;
+}
+
+function buildAssayPanel(
+  forecast: LifeDomainForecastData,
+  unverified: boolean,
+  { tr, tp }: ReportPdfTranslators,
+): ReportPdfDomainBlock['assay'] {
+  if (unverified) {
+    return {
+      heading: glyphSafe(tp('domains.assay_heading')),
+      method: glyphSafe(tr('domains.strength_withheld_note')),
+      components: [],
+    };
+  }
+  const assay = forecast.strength_assay;
+  const shadbala = assay?.components.find((component) => component.id === 'shadbala_pct');
+  const sav = assay?.components.find((component) => component.id === 'sav_pct');
+  const selected = assay?.components.find(
+    (component) => component.id === assay.selected_component_id,
+  );
+  if (!assay || !shadbala || !sav || !selected) {
+    return {
+      heading: glyphSafe(tp('domains.assay_heading')),
+      method: glyphSafe(tp('domains.assay_unavailable')),
+      components: [],
+    };
+  }
+  return {
+    heading: glyphSafe(tp('domains.assay_heading')),
+    method: glyphSafe(tp('domains.assay_method')),
+    components: [
+      { label: glyphSafe(tp('domains.assay_shadbala')), value: exactPct(shadbala.raw) },
+      { label: glyphSafe(tp('domains.assay_sav')), value: exactPct(sav.raw) },
+      { label: glyphSafe(tp('domains.assay_result')), value: exactPct(selected.raw) },
+    ],
+  };
+}
+
+function avowStatus(
+  domain: string,
+  provenance: StrengthProvenance | undefined,
+): 'verified' | 'failed' | 'unavailable' {
+  if (provenance?.verified.has(domain)) return 'verified';
+  if (provenance?.failed.includes(domain)) return 'failed';
+  return 'unavailable';
+}
+
+function buildAvowPanel(
+  domain: string,
+  provenance: StrengthProvenance | undefined,
+  tp: TFunction,
+): ReportPdfDomainBlock['avow'] {
+  const status = avowStatus(domain, provenance);
+  return {
+    heading: glyphSafe(tp('domains.avow_heading')),
+    status: glyphSafe(tp(`domains.avow_status.${status}`)),
+    scope: glyphSafe(tp('domains.avow_scope')),
+  };
+}
+
 /**
  * Reshape the engine DomainsCtx into the seven pre-formatted domain blocks.
  *
@@ -474,6 +537,8 @@ export function buildDomainsSection(
           bindus: strength.sav_bindus,
         }),
       ),
+      assay: buildAssayPanel(forecast, unverified, translators),
+      avow: buildAvowPanel(domain, provenance, tp),
       emphasisLine: glyphSafe(emphasisLine(forecast, tp)),
       windowsLabel: glyphSafe(tr('domains.windows_heading')),
       windows: forecast.upcoming_windows.map((window) =>

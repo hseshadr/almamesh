@@ -15,6 +15,7 @@ import type {
   PlanetShadbalaData,
   SthanaBalaData,
   StrengthCtx,
+  StrengthAssayData,
   TransitCtx,
   VargaChartFullData,
   VargaCtxFull,
@@ -260,7 +261,38 @@ export const ALL_DOMAINS: readonly LifeDomain[] = [
   'family',
 ];
 
+function strengthAssay(shadbalaPct: number, savPct: number): StrengthAssayData {
+  const selectedId = shadbalaPct <= savPct ? 'shadbala_pct' : 'sav_pct';
+  const component = (id: string, raw: number): StrengthAssayData['components'][number] => ({
+    id,
+    raw,
+    normalized: raw / 100,
+    declared_weight: null,
+    operation: 'add',
+    coefficient: 1,
+    contribution: raw / 100,
+    contribution_interval: null,
+  });
+  return {
+    schema: 'assay.result/v1',
+    method: { id: 'minimum', version: 'almamesh.domain-strength.v1' },
+    score: Math.min(shadbalaPct, savPct) / 100,
+    interval: null,
+    clamp: 'reject',
+    intercept: null,
+    weight_total: null,
+    components: [
+      component('shadbala_pct', shadbalaPct),
+      component('sav_pct', savPct),
+    ],
+    inputs_hash: 'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+    selected_component_id: selectedId,
+  };
+}
+
 function forecast(domain: LifeDomain): LifeDomainForecastData {
+  const shadbalaPct = domain === 'health' ? 38.0 : 82.5;
+  const savPct = domain === 'health' ? 30.0 : 53.57;
   return {
     domain,
     houses: [
@@ -300,13 +332,14 @@ function forecast(domain: LifeDomain): LifeDomainForecastData {
       key_graha_meets_minimum: true,
       sav_bindus: 30,
       band: domain === 'health' ? 'weak' : 'strong',
-      shadbala_pct: domain === 'health' ? 38.0 : 82.5,
-      sav_pct: domain === 'health' ? 30.0 : 53.57,
-      strength_pct: domain === 'health' ? 30.0 : 53.57,
+      shadbala_pct: shadbalaPct,
+      sav_pct: savPct,
+      strength_pct: Math.min(shadbalaPct, savPct),
       strength_tier: 'model',
       approximated: domain === 'career',
       note: 'strength summary',
     },
+    strength_assay: strengthAssay(shadbalaPct, savPct),
     current_emphasis: {
       active_dasha_significator: domain === 'career',
       dasha_levels: domain === 'career' ? ['maha', 'antar'] : [],

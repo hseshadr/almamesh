@@ -37,12 +37,13 @@ import {
   useLanguageStore,
   usePredictiveStore,
   predictiveRequestKey,
+  type CachedPredictiveContexts,
   type InterpretationErrorKind,
   type InterpretationInputProvenance,
   type InterpretationStatus,
 } from '@almamesh/store';
 import { safeError } from '@almamesh/shared-types';
-import type { PredictiveContexts, SiderealChart } from '@almamesh/browser/types';
+import type { SiderealChart } from '@almamesh/browser/types';
 import type { ProcessedBirthData, VedicInterpretation } from '@almamesh/shared-types';
 
 import { chatErrorMessage, classifyConnectionError } from '../lib/errors';
@@ -151,7 +152,7 @@ interface NarrationInput {
 }
 
 interface CurrentPredictiveFacts {
-  readonly rawContexts: PredictiveContexts;
+  readonly rawContexts: CachedPredictiveContexts;
   readonly requestKey: string;
 }
 

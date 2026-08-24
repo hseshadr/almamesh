@@ -35,6 +35,15 @@ import { deletionAwareIdbStorage } from './deletionTombstones';
 
 export type PredictiveStatus = 'idle' | 'loading' | 'ready' | 'error';
 
+type WorkerResultKeys =
+  | 'domain_strength_assays'
+  | 'domain_strength_receipts'
+  | 'strength_signer_public_key';
+
+/** A cached result keeps calculations; its current-boot proof fields may be absent. */
+export type CachedPredictiveContexts = Omit<PredictiveContexts, WorkerResultKeys> &
+  Partial<Pick<PredictiveContexts, WorkerResultKeys>>;
+
 /**
  * What the store needs from the runtime: the ready engine surface. The
  * `ChartEngine` returned by `AlmaMeshRuntime.bootstrap()` / `.engine()`
@@ -63,15 +72,16 @@ export interface PredictiveStore {
   strengthCtx?: StrengthCtx;
   domainsCtx?: DomainsCtx;
   /**
-   * The RAW engine contexts exactly as `computePredictive` returned them
-   * (Spec 062, LLM delta 1). Kept alongside the UI reshape so the optional
+   * The raw calculation contexts from `computePredictive` (Spec 062, LLM delta
+   * 1). Kept alongside the UI reshape so the optional
    * LLM layer can compose `transit_context`/`strength_context`/
    * `varga_context_full`/`domains_context` back onto the chart before the
    * `@almamesh/llm` sanitizer reduces them to month precision. Stays entirely
    * on-device; absent on pre-v2 persisted blobs (features then degrade
-   * gracefully to natal-only narration).
+   * gracefully to natal-only narration). Same-boot proof is present on a live
+   * result but deliberately removed from the persisted cache.
    */
-  rawContexts?: PredictiveContexts;
+  rawContexts?: CachedPredictiveContexts;
   /** The profile the loaded/loading contexts belong to. */
   profileKey?: string;
   /** Internal idempotency key over profile, natal birth input, and reference instant. */
@@ -125,8 +135,9 @@ export function predictiveRequestKey(input: EnsurePredictiveInput): string {
 /**
  * Bump when the persisted predictive shape changes; always pair with `migrate`.
  * v1 → v2 (Spec 062, LLM delta 1): added the OPTIONAL `rawContexts` slice.
+ * v2 → v3: expired receipts and signer keys that belonged to a prior Worker boot.
  */
-export const PREDICTIVE_PERSIST_VERSION = 2;
+export const PREDICTIVE_PERSIST_VERSION = 3;
 
 /** The single IndexedDB key holding the persisted predictive slice. */
 export const PREDICTIVE_PERSIST_NAME = 'almamesh-predictive';
@@ -143,8 +154,8 @@ export interface PersistedPredictiveState {
   vargaCtxFull?: VargaCtxFull;
   strengthCtx?: StrengthCtx;
   domainsCtx?: DomainsCtx;
-  /** Raw engine contexts (v2+); optional so a v1 blob hydrates gracefully. */
-  rawContexts?: PredictiveContexts;
+  /** Cached calculations (v2+); per-boot receipts/signer are never durable. */
+  rawContexts?: CachedPredictiveContexts;
   profileKey?: string;
   requestKey?: string;
 }
@@ -162,6 +173,19 @@ function isPlainRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
+/** Keep cached calculations, but never carry per-Worker-boot proof across reloads. */
+function withoutBootProof(
+  raw: CachedPredictiveContexts | undefined,
+): CachedPredictiveContexts | undefined {
+  if (!raw) return undefined;
+  const {
+    domain_strength_receipts: _receipts,
+    strength_signer_public_key: _signer,
+    ...calculations
+  } = raw;
+  return calculations;
+}
+
 /** Persist ONLY a completed (`ready`) result + its identity; else persist idle. */
 function partializePredictive(state: PredictiveStore): PersistedPredictiveState {
   if (state.status !== 'ready') {
@@ -174,7 +198,7 @@ function partializePredictive(state: PredictiveStore): PersistedPredictiveState 
     vargaCtxFull: state.vargaCtxFull,
     strengthCtx: state.strengthCtx,
     domainsCtx: state.domainsCtx,
-    rawContexts: state.rawContexts,
+    rawContexts: withoutBootProof(state.rawContexts),
     profileKey: state.profileKey,
     requestKey: state.requestKey,
   };
@@ -194,12 +218,12 @@ const RAW_CONTEXT_KEYS = [
  * a partial write, an old shape) is DROPPED — the LLM composition layer then
  * degrades to natal-only, exactly like a v1 blob. Never throws.
  */
-function coerceRawContexts(value: unknown): PredictiveContexts | undefined {
+function coerceRawContexts(value: unknown): CachedPredictiveContexts | undefined {
   if (!isPlainRecord(value)) {
     return undefined;
   }
   return RAW_CONTEXT_KEYS.every((key) => isPlainRecord(value[key]))
-    ? (value as unknown as PredictiveContexts)
+    ? withoutBootProof(value as unknown as CachedPredictiveContexts)
     : undefined;
 }
 
@@ -234,18 +258,17 @@ export function coercePersistedPredictive(persisted: unknown): PersistedPredicti
 }
 
 /**
- * v1 → v2 (Spec 062, LLM delta 1): the shape is identical PLUS an optional
- * `rawContexts` slice. A v1 blob simply lacks it — keep its ready UI contexts
- * (no ~30s recompute on upgrade) and let the LLM composition layer degrade
- * gracefully to natal-only until the next fresh compute. Any OTHER old/unknown
- * version → a clean idle slate (forcing a fresh compute). On the CURRENT
- * version the untouched blob flows through `merge`.
+ * A v1 blob simply lacks `rawContexts`; keep its ready UI contexts and let the
+ * LLM layer degrade to natal-only. A v2 blob keeps its calculations while
+ * `coercePersistedPredictive` strips proof from the previous Worker boot. Any
+ * other old/unknown version becomes a clean idle slate. Current-version blobs
+ * still flow through `merge`, which applies the same proof-expiry rule.
  */
 export function migratePredictivePersistedState(
   persisted: unknown,
   fromVersion: number,
 ): PersistedPredictiveState {
-  if (fromVersion === 1) {
+  if (fromVersion === 1 || fromVersion === 2) {
     return coercePersistedPredictive(persisted);
   }
   return IDLE_PERSISTED;
@@ -293,7 +316,7 @@ export const predictiveStoreCreator: StateCreator<PredictiveStore> = (set, get) 
         transitCtx: toTransitCtx(raw.transit_context),
         vargaCtxFull: toVargaCtx(raw.varga_context_full),
         strengthCtx: toStrengthCtx(raw.strength_context),
-        domainsCtx: toDomainsCtx(raw.domains_context),
+        domainsCtx: toDomainsCtx(raw.domains_context, raw.domain_strength_assays),
         // The raw engine contexts, verbatim, for the LLM composition layer
         // (Spec 062 delta 1) — persisted with the reshape, never re-derived.
         rawContexts: raw,

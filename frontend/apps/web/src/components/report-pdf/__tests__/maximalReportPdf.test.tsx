@@ -101,6 +101,8 @@ describe('maximal report PDF acceptance', () => {
     expect(data.strength?.shadbala.rows.length).toBeGreaterThan(0);
     expect(data.domains?.blocks).toHaveLength(7);
     expect(data.domains?.blocks.every((block) => block.windows.length > 0)).toBe(true);
+    expect(data.domains?.blocks.every((block) => block.assay.components.length === 3)).toBe(true);
+    expect(data.domains?.blocks.every((block) => block.avow.status === 'Unavailable')).toBe(true);
     expect(data.rectification?.events.rows).toHaveLength(11);
     expect(data.rectification?.events.headers).toHaveLength(2);
     expect(data.rectification?.events.rows.every((row) => row.cells.length === 2)).toBe(true);
@@ -181,6 +183,10 @@ describe('maximal report PDF acceptance', () => {
     ).not.toHaveLength(0);
     expect(pdf.text).toContain('165.00');
     expect(pdf.text).toContain('6.13');
+    expect(foldedText).toContain('HOW CALCULATED — ASSAY');
+    expect(foldedText).toContain('WHAT VERIFIED — AVOW');
+    expect(pdf.text).toContain('82.50%');
+    expect(pdf.text).toContain('53.57%');
     expect(foldedText).not.toContain(
       normalizePdfText(LEGACY_LIFE_EVENT_BLOB).toLocaleUpperCase('en'),
     );

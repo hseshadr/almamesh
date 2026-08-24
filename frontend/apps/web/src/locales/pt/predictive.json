@@ -255,6 +255,21 @@
     "windows_empty": "Nenhuma janela datada nos próximos doze meses.",
     "receipt_heading": "Recibo assinado",
     "receipt_hint": "Verificado no seu dispositivo: esta faixa de força não mudou desde que foi selada.",
+    "assay_heading": "Como foi calculado — Assay",
+    "assay_method": "O valor principal é o menor de duas entradas normalizadas de 0 a 100; quanto maior, mais forte.",
+    "assay_shadbala": "Śaḍbala",
+    "assay_sav": "Aṣṭakavarga",
+    "assay_result": "Resultado (o menor dos dois)",
+    "assay_unavailable": "Indisponível para este resultado antigo em cache.",
+    "assay_withheld": "Detalhes do cálculo omitidos porque esta prova de força não foi verificada.",
+    "avow_heading": "O que foi verificado — Avow",
+    "avow_status": {
+      "checking": "Verificando…",
+      "verified": "Verificado",
+      "failed": "Falhou",
+      "unavailable": "Indisponível"
+    },
+    "avow_scope": "Avow verifica este resumo de força quanto a adulteração e integridade desde esta inicialização do motor; não verifica correção nem identidade.",
     "source": {
       "dasha": "daśā",
       "transit": "trânsito"

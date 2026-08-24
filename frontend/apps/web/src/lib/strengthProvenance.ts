@@ -5,9 +5,9 @@
  * WHAT THIS PROVES AND DOES NOT PROVE. A receipt's signing key is generated
  * fresh inside the Worker on every boot and never leaves the device, so it
  * does NOT survive a reload and identifies no one. Verifying a receipt only
- * shows that the stored `StrengthSummary` matches what THIS boot sealed —
- * TAMPER-EVIDENCE for a stored/exported figure, never an attestation of who
- * computed it. Nothing here may be described as "verified authenticity",
+ * shows that the current `StrengthSummary` matches what THIS boot sealed —
+ * TAMPER-EVIDENCE for a stored/exported figure, never a correctness claim or
+ * an attestation of who computed it. Nothing here may be described as "verified authenticity",
  * "certified", or "attested" — only as "confirmed unchanged since sealing" or
  * its negation.
  *
@@ -19,8 +19,12 @@
  * only the numeric percentage for the domains named there).
  */
 
-import { verifyDomainStrength } from '@almamesh/browser';
-import type { DomainStrengthReceipt } from '@almamesh/browser/types';
+import { verifyDomainStrength, verifyDomainStrengthClaim } from '@almamesh/browser';
+import type {
+  DomainStrengthAssayResult,
+  DomainStrengthReceipt,
+  StrengthSummary,
+} from '@almamesh/browser/types';
 
 export interface StrengthProvenance {
   /** Domains whose receipt verified against the pinned signer. */
@@ -37,9 +41,27 @@ interface DomainOutcome {
 }
 
 /** Verify one domain's receipt; never throws — a failure becomes `ok: false`. */
-async function checkOne(domain: string, receipt: DomainStrengthReceipt, signerPublicKey: string): Promise<DomainOutcome> {
+async function checkOne(
+  domain: string,
+  receipt: DomainStrengthReceipt,
+  signerPublicKey: string,
+  currentSummaries?: Readonly<Record<string, StrengthSummary>>,
+  currentAssays?: Readonly<Record<string, DomainStrengthAssayResult | undefined>>,
+): Promise<DomainOutcome> {
   try {
-    await verifyDomainStrength(receipt, signerPublicKey);
+    if (currentSummaries) {
+      const summary = currentSummaries[domain];
+      if (!summary) return { domain, ok: false };
+      await verifyDomainStrengthClaim(
+        receipt,
+        signerPublicKey,
+        domain,
+        summary,
+        currentAssays?.[domain],
+      );
+    } else {
+      await verifyDomainStrength(receipt, signerPublicKey);
+    }
     return { domain, ok: true };
   } catch {
     return { domain, ok: false };
@@ -54,9 +76,13 @@ async function checkOne(domain: string, receipt: DomainStrengthReceipt, signerPu
 export async function verifyStrengthProvenance(
   receipts: Readonly<Record<string, DomainStrengthReceipt>>,
   signerPublicKey: string,
+  currentSummaries?: Readonly<Record<string, StrengthSummary>>,
+  currentAssays?: Readonly<Record<string, DomainStrengthAssayResult | undefined>>,
 ): Promise<StrengthProvenance> {
   const outcomes = await Promise.all(
-    Object.entries(receipts).map(([domain, receipt]) => checkOne(domain, receipt, signerPublicKey)),
+    Object.entries(receipts).map(([domain, receipt]) =>
+      checkOne(domain, receipt, signerPublicKey, currentSummaries, currentAssays),
+    ),
   );
 
   return {

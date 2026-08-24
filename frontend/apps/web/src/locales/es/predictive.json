@@ -255,6 +255,21 @@
     "windows_empty": "No hay ventanas con fecha en los próximos doce meses.",
     "receipt_heading": "Recibo firmado",
     "receipt_hint": "Comprobado en tu dispositivo: esta banda de fuerza no ha cambiado desde que se selló.",
+    "assay_heading": "Cómo se calculó — Assay",
+    "assay_method": "El valor principal es el menor de dos datos normalizados de 0 a 100; un valor mayor indica más fuerza.",
+    "assay_shadbala": "Śaḍbala",
+    "assay_sav": "Aṣṭakavarga",
+    "assay_result": "Resultado (el menor de los dos)",
+    "assay_unavailable": "No disponible para este resultado anterior guardado en caché.",
+    "assay_withheld": "Detalles del cálculo omitidos porque esta prueba de fuerza no se verificó.",
+    "avow_heading": "Qué se verificó — Avow",
+    "avow_status": {
+      "checking": "Comprobando…",
+      "verified": "Verificado",
+      "failed": "Falló",
+      "unavailable": "No disponible"
+    },
+    "avow_scope": "Avow comprueba este resumen de fuerza en busca de manipulación y su integridad desde este inicio del motor; no comprueba su corrección ni la identidad.",
     "source": {
       "dasha": "daśā",
       "transit": "tránsito"

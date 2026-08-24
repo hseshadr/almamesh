@@ -88,6 +88,20 @@ describe('verifyStrengthProvenance', () => {
     expect([...result.verified].sort()).toEqual(['career', 'health']);
   });
 
+  it('fails a genuine receipt when it does not match the summary being exported', async () => {
+    const seed = generateSeedHex();
+    const key = await publicKeyHex(seed);
+    const receipts = await receiptsFor(['career'], seed);
+    const current = {
+      career: summary({ sav_bindus: 20, strength_pct: 99 }),
+    };
+
+    const result = await verifyStrengthProvenance(receipts, key, current);
+
+    expect(result.verified.size).toBe(0);
+    expect(result.failed).toEqual(['career']);
+  });
+
   it('fails every domain when checked against a signer key that did not seal them', async () => {
     const seed = generateSeedHex();
     const receipts = await receiptsFor(['career', 'finances'], seed);

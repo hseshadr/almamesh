@@ -93,9 +93,9 @@ const NATAL_ONLY_STRENGTH_SENTINEL = 'Natal-only strength survives the stale-sta
 const KEYLESS_PDF_BASELINE_PAGES = 26;
 
 /**
- * The RAW engine predictive slices exactly as `computePredictive` returns them
- * (the store persists them at v2 under `rawContexts`). Their PRESENCE is what
- * makes the staleness path fire: `currentPredictiveFacts` counts predictive
+ * The raw predictive calculation slices from `computePredictive` (the store
+ * persists them at v3 under `rawContexts`, without per-boot proof). Their
+ * PRESENCE is what makes the staleness path fire: `currentPredictiveFacts` counts predictive
  * facts as existing only when all four slices are readable, and a natal-only
  * reading is "current" only while they do NOT. Without `rawContexts` the bug
  * does not reproduce at all — the reading simply stays complete.
@@ -1347,6 +1347,37 @@ test('REAL onboarding -> rectify -> offline reload -> predictive PDF is correct'
   // letter-space and the note wraps mid-sentence in the PDF, so compare on
   // whitespace-flattened, case-folded text.
   const flatPdfText = flattenPdfText(pdfText);
+  expect(flatPdfText, 'the PDF must explain the unchanged headline through Assay').toContain(
+    'how calculated — assay',
+  );
+  expect(flatPdfText, 'the PDF must show Avow as the separate integrity check').toContain(
+    'what verified — avow',
+  );
+  const avowStatuses = pdfText
+    .split('\n')
+    .flatMap((line) => {
+      const match = line.match(/\s{2,}(verified|failed|unavailable)\s*$/i);
+      return match?.[1] ? [match[1].toLocaleLowerCase('en')] : [];
+    });
+  expect(
+    avowStatuses.filter((status) => status === 'verified'),
+    'all seven fresh-boot domain receipts must verify before export',
+  ).toHaveLength(7);
+  expect(
+    avowStatuses.filter((status) => status === 'failed'),
+    'a fresh-boot report must contain no failed domain proof',
+  ).toHaveLength(0);
+  expect(
+    avowStatuses.filter((status) => status === 'unavailable'),
+    'a fresh-boot report must contain no unavailable domain proof',
+  ).toHaveLength(0);
+  expect(
+    avowStatuses,
+    'the report must contain exactly one proof outcome for each of seven life domains',
+  ).toHaveLength(7);
+  expect(flatPdfText, 'the Avow claim must explicitly exclude correctness and identity').toContain(
+    'not correctness or identity',
+  );
   const headingNeedle = await interpretationHeadingNeedle();
   const narrativeAbsentNote = await englishReportString('pdf.narrative_absent_note');
   expect(
@@ -1465,6 +1496,11 @@ test('synthetic maximal state -> real browser download preserves every report fa
     '6.13',
     'life domains',
     'career',
+    'how calculated — assay',
+    'what verified — avow',
+    '82.50%',
+    '53.57%',
+    'not correctness or identity',
     'birth time authority',
     'accepted the maximal browser sentinel role',
     'final yoga sentinel',

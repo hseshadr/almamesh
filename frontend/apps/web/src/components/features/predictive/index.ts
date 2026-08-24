@@ -18,3 +18,4 @@ export {
   DOMAIN_ORDER,
 } from './DomainsPanel';
 export { SeverityBadge, BandBadge } from './PredictiveBadges';
+export { StrengthEvidencePanels } from './StrengthEvidencePanels';

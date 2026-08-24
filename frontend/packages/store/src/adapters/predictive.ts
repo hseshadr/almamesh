@@ -16,6 +16,7 @@ import type {
   CurrentEmphasis,
   DashaTransitFusion,
   DomainWindow,
+  DomainStrengthAssayResult,
   GocharaContext,
   HouseSignificator,
   KalaBala,
@@ -67,6 +68,7 @@ import type {
   SthanaBalaData,
   StrengthCtx,
   StrengthSummaryData,
+  StrengthAssayData,
   TransitCtx,
   TransitPlacementData,
   TransitTimelineData,
@@ -462,13 +464,36 @@ function toDomainWindow(raw: DomainWindow): DomainWindowData {
   };
 }
 
-function toForecast(raw: LifeDomainForecast): LifeDomainForecastData {
+function toStrengthAssay(raw: DomainStrengthAssayResult | undefined): StrengthAssayData | undefined {
+  if (raw?.method.id !== "minimum" || raw.clamp === null || raw.selected_component_id === null) {
+    return undefined;
+  }
+  return {
+    schema: raw.schema,
+    method: { id: raw.method.id, version: raw.method.version },
+    score: raw.score,
+    interval: raw.interval,
+    clamp: raw.clamp,
+    intercept: null,
+    weight_total: null,
+    components: raw.components.map((component) => ({ ...component })),
+    inputs_hash: raw.inputs_hash,
+    selected_component_id: raw.selected_component_id,
+  };
+}
+
+function toForecast(
+  raw: LifeDomainForecast,
+  assay?: DomainStrengthAssayResult,
+): LifeDomainForecastData {
+  const strengthAssay = toStrengthAssay(assay);
   return {
     domain: raw.domain as LifeDomain,
     houses: raw.houses.map(toHouseSignificator),
     karakas: raw.karakas.map(toKaraka),
     varga: toVargaSummary(raw.varga),
     strength_summary: toStrengthSummary(raw.strength_summary),
+    ...(strengthAssay ? { strength_assay: strengthAssay } : {}),
     current_emphasis: toEmphasis(raw.current_emphasis),
     upcoming_windows: raw.upcoming_windows.map(toDomainWindow),
   };
@@ -480,11 +505,12 @@ function toForecast(raw: LifeDomainForecast): LifeDomainForecastData {
  */
 export function toDomainsCtx(
   raw: LifeDomainsContext | null | undefined,
+  assays?: Readonly<Record<string, DomainStrengthAssayResult>>,
 ): DomainsCtx | undefined {
   if (!raw) return undefined;
   const forecasts: Partial<Record<LifeDomain, LifeDomainForecastData>> = {};
   for (const [domain, forecast] of Object.entries(raw.forecasts)) {
-    forecasts[domain as LifeDomain] = toForecast(forecast);
+    forecasts[domain as LifeDomain] = toForecast(forecast, assays?.[domain]);
   }
   return {
     instant: raw.instant,

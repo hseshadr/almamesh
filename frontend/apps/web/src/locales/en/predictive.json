@@ -254,6 +254,21 @@
     "windows_empty": "No dated windows inside the next twelve months.",
     "receipt_heading": "Signed receipt",
     "receipt_hint": "Checked on your device: this strength band has not changed since it was sealed.",
+    "assay_heading": "How calculated — Assay",
+    "assay_method": "The headline is the lower of the two normalized 0–100 inputs; higher is stronger.",
+    "assay_shadbala": "Śaḍbala",
+    "assay_sav": "Aṣṭakavarga",
+    "assay_result": "Headline (lower of the two)",
+    "assay_unavailable": "Unavailable for this older cached result.",
+    "assay_withheld": "Calculation details withheld because this strength proof did not verify.",
+    "avow_heading": "What verified — Avow",
+    "avow_status": {
+      "checking": "Checking…",
+      "verified": "Verified",
+      "failed": "Failed",
+      "unavailable": "Unavailable"
+    },
+    "avow_scope": "Avow checks this strength summary for tamper evidence and integrity since this engine boot — not correctness or identity.",
     "source": {
       "dasha": "daśā",
       "transit": "transit"

@@ -1,6 +1,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { generateSeedHex, publicKeyHex } from '@edgeproc/avow';
+import { signDomainStrength } from '@almamesh/browser';
+import type { PredictiveContexts, StrengthSummary } from '@almamesh/browser/types';
 import {
   useChartLibraryStore,
   useInterpretationStore,
@@ -114,6 +117,40 @@ describe('LifeDomainPage', () => {
     expect(toggle).toBeTruthy();
     fireEvent.click(toggle!);
     expect(page.textContent).toContain('House 10');
+  });
+
+  it('renders Assay and Avow as sibling evidence panels on the domain detail', () => {
+    seedReady();
+    renderAt('/life/career');
+
+    const evidence = screen.getByTestId('domain-strength-evidence-career');
+    expect(evidence.textContent).toContain('How calculated — Assay');
+    expect(evidence.textContent).toContain('What verified — Avow');
+    expect(screen.getByTestId('domain-avow-career').getAttribute('data-status')).toBe(
+      'unavailable',
+    );
+  });
+
+  it('does not show a receipt detail as verified when it belongs to a stale summary', async () => {
+    seedReady();
+    const seed = generateSeedHex();
+    const key = await publicKeyHex(seed);
+    const staleSummary = {
+      ...DOMAINS_CTX.forecasts.career.strength_summary,
+      strength_pct: 99,
+    } as StrengthSummary;
+    const receipt = await signDomainStrength('career', staleSummary, seed);
+    usePredictiveStore.setState({
+      rawContexts: {
+        domain_strength_receipts: { career: receipt },
+        strength_signer_public_key: key,
+      } as unknown as PredictiveContexts,
+    });
+
+    renderAt('/life/career');
+
+    expect(await screen.findByText('Failed')).toBeTruthy();
+    expect(screen.queryByTestId('domain-receipt-panel-career')).toBeNull();
   });
 
   it('shows the matching AI reading section when the interpretation has one', () => {
