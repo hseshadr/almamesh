@@ -60,6 +60,7 @@ export type {
   StrengthBand,
   StrengthContext,
   StrengthSummary,
+  DomainStrengthAssayResult,
   TimelineEvent,
   TransitContext,
   TransitEventKind,

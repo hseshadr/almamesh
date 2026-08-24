@@ -21,6 +21,7 @@ import {
   usePredictiveStore,
   useProfilesStore,
   predictiveRequestKey,
+  type CachedPredictiveContexts,
   type PredictiveStatus,
 } from '@almamesh/store';
 import type {
@@ -30,7 +31,7 @@ import type {
   TransitCtx,
   VargaCtxFull,
 } from '@almamesh/shared-types';
-import type { PredictiveContexts, VimshottariDasha } from '@almamesh/browser/types';
+import type { VimshottariDasha } from '@almamesh/browser/types';
 import { useOptionalChartEngine } from '../providers/chartEngineContext';
 import {
   buildEnsurePredictiveInput,
@@ -104,12 +105,13 @@ export interface PredictiveLayer {
   readonly strengthCtx?: StrengthCtx;
   readonly domainsCtx?: DomainsCtx;
   /**
-   * The RAW engine contexts verbatim (Spec 062 delta 1) — e.g. the domain-
-   * strength receipts + their signer key, used by the report-PDF export to
-   * verify tamper-evidence before rendering. Same cache-match gating as the
-   * adapted contexts above: undefined for a stale or not-yet-computed cache.
+   * The raw calculation contexts (Spec 062 delta 1). A live Worker result also
+   * carries Assay explanations plus Avow receipts/signer for current-boot
+   * verification; a rehydrated cache keeps calculations but expires that proof.
+   * Same cache-match gating as the adapted contexts above: undefined for a
+   * stale or not-yet-computed cache.
    */
-  readonly rawContexts?: PredictiveContexts;
+  readonly rawContexts?: CachedPredictiveContexts;
   /** The booted Pyodide engine is available. */
   readonly engineReady: boolean;
   /** The stored chart carries the birth fields the engine needs. */

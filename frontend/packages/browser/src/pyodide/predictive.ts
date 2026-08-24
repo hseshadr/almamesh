@@ -359,6 +359,7 @@ export interface LifeDomainsContext {
 // --- the LAZY predictive payload: backend almamesh/predictive.py ---
 
 export type { DomainStrengthReceipt } from "./strengthReceipt";
+export type { DomainStrengthAssayResult } from "./strengthAssay";
 
 /**
  * EXACTLY what the Python engine returns — the `model_dump(mode="json")` of the
@@ -374,9 +375,9 @@ export interface EnginePredictiveContexts {
 }
 
 /**
- * What the Worker hands to app code: the engine's four contexts plus the sealed
- * per-domain strength receipts, minted in TypeScript by `@edgeproc/avow` (see
- * `strengthReceipt.ts` for why signing is not done inside Pyodide).
+ * What the Worker hands to app code: the engine's four contexts plus Assay's
+ * minimum-composition results and the sealed per-domain strength receipts,
+ * produced in TypeScript (see `strengthAssay.ts` / `strengthReceipt.ts`).
  *
  * A receipt introduces NO new number — `payload.summary` is the SAME
  * `StrengthSummary` already carried in `domains_context`. It makes a stored or
@@ -385,6 +386,8 @@ export interface EnginePredictiveContexts {
  * the summary was not altered after sealing — never who computed it.
  */
 export interface PredictiveContexts extends EnginePredictiveContexts {
+  /** Assay's deterministic minimum-composition explanation for each headline. */
+  readonly domain_strength_assays: Readonly<Record<string, import("./strengthAssay").DomainStrengthAssayResult>>;
   /** Keyed by life domain; one receipt per `domains_context.forecasts` entry. */
   readonly domain_strength_receipts: Readonly<Record<string, DomainStrengthReceipt>>;
   /** The device-local, per-boot signer these receipts were sealed under. */

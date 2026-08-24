@@ -22,7 +22,7 @@ import { LIFE_DOMAINS } from '../../../lib/lifeAtlas';
 import { formatPredictiveDate, formatRupas } from '../../../lib/predictive';
 import { domainWindowLabel, grahaName, signName } from '../../../lib/predictiveEventCopy';
 import { BandBadge, SeverityBadge } from './PredictiveBadges';
-import { StrengthReceiptBadge } from './StrengthReceiptBadge';
+import { StrengthEvidencePanels } from './StrengthEvidencePanels';
 
 /** Stable render order for the seven domains (single source: lib/lifeAtlas). */
 export const DOMAIN_ORDER: readonly LifeDomain[] = LIFE_DOMAINS;
@@ -210,14 +210,11 @@ export function DomainCard({
       data-testid={`domain-card-${forecast.domain}`}
     >
       <div className="space-y-4">
-        {/* On-screen, user-verifiable proof the shown band was not altered since
-            it was sealed (the same check the PDF export runs silently). Absent
-            for a domain with no receipt (older payload) — the card is unchanged. */}
-        {receipt && signerPublicKey ? (
-          <div data-testid={`domain-receipt-${forecast.domain}`}>
-            <StrengthReceiptBadge receipt={receipt} expectedPublicKey={signerPublicKey} />
-          </div>
-        ) : null}
+        <StrengthEvidencePanels
+          forecast={forecast}
+          receipt={receipt}
+          signerPublicKey={signerPublicKey}
+        />
         <EmphasisBlock forecast={forecast} />
         <WindowsBlock forecast={forecast} maxWindows={maxWindows} />
         <Disclosure

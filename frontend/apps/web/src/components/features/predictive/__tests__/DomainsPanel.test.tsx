@@ -4,8 +4,9 @@ import { generateSeedHex, publicKeyHex } from '@edgeproc/avow';
 import { signDomainStrength } from '@almamesh/browser';
 import type { StrengthSummary } from '@almamesh/browser/types';
 import { useLanguageStore } from '@almamesh/store';
+import type { DomainsCtx, StrengthAssayData } from '@almamesh/shared-types';
 
-import '../../../../i18n/config';
+import i18n from '../../../../i18n/config';
 import { DomainsPanel, DOMAIN_ORDER } from '../DomainsPanel';
 import { DOMAINS_CTX } from '../../../../test/predictiveFixtures';
 
@@ -26,9 +27,52 @@ function receiptSummary(overrides: Partial<StrengthSummary> = {}): StrengthSumma
   } as StrengthSummary;
 }
 
+const CAREER_ASSAY: StrengthAssayData = {
+  schema: 'assay.result/v1',
+  method: { id: 'minimum', version: 'almamesh.domain-strength.v1' },
+  score: 0.5357,
+  interval: null,
+  clamp: 'reject',
+  intercept: null,
+  weight_total: null,
+  components: [
+    {
+      id: 'shadbala_pct',
+      raw: 82.5,
+      normalized: 0.825,
+      declared_weight: null,
+      operation: 'add',
+      coefficient: 1,
+      contribution: 0.825,
+      contribution_interval: null,
+    },
+    {
+      id: 'sav_pct',
+      raw: 53.57,
+      normalized: 0.5357,
+      declared_weight: null,
+      operation: 'add',
+      coefficient: 1,
+      contribution: 0.5357,
+      contribution_interval: null,
+    },
+  ],
+  inputs_hash: 'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+  selected_component_id: 'sav_pct',
+};
+
+const DOMAINS_WITH_ASSAY: DomainsCtx = {
+  ...DOMAINS_CTX,
+  forecasts: {
+    ...DOMAINS_CTX.forecasts,
+    career: { ...DOMAINS_CTX.forecasts.career, strength_assay: CAREER_ASSAY },
+  },
+};
+
 describe('DomainsPanel', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     useLanguageStore.setState({ language: 'en' });
+    await i18n.changeLanguage('en');
   });
 
   it('renders one card per life domain (all seven)', () => {
@@ -90,15 +134,60 @@ describe('DomainsPanel', () => {
     }
   });
 
+  it('renders sibling Assay calculation and Avow verification panels with separate claims', () => {
+    render(<DomainsPanel domainsCtx={DOMAINS_WITH_ASSAY} />);
+
+    const evidence = screen.getByTestId('domain-strength-evidence-career');
+    expect(within(evidence).getByRole('heading', { name: 'How calculated — Assay' })).toBeTruthy();
+    expect(within(evidence).getByText('82.50%')).toBeTruthy();
+    expect(within(evidence).getByText('53.57%', { selector: '[data-assay-result]' })).toBeTruthy();
+    expect(evidence.textContent).toContain('lower of the two');
+    expect(within(evidence).getByRole('heading', { name: 'What verified — Avow' })).toBeTruthy();
+    expect(within(evidence).getByText('Unavailable')).toBeTruthy();
+    expect(evidence.textContent).toContain('integrity since this engine boot');
+    expect(evidence.textContent).toContain('not correctness or identity');
+  });
+
+  it.each([
+    ['es', 'Cómo se calculó — Assay', 'Qué se verificó — Avow'],
+    ['pt', 'Como foi calculado — Assay', 'O que foi verificado — Avow'],
+  ] as const)('localizes both evidence-panel headings in %s', async (language, assay, avow) => {
+    useLanguageStore.setState({ language });
+    await i18n.changeLanguage(language);
+
+    render(<DomainsPanel domainsCtx={DOMAINS_WITH_ASSAY} />);
+
+    expect(screen.getAllByRole('heading', { name: assay })).toHaveLength(7);
+    expect(screen.getAllByRole('heading', { name: avow })).toHaveLength(7);
+  });
+
   it('surfaces a per-domain VERIFIED receipt badge only for domains that have a receipt', async () => {
     const seed = generateSeedHex();
     const key = await publicKeyHex(seed);
     const receipts = {
-      career: await signDomainStrength('career', receiptSummary(), seed),
-      health: await signDomainStrength('health', receiptSummary({ band: 'weak' }), seed),
+      career: await signDomainStrength(
+        'career',
+        DOMAINS_CTX.forecasts.career.strength_summary as StrengthSummary,
+        seed,
+      ),
+      health: await signDomainStrength(
+        'health',
+        DOMAINS_CTX.forecasts.health.strength_summary as StrengthSummary,
+        seed,
+      ),
     };
 
-    render(<DomainsPanel domainsCtx={DOMAINS_CTX} receipts={receipts} signerPublicKey={key} />);
+    const olderDomains = {
+      ...DOMAINS_CTX,
+      forecasts: Object.fromEntries(
+        Object.entries(DOMAINS_CTX.forecasts).map(([domain, forecast]) => {
+          const { strength_assay: _assay, ...withoutAssay } = forecast;
+          return [domain, withoutAssay];
+        }),
+      ),
+    } as DomainsCtx;
+
+    render(<DomainsPanel domainsCtx={olderDomains} receipts={receipts} signerPublicKey={key} />);
 
     // A domain WITH a receipt shows a per-domain badge that verifies on screen —
     // fail-closed, icon+text (not colour alone) via the shared receipt view.
@@ -110,5 +199,86 @@ describe('DomainsPanel', () => {
     // Domains WITHOUT a receipt render exactly as before — no badge.
     expect(screen.queryByTestId('domain-receipt-family')).toBeNull();
     expect(screen.queryByTestId('domain-receipt-finances')).toBeNull();
+  });
+
+  it('fails Avow when a genuine same-boot receipt belongs to a different visible summary', async () => {
+    const seed = generateSeedHex();
+    const key = await publicKeyHex(seed);
+    const stale = await signDomainStrength('career', receiptSummary(), seed);
+
+    render(
+      <DomainsPanel
+        domainsCtx={DOMAINS_WITH_ASSAY}
+        receipts={{ career: stale }}
+        signerPublicKey={key}
+      />,
+    );
+
+    const avow = screen.getByTestId('domain-avow-career');
+    expect(await within(avow).findByText('Failed')).toBeTruthy();
+    expect(avow.getAttribute('data-status')).toBe('failed');
+  });
+
+  it('fails closed and withholds altered Assay figures beside a genuine signed summary', async () => {
+    const seed = generateSeedHex();
+    const key = await publicKeyHex(seed);
+    const summary = DOMAINS_WITH_ASSAY.forecasts.career.strength_summary;
+    const receipt = await signDomainStrength('career', summary as StrengthSummary, seed);
+    const alteredDomains: DomainsCtx = {
+      ...DOMAINS_WITH_ASSAY,
+      forecasts: {
+        ...DOMAINS_WITH_ASSAY.forecasts,
+        career: {
+          ...DOMAINS_WITH_ASSAY.forecasts.career,
+          strength_assay: {
+            ...CAREER_ASSAY,
+            components: CAREER_ASSAY.components.map((component) =>
+              component.id === CAREER_ASSAY.selected_component_id
+                ? { ...component, raw: 99 }
+                : component,
+            ),
+          },
+        },
+      },
+    };
+
+    render(
+      <DomainsPanel
+        domainsCtx={alteredDomains}
+        receipts={{ career: receipt }}
+        signerPublicKey={key}
+      />,
+    );
+
+    const evidence = screen.getByTestId('domain-strength-evidence-career');
+    expect(await within(evidence).findByText('Failed')).toBeTruthy();
+    expect(evidence.textContent).not.toContain('99.00%');
+    expect(evidence.textContent).not.toContain('82.50%');
+    expect(evidence.textContent).toContain('withheld');
+  });
+
+  it('shows Avow as Failed when a present receipt no longer verifies', async () => {
+    const seed = generateSeedHex();
+    const key = await publicKeyHex(seed);
+    const receipt = await signDomainStrength('career', receiptSummary(), seed);
+    const tampered = {
+      ...receipt,
+      payload: {
+        ...receipt.payload,
+        summary: { ...receipt.payload.summary, strength_pct: 99 },
+      },
+    };
+
+    render(
+      <DomainsPanel
+        domainsCtx={DOMAINS_WITH_ASSAY}
+        receipts={{ career: tampered }}
+        signerPublicKey={key}
+      />,
+    );
+
+    const avow = screen.getByTestId('domain-avow-career');
+    expect(await within(avow).findByText('Failed')).toBeTruthy();
+    expect(avow.getAttribute('data-status')).toBe('failed');
   });
 });

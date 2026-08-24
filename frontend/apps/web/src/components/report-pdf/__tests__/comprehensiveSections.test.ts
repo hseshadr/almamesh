@@ -18,6 +18,7 @@ import { Children, isValidElement, type ReactNode } from 'react';
 import type { SiderealChart } from '@almamesh/browser/types';
 import type {
   DivisionalChartId,
+  DomainsCtx,
   ProcessedBirthData,
   RectificationRecord,
   VargaChartFullData,
@@ -278,12 +279,43 @@ const FULL_16_CTX: VargaCtxFull = {
   charts: Object.fromEntries(ALL_16.map((id) => [id, varga(id, 'aries')])) as VargaCtxFull['charts'],
 };
 
+const DOMAINS_WITH_ASSAY: DomainsCtx = {
+  ...DOMAINS_CTX,
+  forecasts: {
+    ...DOMAINS_CTX.forecasts,
+    career: {
+      ...DOMAINS_CTX.forecasts.career,
+      strength_assay: {
+        schema: 'assay.result/v1',
+        method: { id: 'minimum', version: 'almamesh.domain-strength.v1' },
+        score: 0.5357,
+        interval: null,
+        clamp: 'reject',
+        intercept: null,
+        weight_total: null,
+        components: [
+          {
+            id: 'shadbala_pct', raw: 82.5, normalized: 0.825, declared_weight: null,
+            operation: 'add', coefficient: 1, contribution: 0.825, contribution_interval: null,
+          },
+          {
+            id: 'sav_pct', raw: 53.57, normalized: 0.5357, declared_weight: null,
+            operation: 'add', coefficient: 1, contribution: 0.5357, contribution_interval: null,
+          },
+        ],
+        inputs_hash: 'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        selected_component_id: 'sav_pct',
+      },
+    },
+  },
+};
+
 const COMPREHENSIVE = {
   translators: TRANSLATORS,
   transitCtx: TRANSIT_CTX,
   vargaCtxFull: FULL_16_CTX,
   strengthCtx: STRENGTH_CTX,
-  domainsCtx: DOMAINS_CTX,
+  domainsCtx: DOMAINS_WITH_ASSAY,
 };
 
 describe('buildReportPdfData — houses (always present)', () => {
@@ -417,6 +449,26 @@ describe('buildReportPdfData — comprehensive slices mirror the web report', ()
 });
 
 describe('buildReportPdfData — domain-strength provenance withholds tampered %s', () => {
+  it('builds sibling Assay calculation and Avow verification panels for each domain', () => {
+    const data = buildReportPdfData({ ...baseInput(), comprehensive: COMPREHENSIVE });
+    const career = data.domains?.blocks.find((b) => b.name === 'Career');
+
+    expect(career?.assay).toEqual({
+      heading: 'How calculated — Assay',
+      method: 'The headline is the lower of the two normalized 0–100 inputs; higher is stronger.',
+      components: [
+        { label: 'Sadbala', value: '82.50%' },
+        { label: 'Astakavarga', value: '53.57%' },
+        { label: 'Headline (lower of the two)', value: '53.57%' },
+      ],
+    });
+    expect(career?.avow).toEqual({
+      heading: 'What verified — Avow',
+      status: 'Unavailable',
+      scope: 'Avow checks this strength summary for tamper evidence and integrity since this engine boot — not correctness or identity.',
+    });
+  });
+
   it('renders every domain\'s numeric percentages when no provenance is supplied', () => {
     const data = buildReportPdfData({ ...baseInput(), comprehensive: COMPREHENSIVE });
     const career = data.domains?.blocks.find((b) => b.name === 'Career');
@@ -443,13 +495,17 @@ describe('buildReportPdfData — domain-strength provenance withholds tampered %
     expect(career?.strengthAxes).not.toMatch(/\d/);
     expect(career?.band).toContain('Strong');
     expect(career?.strengthAxes.length).toBeGreaterThan(0);
+    expect(career?.avow.status).toBe('Failed');
+    expect(career?.assay.components).toEqual([]);
+    expect(career?.assay.method).toContain('withheld');
+    expect(JSON.stringify(career?.assay)).not.toMatch(/82\.50|53\.57/);
 
     // An unrelated verified domain keeps its normal numeric rendering.
     expect(finances?.band).toMatch(/%/);
     expect(finances?.strengthAxes).toMatch(/%/);
   });
 
-  it('is byte-identical to the no-provenance path when every domain verifies', () => {
+  it('changes only Avow status when every domain verifies; calculated figures stay identical', () => {
     const allVerified: StrengthProvenance = {
       verified: new Set(Object.keys(DOMAINS_CTX.forecasts)),
       failed: [],
@@ -461,7 +517,13 @@ describe('buildReportPdfData — domain-strength provenance withholds tampered %
     });
     const withoutProvenance = buildReportPdfData({ ...baseInput(), comprehensive: COMPREHENSIVE });
 
-    expect(withProvenance.domains).toEqual(withoutProvenance.domains);
+    const verifiedBlocks = withProvenance.domains?.blocks ?? [];
+    const unavailableBlocks = withoutProvenance.domains?.blocks ?? [];
+    expect(verifiedBlocks.every((block) => block.avow.status === 'Verified')).toBe(true);
+    expect(unavailableBlocks.every((block) => block.avow.status === 'Unavailable')).toBe(true);
+    expect(
+      verifiedBlocks.map(({ avow: _avow, ...block }) => block),
+    ).toEqual(unavailableBlocks.map(({ avow: _avow, ...block }) => block));
   });
 });
 
@@ -514,6 +576,10 @@ describe('ReportDocument — full comprehensive render', () => {
       rectification: slice,
     });
     expect(() => ReportDocument({ data })).not.toThrow();
+    const text = collectText(ReportDocument({ data })).join(' ');
+    expect(text).toContain('How calculated — Assay');
+    expect(text).toContain('What verified — Avow');
+    expect(text).toContain('Unavailable');
   });
 
   it('still renders the natal-only document (no comprehensive data)', () => {

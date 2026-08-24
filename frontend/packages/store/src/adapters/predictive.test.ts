@@ -53,6 +53,40 @@ const DOMAIN_NAMES = [
   "family",
 ] as const;
 
+const CAREER_ASSAY = {
+  schema: "assay.result/v1",
+  method: { id: "minimum", version: "almamesh.domain-strength.v1" },
+  score: 0.5179,
+  interval: null,
+  clamp: "reject",
+  intercept: null,
+  weight_total: null,
+  components: [
+    {
+      id: "shadbala_pct",
+      raw: 82.5,
+      normalized: 0.825,
+      declared_weight: null,
+      operation: "add",
+      coefficient: 1,
+      contribution: 0.825,
+      contribution_interval: null,
+    },
+    {
+      id: "sav_pct",
+      raw: 51.79,
+      normalized: 0.5179,
+      declared_weight: null,
+      operation: "add",
+      coefficient: 1,
+      contribution: 0.5179,
+      contribution_interval: null,
+    },
+  ],
+  inputs_hash: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  selected_component_id: "sav_pct",
+} as const;
+
 function rawForecast(domain: string): LifeDomainForecast {
   return {
     domain,
@@ -378,5 +412,13 @@ describe("toDomainsCtx", () => {
     expect(win?.kind).toBe("dasha_change");
     expect(win?.trigger).toBe("jupiter");
     expect(win?.descriptor).toBe("career.dasha.antar.jupiter");
+  });
+
+  it("carries the Worker's typed Assay minimum explanation without recomputing it", () => {
+    const career = toDomainsCtx(domainsRaw, { career: CAREER_ASSAY })?.forecasts.career;
+
+    expect(career?.strength_assay).toEqual(CAREER_ASSAY);
+    expect(career?.strength_assay?.selected_component_id).toBe("sav_pct");
+    expect(career?.strength_summary.strength_pct).toBe(51.79);
   });
 });

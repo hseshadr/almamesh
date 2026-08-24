@@ -133,6 +133,20 @@ All notable changes to AlmaMesh are documented here. Format follows
   promote.
 
 ### Added
+- **Life-domain strength now separates calculation from integrity evidence.**
+  Each domain keeps the engine's existing `min(shadbala_pct, sav_pct)` headline
+  unchanged. The TypeScript Worker now records that same minimum as a typed
+  `@edgeproc/assay` result, then `@edgeproc/avow` seals the complete original
+  strength summary under the existing per-boot key. Sibling “How calculated —
+  Assay” and “What verified — Avow” panels appear in the domain list, domain
+  detail, and downloadable report in English, Spanish, and Portuguese. Avow's
+  status is fail-closed (`Verified`, `Failed`, or `Unavailable`) and is described
+  only as tamper evidence for the currently shown summary since this engine
+  boot—not correctness or identity. Assay details are deterministically checked
+  against that signed summary and withheld when verification fails. Cached
+  calculations survive reload, but the old Worker's receipts and signer do not.
+  The Python/Pyodide engine remains free of Avow, PyNaCl, and Assay dependencies.
+
 - **The Ashtakoota `excellent` band has a test.** `_band`'s top arm (`>= 33` of
   36) had no test and no fixture — every reference match landed in one of the
   three lower bands, so the threshold could have been any number, or the band

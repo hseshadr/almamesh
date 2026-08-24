@@ -62,6 +62,43 @@ const local = StyleSheet.create({
     lineHeight: 1.5,
     marginBottom: 2,
   },
+  evidence: {
+    flexDirection: 'row',
+    gap: 6,
+    marginVertical: 4,
+  },
+  evidencePanel: {
+    flexGrow: 1,
+    flexBasis: 0,
+    borderWidth: 0.5,
+    borderColor: palette.rule,
+    borderRadius: 3,
+    paddingVertical: 5,
+    paddingHorizontal: 7,
+  },
+  evidenceHeading: {
+    fontFamily: FONT_MONO,
+    fontSize: typeScale.micro,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+    color: palette.brassDeep,
+    marginBottom: 2,
+  },
+  evidenceBody: {
+    fontSize: typeScale.micro,
+    color: palette.muted,
+    lineHeight: 1.4,
+  },
+  evidenceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 4,
+    marginTop: 1,
+  },
+  evidenceValue: {
+    fontFamily: FONT_MONO,
+    color: palette.ink,
+  },
   windowsLabel: {
     fontFamily: FONT_MONO,
     fontSize: typeScale.micro,
@@ -90,6 +127,23 @@ function DomainCard({ block }: { block: ReportPdfDomainBlock }): ReactElement {
           markers (older payloads) print nothing at all. */}
       {block.stability ? <Text style={local.stability}>{block.stability}</Text> : null}
       <Text style={local.axes}>{block.strengthAxes}</Text>
+      <View style={local.evidence}>
+        <View style={local.evidencePanel}>
+          <Text style={local.evidenceHeading}>{block.assay.heading}</Text>
+          <Text style={local.evidenceBody}>{block.assay.method}</Text>
+          {block.assay.components.map((component) => (
+            <View key={component.label} style={local.evidenceRow}>
+              <Text style={local.evidenceBody}>{component.label}</Text>
+              <Text style={[local.evidenceBody, local.evidenceValue]}>{component.value}</Text>
+            </View>
+          ))}
+        </View>
+        <View style={local.evidencePanel}>
+          <Text style={local.evidenceHeading}>{block.avow.heading}</Text>
+          <Text style={[local.evidenceBody, local.evidenceValue]}>{block.avow.status}</Text>
+          <Text style={local.evidenceBody}>{block.avow.scope}</Text>
+        </View>
+      </View>
       <Text style={local.line}>{block.strengthLine}</Text>
       <Text style={local.line}>{block.emphasisLine}</Text>
       <Text style={local.windowsLabel}>{block.windowsLabel}</Text>

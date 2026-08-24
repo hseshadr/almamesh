@@ -14,6 +14,7 @@ import { loadPyodide, type PyodideInterface } from "pyodide";
 import type { SiderealChart } from "./chart";
 import type { MeshEdgeContext } from "./mesh";
 import type { EnginePredictiveContexts, PredictiveContexts } from "./predictive";
+import { composeDomainStrengths } from "./strengthAssay";
 import { sealDomainStrengths } from "./strengthReceipt";
 import type {
   BirthInput,
@@ -82,8 +83,8 @@ def _almamesh_compute_predictive(input_json):
     # Imported lazily so booting an OLDER bundled wheel (without the
     # predictive module) still serves natal charts.
     #
-    # This returns the engine's four contexts and NOTHING else. Sealing each
-    # domain's strength summary into a signed receipt happens in TypeScript,
+    # This returns the engine's four contexts and NOTHING else. Assay composes
+    # each headline and Avow seals its complete strength summary in TypeScript
     # after this call returns — the Python side stays crypto-free.
     from almamesh.predictive import compute_predictive_contexts
     data = json.loads(input_json)
@@ -282,6 +283,7 @@ async function computeSealedPredictive(input: PredictiveInput): Promise<Predicti
   const seed = deviceSeed();
   return {
     ...engine,
+    domain_strength_assays: composeDomainStrengths(engine.domains_context),
     domain_strength_receipts: await sealDomainStrengths(engine.domains_context, seed),
     strength_signer_public_key: await publicKeyHex(seed),
   };

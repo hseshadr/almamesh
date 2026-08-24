@@ -535,6 +535,31 @@ export interface StrengthSummaryData {
   note: string;
 }
 
+export interface StrengthAssayComponentData {
+  id: string;
+  raw: number;
+  normalized: number | null;
+  declared_weight: number | null;
+  operation: 'add' | 'subtract';
+  coefficient: number;
+  contribution: number;
+  contribution_interval: { low: number; high: number } | null;
+}
+
+/** Assay's typed minimum-composition result for one domain-strength headline. */
+export interface StrengthAssayData {
+  schema: 'assay.result/v1';
+  method: { id: 'minimum'; version: string };
+  score: number;
+  interval: { low: number; high: number } | null;
+  clamp: 'reject' | 'clamp';
+  intercept: null;
+  weight_total: null;
+  components: ReadonlyArray<StrengthAssayComponentData>;
+  inputs_hash: string;
+  selected_component_id: string;
+}
+
 export interface CurrentEmphasisData {
   active_dasha_significator: boolean;
   /** Subset of "maha" / "antar" / "pratyantar" (schema types it as str). */
@@ -563,6 +588,8 @@ export interface LifeDomainForecastData {
   karakas: KarakaSignificatorData[];
   varga: VargaPlacementSummaryData;
   strength_summary: StrengthSummaryData;
+  /** Present on current Worker results; absent only on an older cached payload. */
+  strength_assay?: StrengthAssayData;
   current_emphasis: CurrentEmphasisData;
   upcoming_windows: DomainWindowData[];
 }

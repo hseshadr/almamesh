@@ -40,7 +40,12 @@ export type {
 } from "./pyodide/runtime";
 
 // --- domain-strength receipts (tamper-evidence layer, see ./pyodide/strengthReceipt) ---
-export { signDomainStrength, verifyDomainStrength } from "./pyodide/strengthReceipt";
+export {
+  signDomainStrength,
+  verifyDomainStrength,
+  verifyDomainStrengthClaim,
+} from "./pyodide/strengthReceipt";
+export type { DomainStrengthAssayResult } from "./pyodide/strengthAssay";
 
 // --- the Pyodide chart engine (compute layer) ---
 export { ChartEngineClient } from "./pyodide/chartEngineClient";

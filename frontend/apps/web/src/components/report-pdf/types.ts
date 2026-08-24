@@ -282,11 +282,25 @@ export interface ReportPdfStrength {
 }
 
 /** One life-domain forecast block, fully pre-formatted. */
+export interface ReportPdfAssayPanel {
+  readonly heading: string;
+  readonly method: string;
+  readonly components: ReadonlyArray<ReportPdfLabeledValue>;
+}
+
+export interface ReportPdfAvowPanel {
+  readonly heading: string;
+  readonly status: string;
+  readonly scope: string;
+}
+
 export interface ReportPdfDomainBlock {
   readonly name: string;
   readonly band: string; // calibrated headline "{pct} · {band word}" (rigor spec §A.1)
   readonly strengthAxes: string; // two-axis ledger "Śaḍbala {pct} · Aṣṭakavarga {pct} — model estimate"
   readonly strengthLine: string;
+  readonly assay: ReportPdfAssayPanel;
+  readonly avow: ReportPdfAvowPanel;
   readonly emphasisLine: string;
   readonly windowsLabel: string;
   readonly windows: ReadonlyArray<string>;

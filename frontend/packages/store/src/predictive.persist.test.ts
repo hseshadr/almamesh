@@ -71,12 +71,15 @@ const rawStrength: StrengthContext = {
 
 const rawDomains = { instant: "2026-06-09T12:00:00Z", forecasts: {} } as LifeDomainsContext;
 
-const RAW: PredictiveContexts = {
+const RAW = {
   transit_context: rawTransit,
   varga_context_full: rawVargas,
   strength_context: rawStrength,
   domains_context: rawDomains,
-};
+  domain_strength_assays: {},
+  domain_strength_receipts: { career: { stale: true } },
+  strength_signer_public_key: "prior-worker-boot-key",
+} as unknown as PredictiveContexts;
 
 const INPUT: EnsurePredictiveInput = {
   profileKey: "profile-1",
@@ -309,12 +312,11 @@ describe("usePredictiveStore persistence", () => {
   });
 });
 
-// Spec 062 (LLM delta 1): the RAW engine `PredictiveContexts` are persisted
+// Spec 062 (LLM delta 1): the engine's calculation contexts are persisted
 // alongside the UI reshape so the LLM composition layer can put
 // transit_context/strength_context/varga_context_full/domains_context back
-// onto the chart. Persist version 1 → 2; a v1 blob (no raw slice) keeps its
-// ready UI contexts (no ~30s recompute on upgrade) and the LLM features simply
-// degrade to natal-only — NEVER an error.
+// onto the chart. A v1 blob (no raw slice) keeps its ready UI contexts; v3 also
+// expires v2 proof from a previous Worker boot without discarding calculations.
 describe("usePredictiveStore — raw contexts persistence (Spec 062 delta 1)", () => {
   beforeEach(() => {
     installMemoryStorage();
@@ -326,14 +328,44 @@ describe("usePredictiveStore — raw contexts persistence (Spec 062 delta 1)", (
 
     expect(usePredictiveStore.getState().rawContexts).toEqual(RAW);
     const blob = JSON.parse(memMap.get(PREDICTIVE_PERSIST_NAME)!);
-    expect(blob.version).toBe(2);
+    expect(blob.version).toBe(PREDICTIVE_PERSIST_VERSION);
     expect(blob.state.rawContexts.transit_context).toBeDefined();
     expect(blob.state.rawContexts.strength_context.ashtakavarga.sarva.total).toBe(337);
   });
 
-  it("rehydrates the raw contexts intact across a reload", async () => {
+  it("rehydrates cached calculations and Assay details without prior-boot proof", async () => {
     await seedReadyThenReload();
-    expect(usePredictiveStore.getState().rawContexts).toEqual(RAW);
+    const raw = usePredictiveStore.getState().rawContexts;
+    expect(raw?.transit_context).toEqual(RAW.transit_context);
+    expect(raw?.domains_context).toEqual(RAW.domains_context);
+    expect(raw?.domain_strength_assays).toEqual(RAW.domain_strength_assays);
+    expect(raw).not.toHaveProperty("domain_strength_receipts");
+    expect(raw).not.toHaveProperty("strength_signer_public_key");
+  });
+
+  it("migrates a v2 cache by preserving calculations and deleting its stale proof", async () => {
+    memMap.set(
+      PREDICTIVE_PERSIST_NAME,
+      JSON.stringify({
+        version: 2,
+        state: {
+          status: "ready",
+          transitCtx: rawTransit,
+          strengthCtx: rawStrength,
+          rawContexts: RAW,
+          profileKey: INPUT.profileKey,
+          requestKey: KEY,
+        },
+      }),
+    );
+
+    await usePredictiveStore.persist.rehydrate();
+
+    expect(usePredictiveStore.getState().rawContexts?.strength_context).toEqual(rawStrength);
+    const rewritten = JSON.parse(memMap.get(PREDICTIVE_PERSIST_NAME)!);
+    expect(rewritten.version).toBe(PREDICTIVE_PERSIST_VERSION);
+    expect(rewritten.state.rawContexts).not.toHaveProperty("domain_strength_receipts");
+    expect(rewritten.state.rawContexts).not.toHaveProperty("strength_signer_public_key");
   });
 
   it("reset clears the raw contexts", async () => {
@@ -412,8 +444,12 @@ describe("usePredictiveStore — persisted rawContexts SHAPE validation", () => 
     },
   );
 
-  it("keeps a well-formed persisted rawContexts intact", async () => {
+  it("keeps calculations but expires prior-boot proof from well-formed rawContexts", async () => {
     await seedReadyThenReload();
-    expect(usePredictiveStore.getState().rawContexts).toEqual(RAW);
+    const raw = usePredictiveStore.getState().rawContexts;
+    expect(raw?.strength_context).toEqual(RAW.strength_context);
+    expect(raw?.domain_strength_assays).toEqual(RAW.domain_strength_assays);
+    expect(raw).not.toHaveProperty("domain_strength_receipts");
+    expect(raw).not.toHaveProperty("strength_signer_public_key");
   });
 });

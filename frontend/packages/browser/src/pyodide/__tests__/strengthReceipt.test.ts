@@ -16,8 +16,10 @@ import {
   sealDomainStrengths,
   signDomainStrength,
   verifyDomainStrength,
+  verifyDomainStrengthClaim,
   type DomainStrengthSubject,
 } from "../strengthReceipt";
+import { composeDomainStrength } from "../strengthAssay";
 import type { LifeDomainsContext, StrengthSummary } from "../predictive";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -114,6 +116,51 @@ describe("golden vectors: TS signing is byte-identical to the Python avow kernel
 
   it("derives the vector's public key from the vector's seed", async () => {
     expect(await publicKeyHex(vectors.seed_hex)).toBe(vectors.public_key);
+  });
+});
+
+describe("verifyDomainStrengthClaim", () => {
+  it("accepts only a genuine receipt for the domain summary currently being shown", async () => {
+    const seed = generateSeedHex();
+    const key = await publicKeyHex(seed);
+    const current = summary();
+    const receipt = await signDomainStrength("career", current, seed);
+
+    await expect(
+      verifyDomainStrengthClaim(receipt, key, "career", current),
+    ).resolves.toBeUndefined();
+    await expect(
+      verifyDomainStrengthClaim(
+        receipt,
+        key,
+        "career",
+        summary({ strength_pct: current.strength_pct + 1 }),
+      ),
+    ).rejects.toThrow(/current domain strength/i);
+    await expect(
+      verifyDomainStrengthClaim(receipt, key, "finances", current),
+    ).rejects.toThrow(/current domain strength/i);
+  });
+
+  it("rejects altered Assay details even when the signed summary is unchanged", async () => {
+    const seed = generateSeedHex();
+    const key = await publicKeyHex(seed);
+    const current = summary();
+    const receipt = await signDomainStrength("career", current, seed);
+    const assay = composeDomainStrength(current);
+    const altered = {
+      ...assay,
+      components: assay.components.map((component) =>
+        component.id === assay.selected_component_id ? { ...component, raw: 99 } : component,
+      ),
+    };
+
+    await expect(
+      verifyDomainStrengthClaim(receipt, key, "career", current, assay),
+    ).resolves.toBeUndefined();
+    await expect(
+      verifyDomainStrengthClaim(receipt, key, "career", current, altered),
+    ).rejects.toThrow(/assay.*current domain strength/i);
   });
 });
 

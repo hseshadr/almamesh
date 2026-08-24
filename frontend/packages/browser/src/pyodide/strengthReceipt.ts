@@ -30,6 +30,7 @@
  */
 
 import {
+  contentHash,
   type JsonValue,
   type SignedReceipt,
   signPayload,
@@ -37,6 +38,7 @@ import {
 } from "@edgeproc/avow";
 
 import type { LifeDomainsContext, StrengthSummary } from "./predictive";
+import { composeDomainStrength, type DomainStrengthAssayResult } from "./strengthAssay";
 
 /**
  * The signed claim: THIS domain scored THIS calibrated summary. The full summary
@@ -129,4 +131,31 @@ export async function verifyDomainStrength(
     { ...receipt, payload: asJsonSubject(receipt.payload) },
     expectedPublicKey,
   );
+}
+
+/**
+ * Verify the receipt and bind its signed subject to the domain summary the UI
+ * or PDF is about to show. A valid receipt for a different snapshot is not
+ * evidence for the current claim, even when it came from the same boot key.
+ */
+export async function verifyDomainStrengthClaim(
+  receipt: DomainStrengthReceipt,
+  expectedPublicKey: string,
+  domain: string,
+  summary: StrengthSummary,
+  assay?: DomainStrengthAssayResult,
+): Promise<void> {
+  await verifyDomainStrength(receipt, expectedPublicKey);
+  const expectedHash = await contentHash(asJsonSubject({ domain, summary }));
+  if (expectedHash !== receipt.payload_hash) {
+    throw new Error("Receipt does not match the current domain strength");
+  }
+  if (assay) {
+    const expectedAssay = composeDomainStrength(summary);
+    const actualAssayHash = await contentHash(assay as unknown as JsonValue);
+    const expectedAssayHash = await contentHash(expectedAssay as unknown as JsonValue);
+    if (actualAssayHash !== expectedAssayHash) {
+      throw new Error("Assay does not match the current domain strength");
+    }
+  }
 }

@@ -77,6 +77,16 @@ const DOMAIN_BLOCK: ReportPdfDomainBlock = {
   band: '62% · Moderate',
   strengthAxes: 'Sadbala 55% · Astakavarga 70% — model estimate',
   strengthLine: 'Key graha Saturn.',
+  assay: {
+    heading: 'How calculated — Assay',
+    method: 'Minimum of two inputs.',
+    components: [],
+  },
+  avow: {
+    heading: 'What verified — Avow',
+    status: 'Unavailable',
+    scope: 'Integrity only.',
+  },
   emphasisLine: 'Saturn mahadasa running.',
   windowsLabel: 'Upcoming windows',
   windows: [],
@@ -151,6 +161,14 @@ describe('Defect 3 — the birth-time stability marker reaches the PDF', () => {
     render(<ReportPdfDomains data={domainsData(DOMAIN_BLOCK)} />);
     expect(screen.queryByText(/birth-time/)).toBeNull();
     expect(screen.getByText('Career')).toBeTruthy();
+  });
+
+  it('prints the legacy strength-axes ledger alongside the new proof panels', () => {
+    render(<ReportPdfDomains data={domainsData(DOMAIN_BLOCK)} />);
+
+    expect(screen.getByText(DOMAIN_BLOCK.strengthAxes)).toBeTruthy();
+    expect(screen.getByText('How calculated — Assay')).toBeTruthy();
+    expect(screen.getByText('What verified — Avow')).toBeTruthy();
   });
 });
 

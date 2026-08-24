@@ -145,7 +145,23 @@ async function resolveStrengthProvenance(
   if (!receipts || !signerPublicKey) {
     return undefined;
   }
-  return verifyStrengthProvenance(receipts, signerPublicKey);
+  const summaries = comprehensive.domainsCtx
+    ? Object.fromEntries(
+        Object.entries(comprehensive.domainsCtx.forecasts).map(([domain, forecast]) => [
+          domain,
+          forecast.strength_summary,
+        ]),
+      )
+    : undefined;
+  const assays = comprehensive.domainsCtx
+    ? Object.fromEntries(
+        Object.entries(comprehensive.domainsCtx.forecasts).map(([domain, forecast]) => [
+          domain,
+          forecast.strength_assay,
+        ]),
+      )
+    : undefined;
+  return verifyStrengthProvenance(receipts, signerPublicKey, summaries, assays);
 }
 
 /** Build the document, render to a Blob, and click a temporary download link. */
