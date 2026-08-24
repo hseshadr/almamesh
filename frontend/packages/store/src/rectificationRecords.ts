@@ -29,6 +29,7 @@ import type {
 import { create, type StateCreator } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { deletionAwareIdbStorage } from './deletionTombstones';
+import { whenHydrated } from './hydrationBarrier';
 
 /** A single IndexedDB key holding all profiles' rectification records. */
 const PERSIST_NAME = 'almamesh-rectification-records';
@@ -203,14 +204,5 @@ export const useRectificationRecordsStore = create<RectificationRecordsStore>()(
  * reflect the persisted truth (avoids the async-rehydrate false-empty race).
  */
 export function whenRectificationRecordsHydrated(): Promise<void> {
-  const { persist: persistApi } = useRectificationRecordsStore;
-  if (!persistApi?.hasHydrated || persistApi.hasHydrated()) {
-    return Promise.resolve();
-  }
-  return new Promise<void>((resolve) => {
-    const unsubscribe = persistApi.onFinishHydration(() => {
-      unsubscribe?.();
-      resolve();
-    });
-  });
+  return whenHydrated(useRectificationRecordsStore.persist);
 }

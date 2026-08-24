@@ -31,7 +31,6 @@ import {
   CHART_LIBRARY_FLAG_KEY,
   abortBackupRestore,
   bumpRestoreEpoch,
-  finalizeBackupRestore,
   commitDatasetGeneration,
   whenChartLibraryHydrated,
   whenChatHydrated,
@@ -69,7 +68,7 @@ function getUsableLocalStorage(): Pick<Storage, 'removeItem'> | null {
     if (typeof storage?.removeItem !== 'function') {
       return null;
     }
-    return { removeItem: storage.removeItem };
+    return { removeItem: storage.removeItem.bind(storage) };
   } catch {
     return null;
   }
@@ -79,6 +78,7 @@ export interface ResetEverythingDeps {
   waitForHydration: () => Promise<void>;
   clearPersisted: (epoch?: number) => Promise<void>;
   beginDatasetReset?: () => Promise<number>;
+  /** Optional only for injected non-atomic persistence; the browser commit finalizes itself. */
   finalizeDatasetReset?: (epoch: number) => Promise<void>;
   abortDatasetReset?: (epoch: number) => Promise<void>;
   publishDatasetReset?: (notice: {
@@ -111,7 +111,6 @@ const DEFAULT_DEPS: ResetEverythingDeps = {
     );
   },
   beginDatasetReset: bumpRestoreEpoch,
-  finalizeDatasetReset: finalizeBackupRestore,
   abortDatasetReset: abortBackupRestore,
   publishDatasetReset: publishDeletionNotice,
 };
@@ -146,7 +145,7 @@ export async function resetEverything(deps: ResetEverythingDeps = DEFAULT_DEPS):
     const storage = getUsableLocalStorage();
     storage?.removeItem(CHART_LIBRARY_FLAG_KEY);
     storage?.removeItem(INTERPRETATIONS_KEY);
-    await (deps.finalizeDatasetReset ?? finalizeBackupRestore)(epoch);
+    await deps.finalizeDatasetReset?.(epoch);
     publishReset({ kind: 'dataset', operation: 'reset', phase: 'complete' });
   } catch (error) {
     await (deps.abortDatasetReset ?? abortBackupRestore)(epoch);

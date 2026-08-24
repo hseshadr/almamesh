@@ -304,6 +304,28 @@ describe('resetEverything', () => {
     await expect(resetEverything()).resolves.toBeUndefined();
   });
 
+  it('calls native localStorage methods with their required receiver', async () => {
+    const originalStorage = globalThis.localStorage;
+    const storage = {
+      removeItem: vi.fn(function (this: unknown) {
+        if (this !== storage) throw new TypeError('Illegal invocation');
+      }),
+    };
+    vi.stubGlobal('localStorage', storage);
+
+    try {
+      await resetEverything({
+        waitForHydration: () => Promise.resolve(),
+        clearPersisted: () => Promise.resolve(),
+        beginDatasetReset: () => Promise.resolve(1),
+      });
+      expect(storage.removeItem).toHaveBeenCalledWith(CHART_LIBRARY_FLAG_KEY);
+      expect(storage.removeItem).toHaveBeenCalledWith(INTERPRETATIONS_KEY);
+    } finally {
+      vi.stubGlobal('localStorage', originalStorage);
+    }
+  });
+
   it('does not crash when an SSR host exposes a partial localStorage shell', async () => {
     vi.stubGlobal('localStorage', {});
     await expect(
