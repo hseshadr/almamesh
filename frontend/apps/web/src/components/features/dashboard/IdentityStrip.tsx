@@ -404,7 +404,13 @@ export function IdentityStrip({
           </p>
           <h1 className="mt-1 font-display text-3xl leading-tight text-text-primary">{name}</h1>
         </div>
-        {actions && <div className="flex flex-wrap items-center gap-3">{actions}</div>}
+        {actions && (
+          <div
+            className="flex w-full min-w-0 flex-wrap items-center gap-3 sm:w-auto sm:justify-end [&>a]:inline-flex [&>a]:min-h-11 [&>a]:min-w-11 [&>a]:items-center [&>a]:justify-center [&>button]:min-h-11 [&>button]:min-w-11 [&_[role=tab]]:min-h-11"
+          >
+            {actions}
+          </div>
+        )}
       </div>
 
       <dl className="mt-6 grid grid-cols-1 gap-x-10 gap-y-4 sm:grid-cols-3">
