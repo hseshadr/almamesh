@@ -1,0 +1,25 @@
+name: Dagger deploy dry-run shadow
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-dagger-shadow-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy-dry-run:
+    name: Deploy dry-run (Dagger shadow)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: dagger/dagger-for-github@27b130bf0f79a7f6fbbbe0fbca6760dc9bb40a77 # v8.4.1
+        with:
+          version: "0.21.8"
+          verb: call
+          args: deploy-dry-run --expected-sha=${{ github.sha }} sync
