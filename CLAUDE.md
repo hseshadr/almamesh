@@ -62,15 +62,15 @@ This repo builds against `~/dev/project-ideas/oss/ENGINEERING-STANDARDS.md`
   - **Nightly lane** (`nightly-e2e.yml`, cron + manual dispatch): all 12
     `e2e/*.spec.ts` suites — including the sw-update lane above, which is what
     makes it a gate rather than a command someone remembers to type — with the
-    exit-gate job's flake engineering
-    (Skyfield ephemeris + uv + Bun caches). The five `*.real.*` specs and the
+    same native Dagger toolchain and caches as the PR lane. The five `*.real.*` specs and the
     dual-voice B/C checks self-skip unless the optional `OPENROUTER_API_KEY`
     repo secret is configured — a keyless nightly is still a green, honest run
     of the deterministic surface.
 - **Release discipline:** Keep-a-Changelog + annotated tags, tag-forward-only.
   Tags start at v0.4.0 (v0.1.0–v0.3.0 were never cut; never backfill). Cut the
   tag at merged HEAD on main, never mid-PR.
-- **Dependency audits are gates:** the weekly `security-audit.yml` runs both
+- **Dependency audits are gates:** the weekly `security-audit.yml` invokes native
+  Dagger `dependency-audit`, which runs both
   `pip-audit` against the exported uv lock and `bun audit` against the frozen
   frontend lock. A red schedule is a red repository; update or floor the
   vulnerable dependency and rerun the product gates before release.

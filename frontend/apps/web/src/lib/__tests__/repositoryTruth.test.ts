@@ -110,11 +110,10 @@ describe('repository truth', () => {
     expect(build).toContain('--sequence "${BUNDLE_SEQUENCE}"');
     expect(build).toContain('almamesh.edge.release_guard');
     expect(build).toContain('BUNDLE_LIVE_URL');
-    expect(readRoot('.github/workflows/deploy.yml')).toContain(
-      'BUNDLE_LIVE_URL: https://almamesh.com/bundle/latest',
-    );
-    expect(readRoot('.github/workflows/deploy.yml')).toContain('Verify exact live bundle identity');
-    expect(readRoot('.github/workflows/deploy.yml')).toContain('EXPECTED_BUNDLE_IDENTITY');
+    const delivery = readRoot('dagger/src/index.ts');
+    expect(delivery).toContain('export BUNDLE_LIVE_URL="${LIVE_ORIGIN}/bundle/latest"');
+    expect(delivery).toContain('Live app and bundle identity verified');
+    expect(delivery).toContain('expected_bundle=');
   });
 
   it('requires the live-like WebKit engine and persistent fallback gate in CI', () => {
@@ -160,7 +159,6 @@ describe('repository truth', () => {
   it('keeps ordinary builds keyless while production and engine gates fail closed on trust assets', () => {
     const config = readRoot('frontend/apps/web/vite.config.ts');
     const testWorkflow = readRoot('dagger/src/index.ts');
-    const deployWorkflow = readRoot('.github/workflows/deploy.yml');
     const productionBuild = readRoot('frontend/apps/web/scripts/build-prod.sh');
 
     expect(config).toContain('existsSync(TRUST_KEY_PATH)');
@@ -173,8 +171,8 @@ describe('repository truth', () => {
     expect(generateAssets).toBeGreaterThan(-1);
     expect(buildExitGate).toBeGreaterThan(generateAssets);
 
-    const restoreProductionKey = deployWorkflow.indexOf('Restore the production signing keypair');
-    const buildProduction = deployWorkflow.indexOf('Build the production artifact');
+    const restoreProductionKey = testWorkflow.indexOf('withSecretVariable("BUNDLE_PRIVATE_KEY_B64"');
+    const buildProduction = testWorkflow.indexOf('this.productionBuildScript()');
     expect(restoreProductionKey).toBeGreaterThan(-1);
     expect(buildProduction).toBeGreaterThan(restoreProductionKey);
 
@@ -193,18 +191,19 @@ describe('repository truth', () => {
 
   it('keeps the production private key outside the checkout and shreds it after deploy', () => {
     const build = readRoot('frontend/apps/web/scripts/build-prod.sh');
-    const workflow = readRoot('.github/workflows/deploy.yml');
+    const delivery = readRoot('dagger/src/index.ts');
 
     expect(build).toContain('PRODUCTION_KEYS_DIR');
     expect(build).toContain('bundle ./origin-prod "${KEYS_DIR}/private.key"');
     expect(build).toContain('--public-key "${KEYS_DIR}/public.key"');
     expect(build).toContain('cp "${KEYS_DIR}/public.key" "${PUBLIC_DIR}/public.key"');
-    expect(workflow).toContain('PRODUCTION_KEYS_DIR: ${{ runner.temp }}/almamesh-keys-prod');
-    expect(workflow).toContain('if [[ -f "$PRODUCTION_KEYS_DIR/private.key" ]]');
-    expect(workflow).not.toContain('mkdir -p keys-prod');
-    expect(workflow).not.toContain('> keys-prod/private.key');
-    expect(workflow).toContain('shred -f -n 3 -z --remove');
-    expect(workflow).toContain('rm -rf "$PRODUCTION_KEYS_DIR"');
+    expect(delivery).toContain('.withMountedTemp(KEYS)');
+    expect(delivery).toContain('export BUILD_COMMIT="$EXPECTED_SHA" PRODUCTION_KEYS_DIR="${KEYS}"');
+    expect(delivery).not.toContain('mkdir -p keys-prod');
+    expect(delivery).not.toContain('> keys-prod/private.key');
+    expect(delivery).toContain('shred -f -n 3 -z --remove');
+    expect(delivery).toContain('rm -rf "${KEYS}/"*');
+    expect(delivery).toContain('.withoutSecretVariable("BUNDLE_PRIVATE_KEY_B64")');
   });
 
   it('records the complete PR 62 artifact and provenance behavior', () => {

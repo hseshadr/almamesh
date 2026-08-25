@@ -27,7 +27,7 @@ import pytest
 
 _ROOT = Path(__file__).resolve().parents[2]
 _DEPLOY = _ROOT / ".github" / "workflows" / "deploy.yml"
-_GUARDED_JOB = "preflight"
+_GUARDED_JOB = "deploy"
 _THIS_REPO = "hseshadr/almamesh"
 _FORK_REPO = "attacker/almamesh"
 
@@ -257,9 +257,14 @@ def test_failed_ci_on_main_is_rejected() -> None:
     assert evaluate(GUARD, context) is False
 
 
-def test_manual_dispatch_is_still_accepted() -> None:
+def test_manual_dispatch_context_is_rejected() -> None:
     context = Context(event_name="workflow_dispatch", repository=_THIS_REPO)
-    assert evaluate(GUARD, context) is True
+    assert evaluate(GUARD, context) is False
+
+
+def test_production_deploy_has_no_manual_dispatch_bypass() -> None:
+    workflow = _DEPLOY.read_text(encoding="utf-8")
+    assert "workflow_dispatch" not in workflow
 
 
 def test_pre_fix_guard_accepted_the_fork_pull_request() -> None:

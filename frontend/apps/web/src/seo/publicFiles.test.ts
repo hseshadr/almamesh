@@ -264,22 +264,21 @@ describe('IndexNow key', () => {
     expect(readFileSync(path.join(publicDir, keyFiles[0]), 'utf-8').trim()).toBe(key);
   });
 
-  it('the deploy workflow pings api.indexnow.org, deriving the key from the shipped file', () => {
-    const workflow = readFileSync(
-      path.join(repoRoot, '.github/workflows/deploy.yml'),
+  it('the Dagger deploy pings api.indexnow.org, deriving the key from the shipped file', () => {
+    const delivery = readFileSync(
+      path.join(repoRoot, 'dagger/src/index.ts'),
       'utf-8',
     );
-    expect(workflow).toContain('api.indexnow.org');
-    // No key literal in the workflow (gitleaks false-positives on inline hex
+    expect(delivery).toContain('api.indexnow.org');
+    // No key literal in delivery code (gitleaks false-positives on inline hex
     // keys): it must derive the key from the key file shipped in public/.
-    expect(workflow).toContain("grep -E '^[0-9a-f]{32}\\.txt$'");
-    expect(workflow).toContain('frontend/apps/web/public');
+    expect(delivery).toContain("find dist -maxdepth 1 -type f -name '????????????????????????????????.txt'");
     const key = keyFiles[0].replace(/\.txt$/, '');
-    expect(workflow).not.toContain(key);
+    expect(delivery).not.toContain(key);
     for (const head of PUBLIC_ROUTE_HEADS) {
-      expect(workflow, head.canonical).toContain(head.canonical);
+      expect(delivery, head.canonical).toContain(head.canonical);
     }
     // Non-fatal by contract: the ping must never break a deploy.
-    expect(workflow).toMatch(/indexnow[\s\S]{0,400}\|\| true/i);
+    expect(delivery).toContain('|| echo "IndexNow notification failed (non-fatal)"');
   });
 });

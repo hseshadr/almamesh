@@ -1,30 +1,24 @@
 # Go-Live checklist — activate almamesh.com auto-deploy
 
-**TL;DR.** The Cloudflare Pages pipeline is fully built and wired to **auto-deploy
-on every green push to `main`** — but it is deliberately **inert** until you do a
-one-time setup that only the repo owner can do (it needs your Cloudflare account
-and the production signing key). This file is the exact, copy-pasteable sequence.
-
-Until you finish this, nothing deploys and `main` stays green (the auto-deploy job
-**skips cleanly** when the secrets are absent).
+**TL;DR.** The Cloudflare Pages pipeline auto-deploys every green push to `main`.
+GitHub only checks out the exact tested SHA and invokes native Dagger `deploy`;
+Dagger owns signing, key shredding, pinned Wrangler 4.103.0, source identity, and
+live app/bundle verification. Configure all four secrets before merging because
+missing credentials fail closed. There is no manual production-deploy bypass.
 
 > Background / architecture: [`almamesh-com.md`](./almamesh-com.md). The CI workflow
 > is `.github/workflows/deploy.yml`; the prod build script is
 > `frontend/apps/web/scripts/build-prod.sh`.
 
-## Quickest path: one command
+## Quick proof (no production credentials)
 
 ```bash
-./scripts/go-live-almamesh.sh
+dagger call deploy-dry-run --expected-sha="$(git rev-parse HEAD)" sync
 ```
 
-This script does everything mechanical for you — backs nothing up silently (it
-shows the key and makes you confirm you saved it), runs `wrangler login`, creates
-the Pages project, base64-encodes the keys, sets all four GitHub secrets, and
-triggers + watches the first deploy. It pauses only for the two things that need
-you: the browser login and pasting your Cloudflare API token. It is safe to
-re-run (every step checks state first). The manual steps below are the same
-sequence, documented in full if you prefer to do it by hand.
+This builds a production-shaped artifact with an ephemeral signing key, runs the
+pinned Wrangler Pages server, and verifies its exact build and bundle identity.
+It cannot upload. The owner-only one-time account setup follows.
 
 ---
 
@@ -81,23 +75,18 @@ The rest of this file is the full reference for re-running or auditing the pipel
 ## What you're activating
 
 ```
-push to main ──► "Dagger" workflow (gates) ──► passes ──► deploy.yml (workflow_run)
-                                                          │
-                                                  preflight: secrets set?
-                                                   ├─ no  → SKIP (main stays green)
-                                                   └─ yes → build-prod.sh
-                                                            (sign 38 MB bundle with
-                                                             prod ed25519 key) →
-                                                            wrangler pages deploy →
-                                                            almamesh.com
+push to main ──► "Dagger" calls `ci` ──► passes ──► deploy.yml (same SHA)
+                                                       │
+                                                       └─► Dagger `deploy`
+                                                           ├─ sign + shred key
+                                                           ├─ Wrangler Pages deploy
+                                                           └─ source + live identity
 ```
 
 The deploy job signs the engine bundle **inside GitHub Actions** with your prod
-private key. It restores the secret only into the runner's ephemeral
-`${{ runner.temp }}/almamesh-keys-prod` directory outside the checkout, uses it
-through `PRODUCTION_KEYS_DIR`, then shreds the private file and removes that
-directory. This is why the key has to become a GitHub secret — and why protecting
-it matters (see Step 1).
+private key. Dagger restores the typed Secret only into an ephemeral temp mount
+outside the checkout, uses it through `PRODUCTION_KEYS_DIR`, shreds the private
+file, removes the mount, and strips secret variables before Wrangler executes.
 
 ---
 
@@ -105,7 +94,7 @@ it matters (see Step 1).
 
 - A **Cloudflare account** that owns (or will own) the `almamesh.com` zone.
   - The domain's DNS should be managed by Cloudflare (nameservers pointed at CF).
-- `wrangler` available locally — `npx wrangler --version` (no global install needed).
+- Wrangler 4.103.0 for one-time account setup — `npx --yes wrangler@4.103.0 --version`.
 - `gh` CLI authenticated against `hseshadr/almamesh` — `gh auth status`.
 - The production signing keypair present locally (it already is):
   - `backend/keys-prod/private.key` (32 bytes, mode 600)
@@ -148,13 +137,13 @@ be `main`.
 
 ```bash
 # Authenticate wrangler against your Cloudflare account (opens a browser).
-npx wrangler login
+npx --yes wrangler@4.103.0 login
 
 # Create the Pages project (production branch = main).
-npx wrangler pages project create almamesh --production-branch=main
+npx --yes wrangler@4.103.0 pages project create almamesh --production-branch=main
 
 # Note your Account ID — you'll need it for the secret in Step 4:
-npx wrangler whoami        # prints the account name + Account ID
+npx --yes wrangler@4.103.0 whoami        # prints the account name + Account ID
 ```
 
 **Attach the custom domain `almamesh.com`.** There is no `wrangler` subcommand for
@@ -200,24 +189,24 @@ gh secret set BUNDLE_PUBLIC_KEY_B64   --body "$(base64 < backend/keys-prod/publi
 gh secret list
 ```
 
-The moment all four exist, the preflight gate flips from **skip** to **deploy**.
+The next green push to `main` can now deploy. Missing or partial credentials fail
+closed rather than silently skipping.
 
 ---
 
-## 🚀 Step 5 — First deploy (manual, watched)
+## 🚀 Step 5 — First deploy (protected main, watched)
 
-Don't wait for the next merge — trigger it once by hand and watch it.
+Merge a green human PR. Production deploy has no manual trigger.
 
 ```bash
-# Trigger the deploy workflow manually (uses the latest git tag as the bundle label):
-gh workflow run "Deploy almamesh.com"
-
-# Watch it run:
-gh run watch "$(gh run list --workflow='Deploy almamesh.com' --limit 1 --json databaseId -q '.[0].databaseId')"
+# Watch the protected Dagger gate, then its same-SHA workflow_run deployment:
+gh run list --workflow=Dagger --branch=main --limit 1
+gh run list --workflow='Deploy almamesh.com' --branch=main --limit 1
 ```
 
-What the run does (see `deploy.yml` + `build-prod.sh`): installs deps, fetches the
-Pyodide dist, restores the prod keypair from the secrets, **signs** the bundle into
+What native Dagger `deploy` does (see `dagger/src/index.ts` + `build-prod.sh`):
+installs deps, fetches the Pyodide dist, restores the prod keypair from typed
+Secrets, **signs** the bundle into
 `backend/origin-prod/`, bakes it into `dist/bundle/` + `dist/public.key`, builds the
 PWA, deploys `dist/` to Cloudflare Pages, then **shreds** the restored private key.
 
@@ -243,7 +232,7 @@ offline". Check, in a browser, at https://almamesh.com :
 
 ## 🔁 Step 7 — Confirm auto-deploy
 
-After Steps 1–5, normal flow takes over: **merge a PR to `main` → "Dagger" passes →
+After Steps 1–5, normal flow takes over: **merge a PR to `main` → "Dagger" `ci` passes →
 `deploy.yml` auto-runs and ships almamesh.com.** Confirm once:
 
 ```bash
@@ -286,6 +275,6 @@ restored directly because its older pointer is intentionally rejected:
 | GitHub secret | Value | Source |
 |---|---|---|
 | `CLOUDFLARE_API_TOKEN` | Pages:Edit-scoped token | Step 3 |
-| `CLOUDFLARE_ACCOUNT_ID` | account that owns the project + zone | `npx wrangler whoami` |
+| `CLOUDFLARE_ACCOUNT_ID` | account that owns the project + zone | `npx --yes wrangler@4.103.0 whoami` |
 | `BUNDLE_PRIVATE_KEY_B64` | `base64 < backend/keys-prod/private.key` | Step 1 |
 | `BUNDLE_PUBLIC_KEY_B64` | `base64 < backend/keys-prod/public.key` | Step 1 |

@@ -7,37 +7,22 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
-
-permissions:
-  contents: read
 
 jobs:
   secret-scan:
     name: Secret Scan (gitleaks)
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: read
+    timeout-minutes: 15
     steps:
-      - name: Checkout code (full history)
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: dagger/dagger-for-github@27b130bf0f79a7f6fbbbe0fbca6760dc9bb40a77 # v8.4.1
         with:
-          fetch-depth: 0
-
-      - name: Run gitleaks
-        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Tree-guard — signing-key paths must not be tracked
-        run: |
-          tracked=$(git ls-files 'backend/keys*' 'backend/origin*')
-          if [ -n "$tracked" ]; then
-            echo "::error::Signing-key/origin paths are tracked in git:"
-            echo "$tracked"
-            exit 1
-          fi
-          echo "OK: no backend/keys*/ or backend/origin*/ paths tracked."
+          version: "0.21.8"
+          verb: call
+          args: secret-scan sync
