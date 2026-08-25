@@ -1,12 +1,13 @@
 # Dependency policy — deliberately held majors
 
 **TL;DR:** Everything not listed here floats on its caret range and should be
-kept current — but nothing enters the build until it is 24 hours old (see
-[the cooldown](#the-24-hour-cooldown)). The majors below are **held on purpose** — each hold exists
-because the newer major needs its own validated migration (live-driven, not
-just CI-green), and `main` auto-deploys to almamesh.com. A held major must have
-a one-line justification here (or at the pin site, cross-linked here); a hold
-without one is a bug in this file.
+kept current. Registry dependencies are trusted through exact versions where
+required, the frozen lock, integrity metadata, provenance tests, and unsuppressed
+audits—not elapsed time. The majors below are **held on purpose** because each
+newer major needs its own validated migration (live-driven, not just CI-green),
+and `main` auto-deploys to almamesh.com. A held major must have a one-line
+justification here (or at the pin site, cross-linked here); a hold without one is
+a bug in this file.
 
 ## The holds
 
@@ -40,34 +41,6 @@ ceiling was not buying determinism either.
 
 Hold a Python major the normal way if it ever genuinely needs a migration: add a
 row above with a real, specific reason. "Untested major" is not one.
-
-## The 24-hour cooldown
-
-`bun install` refuses any package version published less than 24 hours ago.
-That window is when a compromised or hijacked release is live and still
-undetected; most get caught and unpublished inside it. The setting is
-`install.minimumReleaseAge = 86400` in `frontend/bunfig.toml` — **seconds**,
-which is bun's unit, and the same 1440 minutes the pnpm frontends in this
-portfolio enforce.
-
-What you will actually see:
-
-- Asking for a too-fresh version by name fails the install outright:
-  `error: No version matching "<pkg>" found for specifier "<version>"
-  (blocked by minimum-release-age: 86400 seconds)`, exit 1, nothing written.
-- A caret range quietly resolves to the newest version that *is* old enough
-  instead of failing. So a range does still float — just never onto something
-  published today.
-
-**A dependency failing here is the control working.** Wait the window out, or
-pin the previous version. Never add `minimumReleaseAgeExcludes` — an exemption
-disables the cooldown for that package everywhere, CI included, which is the
-hole the setting exists to close. `apps/web/src/__tests__/supply-chain-cooldown.test.ts`
-fails the build if the key, the value, or the no-exemptions rule is changed.
-
-It gates *resolution*, so it does not re-check versions already pinned in
-`bun.lock`, and a package already in bun's global cache is served from cache
-and skips the check. CI installs cold, which is where it counts.
 
 ## How to lift a hold
 
