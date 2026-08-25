@@ -9,6 +9,11 @@ import { describe, expect, it } from 'vitest';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const BUNFIG_PATH = resolve(HERE, '../../../../bunfig.toml');
+const BROWSER_PACKAGE_PATH = resolve(HERE, '../../../../packages/browser/package.json');
+const BUN_LOCK_PATH = resolve(HERE, '../../../../bun.lock');
+const ASSAY_VERSION = '0.5.0-dev.3';
+const ASSAY_SRI =
+  'sha512-s0NBvvTvbc7Y6z50oqaIPraN0hd6RRd9vY4dPXkWpB3DTGKCuJ8c4Kz2eX1KjEqF7PecQ4FyqzAYvgxIrJsQYg==';
 
 function activeLines(toml: string): string[] {
   return toml
@@ -27,5 +32,13 @@ describe('registry dependency timing policy', () => {
       line.startsWith('minimumReleaseAge'),
     );
     expect(releaseAgePolicy).toEqual([]);
+  });
+
+  it('pins the reviewed Assay npm artifact and registry integrity', () => {
+    const manifest = JSON.parse(readFileSync(BROWSER_PACKAGE_PATH, 'utf8'));
+    const lock = readFileSync(BUN_LOCK_PATH, 'utf8');
+    expect(manifest.dependencies?.['@edgeproc/assay']).toBe(ASSAY_VERSION);
+    expect(lock).toContain(`"@edgeproc/assay": ["@edgeproc/assay@${ASSAY_VERSION}"`);
+    expect(lock).toContain(`"${ASSAY_SRI}"`);
   });
 });
