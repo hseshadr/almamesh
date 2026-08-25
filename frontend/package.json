@@ -24,8 +24,8 @@
   },
   "devDependencies": {
     "husky": "^9.1.7",
-    "lint-staged": "^16.4.0",
-    "typescript": "~5.7.3"
+    "lint-staged": "^17.3.0",
+    "typescript": "~7.0.2"
   },
   "//engines": "Bun is the sanctioned toolchain exception (ENGINEERING-STANDARDS §2) — pinned exactly in .bun-version (CI reads it via setup-bun's bun-version-file); engines.bun is the floor for humans.",
   "engines": {
@@ -33,7 +33,7 @@
     "bun": ">=1.3.5"
   },
   "dependencies": {
-    "baseline-browser-mapping": "^2.11.13",
+    "baseline-browser-mapping": "^2.11.17",
     "caniuse-lite": "^1.0.30001809"
   },
   "//overrides": "Force a single fresh caniuse-lite across the tree: autoprefixer + browserslist otherwise each pin their own nested (stale) copy, which trips the 'caniuse-lite is N months old' build notice even after `update-browserslist-db`. Refresh both this range and the DB periodically (a `bunx update-browserslist-db@latest` step in release/CI keeps it current).",
