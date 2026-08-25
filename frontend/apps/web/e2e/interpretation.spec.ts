@@ -89,8 +89,10 @@ function sectionFor(body: string | null): SectionKey | null {
  * the request asked for. The structured generator POSTs to
  * `<apiBase>/chat/completions` (here openrouter.ai/api/v1/chat/completions).
  */
-async function stubLlm(page: Page) {
+async function stubLlm(page: Page): Promise<() => number> {
+  let providerCalls = 0;
   await page.route('**/chat/completions', async (route) => {
+    providerCalls += 1;
     const body = route.request().postData();
     const section = sectionFor(body);
     if (!section) {
@@ -105,6 +107,7 @@ async function stubLlm(page: Page) {
       body: openAiBody,
     });
   });
+  return () => providerCalls;
 }
 
 // ===========================================================================
@@ -119,7 +122,7 @@ test('[contract/stubbed] interpretation populates from the stubbed LLM on the da
     },
     [LLM_SETTINGS_KEY, JSON.stringify(LLM_CONFIG)] as const,
   );
-  await stubLlm(page);
+  const providerCalls = await stubLlm(page);
 
   await bootEngine(page);
   const seeded = await seedChart(page);
@@ -127,8 +130,17 @@ test('[contract/stubbed] interpretation populates from the stubbed LLM on the da
   expect(String(seeded.lagna).toLowerCase()).toBe('gemini');
 
   await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
-  await expect(page.getByTestId('generate-reading')).toBeVisible();
-  await page.getByTestId('generate-reading').click();
+  await page.setViewportSize({ width: 390, height: 844 });
+  const generate = page.getByTestId('generate-reading');
+  await expect(generate).toBeVisible();
+  expect(providerCalls(), 'mounting the dashboard must not spend a provider request').toBe(0);
+  const bounds = await generate.boundingBox();
+  expect(bounds).not.toBeNull();
+  expect(bounds?.x ?? -1).toBeGreaterThanOrEqual(0);
+  expect((bounds?.x ?? 391) + (bounds?.width ?? 0)).toBeLessThanOrEqual(390);
+  expect(bounds?.height ?? 0).toBeGreaterThanOrEqual(44);
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await generate.click();
 
   // "The reading" section renders the stubbed summary as open editorial prose
   // (no accordion). Scope to the rendered <p> to avoid strict-mode multi-match.
