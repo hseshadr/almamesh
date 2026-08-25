@@ -1,12 +1,11 @@
 /**
- * Dashboard — "Regenerate reading" + LLM-config-change auto-regeneration.
+ * Dashboard — explicit Generate / Regenerate reading requests.
  *
  * A completed reading carries a provenance fingerprint of the config that
  * produced it. The identity-strip actions row offers a Regenerate button
- * (disabled while generating / when no AI is configured), and the auto-generate effect
- * regenerates ONCE when the stored provenance no longer matches the currently
- * resolved config — but only when AI is configured. A stale reading is NEVER
- * destroyed: it stays on screen through (and after, if) a failed regeneration.
+ * (disabled while generating / when no AI is configured). Mounts, reloads,
+ * provider-config changes and predictive-day changes spend nothing. A stale
+ * reading is NEVER destroyed: it stays on screen through a requested refresh.
  *
  * All chart/interpretation data below is SYNTHETIC.
  */
@@ -243,7 +242,7 @@ function renderDashboard() {
   return { queryClient, view: render(dashboardUi(queryClient)) };
 }
 
-/** Let any pending auto-generate effect settle, then assert on stream calls. */
+/** Let pending effects settle before asserting on stream calls. */
 async function settle(): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, 50));
 }
@@ -272,6 +271,18 @@ describe('Dashboard — regenerate reading', () => {
     // Scoped label: the READING regenerates — the chart is deterministic and
     // never needs to.
     expect(button.textContent ?? '').toContain('Regenerate reading');
+  });
+
+  it('keeps a touch-sized Regenerate button visible before the first reading exists', async () => {
+    renderDashboard();
+
+    const button = await screen.findByRole<HTMLButtonElement>('button', {
+      name: 'Regenerate reading',
+    });
+    expect(button.disabled).toBe(true);
+    expect(button.className).toContain('min-h-11');
+    expect(button.className).toContain('min-w-11');
+    expect(button.className).toContain('whitespace-nowrap');
   });
 
   it('REGRESSION: keeps the Regenerate button reachable when a completed reading has an EMPTY summary (recovery affordance, no dead-end)', async () => {
@@ -304,7 +315,7 @@ describe('Dashboard — regenerate reading', () => {
     expect(screen.queryByTestId('reading-section')).toBeNull();
     expect(button.disabled).toBe(false);
     await settle();
-    // Matching provenance + a kept reading → no spurious auto-regeneration.
+    // Matching provenance + a kept reading → no spurious regeneration.
     expect(mockedStream).not.toHaveBeenCalled();
   });
 
@@ -360,7 +371,7 @@ describe('Dashboard — regenerate reading', () => {
     );
   });
 
-  it('does NOT auto-regenerate when the stored provenance matches the current config', async () => {
+  it('does not regenerate on mount when provenance matches', async () => {
     configureCloudAi();
     seedCompleteReading(currentProvenance());
     renderDashboard();
@@ -370,50 +381,49 @@ describe('Dashboard — regenerate reading', () => {
     expect(mockedStream).not.toHaveBeenCalled();
   });
 
-  it('auto-regenerates ONCE when the stored provenance no longer matches the config', async () => {
+  it('does not spend a provider request when a saved reading reopens after a deploy changes config', async () => {
     configureCloudAi();
     seedCompleteReading(STALE_PROVENANCE);
-    mockedStream.mockImplementation(completingStream(INTERPRETATION));
     renderDashboard();
 
-    await waitFor(() => expect(mockedStream).toHaveBeenCalledTimes(1));
+    const reading = await screen.findByTestId('reading-section');
+    expect(reading.textContent ?? '').toContain(LAYMAN_SUMMARY);
     await settle();
-    expect(mockedStream).toHaveBeenCalledTimes(1);
+
+    expect(mockedStream).not.toHaveBeenCalled();
   });
 
-  it('auto-generates at most once when the dashboard rerenders', async () => {
+  it('requires an explicit click before the first paid reading request', async () => {
     configureCloudAi();
     useInterpretationStore.setState({ byChart: {} });
-    mockedStream.mockImplementation(failingStream(new Error('synthetic failure')));
-    const { queryClient, view } = renderDashboard();
-
-    await waitFor(() => expect(mockedStream).toHaveBeenCalledTimes(1));
-    await settle();
-    act(() => useContentModeStore.setState({ contentMode: 'technical' }));
-    view.rerender(dashboardUi(queryClient, 'after-content-mode-change'));
-    await settle();
-
-    expect(screen.getByTestId('dashboard-render-revision').getAttribute('data-revision')).toBe(
-      'after-content-mode-change',
-    );
-    expect(useContentModeStore.getState().contentMode).toBe('technical');
-    expect(mockedStream).toHaveBeenCalledTimes(1);
-  });
-
-  it('treats a legacy reading with NO provenance as a mismatch (regenerates once)', async () => {
-    configureCloudAi();
-    seedCompleteReading(undefined);
     mockedStream.mockImplementation(completingStream(INTERPRETATION));
     renderDashboard();
 
+    const generate = await screen.findByTestId('generate-reading');
+    await settle();
+    expect(mockedStream).not.toHaveBeenCalled();
+
+    fireEvent.click(generate);
     await waitFor(() => expect(mockedStream).toHaveBeenCalledTimes(1));
   });
 
-  it('auto-regenerates once for a new predictive day after an earlier auto-generation completed', async () => {
+  it('keeps a legacy reading with no provider provenance without buying a replacement', async () => {
+    configureCloudAi();
+    seedCompleteReading(undefined);
+    renderDashboard();
+
+    expect((await screen.findByTestId('reading-section')).textContent ?? '').toContain(
+      LAYMAN_SUMMARY,
+    );
+    await settle();
+    expect(mockedStream).not.toHaveBeenCalled();
+  });
+
+  it('does not spend on rerender or a new predictive day', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     vi.setSystemTime(new Date('2026-07-12T12:00:00Z'));
     configureCloudAi();
-    useInterpretationStore.setState({ byChart: {} });
+    seedCompleteReading(currentProvenance());
     const requestKey = (day: string) =>
       predictiveRequestKey({
         profileKey: 'profile-1',
@@ -434,13 +444,7 @@ describe('Dashboard — regenerate reading', () => {
       requestKey: requestKey('2026-07-12'),
       rawContexts,
     });
-    mockedStream.mockImplementation(completingStream(INTERPRETATION));
-    renderDashboard();
-
-    await waitFor(() => expect(mockedStream).toHaveBeenCalledTimes(1));
-    await waitFor(() =>
-      expect(useInterpretationStore.getState().getEntry('chart-1')?.status).toBe('complete'),
-    );
+    const { queryClient, view } = renderDashboard();
     await screen.findByTestId('reading-section');
     await settle();
 
@@ -453,74 +457,10 @@ describe('Dashboard — regenerate reading', () => {
         rawContexts,
       });
     });
-
-    await waitFor(() => expect(mockedStream).toHaveBeenCalledTimes(2));
-    await settle();
-    expect(mockedStream).toHaveBeenCalledTimes(2);
-  });
-
-  it('waits through ready-old then loading-current and narrates exactly once when that current key is ready', async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
-    vi.setSystemTime(new Date('2026-07-13T12:00:00Z'));
-    configureCloudAi();
-    useInterpretationStore.setState({ byChart: {} });
-    const requestKey = (day: string) =>
-      predictiveRequestKey({
-        profileKey: 'profile-1',
-        datetimeUtc: '1990-03-30T06:30:00Z',
-        latitude: 12.97,
-        longitude: 77.59,
-        referenceInstant: `${day}T00:00:00Z`,
-      });
-    const currentRawContexts = {
-      transit_context: { instant: '2026-07-13T00:00:00Z' },
-      varga_context_full: { charts: {} },
-      strength_context: {},
-      domains_context: { forecasts: {} },
-    } as never;
-    usePredictiveStore.setState({
-      status: 'ready',
-      profileKey: 'profile-1',
-      requestKey: requestKey('2026-07-12'),
-      rawContexts: currentRawContexts,
-    });
-    mockedStream.mockImplementation(completingStream(INTERPRETATION));
-    renderDashboard();
-
+    act(() => useContentModeStore.setState({ contentMode: 'technical' }));
+    view.rerender(dashboardUi(queryClient, 'after-deploy-rerender'));
     await settle();
     expect(mockedStream).not.toHaveBeenCalled();
-
-    act(() => {
-      usePredictiveStore.setState({
-        status: 'loading',
-        profileKey: 'profile-1',
-        requestKey: requestKey('2026-07-13'),
-        rawContexts: undefined,
-      });
-    });
-    await settle();
-    expect(mockedStream).not.toHaveBeenCalled();
-
-    act(() => {
-      usePredictiveStore.setState({
-        status: 'ready',
-        profileKey: 'profile-1',
-        requestKey: requestKey('2026-07-13'),
-        rawContexts: currentRawContexts,
-      });
-    });
-
-    await waitFor(() => expect(mockedStream).toHaveBeenCalledTimes(1));
-    expect(mockedStream.mock.calls[0]?.[0].chart).toMatchObject({
-      transit_context: { instant: '2026-07-13T00:00:00Z' },
-    });
-    await waitFor(() =>
-      expect(useInterpretationStore.getState().getEntry('chart-1')?.inputProvenance).toEqual({
-        predictiveRequestKey: requestKey('2026-07-13'),
-      }),
-    );
-    await settle();
-    expect(mockedStream).toHaveBeenCalledTimes(1);
   });
 
   it('queues a manual regenerate during current-key loading and replaces retained natal-only prose once ready', async () => {
@@ -552,7 +492,7 @@ describe('Dashboard — regenerate reading', () => {
     mockedStream.mockImplementation(currentNarration.stream);
     renderDashboard();
 
-    const regenerate = await screen.findByTestId('regenerate-reading');
+    await screen.findByTestId('regenerate-reading');
     act(() => {
       usePredictiveStore.setState({
         status: 'loading',
@@ -561,7 +501,8 @@ describe('Dashboard — regenerate reading', () => {
         rawContexts: undefined,
       });
     });
-    fireEvent.click(regenerate);
+    await settle();
+    fireEvent.click(screen.getByTestId('regenerate-reading'));
 
     await settle();
     expect(mockedStream).not.toHaveBeenCalled();
@@ -592,196 +533,17 @@ describe('Dashboard — regenerate reading', () => {
     expect(mockedStream).toHaveBeenCalledTimes(1);
   });
 
-  it('automatically replaces retained natal-only prose once current predictive facts become ready', async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
-    vi.setSystemTime(new Date('2026-07-13T12:00:00Z'));
-    configureCloudAi();
-    seedCompleteReading(currentProvenance());
-    const requestKey = (day: string) =>
-      predictiveRequestKey({
-        profileKey: 'profile-1',
-        datetimeUtc: '1990-03-30T06:30:00Z',
-        latitude: 12.97,
-        longitude: 77.59,
-        referenceInstant: `${day}T00:00:00Z`,
-      });
-    const currentRawContexts = {
-      transit_context: { instant: '2026-07-13T00:00:00Z' },
-      varga_context_full: { charts: {} },
-      strength_context: {},
-      domains_context: { forecasts: {} },
-    } as never;
-    usePredictiveStore.setState({
-      status: 'ready',
-      profileKey: 'profile-1',
-      requestKey: requestKey('2026-07-12'),
-      rawContexts: currentRawContexts,
-    });
-    mockedStream.mockImplementation(completingStream(INTERPRETATION));
-    renderDashboard();
 
-    await screen.findByTestId('reading-section');
-    await settle();
-    expect(mockedStream).not.toHaveBeenCalled();
-
-    act(() => {
-      usePredictiveStore.setState({
-        status: 'loading',
-        profileKey: 'profile-1',
-        requestKey: requestKey('2026-07-13'),
-        rawContexts: undefined,
-      });
-    });
-    await settle();
-    expect(mockedStream).not.toHaveBeenCalled();
-
-    act(() => {
-      usePredictiveStore.setState({
-        status: 'ready',
-        profileKey: 'profile-1',
-        requestKey: requestKey('2026-07-13'),
-        rawContexts: currentRawContexts,
-      });
-    });
-
-    await waitFor(() => expect(mockedStream).toHaveBeenCalledTimes(1));
-    await waitFor(() =>
-      expect(useInterpretationStore.getState().getEntry('chart-1')?.inputProvenance).toEqual({
-        predictiveRequestKey: requestKey('2026-07-13'),
-      }),
-    );
-    await settle();
-    expect(mockedStream).toHaveBeenCalledTimes(1);
-  });
-
-  it('keeps retained natal-only prose visible when its one current-predictive refresh fails', async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
-    vi.setSystemTime(new Date('2026-07-13T12:00:00Z'));
-    configureCloudAi();
-    seedCompleteReading(currentProvenance());
-    const requestKey = (day: string) =>
-      predictiveRequestKey({
-        profileKey: 'profile-1',
-        datetimeUtc: '1990-03-30T06:30:00Z',
-        latitude: 12.97,
-        longitude: 77.59,
-        referenceInstant: `${day}T00:00:00Z`,
-      });
-    const currentRawContexts = {
-      transit_context: { instant: '2026-07-13T00:00:00Z' },
-      varga_context_full: { charts: {} },
-      strength_context: {},
-      domains_context: { forecasts: {} },
-    } as never;
-    usePredictiveStore.setState({
-      status: 'ready',
-      profileKey: 'profile-1',
-      requestKey: requestKey('2026-07-12'),
-      rawContexts: currentRawContexts,
-    });
-    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    mockedStream.mockImplementation(failingStream(new Error('synthetic current refresh failure')));
-    renderDashboard();
-
-    expect((await screen.findByTestId('reading-section')).textContent ?? '').toContain(
-      LAYMAN_SUMMARY,
-    );
-    act(() => {
-      usePredictiveStore.setState({
-        status: 'loading',
-        profileKey: 'profile-1',
-        requestKey: requestKey('2026-07-13'),
-        rawContexts: undefined,
-      });
-    });
-    await settle();
-    expect(mockedStream).not.toHaveBeenCalled();
-
-    act(() => {
-      usePredictiveStore.setState({
-        status: 'ready',
-        profileKey: 'profile-1',
-        requestKey: requestKey('2026-07-13'),
-        rawContexts: currentRawContexts,
-      });
-    });
-
-    await waitFor(() => expect(mockedStream).toHaveBeenCalledTimes(1));
-    await waitFor(() =>
-      expect(useInterpretationStore.getState().getEntry('chart-1')?.status).toBe('error'),
-    );
-    expect(screen.getByTestId('reading-section').textContent ?? '').toContain(LAYMAN_SUMMARY);
-    expect(screen.getByTestId('reading-regen-error')).toBeTruthy();
-    await settle();
-    expect(mockedStream).toHaveBeenCalledTimes(1);
-    expect(errorSpy).toHaveBeenCalledWith('[almamesh:error:interpretation.stream_failed]');
-    errorSpy.mockRestore();
-  });
-
-  it('replaces a late prior-day completion exactly once with the current predictive day', async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
-    vi.setSystemTime(new Date('2026-07-12T23:59:00Z'));
-    configureCloudAi();
-    useInterpretationStore.setState({ byChart: {} });
-    const requestKey = (day: string) =>
-      predictiveRequestKey({
-        profileKey: 'profile-1',
-        datetimeUtc: '1990-03-30T06:30:00Z',
-        latitude: 12.97,
-        longitude: 77.59,
-        referenceInstant: `${day}T00:00:00Z`,
-      });
-    const rawContexts = {
-      transit_context: { instant: '2026-07-12T23:59:00Z' },
-      varga_context_full: { charts: {} },
-      strength_context: {},
-      domains_context: { forecasts: {} },
-    } as never;
-    usePredictiveStore.setState({
-      status: 'ready',
-      profileKey: 'profile-1',
-      requestKey: requestKey('2026-07-12'),
-      rawContexts,
-    });
-    const priorDay = deferredCompletion(INTERPRETATION);
-    mockedStream
-      .mockImplementationOnce(priorDay.stream)
-      .mockImplementation(completingStream(INTERPRETATION));
-    renderDashboard();
-
-    await waitFor(() => expect(mockedStream).toHaveBeenCalledTimes(1));
-    act(() => {
-      vi.setSystemTime(new Date('2026-07-13T00:00:01Z'));
-      usePredictiveStore.setState({
-        status: 'ready',
-        profileKey: 'profile-1',
-        requestKey: requestKey('2026-07-13'),
-        rawContexts,
-      });
-    });
-    expect(mockedStream).toHaveBeenCalledTimes(1);
-
-    act(() => priorDay.release());
-
-    await waitFor(() => expect(mockedStream).toHaveBeenCalledTimes(2));
-    await waitFor(() =>
-      expect(
-        useInterpretationStore.getState().getEntry('chart-1')?.inputProvenance,
-      ).toEqual({ predictiveRequestKey: requestKey('2026-07-13') }),
-    );
-    await settle();
-    expect(mockedStream).toHaveBeenCalledTimes(2);
-  });
-
-  it('a FAILED auto-regeneration does not retrigger and keeps the old reading on screen', async () => {
+  it('a failed explicit regeneration does not retrigger and keeps the old reading on screen', async () => {
     configureCloudAi();
     seedCompleteReading(STALE_PROVENANCE);
     mockedStream.mockImplementation(failingStream(new Error('HTTP 500 from endpoint')));
     renderDashboard();
 
+    fireEvent.click(await screen.findByTestId('regenerate-reading'));
     await waitFor(() => expect(mockedStream).toHaveBeenCalledTimes(1));
     await settle();
-    // Loop guard: exactly one attempt per mismatch — a failure must not spin.
+    // A provider/config mismatch never turns the failed click into a retry loop.
     expect(mockedStream).toHaveBeenCalledTimes(1);
     // The stale reading survives the failed run.
     const reading = screen.getByTestId('reading-section');
@@ -790,7 +552,7 @@ describe('Dashboard — regenerate reading', () => {
 
   it('a FAILED manual regeneration surfaces an inline, dismissible error strip in the reading section', async () => {
     configureCloudAi();
-    // Provenance matches: nothing auto-regenerates — only the manual click runs.
+    // Provenance matches: only the manual click runs.
     seedCompleteReading(currentProvenance());
     mockedStream.mockImplementation(failingStream(new Error('HTTP 500 from endpoint')));
     renderDashboard();

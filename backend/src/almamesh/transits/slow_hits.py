@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING, Final
 from almamesh.calculations import AyanamsaType, NodeType
 from almamesh.constants.astrology import PlanetName
 from almamesh.schemas.transits import SlowTransitHit, TransitEventKind, TransitSeverity
-from almamesh.transits.ingress import find_crossings
+from almamesh.transits.ingress import find_first_crossing
 from almamesh.transits.positions import transit_longitude
 
 if TYPE_CHECKING:
@@ -53,8 +53,7 @@ def _first_crossing(
     astro: SkyfieldAstronomy, graha: PlanetName, target: float, start: datetime, end: datetime
 ) -> datetime | None:
     """The earliest exact crossing of the graha over the target in [start, end]."""
-    crossings = find_crossings(_gap_fn(astro, graha, target), start, end, _STEP_DAYS)
-    return crossings[0] if crossings else None
+    return find_first_crossing(_gap_fn(astro, graha, target), start, end, _STEP_DAYS)
 
 
 def _hit(

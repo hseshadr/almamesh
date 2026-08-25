@@ -8,7 +8,7 @@ Moon 143.78 deg Leo):
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -20,6 +20,7 @@ from almamesh.calculations import (
 )
 from almamesh.constants.astrology import PlanetName
 from almamesh.schemas.transits import TransitEventKind, TransitSeverity
+from almamesh.transits import slow_hits
 from almamesh.transits.positions import transit_longitude
 from almamesh.transits.slow_hits import (
     next_conjunction,
@@ -71,3 +72,25 @@ def test_should_find_jupiter_conjunct_natal_moon() -> None:
         astro, PlanetName.JUPITER, hit.exact, AyanamsaType.LAHIRI, NodeType.MEAN
     )
     assert abs((lon - natal_moon + 180) % 360 - 180) == pytest.approx(0.0, abs=0.05)
+
+
+def test_should_stop_ephemeris_scan_after_first_conjunction(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Given a synthetic transit that reaches its target five days into a multi-year search
+    start = datetime(2026, 1, 1, tzinfo=UTC)
+    sampled: list[datetime] = []
+
+    def longitude(_astro: object, _graha: object, when: datetime, *_args: object) -> float:
+        sampled.append(when)
+        return min(10.0, (when - start).total_seconds() / 86400.0 - 5.0)
+
+    monkeypatch.setattr(slow_hits, "transit_longitude", longitude)
+
+    # When the caller asks only for the next conjunction
+    hit = next_conjunction(object(), PlanetName.JUPITER, 0.0, "moon", start)  # type: ignore[arg-type]
+
+    # Then the exact first hit is returned without scanning the unused search horizon
+    assert hit is not None
+    assert abs(hit.exact - (start + timedelta(days=5))) < timedelta(seconds=1)
+    assert len(sampled) < 100

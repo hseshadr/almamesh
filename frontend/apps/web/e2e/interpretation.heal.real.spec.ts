@@ -112,8 +112,9 @@ test('[real][self-heal] stale anthropic/claude-3.5-sonnet self-heals to DeepSeek
   expect(String(seeded.lagna).toLowerCase()).toBe('gemini');
 
   await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
+  await page.getByTestId('generate-reading').click();
 
-  // The dashboard's first read of settings (auto-generation) runs readLlmSettings(),
+  // The explicit Generate path reads settings and runs readLlmSettings(),
   // which heals the retired model AND persists the rewrite. Assert the persisted
   // model is now the recommended slug — proving the self-heal fired and stuck.
   await expect

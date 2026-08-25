@@ -24,7 +24,7 @@ import { bootEngine, seedChart, LLM_SETTINGS_KEY } from './interpretation.helper
 
 // The LLM config that makes describeLlmStatus().configured === true (a cloud
 // OpenRouter endpoint with an API key + model + cloud privacy mode). Installed
-// via addInitScript BEFORE load so the dashboard auto-triggers generation.
+// via addInitScript BEFORE load; the test then explicitly clicks Generate.
 const LLM_CONFIG = {
   apiBase: 'https://openrouter.ai/api/v1',
   apiKey: 'sk-or-test',
@@ -89,8 +89,10 @@ function sectionFor(body: string | null): SectionKey | null {
  * the request asked for. The structured generator POSTs to
  * `<apiBase>/chat/completions` (here openrouter.ai/api/v1/chat/completions).
  */
-async function stubLlm(page: Page) {
+async function stubLlm(page: Page): Promise<() => number> {
+  let providerCalls = 0;
   await page.route('**/chat/completions', async (route) => {
+    providerCalls += 1;
     const body = route.request().postData();
     const section = sectionFor(body);
     if (!section) {
@@ -105,6 +107,7 @@ async function stubLlm(page: Page) {
       body: openAiBody,
     });
   });
+  return () => providerCalls;
 }
 
 // ===========================================================================
@@ -112,14 +115,14 @@ async function stubLlm(page: Page) {
 // ===========================================================================
 test('[contract/stubbed] interpretation populates from the stubbed LLM on the dashboard', async ({ page }) => {
   // Install the LLM config BEFORE any app code runs, so describeLlmStatus()
-  // already reports "configured" on first dashboard render (auto-generation).
+  // already reports "configured" when the user explicitly generates.
   await page.addInitScript(
     ([key, cfg]) => {
       window.localStorage.setItem(key as string, cfg as string);
     },
     [LLM_SETTINGS_KEY, JSON.stringify(LLM_CONFIG)] as const,
   );
-  await stubLlm(page);
+  const providerCalls = await stubLlm(page);
 
   await bootEngine(page);
   const seeded = await seedChart(page);
@@ -127,6 +130,17 @@ test('[contract/stubbed] interpretation populates from the stubbed LLM on the da
   expect(String(seeded.lagna).toLowerCase()).toBe('gemini');
 
   await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
+  await page.setViewportSize({ width: 390, height: 844 });
+  const generate = page.getByTestId('generate-reading');
+  await expect(generate).toBeVisible();
+  expect(providerCalls(), 'mounting the dashboard must not spend a provider request').toBe(0);
+  const bounds = await generate.boundingBox();
+  expect(bounds).not.toBeNull();
+  expect(bounds?.x ?? -1).toBeGreaterThanOrEqual(0);
+  expect((bounds?.x ?? 391) + (bounds?.width ?? 0)).toBeLessThanOrEqual(390);
+  expect(bounds?.height ?? 0).toBeGreaterThanOrEqual(44);
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await generate.click();
 
   // "The reading" section renders the stubbed summary as open editorial prose
   // (no accordion). Scope to the rendered <p> to avoid strict-mode multi-match.
@@ -199,6 +213,7 @@ test('a failing endpoint degrades calmly with Retry, never a blank dashboard', a
   expect(String(seeded.lagna).toLowerCase()).toBe('gemini');
 
   await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
+  await page.getByTestId('generate-reading').click();
 
   // The unavailability panel is shown (status === 'error'), NOT hidden (which is
   // what a silent empty 'complete' produced — the blank-dashboard bug).

@@ -6,6 +6,7 @@ window with a stable `<graha>.ingress.<sign>` descriptor."""
 from __future__ import annotations
 
 from datetime import timedelta
+from functools import cache
 from typing import TYPE_CHECKING, Final
 
 from almamesh.calculations import AyanamsaType, NodeType
@@ -29,6 +30,7 @@ _STICK_DAYS: Final[float] = 30.0  # Jupiter/Saturn settle within a month of ingr
 def _graha_lon_fn(astro: SkyfieldAstronomy, graha: PlanetName) -> Callable[[datetime], float]:
     """Bound sidereal-longitude function for the graha (Lahiri, mean node)."""
 
+    @cache
     def lon(when: datetime) -> float:
         return transit_longitude(astro, graha, when, AyanamsaType.LAHIRI, NodeType.MEAN)
 

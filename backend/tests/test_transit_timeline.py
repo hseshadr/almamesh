@@ -3,10 +3,14 @@
 from __future__ import annotations
 
 import re
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
+
+import pytest
 
 from almamesh.calculations import SkyfieldAstronomy, calculate_sidereal_context
+from almamesh.constants.astrology import PlanetName
 from almamesh.schemas.transits import TransitEventKind
+from almamesh.transits import timeline_ingress
 from almamesh.transits.timeline import build_timeline
 
 _BIRTH = datetime(1990, 1, 15, 12, 0, 0, tzinfo=UTC)
@@ -59,3 +63,29 @@ def test_should_emit_descriptor_keys_not_prose() -> None:
     for e in timeline.events:
         assert _DESCRIPTOR.match(e.descriptor), e.descriptor
         assert " " not in e.descriptor
+
+
+def test_should_reuse_ephemeris_samples_across_ingress_cusps(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Given a ten-day window where the same three instants are checked against all 12 cusps
+    start = datetime(2026, 1, 1, tzinfo=UTC)
+    sampled: list[datetime] = []
+
+    def longitude(_astro: object, _graha: object, when: datetime, *_args: object) -> float:
+        sampled.append(when)
+        return 15.0
+
+    monkeypatch.setattr(timeline_ingress, "transit_longitude", longitude)
+
+    # When ingress discovery scans a slow graha with no crossing
+    events = timeline_ingress.slow_graha_ingress_events(
+        object(),
+        PlanetName.JUPITER,
+        start,
+        start + timedelta(days=10),  # type: ignore[arg-type]
+    )
+
+    # Then each astronomical instant is evaluated once, not once per zodiac cusp
+    assert events == []
+    assert sampled == [start, start + timedelta(days=5), start + timedelta(days=10)]

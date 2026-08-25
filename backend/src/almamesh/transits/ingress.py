@@ -9,7 +9,7 @@ cusp up to 3x) — hence `find_last_crossing`. No `now()`, no astronomy here.
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from datetime import datetime, timedelta
 from typing import Final
 
@@ -38,26 +38,39 @@ def _bisect(f: ScalarFn, lo: datetime, hi: datetime) -> datetime:
     return _midpoint(lo, hi)
 
 
-def _brackets(
+def _iter_brackets(
     f: ScalarFn, start: datetime, end: datetime, step_days: float
-) -> list[tuple[datetime, datetime]]:
-    """Adjacent-sample windows where f changes sign (coarse scan)."""
+) -> Iterator[tuple[datetime, datetime]]:
+    """Yield adjacent-sample windows where f changes sign."""
     step = timedelta(days=step_days)
-    out: list[tuple[datetime, datetime]] = []
     lo = start
     f_lo = f(lo)
     while lo < end:
         hi = min(lo + step, end)
         f_hi = f(hi)
         if (f_lo >= 0.0) != (f_hi >= 0.0):
-            out.append((lo, hi))
+            yield lo, hi
         lo, f_lo = hi, f_hi
-    return out
+
+
+def _brackets(
+    f: ScalarFn, start: datetime, end: datetime, step_days: float
+) -> list[tuple[datetime, datetime]]:
+    """Collect every coarse sign-change bracket in the window."""
+    return list(_iter_brackets(f, start, end, step_days))
 
 
 def find_crossings(f: ScalarFn, start: datetime, end: datetime, step_days: float) -> list[datetime]:
     """Every zero-crossing of f in [start, end], refined and chronological."""
     return [_bisect(f, lo, hi) for lo, hi in _brackets(f, start, end, step_days)]
+
+
+def find_first_crossing(
+    f: ScalarFn, start: datetime, end: datetime, step_days: float
+) -> datetime | None:
+    """The first zero-crossing of f in the window, or None if none."""
+    bracket = next(_iter_brackets(f, start, end, step_days), None)
+    return None if bracket is None else _bisect(f, *bracket)
 
 
 def find_last_crossing(

@@ -137,8 +137,8 @@ async function pdfToText(pdfPath: string): Promise<string> {
 }
 
 /**
- * Seed the OpenRouter cloud preset BEFORE the app boots so the dashboard
- * auto-generates the interpretation against the live endpoint. The key comes
+ * Seed the OpenRouter cloud preset BEFORE the app boots so the dashboard can
+ * generate explicitly against the live endpoint. The key comes
  * from the parent shell env (Playwright forwards it); it is never bundled.
  */
 const LLM_SETTINGS_KEY = 'almamesh-llm-settings';
@@ -304,7 +304,8 @@ test('B+C: dual-voice summary toggle (no re-call) + jargon-correct PDFs', async 
   await driveRealOnboarding(page);
   await waitForDashboardChart(page);
 
-  // The dashboard auto-generates the interpretation. Wait for the reading
+  await page.getByTestId('generate-reading').click();
+  // The explicit request generates the interpretation. Wait for the reading
   // summary to render (the dual-voice section only mounts when summaryReady).
   const reading = page.getByTestId('reading-section');
   await expect(reading, 'the dual-voice reading section must render after generation').toBeVisible({

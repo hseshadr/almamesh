@@ -19,7 +19,7 @@
  * All chart/interpretation data below is SYNTHETIC.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
@@ -141,6 +141,10 @@ function renderDashboard() {
   );
 }
 
+async function requestReading(): Promise<void> {
+  fireEvent.click(await screen.findByTestId('generate-reading'));
+}
+
 /** The exhausted-balance failure a real OpenRouter account returns on every section. */
 const OUT_OF_CREDITS = new LlmRequestError(
   'LLM endpoint returned 402 Payment Required: Insufficient credits',
@@ -169,6 +173,7 @@ describe('Dashboard — AI narration degrades gracefully', () => {
     configureCloudAi();
     mockedStream.mockImplementation(failingStream(OUT_OF_CREDITS));
     const { container } = renderDashboard();
+    await requestReading();
 
     const panel = await screen.findByTestId('interpretation-unavailable', undefined, {
       timeout: 5000,
@@ -188,6 +193,7 @@ describe('Dashboard — AI narration degrades gracefully', () => {
     configureCloudAi();
     mockedStream.mockImplementation(failingStream(OUT_OF_CREDITS));
     renderDashboard();
+    await requestReading();
 
     const panel = await screen.findByTestId('interpretation-unavailable', undefined, {
       timeout: 5000,
@@ -203,6 +209,7 @@ describe('Dashboard — AI narration degrades gracefully', () => {
     configureCloudAi();
     mockedStream.mockImplementation(failingStream(OUT_OF_CREDITS));
     renderDashboard();
+    await requestReading();
 
     const panel = await screen.findByTestId('interpretation-unavailable', undefined, {
       timeout: 5000,
@@ -223,6 +230,7 @@ describe('Dashboard — AI narration degrades gracefully', () => {
     configureCloudAi();
     mockedStream.mockImplementation(failingStream(OUT_OF_CREDITS));
     const credits = renderDashboard();
+    await requestReading();
     const creditsText =
       (await screen.findByTestId('interpretation-unavailable', undefined, { timeout: 5000 }))
         .textContent ?? '';
@@ -236,6 +244,7 @@ describe('Dashboard — AI narration degrades gracefully', () => {
     useInterpretationStore.setState({ byChart: {} });
     mockedStream.mockImplementation(failingStream(PROVIDER_DOWN));
     const down = renderDashboard();
+    await requestReading();
     const downText =
       (await screen.findByTestId('interpretation-unavailable', undefined, { timeout: 5000 }))
         .textContent ?? '';
@@ -266,6 +275,7 @@ describe('Dashboard — AI narration degrades gracefully', () => {
     // extra unavailable".
     mockedStream.mockImplementation(failingStream(new Error('kaboom in the reading pipeline')));
     renderDashboard();
+    await requestReading();
 
     await waitFor(
       () => expect(screen.getByTestId('interpretation-error')).toBeTruthy(),

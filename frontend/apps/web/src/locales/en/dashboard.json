@@ -9,6 +9,7 @@
     "create_chart": "Add birth details",
     "manage_people": "Manage people",
     "retry": "Retry",
+    "generate": "Generate reading",
     "regenerate": "Regenerate reading",
     "connect_ai": "Connect an AI model",
     "switch_recommended": "Switch to recommended (DeepSeek V4)",

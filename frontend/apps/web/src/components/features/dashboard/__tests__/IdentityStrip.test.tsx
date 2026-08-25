@@ -151,6 +151,37 @@ describe('IdentityStrip', () => {
     renderStrip({ actions: <button type="button">Mode</button> });
     expect(screen.getByRole('button', { name: 'Mode' })).toBeTruthy();
   });
+
+  it('keeps wrapped mobile actions inside the viewport with touch-sized controls', () => {
+    renderStrip({
+      actions: (
+        <>
+          <button type="button">Regenerate reading</button>
+          <a href="/settings">Settings</a>
+          <div role="tablist" aria-label="Content mode">
+            <button type="button" role="tab" aria-selected="true">
+              For You
+            </button>
+          </div>
+        </>
+      ),
+    });
+
+    const actions = screen.getByRole('button', { name: 'Regenerate reading' }).parentElement;
+    if (!actions) throw new Error('Regenerate reading must belong to the actions row');
+    const classes = actions.className.split(' ');
+    expect(classes).toEqual(
+      expect.arrayContaining([
+        'w-full',
+        'min-w-0',
+        '[&>button]:min-h-11',
+        '[&>button]:min-w-11',
+        '[&>a]:min-h-11',
+        '[&>a]:min-w-11',
+        '[&_[role=tab]]:min-h-11',
+      ]),
+    );
+  });
 });
 
 describe('IdentityStrip — refine-birth-time invitation (confidence-gated)', () => {
