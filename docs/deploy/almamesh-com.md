@@ -4,18 +4,14 @@
 Cloudflare Pages. There is no account or chart-data backend: the dist folder is
 the chart product (PWA shell + Pyodide engine + signed chart bundle + self-hosted
 models/fonts). The optional feedback form is the separately disclosed
-same-origin function. Build with one script, upload with one wrangler command:
+same-origin function. Dagger is the sole release orchestrator:
 
 ```bash
-# one-time: production signing key (READ "Key custody" below FIRST)
-cd backend && uv run almamesh-bundle keygen ./keys-prod
+# PR-safe production-artifact + Pages behavior proof (ephemeral signing key)
+dagger call deploy-dry-run --expected-sha="$(git rev-parse HEAD)" sync
 
-# every release: sign with the prod key + real production build → apps/web/dist
-bash frontend/apps/web/scripts/build-prod.sh
-
-# deploy (orchestrator/owner runs these — needs `wrangler login` or CLOUDFLARE_API_TOKEN)
-npx wrangler pages project create almamesh --production-branch=main   # once
-cd frontend/apps/web && npx wrangler pages deploy dist --project-name=almamesh --branch=main
+# production: merge a green PR; the same-SHA main workflow invokes Dagger deploy
+gh run list --workflow="Deploy almamesh.com" --limit 3
 ```
 
 Then attach the domain (once): Cloudflare dashboard → **Workers & Pages →
@@ -37,9 +33,9 @@ pair fails closed.
 
 - **The local production private key is `backend/keys-prod/private.key`**
   (gitignored; the whole `backend/keys-prod/` + `backend/origin-prod/` dirs are
-  ignored). CI does not recreate that path: it decodes the secret only into
-  `${{ runner.temp }}/almamesh-keys-prod`, outside the checkout, and passes that
-  directory to `build-prod.sh` through `PRODUCTION_KEYS_DIR`.
+  ignored). Dagger restores the typed secrets only into an ephemeral temp mount
+  outside the checkout and passes that directory to `build-prod.sh` through
+  `PRODUCTION_KEYS_DIR`.
 - **Losing it = you cannot sign a continuity-preserving bundle update.** A
   deliberate key rotation requires one deployment containing both the new
   public key and bundles signed by its matching private key. Treat it
@@ -68,7 +64,7 @@ pair fails closed.
   `https://almamesh.com/public.key` (the prod pin CI injects) — that mismatch
   is expected, not a compromise.
 
-## Rebuild → re-sign → redeploy (every release)
+## Rebuild → re-sign → redeploy (local recovery proof)
 
 ```bash
 # 0. prereqs (once per machine): bun install done, dev assets fetched
@@ -88,8 +84,8 @@ bash apps/web/scripts/build-prod.sh
 # 2. sanity: the script already asserts _headers/_redirects/public.key/bundle/
 #    pyodide are in dist and that dist/public.key == keys-prod/public.key.
 
-# 3. deploy
-cd apps/web && npx wrangler pages deploy dist --project-name=almamesh --branch=main
+# 3. Never upload this directory manually. Production upload is Dagger-only
+#    after the exact commit passes the protected Dagger workflow on main.
 ```
 
 Bundle updates for already-installed clients flow through `/bundle/latest`
@@ -110,13 +106,12 @@ same-pointer retry is allowed, so a transient Pages failure can be retried
 without minting a new counter. A local build omits `BUNDLE_LIVE_URL` and still
 verifies the candidate's signature; production CI always sets it.
 
-### CI variant (auto-deploy after CI, + manual GitHub Action)
+### Production CI (auto-deploy after protected main CI)
 
-`.github/workflows/deploy.yml` does the same thing on ubuntu-latest. It triggers
-**automatically after the "Dagger" workflow passes on `main`** (deploying the exact
-commit that passed CI) and also on manual `workflow_dispatch`. It is inert until
-these repo secrets exist — when they are absent the **auto-run skips cleanly**
-(no red X on every push); a **manual run fails fast** at the guard step.
+`.github/workflows/deploy.yml` is pinned ingress only. It triggers automatically
+after the "Dagger" workflow passes a push to this repository's `main`, checks out
+that exact SHA, and passes four environment-backed typed Secrets to native Dagger
+`deploy`. There is no manual dispatch path. Missing secrets fail closed.
 
 | Secret | Value |
 |---|---|
@@ -125,11 +120,13 @@ these repo secrets exist — when they are absent the **auto-run skips cleanly**
 | `BUNDLE_PRIVATE_KEY_B64` | `base64 < backend/keys-prod/private.key` |
 | `BUNDLE_PUBLIC_KEY_B64` | `base64 < backend/keys-prod/public.key` |
 
-**Activation order (important):** do the one-time human setup FIRST — `wrangler
-login`, `wrangler pages project create almamesh --production-branch=main`, attach
+**Activation order (important):** do the one-time human setup FIRST — pinned
+`wrangler@4.103.0 login`, `wrangler@4.103.0 pages project create almamesh
+--production-branch=main`, attach
 the `almamesh.com` custom domain, back up `backend/keys-prod/private.key`
 off-machine, then add the four secrets above. Once the secrets exist, the next
-green CI run on `main` auto-deploys. Until then nothing ships and main stays green.
+green CI run on `main` auto-deploys. Configure all four before merging; a partial
+configuration produces a deliberate red deployment rather than a silent skip.
 
 ## What `dist/` must contain (and why)
 
@@ -154,7 +151,7 @@ use the explicit `local` marker.
 
 The same deploy job polls `/bundle/latest` after upload and fails closed unless
 the live signed pointer's `manifest_hash:sequence` exactly matches the artifact
-that was built. This closes the CDN propagation window between the preflight and
+that was built. This closes the CDN propagation window between the build and
 the Pages upload; both checks use cache-busting query parameters.
 
 Size: ~153 MB / ~1,377 files (**no sourcemaps** — `build.sourcemap: false`;

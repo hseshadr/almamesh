@@ -68,7 +68,6 @@ export class AlmameshCi {
       .withNewFile("/tmp/node-contract.cjs", "Promise.withResolvers ||= () => { let resolve, reject; const promise = new Promise((ok, fail) => { resolve = ok; reject = fail }); return { promise, resolve, reject } }")
       .withEnvVariable("NODE_OPTIONS", "--require=/tmp/node-contract.cjs")
       .withEnvVariable("PYTHON", "/usr/bin/python3")
-      .withMountedCache("/root/.bun/install/cache", this.cache("bun"))
       .withExec([
         "sh",
         "-c",
@@ -115,7 +114,6 @@ export class AlmameshCi {
       .withEnvVariable("PYTHON", "/usr/bin/python3")
       .withEnvVariable("WRANGLER", WRANGLER)
       .withMountedCache("/root/.cache/uv", this.cache("uv"))
-      .withMountedCache("/root/.bun/install/cache", this.cache("bun"))
       .withExec([
         "sh",
         "-c",
@@ -150,7 +148,6 @@ export class AlmameshCi {
       .withEnvVariable("HUSKY", "0")
       .withEnvVariable("PYTHON", "/usr/bin/python3")
       .withMountedCache("/root/.cache/uv", this.cache("uv"))
-      .withMountedCache("/root/.bun/install/cache", this.cache("bun"))
       .withMountedCache("/root/.skyfield-data", this.cache("skyfield"))
       .withExec([
         "sh",

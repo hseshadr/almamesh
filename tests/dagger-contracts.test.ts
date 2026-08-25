@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import { readFileSync } from "node:fs"
+import { existsSync, readFileSync } from "node:fs"
 import { resolve } from "node:path"
 import { spawnSync } from "node:child_process"
 
@@ -58,6 +58,16 @@ function workflowSource(name: string): string {
   return readFileSync(resolve(root, ".github/workflows", name), "utf8")
 }
 
+const checkout = "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
+const daggerAction = "dagger/dagger-for-github@27b130bf0f79a7f6fbbbe0fbca6760dc9bb40a77"
+
+function expectThinDaggerIngress(name: string): void {
+  const ingressSteps = steps(name)
+  expect(ingressSteps.length).toBe(2)
+  expect(ingressSteps.map((step) => step.uses)).toEqual([checkout, daggerAction])
+  expect(ingressSteps.every((step) => !("run" in step))).toBe(true)
+}
+
 describe("Dagger public orchestration contract", () => {
   test("exposes every repository-authored CI/CD operation as a native function", () => {
     expect(daggerFunctions()).toEqual(
@@ -86,29 +96,9 @@ describe("Dagger public orchestration contract", () => {
     expect(args).not.toContain("Secret")
   }, 30_000)
 
-  test("the unprivileged shadow ingress can only checkout and invoke Dagger", () => {
-    const source = workflowSource("dagger-shadow.yml")
-    expect(source).not.toContain("secrets.")
-    expect(steps("dagger-shadow.yml").every((step) => {
-      const action = step.uses
-      return typeof action === "string" &&
-        (action.startsWith("actions/checkout@") || action.startsWith("dagger/dagger-for-github@"))
-    })).toBe(true)
-  })
-
-  test("the deploy shadow has no manual trigger or repo-authored shell escape", () => {
-    const source = workflowSource("deploy-dagger-shadow.yml")
-    expect(source).not.toContain("workflow_dispatch")
-    expect(steps("deploy-dagger-shadow.yml").every((step) => {
-      const action = step.uses
-      return typeof action === "string" &&
-        (action.startsWith("actions/checkout@") || action.startsWith("dagger/dagger-for-github@"))
-    })).toBe(true)
-  })
-
   test("the canonical check graph sequences heavy gates through one CI check", () => {
     expect(daggerChecks()).toEqual(["almamesh-ci:ci"])
-    const source = workflowSource("dagger-shadow.yml")
+    const source = workflowSource("dagger.yml")
     expect(source).toContain("args: ci")
     expect(source).not.toContain('args: "**"')
   }, 30_000)
@@ -119,5 +109,57 @@ describe("Dagger public orchestration contract", () => {
     expect(source).toContain("deployment_trigger")
     expect(source).toContain('metadata.branch !== "main"')
     expect(source).toContain("metadata.commit_hash !== process.env.EXPECTED_SHA")
+  })
+
+  test("package installs cannot reuse partially downloaded Bun tarballs", () => {
+    const source = readFileSync(resolve(root, "dagger/src/index.ts"), "utf8")
+    expect(source).not.toContain('withMountedCache("/root/.bun/install/cache"')
+  })
+})
+
+describe("canonical GitHub ingress contract", () => {
+  test("every repository-authored CI/CD workflow only checks out and invokes Dagger", () => {
+    for (const name of [
+      "dagger.yml",
+      "test.yml",
+      "security-audit.yml",
+      "nightly-e2e.yml",
+      "deploy.yml",
+    ]) expectThinDaggerIngress(name)
+  })
+
+  test("required checks invoke their native Dagger functions", () => {
+    expect(workflowSource("dagger.yml")).toContain("verb: call")
+    expect(workflowSource("dagger.yml")).toContain("args: ci")
+    expect(workflowSource("dagger.yml")).not.toContain('args: "**"')
+    expect(workflowSource("test.yml")).toContain("args: secret-scan sync")
+    expect(workflowSource("security-audit.yml")).toContain("args: dependency-audit")
+  })
+
+  test("nightly passes the optional OpenRouter key only as a typed secret provider", () => {
+    const source = workflowSource("nightly-e2e.yml")
+    expect(source).toContain("OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}")
+    expect(source).toContain("--openrouter-api-key=env:OPENROUTER_API_KEY")
+    expect(source).not.toContain("VITE_OPENROUTER")
+  })
+
+  test("production deployment is privileged, same-SHA guarded, and has no manual bypass", () => {
+    const source = workflowSource("deploy.yml")
+    expect(source).not.toContain("workflow_dispatch")
+    expect(source).toContain("github.event.workflow_run.event == 'push'")
+    expect(source).toContain("github.event.workflow_run.head_repository.full_name == github.repository")
+    expect(source).toContain("ref: ${{ github.event.workflow_run.head_sha }}")
+    expect(source).toContain("--expected-sha=${{ github.event.workflow_run.head_sha }}")
+    expect(source).not.toMatch(/args:[\s\S]*\$\{\{ secrets\./)
+  })
+
+  test("shadow ingress is deleted only after its hosted checks are green", () => {
+    expect(existsSync(resolve(root, ".github/workflows/dagger-shadow.yml"))).toBe(false)
+    expect(existsSync(resolve(root, ".github/workflows/deploy-dagger-shadow.yml"))).toBe(false)
+  })
+
+  test("there is no repository-authored manual production deploy bypass", () => {
+    expect(existsSync(resolve(root, "scripts/go-live-almamesh.sh"))).toBe(false)
+    expect(workflowSource("deploy.yml")).not.toContain("workflow_dispatch")
   })
 })

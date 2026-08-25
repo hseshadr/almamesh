@@ -60,7 +60,7 @@ house diagram format).*
 | Signed-bundle delivery core | `edge-proc` (PyPI) | pinned `>=0.3.0` in `backend/pyproject.toml` — the first release whose anti-replay guard fails closed |
 | Browser engine + PWA | `frontend/` (Bun workspace) | packages table in [CLAUDE.md](../CLAUDE.md#frontend-monorepo-packages-frontendpackages) |
 | Specs (numbered) | `docs/specs/` | feature design records |
-| Deploy | `.github/workflows/deploy.yml` → Cloudflare Pages | key custody in the workflow header + `docs/deploy/` |
+| CI/CD + deploy | `dagger/src/index.ts` → Cloudflare Pages | typed secrets, key custody, and exact live identity; GitHub workflows are pinned ingress only |
 
 ## Load-bearing invariants
 

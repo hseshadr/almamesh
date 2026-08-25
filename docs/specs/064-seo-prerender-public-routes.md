@@ -124,8 +124,8 @@ A per-route OG image set is a possible follow-up, not part of this spec.
 ## IndexNow
 
 A fixed key (generated once, committed) lives at
-`public/<key>.txt`; `.github/workflows/deploy.yml` gains a post-deploy step
-that POSTs the five public URLs to `api.indexnow.org` — `|| true`, never able
+`public/<key>.txt`; native Dagger `deploy` POSTs the five public URLs to
+`api.indexnow.org` after live identity verification. Failure is logged but never able
 to fail a deploy (Bing/Yandex/etc. consume IndexNow; Google does not, hence the
 one-time GSC actions below).
 
