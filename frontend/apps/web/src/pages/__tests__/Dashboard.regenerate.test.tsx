@@ -274,6 +274,18 @@ describe('Dashboard — regenerate reading', () => {
     expect(button.textContent ?? '').toContain('Regenerate reading');
   });
 
+  it('keeps a touch-sized Regenerate button visible before the first reading exists', async () => {
+    renderDashboard();
+
+    const button = await screen.findByRole<HTMLButtonElement>('button', {
+      name: 'Regenerate reading',
+    });
+    expect(button.disabled).toBe(true);
+    expect(button.className).toContain('min-h-11');
+    expect(button.className).toContain('min-w-11');
+    expect(button.className).toContain('whitespace-nowrap');
+  });
+
   it('REGRESSION: keeps the Regenerate button reachable when a completed reading has an EMPTY summary (recovery affordance, no dead-end)', async () => {
     configureCloudAi();
     // A completed, KEPT reading whose summary came back empty (placeholder) yet

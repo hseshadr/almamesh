@@ -724,37 +724,33 @@ export default function DashboardPage() {
               </button>
               {/* Regenerate the reading with the currently configured AI. Lives
                   in the top actions row (reachable on mobile, unlike the old
-                  header slot) and is gated on an existing `interpretation` — so
-                  it stays present as a recovery affordance even when a completed
-                  reading came back with an empty summary (the prose section
-                  below unmounts, but this button does not). A click made while
-                  predictive facts load is queued once; the button stays disabled
-                  until that current-key narration starts. */}
-              {interpretation && (
-                <button
-                  type="button"
-                  onClick={handleRegenerateReading}
-                  disabled={
-                    isStreamingInterpretation || regenerationQueued || !canRegenerateReading
-                  }
-                  data-testid="regenerate-reading"
-                  title={
-                    !canRegenerateReading
-                      ? t('dashboard:reading.regen_no_ai')
-                      : t('dashboard:actions.regenerate')
-                  }
-                  className="inline-flex items-center gap-1.5 rounded-md border border-ui-border px-3 py-1.5 text-sm text-text-secondary transition-colors hover:border-accent-gold/40 hover:text-text-primary disabled:cursor-not-allowed disabled:border-ui-border/60 disabled:text-text-tertiary disabled:hover:border-ui-border/60"
-                >
-                  {isStreamingInterpretation || regenerationQueued ? (
-                    <Spinner size="sm" />
-                  ) : (
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                  )}
-                  {t('dashboard:actions.regenerate')}
-                </button>
-              )}
+                  header slot) and stays present before the first interpretation
+                  as well as after an empty result, so recovery has no dead-end.
+                  A click made while predictive facts load is queued once; the
+                  button stays disabled until that current-key narration starts. */}
+              <button
+                type="button"
+                onClick={handleRegenerateReading}
+                disabled={
+                  isStreamingInterpretation || regenerationQueued || !canRegenerateReading
+                }
+                data-testid="regenerate-reading"
+                title={
+                  !canRegenerateReading
+                    ? t('dashboard:reading.regen_no_ai')
+                    : t('dashboard:actions.regenerate')
+                }
+                className="inline-flex min-h-11 min-w-11 items-center gap-1.5 whitespace-nowrap rounded-md border border-ui-border px-3 py-1.5 text-sm text-text-secondary transition-colors hover:border-accent-gold/40 hover:text-text-primary disabled:cursor-not-allowed disabled:border-ui-border/60 disabled:text-text-tertiary disabled:hover:border-ui-border/60"
+              >
+                {isStreamingInterpretation || regenerationQueued ? (
+                  <Spinner size="sm" />
+                ) : (
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                )}
+                {t('dashboard:actions.regenerate')}
+              </button>
               <FeedbackWidget page="dashboard" />
               <Link
                 to="/settings"
