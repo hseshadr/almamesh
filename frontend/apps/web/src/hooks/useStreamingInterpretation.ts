@@ -21,7 +21,6 @@
 import { useCallback, useRef } from 'react';
 import {
   applyInterpretationSettings,
-  configFingerprint,
   configProvenance,
   PrivacyViolationError,
   resolveProviderConfig,
@@ -71,12 +70,14 @@ export interface SectionProgress {
 type StreamingInterpretationViewMode = 'layman' | 'expert';
 
 export interface StreamInterpretationOptions {
+  /** Paid provider calls are legal only after an explicit UI action. */
+  readonly intent: 'user-request';
   view_mode?: StreamingInterpretationViewMode;
 }
 
 export interface UseStreamingInterpretationResult {
   /** Begin (or restart) generation for a chart; resolves when done/aborted. */
-  streamInterpretation: (chartId: string, options?: StreamInterpretationOptions) => Promise<void>;
+  streamInterpretation: (chartId: string, options: StreamInterpretationOptions) => Promise<void>;
   /** The finished structured reading for the active chart, if complete. */
   interpretation: VedicInterpretation | undefined;
   /**
@@ -138,9 +139,8 @@ function readLlmEnv(): LlmEnv {
 
 /**
  * The resolved provider config the INTERPRETATION path would stream with right
- * now. Exported so the dashboard can fingerprint it (`configFingerprint`) and
- * compare against a stored reading's provenance — the exact same resolution
- * the hook uses, so a match here guarantees the reading is config-current.
+ * now. Exported so settings and provenance captions resolve the exact same
+ * provider identity as the request path.
  */
 export function resolveInterpretationConfig(): ProviderConfig {
   return resolveProviderConfig(readLlmEnv());
@@ -174,16 +174,15 @@ function expectedPredictiveKey(chartId: string | null): string | null {
 }
 
 /**
- * Whether automatic narration may take its one shot for the current chart.
+ * Whether an explicitly requested narration has current predictive input.
  *
  * An unpublished predictive request preserves the historical natal-only path.
  * Once a request identity exists, however, a stale key or an in-flight current
- * key must settle before auto-generation: otherwise narration can snapshot
- * natal-only provenance between `loading` and `ready` and never retry when only
- * the status changes. A settled error still permits the explicit fail-open
- * natal-only behavior.
+ * key must settle before a paid request: otherwise narration can snapshot
+ * natal-only provenance between `loading` and `ready`. A settled error still
+ * permits the explicit fail-open natal-only behavior.
  */
-export function isAutomaticNarrationInputSettled(chartId: string | null): boolean {
+export function isNarrationInputSettled(chartId: string | null): boolean {
   const expectedRequest = expectedPredictiveKey(chartId);
   const { requestKey, status } = usePredictiveStore.getState();
   if (expectedRequest === null || requestKey === undefined) {
@@ -193,25 +192,6 @@ export function isAutomaticNarrationInputSettled(chartId: string | null): boolea
     return false;
   }
   return status !== 'loading';
-}
-
-/**
- * The identity that ONE automatic generation is allowed per, for this chart.
- *
- * Two things legitimately earn a fresh automatic attempt: a different model /
- * endpoint (the config fingerprint), and a genuinely new deterministic
- * predictive input — a new reference day, or a rectified birth time (the
- * expected request key). Nothing else does. Persisting this key on the reading
- * entry is what turns "one attempt per component mount" into "one attempt per
- * reading", so navigating away and back cannot buy the same run twice.
- *
- * Derived here, beside `expectedPredictiveKey`, so the rule has exactly one
- * definition. A caller that rebuilt it from store fields would be a second,
- * drifting copy — which is the defect this key exists to close.
- */
-export function automaticNarrationAttemptKey(chartId: string | null): string {
-  const fingerprint = configFingerprint(resolveInterpretationConfig());
-  return `${fingerprint}::${expectedPredictiveKey(chartId) ?? 'natal-only'}`;
 }
 
 /** Return predictive facts only when every identity and readiness guard agrees. */
@@ -399,7 +379,10 @@ export function useStreamingInterpretation(chartId?: string | null): UseStreamin
   }, []);
 
   const streamInterpretation = useCallback(
-    async (id: string, options: StreamInterpretationOptions = {}) => {
+    async (id: string, options: StreamInterpretationOptions) => {
+      if (options.intent !== 'user-request') {
+        return;
+      }
       const stored = useChartLibraryStore.getState().getChart(id);
       const chart = stored?.sidereal_chart;
       if (!chart) {
@@ -454,7 +437,7 @@ export function useStreamingInterpretation(chartId?: string | null): UseStreamin
             // Stamp the reading with the identity of the config that produced
             // it (engine/model/endpoint — never a key), so the UI can caption
             // it and a later config change is detectable as a provenance
-            // mismatch (auto-regeneration). `predictiveAware` records whether
+            // mismatch after an explicit regeneration. `predictiveAware` records whether
             // the full predictive superset was actually composed into THIS
             // reading, gating the one-shot enrich-when-ready upgrade.
             setInterpretation(

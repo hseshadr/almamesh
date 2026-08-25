@@ -191,6 +191,18 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
     expect(result.current.sections).toHaveLength(6);
   });
 
+  it('refuses a provider stream when explicit user intent is absent at runtime', async () => {
+    mockedStream.mockImplementation(eventStream([{ type: 'complete', interpretation: SAMPLE_INTERPRETATION }]));
+    const { result } = renderHook(() => useStreamingInterpretation('chart-123'));
+
+    await act(async () => {
+      await result.current.streamInterpretation('chart-123', {} as never);
+    });
+
+    expect(mockedStream).not.toHaveBeenCalled();
+    expect(result.current.status).toBe('idle');
+  });
+
   it('marks sections complete and stores the finished interpretation', async () => {
     mockedStream.mockImplementation(
       eventStream([
@@ -202,7 +214,7 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
 
     const { result } = renderHook(() => useStreamingInterpretation('chart-123'));
     await act(async () => {
-      await result.current.streamInterpretation('chart-123', { view_mode: 'layman' });
+      await result.current.streamInterpretation('chart-123', { intent: 'user-request', view_mode: 'layman' });
     });
 
     await waitFor(() => expect(result.current.status).toBe('complete'));
@@ -229,7 +241,7 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
 
     const { result } = renderHook(() => useStreamingInterpretation('chart-123'));
     await act(async () => {
-      await result.current.streamInterpretation('chart-123');
+      await result.current.streamInterpretation('chart-123', { intent: 'user-request' });
     });
 
     await waitFor(() => expect(result.current.status).toBe('complete'));
@@ -251,7 +263,7 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
     );
     const { result } = renderHook(() => useStreamingInterpretation('chart-123'));
     await act(async () => {
-      await result.current.streamInterpretation('chart-123');
+      await result.current.streamInterpretation('chart-123', { intent: 'user-request' });
     });
     await waitFor(() => expect(result.current.failedSections).toEqual(['yoga']));
 
@@ -263,7 +275,7 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
       ]),
     );
     await act(async () => {
-      await result.current.streamInterpretation('chart-123');
+      await result.current.streamInterpretation('chart-123', { intent: 'user-request' });
     });
     await waitFor(() => expect(result.current.failedSections).toEqual([]));
   });
@@ -275,7 +287,7 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
 
     const { result } = renderHook(() => useStreamingInterpretation('chart-123'));
     await act(async () => {
-      await result.current.streamInterpretation('chart-123', { view_mode: 'expert' });
+      await result.current.streamInterpretation('chart-123', { intent: 'user-request', view_mode: 'expert' });
     });
 
     expect(mockedStream).toHaveBeenCalledTimes(1);
@@ -291,7 +303,7 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
 
     const { result } = renderHook(() => useStreamingInterpretation('chart-123'));
     await act(async () => {
-      await result.current.streamInterpretation('chart-123', { view_mode: 'layman' });
+      await result.current.streamInterpretation('chart-123', { intent: 'user-request', view_mode: 'layman' });
     });
 
     expect(mockedStream).toHaveBeenCalledTimes(1);
@@ -306,7 +318,7 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
 
     const { result } = renderHook(() => useStreamingInterpretation('chart-123'));
     await act(async () => {
-      await result.current.streamInterpretation('chart-123', { view_mode: 'layman' });
+      await result.current.streamInterpretation('chart-123', { intent: 'user-request', view_mode: 'layman' });
     });
 
     expect(mockedStream).toHaveBeenCalledTimes(1);
@@ -318,7 +330,7 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
 
     const { result } = renderHook(() => useStreamingInterpretation('chart-123'));
     await act(async () => {
-      await result.current.streamInterpretation('chart-123');
+      await result.current.streamInterpretation('chart-123', { intent: 'user-request' });
     });
 
     await waitFor(() => expect(result.current.status).toBe('error'));
@@ -334,7 +346,7 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
 
     const { result } = renderHook(() => useStreamingInterpretation('chart-123'));
     await act(async () => {
-      await result.current.streamInterpretation('chart-123');
+      await result.current.streamInterpretation('chart-123', { intent: 'user-request' });
     });
 
     await waitFor(() => expect(result.current.status).toBe('error'));
@@ -354,7 +366,7 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
 
     const { result } = renderHook(() => useStreamingInterpretation('chart-123'));
     await act(async () => {
-      await result.current.streamInterpretation('chart-123');
+      await result.current.streamInterpretation('chart-123', { intent: 'user-request' });
     });
 
     await waitFor(() => expect(result.current.status).toBe('error'));
@@ -379,7 +391,7 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
 
     const { result } = renderHook(() => useStreamingInterpretation('chart-123'));
     await act(async () => {
-      await result.current.streamInterpretation('chart-123');
+      await result.current.streamInterpretation('chart-123', { intent: 'user-request' });
     });
 
     await waitFor(() => expect(result.current.status).toBe('error'));
@@ -397,7 +409,7 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
 
     const { result } = renderHook(() => useStreamingInterpretation('chart-123'));
     await act(async () => {
-      await result.current.streamInterpretation('chart-123');
+      await result.current.streamInterpretation('chart-123', { intent: 'user-request' });
     });
 
     await waitFor(() => expect(result.current.status).toBe('error'));
@@ -415,7 +427,7 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
 
     const { result } = renderHook(() => useStreamingInterpretation('chart-123'));
     await act(async () => {
-      await result.current.streamInterpretation('chart-123');
+      await result.current.streamInterpretation('chart-123', { intent: 'user-request' });
     });
 
     await waitFor(() => expect(result.current.status).toBe('error'));
@@ -440,7 +452,7 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
 
     const { result } = renderHook(() => useStreamingInterpretation('chart-123'));
     await act(async () => {
-      await result.current.streamInterpretation('chart-123');
+      await result.current.streamInterpretation('chart-123', { intent: 'user-request' });
     });
 
     await waitFor(() => expect(result.current.status).toBe('error'));
@@ -460,7 +472,7 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
 
     const { result } = renderHook(() => useStreamingInterpretation('chart-123'));
     await act(async () => {
-      await result.current.streamInterpretation('chart-123');
+      await result.current.streamInterpretation('chart-123', { intent: 'user-request' });
     });
 
     await waitFor(() => expect(result.current.status).toBe('error'));
@@ -482,7 +494,7 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
 
     const { result } = renderHook(() => useStreamingInterpretation('chart-123'));
     await act(async () => {
-      await result.current.streamInterpretation('chart-123');
+      await result.current.streamInterpretation('chart-123', { intent: 'user-request' });
     });
 
     await waitFor(() => expect(result.current.status).toBe('error'));
@@ -502,7 +514,7 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
 
     const { result } = renderHook(() => useStreamingInterpretation('chart-123'));
     await act(async () => {
-      await result.current.streamInterpretation('chart-123');
+      await result.current.streamInterpretation('chart-123', { intent: 'user-request' });
     });
 
     await waitFor(() => expect(result.current.status).toBe('error'));
@@ -516,7 +528,7 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
 
     const { result } = renderHook(() => useStreamingInterpretation('chart-123'));
     await act(async () => {
-      await result.current.streamInterpretation('chart-123');
+      await result.current.streamInterpretation('chart-123', { intent: 'user-request' });
     });
 
     await waitFor(() => expect(result.current.status).toBe('error'));
@@ -528,7 +540,7 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
 
     const { result } = renderHook(() => useStreamingInterpretation('chart-123'));
     await act(async () => {
-      await result.current.streamInterpretation('chart-123');
+      await result.current.streamInterpretation('chart-123', { intent: 'user-request' });
     });
 
     await waitFor(() => expect(result.current.status).toBe('error'));
@@ -543,7 +555,7 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
 
     const { result } = renderHook(() => useStreamingInterpretation('chart-123'));
     await act(async () => {
-      await result.current.streamInterpretation('chart-123');
+      await result.current.streamInterpretation('chart-123', { intent: 'user-request' });
     });
 
     await waitFor(() => expect(result.current.status).toBe('complete'));
@@ -582,7 +594,7 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
 
     const { result } = renderHook(() => useStreamingInterpretation('chart-123'));
     await act(async () => {
-      await result.current.streamInterpretation('chart-123');
+      await result.current.streamInterpretation('chart-123', { intent: 'user-request' });
     });
 
     const entry = useInterpretationStore.getState().getEntry('chart-123');
@@ -602,7 +614,7 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
 
     const { result } = renderHook(() => useStreamingInterpretation('chart-123'));
     await act(async () => {
-      await result.current.streamInterpretation('chart-123');
+      await result.current.streamInterpretation('chart-123', { intent: 'user-request' });
     });
 
     expect(useInterpretationStore.getState().getEntry('chart-123')?.inputProvenance).toEqual({
@@ -662,14 +674,14 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
     );
     const { result } = renderHook(() => useStreamingInterpretation('chart-123'));
     await act(async () => {
-      await result.current.streamInterpretation('chart-123');
+      await result.current.streamInterpretation('chart-123', { intent: 'user-request' });
     });
     await waitFor(() => expect(result.current.status).toBe('complete'));
 
     // The regeneration fails outright — the old reading must survive.
     mockedStream.mockImplementation(failingStream(new LlmRequestError('HTTP 500')));
     await act(async () => {
-      await result.current.streamInterpretation('chart-123');
+      await result.current.streamInterpretation('chart-123', { intent: 'user-request' });
     });
 
     await waitFor(() => expect(result.current.status).toBe('error'));
@@ -682,7 +694,7 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
     );
     const { result } = renderHook(() => useStreamingInterpretation('chart-123'));
     await act(async () => {
-      await result.current.streamInterpretation('chart-123');
+      await result.current.streamInterpretation('chart-123', { intent: 'user-request' });
     });
     await waitFor(() => expect(result.current.status).toBe('complete'));
     act(() => result.current.reset());
@@ -716,7 +728,7 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
 
       const { result } = renderHook(() => useStreamingInterpretation('chart-123'));
       await act(async () => {
-        await result.current.streamInterpretation('chart-123');
+        await result.current.streamInterpretation('chart-123', { intent: 'user-request' });
       });
 
       await waitFor(() => expect(result.current.status).toBe('error'));
@@ -732,14 +744,14 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
       );
       const outage = renderHook(() => useStreamingInterpretation('chart-123'));
       await act(async () => {
-        await outage.result.current.streamInterpretation('chart-123');
+        await outage.result.current.streamInterpretation('chart-123', { intent: 'user-request' });
       });
       await waitFor(() => expect(outage.result.current.errorKind).toBe('server'));
 
       mockedStream.mockImplementation(failingStream(new TypeError('Failed to fetch')));
       const unreachable = renderHook(() => useStreamingInterpretation('chart-456'));
       await act(async () => {
-        await unreachable.result.current.streamInterpretation('chart-456');
+        await unreachable.result.current.streamInterpretation('chart-456', { intent: 'user-request' });
       });
       await waitFor(() => expect(unreachable.result.current.errorKind).toBe('network'));
     });
@@ -754,7 +766,7 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
       );
       const dead = renderHook(() => useStreamingInterpretation('chart-123'));
       await act(async () => {
-        await dead.result.current.streamInterpretation('chart-123');
+        await dead.result.current.streamInterpretation('chart-123', { intent: 'user-request' });
       });
       await waitFor(() => expect(dead.result.current.errorKind).toBe('model'));
       // The sentinel sentence is unchanged — the dashboard still maps it.
@@ -765,7 +777,7 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
       );
       const refused = renderHook(() => useStreamingInterpretation('chart-789'));
       await act(async () => {
-        await refused.result.current.streamInterpretation('chart-789');
+        await refused.result.current.streamInterpretation('chart-789', { intent: 'user-request' });
       });
       await waitFor(() => expect(refused.result.current.errorKind).toBe('privacy'));
     });
@@ -775,7 +787,7 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
 
       const { result } = renderHook(() => useStreamingInterpretation('chart-123'));
       await act(async () => {
-        await result.current.streamInterpretation('chart-123');
+        await result.current.streamInterpretation('chart-123', { intent: 'user-request' });
       });
 
       await waitFor(() => expect(result.current.status).toBe('error'));
@@ -824,7 +836,7 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
 
       const { result } = renderHook(() => useStreamingInterpretation('chart-777'));
       await act(async () => {
-        await result.current.streamInterpretation('chart-777');
+        await result.current.streamInterpretation('chart-777', { intent: 'user-request' });
       });
 
       await waitFor(() => expect(mockedAnnotate).toHaveBeenCalledTimes(1));
@@ -863,7 +875,7 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
 
       const { result } = renderHook(() => useStreamingInterpretation('chart-777'));
       await act(async () => {
-        await result.current.streamInterpretation('chart-777');
+        await result.current.streamInterpretation('chart-777', { intent: 'user-request' });
       });
 
       await waitFor(() => expect(mockedAnnotate).toHaveBeenCalledTimes(1));
@@ -879,7 +891,7 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
 
       const { result } = renderHook(() => useStreamingInterpretation('chart-777'));
       await act(async () => {
-        await result.current.streamInterpretation('chart-777');
+        await result.current.streamInterpretation('chart-777', { intent: 'user-request' });
       });
 
       await waitFor(() => expect(result.current.status).toBe('complete'));
@@ -899,7 +911,7 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
 
       const { result } = renderHook(() => useStreamingInterpretation('chart-123'));
       await act(async () => {
-        await result.current.streamInterpretation('chart-123');
+        await result.current.streamInterpretation('chart-123', { intent: 'user-request' });
       });
 
       await waitFor(() => expect(result.current.status).toBe('complete'));
@@ -912,7 +924,7 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
       // unconfigured local_only loopback default, with no key.
       const { result } = renderHook(() => useStreamingInterpretation('chart-777'));
       await act(async () => {
-        await result.current.streamInterpretation('chart-777');
+        await result.current.streamInterpretation('chart-777', { intent: 'user-request' });
       });
 
       await waitFor(() => expect(result.current.status).toBe('complete'));
@@ -928,7 +940,7 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
 
       const { result } = renderHook(() => useStreamingInterpretation('chart-777'));
       await act(async () => {
-        await result.current.streamInterpretation('chart-777');
+        await result.current.streamInterpretation('chart-777', { intent: 'user-request' });
       });
 
       await waitFor(() => expect(result.current.status).toBe('error'));

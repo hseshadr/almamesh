@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect, useRef } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -10,7 +10,6 @@ import type {
 import { readLocalPrimaryChart } from "../lib/localChartRead";
 import {
   applyChatSettings,
-  configFingerprint,
   describeLlmStatus,
   resolveProviderConfig,
   streamChartChat,
@@ -58,10 +57,8 @@ import { useContentModeStore } from "../stores/contentMode";
 import type { ViewMode } from "../lib/types";
 import {
   READING_MODEL_UNAVAILABLE,
-  automaticNarrationAttemptKey,
   currentInterpretationForChart,
-  isAutomaticNarrationInputSettled,
-  resolveInterpretationConfig,
+  isNarrationInputSettled,
   useStreamingInterpretation,
   withRawPredictive,
 } from "../hooks/useStreamingInterpretation";
@@ -113,9 +110,6 @@ export default function DashboardPage() {
   // chat panel immediately instead of leaving the user hunting for the bubble.
   const [searchParams] = useSearchParams();
   const chatInitiallyOpen = searchParams.get('chat') === 'open';
-
-  // Track if we've checked for existing versions to avoid duplicate auto-generation
-  const versionCheckRef = useRef<'idle' | 'checking' | 'done'>('idle');
 
   // Local-first read: the primary chart comes from the on-device chart library
   // (IndexedDB), not the backend. We wrap the persisted ChartData in the
@@ -189,7 +183,6 @@ export default function DashboardPage() {
   } = useStreamingInterpretation(chartId);
   const predictiveRequestIdentity = usePredictiveStore((s) => s.requestKey);
   const predictiveStatus = usePredictiveStore((s) => s.status);
-
   // The full persisted entry for the active chart: carries the reading's
   // provenance (which model wrote it) and updatedAt for the quiet caption
   // under the reading. Subscribed (not getState) so a fresh generation
@@ -198,12 +191,8 @@ export default function DashboardPage() {
     chartId ? s.byChart[chartId] : undefined,
   );
 
-  // Spends / releases this chart's ONE automatic generation. Persisted, so the
-  // cap holds across navigation and reload instead of only within this mount.
-  const markAutomaticAttempt = useInterpretationStore((s) => s.markAutomaticAttempt);
-
   // Whether an AI endpoint is configured (local or cloud) — gates
-  // auto-generation and decides between the progress panel and the CTA. LIVE
+  // explicit generation and decides between the progress panel and the CTA. LIVE
   // (useLlmStatus): turning AI off updates every gate on this page immediately,
   // no reload.
   const aiConfigured = useLlmStatus().configured;
@@ -350,7 +339,7 @@ export default function DashboardPage() {
 
   const handleGenerateSeparatedInterpretation = useCallback(async () => {
     if (!chartId) return;
-    if (!isAutomaticNarrationInputSettled(chartId)) {
+    if (!isNarrationInputSettled(chartId)) {
       setRegenerationQueued(true);
       return;
     }
@@ -371,46 +360,28 @@ export default function DashboardPage() {
     // merged VedicInterpretation into useInterpretationStore — there is no
     // backend version to fetch afterward.
     try {
-      await streamInterpretation(chartId, { view_mode: sepViewMode });
+      await streamInterpretation(chartId, {
+        intent: 'user-request',
+        view_mode: sepViewMode,
+      });
     } catch (err) {
       safeError('dashboard.interpretation_failed', err);
     }
   }, [cancelStreaming, chartId, streamInterpretation, viewMode]);
 
-  // Recover from a dead/typo'd cloud model: re-point settings at the recommended
+  // Recover from a dead/typo'd cloud model after the user asks: re-point settings at the recommended
   // OpenRouter model (keeping the user's saved key), then re-run generation.
   const handleSwitchToRecommendedModel = () => {
     const current = readLlmSettings();
     writeLlmSettings(openRouterPreset(current.apiKey ?? '', RECOMMENDED_CLOUD_MODEL));
-    autoGenerationTriggeredRef.current = false;
-    versionCheckRef.current = 'idle';
     handleGenerateSeparatedInterpretation();
   };
 
-  // Manual "Regenerate" on a completed reading: reset the single-shot refs
-  // (exactly like handleSwitchToRecommendedModel) so the auto-generate effect
-  // cannot double-fire, then regenerate. The current reading stays on screen
-  // until — and unless — the new one lands (keep-old-until-success).
+  // Manual "Regenerate" keeps the current reading on screen until — and unless
+  // — the explicitly requested replacement lands (keep-old-until-success).
   const handleRegenerateReading = () => {
-    autoGenerationTriggeredRef.current = false;
-    versionCheckRef.current = 'idle';
     handleGenerateSeparatedInterpretation();
   };
-
-  // Track if auto-generation has been triggered to prevent double-triggers
-  const autoGenerationTriggeredRef = useRef(false);
-  const previousPredictiveRequestRef = useRef(predictiveRequestIdentity);
-  useEffect(() => {
-    if (previousPredictiveRequestRef.current === predictiveRequestIdentity) {
-      return;
-    }
-    previousPredictiveRequestRef.current = predictiveRequestIdentity;
-    // A different deterministic predictive input owns a fresh one-shot cycle.
-    // An old stream may still finish, but its provenance will be hidden; once
-    // that stream settles, this re-armed guard permits exactly one replacement.
-    autoGenerationTriggeredRef.current = false;
-    versionCheckRef.current = 'idle';
-  }, [predictiveRequestIdentity]);
   const astronomicalData = chartDetails || chartData?.chart_data?.astronomical_calculations;
 
   // Check if interpretation has actual content (not just placeholders).
@@ -449,116 +420,37 @@ export default function DashboardPage() {
     resolveReportAudience(viewMode === 'astrologer' ? 'astrologer' : 'you'),
   );
 
-  // Auto-generate interpretation on mount when a chart is loaded, an AI model is
-  // configured, and there is no existing complete interpretation for this chart.
+  // A click made while current predictive facts are loading remains explicit
+  // user intent. Resume that one queued request only after the facts settle.
+  // Mounts, reloads, service-worker activations, deploys, config changes, and
+  // predictive-day changes never enter this effect because they cannot set the
+  // queue; only `handleGenerateSeparatedInterpretation` called by a button can.
   useEffect(() => {
-    // Skip if conditions not met (no chart, still loading, no AI model, or a
-    // generation is already in flight).
     if (
+      !regenerationQueued ||
       !chartId ||
       isLoading ||
       !aiConfigured ||
       isStreamingInterpretation ||
-      !isAutomaticNarrationInputSettled(chartId)
+      !isNarrationInputSettled(chartId)
     ) {
       return;
     }
-
-    // Preserve a manual click made while predictive computation was loading.
-    // Consume it once after that request settles; the generation helper reads
-    // the now-current predictive contexts (or intentionally falls back to natal
-    // facts after a settled predictive error).
-    if (regenerationQueued) {
-      versionCheckRef.current = 'done';
-      autoGenerationTriggeredRef.current = true;
-      handleGenerateSeparatedInterpretation();
-      return;
-    }
-
-    // If we already have a valid (complete) interpretation, keep it — UNLESS
-    // the LLM config that produced it has changed (provenance mismatch; a
-    // legacy pre-provenance reading counts as mismatched). With AI off the
-    // effect never reaches here, so the stale reading stays on screen
-    // untouched rather than being destroyed.
-    if (interpretationStatus === 'complete' && hasValidInterpretation) {
-      const config = resolveInterpretationConfig();
-      const storedProvenance = useInterpretationStore.getState().getEntry(chartId)?.provenance;
-      const configChanged =
-        !storedProvenance || configFingerprint(storedProvenance) !== configFingerprint(config);
-      if (!configChanged) {
-        // A successful, current reading completes the previous one-shot cycle.
-        // Reset only here (never on error) so a later predictive day/input can
-        // auto-regenerate once while a failed attempt still cannot spin. The
-        // persisted marker is released for the same reason: the cycle closed
-        // with a usable reading, so nothing is owed against this identity.
-        autoGenerationTriggeredRef.current = false;
-        versionCheckRef.current = 'done';
-        void markAutomaticAttempt(chartId, undefined);
-        return;
-      }
-      // Config changed: fall through to the single-shot trigger below. The refs
-      // cap this at ONE auto-regeneration attempt per mount — a failed attempt
-      // cannot retrigger.
-    }
-
-    // Skip if this input/config already consumed its one automatic attempt.
-    // This guard comes AFTER the successful-current branch above so completion
-    // can close that cycle and admit one attempt for a later predictive day.
-    //
-    // Two caps, deliberately: the ref stops a re-fire within this mount, and
-    // the PERSISTED `automaticAttemptKey` stops one across mounts. Only the
-    // second survives navigation, and navigation is what was re-spending — a
-    // failed run leaves a valid-but-stale reading on the entry, so coming back
-    // to the dashboard found the same open gate and paid for the same six
-    // section calls again, every time, with no bound.
-    const attemptKey = automaticNarrationAttemptKey(chartId);
-    if (
-      autoGenerationTriggeredRef.current ||
-      versionCheckRef.current === 'checking' ||
-      useInterpretationStore.getState().getEntry(chartId)?.automaticAttemptKey === attemptKey
-    ) {
-      return;
-    }
-
-    // Local-first: there is no backend version store to consult — narration is
-    // generated on demand via the configured OpenAI-compatible endpoint.
-    // Auto-trigger a single generation (first reading, or config-change regen).
-    versionCheckRef.current = 'done';
-    autoGenerationTriggeredRef.current = true;
-    void markAutomaticAttempt(chartId, attemptKey);
     handleGenerateSeparatedInterpretation();
   }, [
     aiConfigured,
     chartId,
     handleGenerateSeparatedInterpretation,
-    hasValidInterpretation,
-    interpretationStatus,
     isLoading,
     isStreamingInterpretation,
-    markAutomaticAttempt,
     predictiveRequestIdentity,
     predictiveStatus,
     regenerationQueued,
   ]);
 
-  // Enrich-when-ready (Spec 065) has NO effect of its own any more, and must
-  // not grow one back. The reading paints fast (natal), then auto-upgrades to
-  // the full predictive superset the moment the predictive layer is genuinely
-  // ready for THIS chart — but that is already exactly what the auto-generate
-  // effect above does: once predictive facts exist, the natal reading's
-  // `inputProvenance` stops being current, `interpretationStatus` reports
-  // `idle`, and the single-shot trigger regenerates once.
-  //
-  // A second effect used to do the same job off a LOOSER gate
-  // (`predictiveStatus === 'ready'`) than the postcondition that would satisfy
-  // it (`predictiveAware`, which additionally needs raw contexts and a matching
-  // profile + request key). Whenever those disagreed — a pre-v2 persisted
-  // predictive blob with no raw contexts, facts belonging to another profile —
-  // it bought a full six-section generation that came back non-predictive-aware
-  // again, so the gate reopened and the next visit bought another one. It also
-  // called `handleRegenerateReading`, which re-armed the auto-generate ref, so
-  // a single visit could spend three generations. Deleting it leaves ONE gate
-  // keyed on the identity rule that actually decides the outcome.
+  // A predictive/config change may make a stored reading stale, but only a
+  // person can buy its replacement. This flag now labels an explicitly started
+  // upgrade; it never causes one.
   const readingIsPredictiveAware = interpretationEntry?.provenance?.predictiveAware === true;
 
   // Quiet affordance: the reading is "deepening" while an upgrade streams over
@@ -615,8 +507,8 @@ export default function DashboardPage() {
   const summaryReady = Boolean(summaryText && !isPlaceholderContent(summaryText));
 
   // Quiet provenance caption under the reading: which model wrote it, when —
-  // it makes the Regenerate button (and the auto-regeneration on a model
-  // change) self-explanatory. Legacy pre-provenance readings degrade to the
+  // it makes an explicitly requested Regenerate self-explanatory. Legacy
+  // pre-provenance readings degrade to the
   // date alone; with neither stored, the caption is omitted entirely.
   const readingDate = interpretationEntry?.updatedAt
     ? new Date(interpretationEntry.updatedAt).toLocaleDateString(i18n.language, {
@@ -734,13 +626,15 @@ export default function DashboardPage() {
                 disabled={
                   isStreamingInterpretation || regenerationQueued || !canRegenerateReading
                 }
-                data-testid="regenerate-reading"
+                data-testid={interpretation ? 'regenerate-reading' : 'generate-reading'}
                 title={
                   !canRegenerateReading
                     ? t('dashboard:reading.regen_no_ai')
-                    : t('dashboard:actions.regenerate')
+                    : interpretation
+                      ? t('dashboard:actions.regenerate')
+                      : t('dashboard:actions.generate')
                 }
-                className="inline-flex min-h-11 min-w-11 items-center gap-1.5 whitespace-nowrap rounded-md border border-ui-border px-3 py-1.5 text-sm text-text-secondary transition-colors hover:border-accent-gold/40 hover:text-text-primary disabled:cursor-not-allowed disabled:border-ui-border/60 disabled:text-text-tertiary disabled:hover:border-ui-border/60"
+                className="inline-flex min-h-11 min-w-11 items-center gap-1.5 whitespace-nowrap rounded-md border border-ui-border px-3 py-1.5 text-sm text-text-secondary transition-colors hover:border-accent-gold/40 hover:text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-gold disabled:cursor-not-allowed disabled:border-ui-border/60 disabled:text-text-tertiary disabled:hover:border-ui-border/60"
               >
                 {isStreamingInterpretation || regenerationQueued ? (
                   <Spinner size="sm" />
@@ -749,7 +643,9 @@ export default function DashboardPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
                 )}
-                {t('dashboard:actions.regenerate')}
+                {interpretation
+                  ? t('dashboard:actions.regenerate')
+                  : t('dashboard:actions.generate')}
               </button>
               <FeedbackWidget page="dashboard" />
               <Link

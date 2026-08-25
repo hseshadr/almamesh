@@ -12,6 +12,7 @@
     "create_chart": "Adicionar dados de nascimento",
     "manage_people": "Gerenciar pessoas",
     "retry": "Tentar novamente",
+    "generate": "Gerar leitura",
     "regenerate": "Regenerar leitura",
     "connect_ai": "Conectar um modelo de IA",
     "switch_recommended": "Mudar para o recomendado (DeepSeek V4)",

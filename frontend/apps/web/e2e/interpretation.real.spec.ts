@@ -165,6 +165,7 @@ test('[real] interpretation renders against a live local Ollama model', async ({
   expect(String(seeded.lagna).toLowerCase()).toBe('gemini');
 
   await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
+  await page.getByTestId('generate-reading').click();
   await expectRealReading(page, seeded.mahaLord);
   assertConsoleClean(errors);
 
@@ -217,6 +218,7 @@ test('[real] interpretation renders against live OpenRouter', async ({ page }) =
   expect(String(seeded.lagna).toLowerCase()).toBe('gemini');
 
   await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
+  await page.getByTestId('generate-reading').click();
   await expectRealReading(page, seeded.mahaLord);
   assertConsoleClean(errors);
 

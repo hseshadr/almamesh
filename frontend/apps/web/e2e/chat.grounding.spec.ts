@@ -37,8 +37,8 @@ import { bootEngine, seedChart, LLM_SETTINGS_KEY } from './interpretation.helper
 // The OpenRouter cloud preset that makes describeLlmStatus().configured === true
 // AND triggers applyChatModelPreference (base startsWith OPENROUTER_API_BASE,
 // model === RECOMMENDED_CLOUD_MODEL "deepseek/deepseek-v4-pro"). Installed via
-// addInitScript BEFORE load so the dashboard auto-generates the reading and the
-// chat override fires. Mirrors interpretation.spec.ts's LLM_CONFIG.
+// addInitScript BEFORE load so the dashboard can explicitly generate the
+// reading and the chat override fires. Mirrors interpretation.spec.ts's config.
 const LLM_CONFIG = {
   apiBase: 'https://openrouter.ai/api/v1', // === OPENROUTER_API_BASE
   apiKey: 'test-key',
@@ -170,7 +170,7 @@ test('[contract/stubbed] chat reuses the reading + sends the fast chat model on 
   page,
 }) => {
   // Install the OpenRouter preset BEFORE any app code runs so (1) the dashboard
-  // reports "configured" and auto-generates the reading and (2) the chat path's
+  // reports "configured" for the explicit Generate action and (2) the chat path's
   // applyChatModelPreference override fires on first render.
   await page.addInitScript(
     ([key, cfg]) => {
@@ -226,6 +226,7 @@ test('[contract/stubbed] chat reuses the reading + sends the fast chat model on 
   expect(String(seeded.lagna).toLowerCase()).toBe('gemini');
 
   await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
+  await page.getByTestId('generate-reading').click();
 
   // 1) Wait for the seven-section reading to COMPLETE. interpretationText is only
   //    reused when the stored entry's status === 'complete' (Dashboard.tsx), so
