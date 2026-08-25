@@ -455,15 +455,7 @@ echo "Wrangler Pages dry-run verified artifact for $EXPECTED_SHA"`
     return `set -euo pipefail
 test "$($WRANGLER --version)" = "${WRANGLER_VERSION}"
 $WRANGLER pages deploy dist --project-name=almamesh --branch=main --commit-hash="$EXPECTED_SHA" --commit-dirty=false
-for attempt in $(seq 1 12); do
-  $WRANGLER pages deployment list --project-name=almamesh --environment=production --json >/tmp/pages-deployments.json
-  if node -e 'const f=require("fs");const value=JSON.parse(f.readFileSync("/tmp/pages-deployments.json","utf8"));const rows=Array.isArray(value)?value:(value.result||[]);const deployment=rows[0]||{};const metadata=deployment.deployment_trigger?.metadata||{};if(deployment.environment!=="production"||metadata.branch !== "main"||metadata.commit_hash !== process.env.EXPECTED_SHA)process.exit(1)'; then
-    echo "Cloudflare Pages source identity verified: main $EXPECTED_SHA"
-    break
-  fi
-  if [ "$attempt" = 12 ]; then echo "Cloudflare Pages did not record expected source identity" >&2; exit 1; fi
-  sleep 5
-done
+node dagger/scripts/verify-pages-source.mjs
 ${this.liveVerificationScript(DIST)}
 key_file=$(find dist -maxdepth 1 -type f -name '????????????????????????????????.txt' -print -quit)
 key="$(basename "\${key_file:-}" .txt)"

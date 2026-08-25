@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test"
 import { existsSync, readFileSync } from "node:fs"
 import { resolve } from "node:path"
 import { spawnSync } from "node:child_process"
+import { deploymentMatches } from "../dagger/scripts/verify-pages-source.mjs"
 
 const root = resolve(import.meta.dir, "..")
 const ansi = /\x1b\[[0-9;]*m/g
@@ -105,10 +106,36 @@ describe("Dagger public orchestration contract", () => {
 
   test("production deploy verifies Cloudflare's recorded source identity", () => {
     const source = readFileSync(resolve(root, "dagger/src/index.ts"), "utf8")
-    expect(source).toContain("pages deployment list")
-    expect(source).toContain("deployment_trigger")
-    expect(source).toContain('metadata.branch !== "main"')
-    expect(source).toContain("metadata.commit_hash !== process.env.EXPECTED_SHA")
+    expect(source).toContain("verify-pages-source.mjs")
+    expect(source).not.toContain("pages deployment list")
+  })
+
+  test("Cloudflare source verification requires the full API commit identity", () => {
+    const expectedSha = "b6cdd41e2ed2eef68af95d926270c5d31c1e80ab"
+    const deployment = {
+      environment: "production",
+      latest_stage: { status: "success" },
+      deployment_trigger: { metadata: { branch: "main", commit_hash: expectedSha } },
+    }
+
+    expect(deploymentMatches(deployment, expectedSha)).toBe(true)
+    expect(deploymentMatches({ ...deployment, environment: "preview" }, expectedSha)).toBe(false)
+    expect(
+      deploymentMatches({ ...deployment, latest_stage: { status: "active" } }, expectedSha),
+    ).toBe(false)
+    expect(
+      deploymentMatches(
+        { ...deployment, deployment_trigger: { metadata: { branch: "preview", commit_hash: expectedSha } } },
+        expectedSha,
+      ),
+    ).toBe(false)
+    expect(deploymentMatches(deployment, "0".repeat(40))).toBe(false)
+    expect(
+      deploymentMatches(
+        { Environment: "Production", Branch: "main", Source: expectedSha.slice(0, 7) },
+        expectedSha,
+      ),
+    ).toBe(false)
   })
 
   test("package installs cannot reuse partially downloaded Bun tarballs", () => {
