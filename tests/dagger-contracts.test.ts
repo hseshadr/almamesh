@@ -293,7 +293,6 @@ describe("canonical GitHub ingress contract", () => {
   test("every repository-authored CI/CD workflow only checks out and invokes Dagger", () => {
     for (const name of [
       "dagger.yml",
-      "test.yml",
       "security-audit.yml",
       "nightly-e2e.yml",
       "deploy.yml",
@@ -304,8 +303,16 @@ describe("canonical GitHub ingress contract", () => {
     expect(workflowSource("dagger.yml")).toContain("verb: call")
     expect(workflowSource("dagger.yml")).toContain("args: ci")
     expect(workflowSource("dagger.yml")).not.toContain('args: "**"')
-    expect(workflowSource("test.yml")).toContain("args: secret-scan sync")
     expect(workflowSource("security-audit.yml")).toContain("args: dependency-audit")
+  })
+
+  test("Dagger is the only pull-request and push ingress", () => {
+    const eventIngresses = workflowNames().filter((name) => {
+      const source = workflowSource(name)
+      return source.includes("  pull_request:\n") || source.includes("  push:\n")
+    })
+    expect(eventIngresses).toEqual(["dagger.yml"])
+    expect(existsSync(resolve(root, ".github/workflows/test.yml"))).toBe(false)
   })
 
   test("nightly passes the optional OpenRouter key only as a typed secret provider", () => {
