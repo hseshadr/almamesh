@@ -17,6 +17,7 @@ const PRECACHE = 'workbox-precache-v2-https://almamesh.com/';
 function stubEnv(opts: {
   controller?: unknown;
   cacheNames: string[];
+  cacheNameReads?: string[][];
   precacheEntries?: string[];
   healFlagSet?: boolean;
   cachesThrows?: boolean;
@@ -29,10 +30,14 @@ function stubEnv(opts: {
     },
   });
   const cacheDelete = vi.fn().mockResolvedValue(true);
+  const cacheNames = opts.cacheNameReads ?? [opts.cacheNames];
+  let cacheRead = 0;
   vi.stubGlobal('caches', {
     keys: opts.cachesThrows
       ? vi.fn().mockRejectedValue(new Error('caches boom'))
-      : vi.fn().mockResolvedValue(opts.cacheNames),
+      : vi.fn().mockImplementation(() => Promise.resolve(
+          cacheNames[Math.min(cacheRead++, cacheNames.length - 1)],
+        )),
     delete: cacheDelete,
     open: vi.fn().mockResolvedValue({
       keys: vi.fn().mockResolvedValue((opts.precacheEntries ?? []).map((url) => ({ url }))),
@@ -71,6 +76,20 @@ describe('healStrandedServiceWorker', () => {
       ],
     });
     await healStrandedServiceWorker();
+    expect(unregister).not.toHaveBeenCalled();
+    expect(reload).not.toHaveBeenCalled();
+  });
+
+  it('does not unregister when WebKit exposes a healthy precache after a transient empty read', async () => {
+    const healthyCaches = [...IMMUTABLE, ...RUNTIME, PRECACHE];
+    const { unregister, reload } = stubEnv({
+      cacheNames: healthyCaches,
+      cacheNameReads: [[], healthyCaches],
+      precacheEntries: ['https://almamesh.com/?__WB_REVISION__=abc'],
+    });
+
+    await healStrandedServiceWorker();
+
     expect(unregister).not.toHaveBeenCalled();
     expect(reload).not.toHaveBeenCalled();
   });

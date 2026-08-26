@@ -13,8 +13,11 @@ import { devices, webkit } from '@playwright/test'
 
 const BASE_URL = process.argv[2] ?? 'http://localhost:4200'
 const FIRST_SESSION_ONLY = process.argv.includes('--first-session')
+const TRANSIENT_CACHE_VISIBILITY = process.argv.includes('--transient-cache-visibility')
 const CACHE_DATABASE = 'edgeproc-browser-cache'
 const FALLBACK_PARAMETER = 'force-indexeddb-engine-cache'
+const TRANSIENT_CACHE_VISIBILITY_HASH = '#transient-cache-visibility'
+const TRANSIENT_CACHE_INJECTED_KEY = 'almamesh:exit-gate:transient-cache-visibility:injected'
 const PRERENDERED_SHELLS = new Set(['/welcome', '/privacy', '/terms', '/data-deletion'])
 const BIRTH = {
   datetimeUtc: '1990-01-15T12:00:00.000Z',
@@ -42,6 +45,9 @@ async function bounded(promise, milliseconds, label) {
 }
 
 async function openEngineRoute(page) {
+  await page.waitForFunction(() => document.querySelector('#root')?.childElementCount > 0, undefined, {
+    timeout: 10_000,
+  })
   await page.evaluate(() => {
     window.history.pushState({}, '', `/onboarding${window.location.search}`)
     window.dispatchEvent(new window.PopStateEvent('popstate'))
@@ -106,6 +112,8 @@ async function runtimeEvidence(page) {
       controller: navigator.serviceWorker.controller?.scriptURL ?? null,
       activeWorker: registration?.active?.state ?? null,
       cacheNames,
+      healAttempted: window.sessionStorage.getItem('almamesh:sw-precache-heal') === '1',
+      transientCacheReadInjected: window.sessionStorage.getItem('almamesh:exit-gate:transient-cache-visibility:injected') === '1',
       trustCaches,
       databases: (await indexedDB.databases()).flatMap((database) =>
         database.name ? [database.name] : [],
@@ -228,10 +236,40 @@ async function startCutoffProxy(upstreamUrl) {
 async function verifyFirstSessionOffline() {
   const browser = await webkit.launch({ headless: true })
   const proxy = await startCutoffProxy(BASE_URL)
+  let transientCacheReadInjected = false
   const context = await browser.newContext({
     ...devices['iPhone 13'],
     serviceWorkers: 'allow',
   })
+  if (TRANSIENT_CACHE_VISIBILITY) {
+    await context.exposeBinding('__almameshRecordTransientCacheRead', () => {
+      transientCacheReadInjected = true
+    })
+    await context.addInitScript(({ hash, injectedKey }) => {
+      try {
+        if (window.location.hash !== hash) return
+        window.sessionStorage.setItem(`${injectedKey}:armed`, '1')
+        const cacheStoragePrototype = Object.getPrototypeOf(caches)
+        const realKeys = cacheStoragePrototype.keys
+        let hideOnce = true
+        Object.defineProperty(cacheStoragePrototype, 'keys', {
+          configurable: true,
+          value: async () => {
+            if (!hideOnce) return realKeys.call(caches)
+            hideOnce = false
+            window.sessionStorage.setItem(injectedKey, '1')
+            void globalThis.__almameshRecordTransientCacheRead?.()
+            return []
+          },
+        })
+      } catch {
+        // about:blank has an opaque origin; the script runs again for the app.
+      }
+    }, {
+      hash: TRANSIENT_CACHE_VISIBILITY_HASH,
+      injectedKey: TRANSIENT_CACHE_INJECTED_KEY,
+    })
+  }
   try {
     let page = await context.newPage()
     const url = new URL(proxy.origin)
@@ -272,16 +310,48 @@ async function verifyFirstSessionOffline() {
     )
 
     const firstTimeOrigin = await page.evaluate(() => performance.timeOrigin)
+    if (TRANSIENT_CACHE_VISIBILITY) {
+      await page.evaluate((hash) => {
+        const nextUrl = new URL(window.location.href)
+        nextUrl.hash = hash
+        window.history.replaceState(window.history.state, '', nextUrl)
+      }, TRANSIENT_CACHE_VISIBILITY_HASH)
+    }
     proxy.state.blocked = true
-    await page.reload({ waitUntil: 'domcontentloaded', timeout: 120_000 })
+    await page.reload({ waitUntil: 'domcontentloaded', timeout: 120_000 }).catch(async (error) => {
+      await new Promise((resolve) => setTimeout(resolve, 0))
+      if (!transientCacheReadInjected) throw error
+      throw new Error(`first-session offline reload failed after injected transient CacheStorage read: ${JSON.stringify({
+        rejectedTransportPaths: proxy.state.rejected,
+        requestedTransportPaths: proxy.state.requests,
+      })}`, { cause: error })
+    })
     const secondTimeOrigin = await page.evaluate(() => performance.timeOrigin)
     invariant(secondTimeOrigin !== firstTimeOrigin, 'offline reload did not create a new document')
     const controlled = await page.evaluate(() => navigator.serviceWorker.controller !== null)
     invariant(controlled, 'offline reload was not controlled by the installed service worker')
+    if (TRANSIENT_CACHE_VISIBILITY) {
+      await page.waitForFunction(
+        (key) => window.sessionStorage.getItem(key) === '1',
+        TRANSIENT_CACHE_INJECTED_KEY,
+        { timeout: 10_000 },
+      ).catch(async (error) => {
+        const evidence = await runtimeEvidence(page)
+        throw new Error(`transient CacheStorage visibility fault was not injected: ${JSON.stringify(evidence)}`, {
+          cause: error,
+        })
+      })
+    }
     const offline = await waitForRecoveredEngine(page, 'first-session offline reload', () => ({
       rejectedTransportPaths: proxy.state.rejected,
       requestedTransportPaths: proxy.state.requests,
     }))
+    const offlineRuntime = await runtimeEvidence(page)
+    invariant(!offlineRuntime.healAttempted, `transient cache read triggered destructive heal: ${JSON.stringify(offlineRuntime)}`)
+    invariant(
+      offlineRuntime.activeWorker === 'activated' && offlineRuntime.cacheNames.some((name) => /precache/i.test(name)),
+      `service worker or precache was lost after transient cache read: ${JSON.stringify(offlineRuntime)}`,
+    )
     const offlineChart = await generateReferenceChart(page)
     invariant(offlineChart.lagna === 'gemini', `unexpected offline first-session chart: ${JSON.stringify(offlineChart)}`)
     invariant(
@@ -307,6 +377,7 @@ async function verifyFirstSessionOffline() {
       coldChart,
       trustRootBeforeCutoff,
       offline,
+      offlineRuntime,
       offlineChart,
       initialDocumentControlled: !uncontrolled,
       offlineDocumentControlled: controlled,

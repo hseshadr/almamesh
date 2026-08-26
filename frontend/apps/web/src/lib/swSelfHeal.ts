@@ -99,6 +99,13 @@ async function hasHealthyPrecache(): Promise<boolean> {
   });
 }
 
+/** Require absence across two browser tasks before destructive recovery. */
+async function isPrecacheStablyMissing(): Promise<boolean> {
+  if (await hasHealthyPrecache()) return false;
+  await new Promise<void>((resolve) => setTimeout(resolve, 0));
+  return !(await hasHealthyPrecache());
+}
+
 /**
  * Detect and repair the "controlled by a SW but the app-shell precache is
  * missing" wedge. No-op when the page is uncontrolled or the precache is healthy.
@@ -120,7 +127,7 @@ export async function healStrandedServiceWorker(): Promise<void> {
     if (!navigator.serviceWorker.controller) {
       return;
     }
-    if (await hasHealthyPrecache()) {
+    if (!(await isPrecacheStablyMissing())) {
       return;
     }
     if (healAlreadyAttempted(HEAL_KEY)) {
