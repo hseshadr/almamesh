@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test"
-import { existsSync, readFileSync } from "node:fs"
-import { resolve } from "node:path"
+import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join, resolve } from "node:path"
 import { spawnSync } from "node:child_process"
 import { deploymentMatches } from "../dagger/scripts/verify-pages-source.mjs"
 
@@ -106,9 +107,30 @@ describe("Dagger public orchestration contract", () => {
 
   test("production deploy verifies Cloudflare's recorded source identity", () => {
     const source = readFileSync(resolve(root, "dagger/src/index.ts"), "utf8")
+    expect(source).toContain(
+      'const PAGES_SOURCE_VERIFIER = "/opt/almamesh/verify-pages-source.mjs"',
+    )
     expect(source).toContain("verify-pages-source.mjs")
+    expect(source).not.toContain("node dagger/scripts/verify-pages-source.mjs")
     expect(source).not.toContain("pages deployment list")
   })
+
+  test("deploy dry-run executes the production Pages verifier from the app workdir", () => {
+    const expectedSha = "1".repeat(40)
+    const run = spawnSync(
+      "dagger",
+      ["call", "deploy-dry-run", `--expected-sha=${expectedSha}`, "stdout"],
+      {
+        cwd: root,
+        encoding: "utf8",
+        env: { ...process.env, DAGGER_NO_NAG: "1" },
+        timeout: 180_000,
+      },
+    )
+    const output = `${run.stdout}\n${run.stderr}`
+    expect(run.status, output).toBe(0)
+    expect(output).toContain(`Cloudflare Pages source identity verified: main ${expectedSha}`)
+  }, 180_000)
 
   test("Cloudflare source verification requires the full API commit identity", () => {
     const expectedSha = "b6cdd41e2ed2eef68af95d926270c5d31c1e80ab"
@@ -142,6 +164,48 @@ describe("Dagger public orchestration contract", () => {
     const source = readFileSync(resolve(root, "dagger/src/index.ts"), "utf8")
     expect(source).not.toContain('withMountedCache("/root/.bun/install/cache"')
   })
+
+  test("Bun installs time out, clean ephemeral state, retry once, and fail closed", () => {
+    const sandbox = mkdtempSync(join(tmpdir(), "almamesh-bun-install-"))
+    const installer = resolve(root, "dagger/scripts/install-bun.sh")
+    const counter = join(sandbox, "attempts")
+    const args = join(sandbox, "args")
+    writeFileSync(join(sandbox, "timeout"), [
+      "#!/bin/sh", "shift 3", '"$@" &', "pid=$!", '( sleep 1; kill "$pid" 2>/dev/null ) &',
+      "watch=$!", 'wait "$pid"', "status=$?", 'kill "$watch" 2>/dev/null || true', "exit $status",
+    ].join("\n"))
+    writeFileSync(join(sandbox, "bun"), [
+      "#!/bin/sh", "set -eu", `counter='${counter}'`, `args='${args}'`,
+      'attempt=$(($(cat "$counter" 2>/dev/null || echo 0) + 1))', 'echo "$attempt" > "$counter"',
+      'echo "$*" >> "$args"',
+      'if [ "${FAKE_FAIL:-}" = always ]; then mkdir -p node_modules "$BUN_INSTALL_CACHE_DIR"; touch node_modules/final-partial "$BUN_INSTALL_CACHE_DIR/final-partial"; exit 9; fi',
+      'if [ "$attempt" -eq 1 ]; then sleep 5; fi', "mkdir -p node_modules",
+    ].join("\n"))
+    chmodSync(join(sandbox, "timeout"), 0o755)
+    chmodSync(join(sandbox, "bun"), 0o755)
+    const env = {
+      ...process.env,
+      PATH: `${sandbox}:${process.env.PATH ?? ""}`,
+      BUN_INSTALL_CACHE_DIR: join(sandbox, "cache"),
+      BUN_INSTALL_TIMEOUT_SECONDS: "1",
+    }
+    try {
+      const recovered = spawnSync("bash", [installer], { cwd: sandbox, env, encoding: "utf8" })
+      expect(recovered.status, recovered.stderr).toBe(0)
+      expect(readFileSync(counter, "utf8").trim()).toBe("2")
+      expect(readFileSync(args, "utf8").trim().split("\n"))
+        .toEqual(["install --frozen-lockfile", "install --frozen-lockfile"])
+      const failed = spawnSync("bash", [installer], {
+        cwd: sandbox, env: { ...env, FAKE_FAIL: "always" }, encoding: "utf8",
+      })
+      expect(failed.status).toBe(1)
+      expect(failed.stderr).toContain("failed after 2 attempts")
+      expect(existsSync(join(sandbox, "node_modules/final-partial"))).toBe(true)
+      expect(existsSync(join(sandbox, "cache/final-partial"))).toBe(true)
+    } finally {
+      rmSync(sandbox, { recursive: true, force: true })
+    }
+  }, 10_000)
 })
 
 describe("canonical GitHub ingress contract", () => {

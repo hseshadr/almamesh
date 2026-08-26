@@ -16,6 +16,9 @@ const FRONTEND = `${ROOT}/frontend`
 const WEB = `${FRONTEND}/apps/web`
 const DIST = `${WEB}/dist`
 const KEYS = "/run/almamesh-keys"
+const BUN_INSTALLER = "/opt/almamesh/install-bun.sh"
+const PAGES_SOURCE_VERIFIER = "/opt/almamesh/verify-pages-source.mjs"
+const PAGES_SOURCE_MOCK = "/opt/almamesh/mock-pages-fetch.mjs"
 const LIVE_ORIGIN = "https://almamesh.com"
 const BUN_IMAGE =
   "oven/bun:1.3.5@sha256:e90cdbaf9ccdb3d4bd693aa335c3310a6004286a880f62f79b18f9b1312a8ec3"
@@ -61,6 +64,7 @@ export class AlmameshCi {
     return dag
       .container()
       .from(BUN_IMAGE)
+      .withFile(BUN_INSTALLER, this.source.file("dagger/scripts/install-bun.sh"))
       .withDirectory(ROOT, this.selected([".gitignore", ".github/workflows/**", "CHANGELOG.md", "README.md", "SECURITY.md", "backend/**", "dagger/**", "docs/**", "frontend/**", "testdata/**"]))
       .withWorkdir(FRONTEND)
       .withEnvVariable("ALMAMESH_CI_CONTRACT", "modern-v13")
@@ -73,7 +77,7 @@ export class AlmameshCi {
         "-c",
         "apt-get update && apt-get install -y --no-install-recommends build-essential git node-gyp nodejs poppler-utils && rm -rf /var/lib/apt/lists/*",
       ])
-      .withExec(["bun", "install", "--frozen-lockfile"])
+      .withExec(["sh", BUN_INSTALLER])
       .withExec(["sh", "-c", `git -C ${ROOT} init && git -C ${ROOT} add -A`])
   }
 
@@ -106,6 +110,11 @@ export class AlmameshCi {
       .withFile("/usr/local/bin/bun", bun)
       .withFile("/usr/local/bin/uv", uv)
       .withFile("/usr/local/bin/uvx", uv)
+      .withFile(BUN_INSTALLER, this.source.file("dagger/scripts/install-bun.sh"))
+      .withFile(
+        PAGES_SOURCE_VERIFIER,
+        this.source.file("dagger/scripts/verify-pages-source.mjs"),
+      )
       .withDirectory(ROOT, this.selected([".gitignore", "backend/**", "frontend/**"]))
       .withWorkdir(FRONTEND)
       .withEnvVariable("UV_LINK_MODE", "copy")
@@ -119,7 +128,7 @@ export class AlmameshCi {
         "-c",
         "apt-get update && apt-get install -y --no-install-recommends build-essential ca-certificates curl git node-gyp openssl poppler-utils python3 python3-dev && rm -rf /var/lib/apt/lists/*",
       ])
-      .withExec(["bun", "install", "--frozen-lockfile"])
+      .withExec(["sh", BUN_INSTALLER])
       .withExec([
         "npm",
         "install",
@@ -140,6 +149,7 @@ export class AlmameshCi {
       .container()
       .from(UV_IMAGE)
       .withFile("/usr/local/bin/bun", bun)
+      .withFile(BUN_INSTALLER, this.source.file("dagger/scripts/install-bun.sh"))
       .withDirectory(ROOT, this.selected(["backend/**", "frontend/**"]))
       .withWorkdir(FRONTEND)
       .withEnvVariable("UV_LINK_MODE", "copy")
@@ -154,7 +164,7 @@ export class AlmameshCi {
         "-c",
         "apt-get update && apt-get install -y --no-install-recommends build-essential ca-certificates curl git node-gyp nodejs openssl poppler-utils && rm -rf /var/lib/apt/lists/*",
       ])
-      .withExec(["bun", "install", "--frozen-lockfile"])
+      .withExec(["sh", BUN_INSTALLER])
       .withExec(["bash", "apps/web/scripts/setup-dev-assets.sh"])
       .withWorkdir(WEB)
       .withExec(["bun", "x", "playwright", "install", "--with-deps", ...browsers])
@@ -310,7 +320,10 @@ export class AlmameshCi {
         .withMountedTemp(KEYS)
         .withEnvVariable("EXPECTED_SHA", expectedSha)
         .withExec(["bash", "-c", this.dryRunBuildScript()]),
-    ).withExec(["bash", "-c", this.pagesDryRunScript()])
+    )
+      .withNewFile(PAGES_SOURCE_MOCK, this.pagesSourceMock())
+      .withExec(["bash", "-c", this.pagesDryRunScript()])
+      .withExec(["bash", "-c", this.pagesSourceDryRunScript()])
   }
   @func()
   deploy(
@@ -455,13 +468,32 @@ echo "Wrangler Pages dry-run verified artifact for $EXPECTED_SHA"`
     return `set -euo pipefail
 test "$($WRANGLER --version)" = "${WRANGLER_VERSION}"
 $WRANGLER pages deploy dist --project-name=almamesh --branch=main --commit-hash="$EXPECTED_SHA" --commit-dirty=false
-node dagger/scripts/verify-pages-source.mjs
+node ${PAGES_SOURCE_VERIFIER}
 ${this.liveVerificationScript(DIST)}
 key_file=$(find dist -maxdepth 1 -type f -name '????????????????????????????????.txt' -print -quit)
 key="$(basename "\${key_file:-}" .txt)"
 if printf '%s' "$key" | grep -Eq '^[0-9a-f]{32}$'; then
   curl -sS --max-time 30 -X POST https://api.indexnow.org/indexnow -H 'Content-Type: application/json; charset=utf-8' --data '{"host":"almamesh.com","key":"'"$key"'","keyLocation":"https://almamesh.com/'"$key"'.txt","urlList":["https://almamesh.com/","https://almamesh.com/welcome","https://almamesh.com/privacy","https://almamesh.com/terms","https://almamesh.com/data-deletion"]}' >/dev/null || echo "IndexNow notification failed (non-fatal)" >&2
 fi`
+  }
+  private pagesSourceMock(): string {
+    return `globalThis.fetch = async (url, init) => {
+  const request = new URL(String(url))
+  const authorized = init?.headers?.Authorization === "Bearer dry-run-token"
+  const queryMatches = request.searchParams.get("env") === "production" && request.searchParams.get("per_page") === "25"
+  if (!authorized || !queryMatches) return new Response("", { status: 400 })
+  return Response.json({ success: true, result: [{
+    environment: "production",
+    latest_stage: { status: "success" },
+    deployment_trigger: { metadata: { branch: "main", commit_hash: process.env.EXPECTED_SHA } },
+  }] })
+}`
+  }
+  private pagesSourceDryRunScript(): string {
+    return `CLOUDFLARE_ACCOUNT_ID=dry-run-account \\
+CLOUDFLARE_API_TOKEN=dry-run-token \\
+NODE_OPTIONS=--import=${PAGES_SOURCE_MOCK} \\
+node ${PAGES_SOURCE_VERIFIER}`
   }
   private liveVerificationScript(artifact: string): string {
     return `expected_bundle=$(node -e 'const f=require("fs");const p=JSON.parse(f.readFileSync("${artifact}/bundle/latest","utf8"));if(!p.manifest_hash||!Number.isInteger(p.sequence))process.exit(2);process.stdout.write(p.manifest_hash+":"+p.sequence)')
