@@ -34,7 +34,7 @@ import { BandBadge } from '../components/features/predictive/PredictiveBadges';
 import { StrengthEvidencePanels } from '../components/features/predictive/StrengthEvidencePanels';
 import { useElapsedSeconds, formatElapsed } from '../hooks/useElapsedSeconds';
 import { usePredictiveLayer, type PredictiveLayer } from '../hooks/usePredictiveLayer';
-import { currentInterpretationForChart } from '../hooks/useStreamingInterpretation';
+import { displayInterpretationForChart } from '../hooks/useStreamingInterpretation';
 import { domainGuidance, DOMAIN_GUIDANCE_KEY, isLifeDomain } from '../lib/lifeAtlas';
 import { formatRupas, selectPrimaryStoredChart } from '../lib/predictive';
 import { grahaName } from '../lib/predictiveEventCopy';
@@ -156,7 +156,7 @@ function AiSection({ domain }: { domain: LifeDomain }): ReactElement {
   const activeProfileId = useProfilesStore((s) => s.activeProfileId);
   const chartId = selectPrimaryStoredChart(charts, activeProfileId)?.chart_id ?? null;
   useInterpretationStore((s) => (chartId ? s.byChart[chartId] : undefined));
-  const interpretation = currentInterpretationForChart(chartId);
+  const interpretation = displayInterpretationForChart(chartId);
   const guidance = domainGuidance(interpretation, domain);
 
   let body: ReactNode;

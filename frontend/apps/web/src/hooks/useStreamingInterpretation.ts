@@ -273,6 +273,19 @@ export function currentInterpretationForChart(
   return entry.interpretation;
 }
 
+/** Read interpretation prose that remains honest to display while inputs deepen. */
+export function displayInterpretationForChart(
+  chartId: string | null,
+): VedicInterpretation | undefined {
+  if (!chartId) {
+    return undefined;
+  }
+  const entry = useInterpretationStore.getState().getEntry(chartId);
+  return isInterpretationInputSafeToDisplay(entry?.inputProvenance, chartId)
+    ? entry?.interpretation
+    : undefined;
+}
+
 /**
  * Compose the persisted RAW engine predictive contexts onto the natal chart
  * (Spec 062, LLM delta 1) so interpretation + chat prompts carry the engine's

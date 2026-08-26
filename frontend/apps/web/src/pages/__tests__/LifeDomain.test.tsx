@@ -171,6 +171,29 @@ describe('LifeDomainPage', () => {
     expect(ai.textContent).toContain('AI narration');
   });
 
+  it('keeps a natal-only reading visible after predictive facts finish', () => {
+    seedReady();
+    usePredictiveStore.setState({
+      rawContexts: { domains_context: DOMAINS_CTX } as never,
+    });
+    useInterpretationStore.setState({
+      byChart: {
+        'chart-1': {
+          status: 'complete',
+          interpretation: INTERPRETATION,
+          sections: {},
+          inputProvenance: { predictiveRequestKey: null },
+        },
+      },
+    });
+
+    renderAt('/life/career');
+
+    expect(screen.getByTestId('life-domain-ai').textContent).toContain(
+      'Steady, structured careers suit you.',
+    );
+  });
+
   it('does not show a legacy or stale interpretation beside current predictive facts', () => {
     seedReady();
     useInterpretationStore.setState({
