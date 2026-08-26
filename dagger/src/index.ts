@@ -208,7 +208,7 @@ export class AlmameshCi {
       4200,
       [
         "node scripts/verify-webkit-engine.mjs http://127.0.0.1:4200",
-        "node scripts/verify-webkit-engine.mjs http://127.0.0.1:4200 --first-session",
+        "node scripts/verify-webkit-engine.mjs http://127.0.0.1:4200 --first-session --transient-cache-visibility",
       ],
     )
     checked = checked
