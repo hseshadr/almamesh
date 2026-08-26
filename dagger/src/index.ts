@@ -17,6 +17,7 @@ const WEB = `${FRONTEND}/apps/web`
 const DIST = `${WEB}/dist`
 const KEYS = "/run/almamesh-keys"
 const BUN_INSTALLER = "/opt/almamesh/install-bun.sh"
+const SECRET_SCANNER = "/opt/almamesh/secret-scan.sh"
 const PAGES_SOURCE_VERIFIER = "/opt/almamesh/verify-pages-source.mjs"
 const PAGES_SOURCE_MOCK = "/opt/almamesh/mock-pages-fetch.mjs"
 const LIVE_ORIGIN = "https://almamesh.com"
@@ -246,6 +247,7 @@ export class AlmameshCi {
   @check()
   async ci(): Promise<string> {
     const gates = [
+      this.secretScan(),
       this.backend(),
       this.frontend(),
       this.browser(),
@@ -253,7 +255,7 @@ export class AlmameshCi {
       this.privacy(),
     ]
     for (const gate of gates) await gate.sync()
-    return "Backend, frontend, browser, PDF, and privacy gates passed in sequence."
+    return "Secret, backend, frontend, browser, PDF, and privacy gates passed in sequence."
   }
   @func()
   secretScan(): Container {
@@ -261,23 +263,10 @@ export class AlmameshCi {
       .container()
       .from(GITLEAKS_IMAGE)
       .withEntrypoint([])
+      .withFile(SECRET_SCANNER, this.source.file("dagger/scripts/secret-scan.sh"))
       .withDirectory(ROOT, this.source)
       .withWorkdir(ROOT)
-      .withExec([
-        "/usr/bin/gitleaks",
-        "dir",
-        ROOT,
-        "--config",
-        `${ROOT}/.gitleaks.toml`,
-        "--redact",
-        "--no-banner",
-        "--no-color",
-      ])
-      .withExec([
-        "sh",
-        "-c",
-        "test -z \"$(find backend -maxdepth 1 \\( -name 'keys*' -o -name 'origin*' \\) -print -quit)\"",
-      ])
+      .withExec(["sh", SECRET_SCANNER])
   }
   @func()
   async dependencyAudit(): Promise<string> {

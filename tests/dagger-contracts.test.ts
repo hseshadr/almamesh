@@ -1,5 +1,14 @@
 import { describe, expect, test } from "bun:test"
-import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 import { spawnSync } from "node:child_process"
@@ -60,6 +69,12 @@ function workflowSource(name: string): string {
   return readFileSync(resolve(root, ".github/workflows", name), "utf8")
 }
 
+function workflowNames(): string[] {
+  return readdirSync(resolve(root, ".github/workflows"))
+    .filter((name) => name.endsWith(".yml") || name.endsWith(".yaml"))
+    .sort()
+}
+
 const checkout = "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
 const daggerAction = "dagger/dagger-for-github@27b130bf0f79a7f6fbbbe0fbca6760dc9bb40a77"
 
@@ -104,6 +119,63 @@ describe("Dagger public orchestration contract", () => {
     expect(source).toContain("args: ci")
     expect(source).not.toContain('args: "**"')
   }, 30_000)
+
+  test("the canonical CI graph includes the repository secret scan", () => {
+    const source = readFileSync(resolve(root, "dagger/src/index.ts"), "utf8")
+    const ci = source.split("async ci(): Promise<string>", 2)[1]?.split("@func()", 1)[0] ?? ""
+    expect(ci).toContain("this.secretScan()")
+  })
+
+  test("secret scan fails when a leak exists only in Git history", () => {
+    const sandbox = mkdtempSync(join(tmpdir(), "almamesh-history-scan-"))
+    const repository = join(sandbox, "repository")
+    const source = join(sandbox, "source")
+    const fakeBin = join(sandbox, "bin")
+    const marker = "ALMAMESH_REMOVED_HISTORY_MARKER"
+    mkdirSync(repository)
+    mkdirSync(source)
+    mkdirSync(fakeBin)
+    writeFileSync(join(source, ".gitleaks.toml"), 'title = "test"\n')
+    writeFileSync(join(repository, "removed.txt"), `${marker}\n`)
+    spawnSync("git", ["init", "-q", "-b", "main"], { cwd: repository })
+    spawnSync("git", ["config", "user.email", "ci@example.invalid"], { cwd: repository })
+    spawnSync("git", ["config", "user.name", "CI"], { cwd: repository })
+    spawnSync("git", ["add", "removed.txt"], { cwd: repository })
+    spawnSync("git", ["commit", "-qm", "historical marker"], { cwd: repository })
+    rmSync(join(repository, "removed.txt"))
+    spawnSync("git", ["add", "-u"], { cwd: repository })
+    spawnSync("git", ["commit", "-qm", "remove marker"], { cwd: repository })
+    writeFileSync(
+      join(fakeBin, "gitleaks"),
+      [
+        "#!/bin/sh",
+        "set -eu",
+        'if [ "$1" = dir ]; then exit 0; fi',
+        'if git -C "$2" log -p --all | grep -q "$HISTORICAL_MARKER"; then',
+        '  echo "historical secret detected" >&2',
+        "  exit 42",
+        "fi",
+      ].join("\n"),
+    )
+    chmodSync(join(fakeBin, "gitleaks"), 0o755)
+    try {
+      const run = spawnSync("bash", [resolve(root, "dagger/scripts/secret-scan.sh")], {
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          ALMAMESH_REPOSITORY_URL: `file://${repository}`,
+          HISTORY_ROOT: join(sandbox, "history"),
+          HISTORICAL_MARKER: marker,
+          PATH: `${fakeBin}:${process.env.PATH ?? ""}`,
+          SOURCE_ROOT: source,
+        },
+      })
+      expect(run.status, run.stderr).toBe(42)
+      expect(run.stderr).toContain("historical secret detected")
+    } finally {
+      rmSync(sandbox, { recursive: true, force: true })
+    }
+  })
 
   test("production deploy verifies Cloudflare's recorded source identity", () => {
     const source = readFileSync(resolve(root, "dagger/src/index.ts"), "utf8")
@@ -209,10 +281,18 @@ describe("Dagger public orchestration contract", () => {
 })
 
 describe("canonical GitHub ingress contract", () => {
+  test("every workflow checkout prevents persisted GitHub credentials", () => {
+    for (const name of workflowNames()) {
+      for (const step of steps(name).filter((candidate) => candidate.uses === checkout)) {
+        expect((step.with as Record<string, unknown> | undefined)?.["persist-credentials"])
+          .toBe(false)
+      }
+    }
+  })
+
   test("every repository-authored CI/CD workflow only checks out and invokes Dagger", () => {
     for (const name of [
       "dagger.yml",
-      "test.yml",
       "security-audit.yml",
       "nightly-e2e.yml",
       "deploy.yml",
@@ -223,8 +303,16 @@ describe("canonical GitHub ingress contract", () => {
     expect(workflowSource("dagger.yml")).toContain("verb: call")
     expect(workflowSource("dagger.yml")).toContain("args: ci")
     expect(workflowSource("dagger.yml")).not.toContain('args: "**"')
-    expect(workflowSource("test.yml")).toContain("args: secret-scan sync")
     expect(workflowSource("security-audit.yml")).toContain("args: dependency-audit")
+  })
+
+  test("Dagger is the only pull-request and push ingress", () => {
+    const eventIngresses = workflowNames().filter((name) => {
+      const source = workflowSource(name)
+      return source.includes("  pull_request:\n") || source.includes("  push:\n")
+    })
+    expect(eventIngresses).toEqual(["dagger.yml"])
+    expect(existsSync(resolve(root, ".github/workflows/test.yml"))).toBe(false)
   })
 
   test("nightly passes the optional OpenRouter key only as a typed secret provider", () => {
