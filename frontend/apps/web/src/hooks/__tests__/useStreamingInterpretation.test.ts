@@ -225,6 +225,49 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
     expect(byKey.remedial).toBe(false);
   });
 
+  it('keeps a new reading hidden until its IndexedDB snapshot is durable', async () => {
+    mockedStream.mockImplementation(
+      eventStream([{ type: 'complete', interpretation: SAMPLE_INTERPRETATION }]),
+    );
+    const originalStorage = useInterpretationStore.persist.getOptions().storage;
+    let releaseWrite: (() => void) | undefined;
+    const writeBarrier = new Promise<void>((resolve) => {
+      releaseWrite = resolve;
+    });
+    useInterpretationStore.persist.setOptions({
+      storage: {
+        getItem: async () => null,
+        setItem: async () => writeBarrier,
+        removeItem: async () => undefined,
+      },
+    });
+
+    try {
+      const { result } = renderHook(() => useStreamingInterpretation('chart-123'));
+      let generation: Promise<void> | undefined;
+      act(() => {
+        generation = result.current.streamInterpretation('chart-123', {
+          intent: 'user-request',
+        });
+      });
+
+      await waitFor(() => {
+        expect(useInterpretationStore.getState().getEntry('chart-123')?.interpretation)
+          .toEqual(SAMPLE_INTERPRETATION);
+      });
+      expect(result.current.interpretation).toBeUndefined();
+      expect(result.current.status).toBe('generating');
+
+      releaseWrite?.();
+      await act(async () => generation);
+      expect(result.current.interpretation).toEqual(SAMPLE_INTERPRETATION);
+      expect(result.current.status).toBe('complete');
+    } finally {
+      releaseWrite?.();
+      useInterpretationStore.persist.setOptions({ storage: originalStorage });
+    }
+  });
+
   it('records per-section error events as failed sections (partial success stays complete)', async () => {
     // The generator degrades a failed section to empty and still completes —
     // the hook must record the failure instead of discarding the event.

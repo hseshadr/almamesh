@@ -18,7 +18,7 @@
  * view-state the UI needs (status, per-section progress, error, isStreaming).
  */
 
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import {
   applyInterpretationSettings,
   configProvenance,
@@ -273,6 +273,19 @@ export function currentInterpretationForChart(
   return entry.interpretation;
 }
 
+/** Read interpretation prose that remains honest to display while inputs deepen. */
+export function displayInterpretationForChart(
+  chartId: string | null,
+): VedicInterpretation | undefined {
+  if (!chartId) {
+    return undefined;
+  }
+  const entry = useInterpretationStore.getState().getEntry(chartId);
+  return isInterpretationInputSafeToDisplay(entry?.inputProvenance, chartId)
+    ? entry?.interpretation
+    : undefined;
+}
+
 /**
  * Compose the persisted RAW engine predictive contexts onto the natal chart
  * (Spec 062, LLM delta 1) so interpretation + chat prompts carry the engine's
@@ -360,6 +373,11 @@ export function useStreamingInterpretation(chartId?: string | null): UseStreamin
   const language = useLanguageStore((s) => s.language);
 
   const abortControllerRef = useRef<AbortController | null>(null);
+  // `setInterpretation` publishes to the zustand store synchronously but its
+  // Promise resolves only after the IndexedDB snapshot commits. Keep that new
+  // reading behind a local durability gate so a user-visible completion can
+  // never be followed immediately by a hard reload that loses the prose.
+  const [durabilityPendingRun, setDurabilityPendingRun] = useState<number | null>(null);
 
   const reset = useCallback(() => {
     if (abortControllerRef.current) {
@@ -425,14 +443,14 @@ export function useStreamingInterpretation(chartId?: string | null): UseStreamin
         })) {
           if (controller.signal.aborted) return;
           if (event.type === 'section_complete') {
-            markSectionComplete(id, event.section);
+            markSectionComplete(id, event.section, runToken);
           } else if (event.type === 'error' && event.section != null) {
             // A per-section failure degrades that section to empty while the
             // run still completes — record it so the UI can show the gap and
             // offer a regenerate instead of a silently blank section.
             // (`section` is optional on the event type; sectionless errors
             // have no slot to mark and surface via the fatal path instead.)
-            markSectionFailed(id, event.section);
+            markSectionFailed(id, event.section, runToken);
           } else if (event.type === 'complete') {
             // Stamp the reading with the identity of the config that produced
             // it (engine/model/endpoint — never a key), so the UI can caption
@@ -440,21 +458,25 @@ export function useStreamingInterpretation(chartId?: string | null): UseStreamin
             // mismatch after an explicit regeneration. `predictiveAware` records whether
             // the full predictive superset was actually composed into THIS
             // reading, gating the one-shot enrich-when-ready upgrade.
-            setInterpretation(
+            setDurabilityPendingRun(runToken);
+            await setInterpretation(
               id,
               event.interpretation,
               new Date().toISOString(),
               { ...configProvenance(config), predictiveAware },
               input.provenance,
+              runToken,
             );
+            setDurabilityPendingRun((pending) => pending === runToken ? null : pending);
             readingCompleted = true;
           }
           // `section_start` is informational.
         }
       } catch (err) {
+        setDurabilityPendingRun((pending) => pending === runToken ? null : pending);
         if (err instanceof Error && err.name === 'AbortError') return;
         const failure = describeError(err);
-        setError(id, failure.message, failure.kind);
+        setError(id, failure.message, failure.kind, runToken);
         return;
       }
 
@@ -498,8 +520,10 @@ export function useStreamingInterpretation(chartId?: string | null): UseStreamin
     resolvedChartId,
   );
   const storedStatus: InterpretationStatus = entry?.status ?? 'idle';
-  const status: InterpretationStatus =
-    storedStatus === 'complete' && !inputIsCurrent ? 'idle' : storedStatus;
+  const waitingForDurability = durabilityPendingRun !== null;
+  const status: InterpretationStatus = waitingForDurability
+    ? 'generating'
+    : storedStatus === 'complete' && !inputIsCurrent ? 'idle' : storedStatus;
   const completed = entry?.sections ?? {};
   const failed = entry?.failedSections ?? {};
   const sections: readonly SectionProgress[] = INTERPRETATION_SECTIONS.map((key) => ({
@@ -510,11 +534,15 @@ export function useStreamingInterpretation(chartId?: string | null): UseStreamin
 
   return {
     streamInterpretation,
-    interpretation: inputIsSafeToDisplay ? entry?.interpretation : undefined,
+    interpretation: inputIsSafeToDisplay && !waitingForDurability
+      ? entry?.interpretation
+      : undefined,
     // UNVALIDATED model output, handed on deliberately raw. `buildEvidenceLedger`
     // is the single place it is ever checked against the computed chart, so
     // passing it through here cannot create a second, laxer validation site.
-    evidenceAnnotations: inputIsSafeToDisplay ? entry?.evidenceAnnotations : undefined,
+    evidenceAnnotations: inputIsSafeToDisplay && !waitingForDurability
+      ? entry?.evidenceAnnotations
+      : undefined,
     status,
     sections,
     failedSections: sections.filter((s) => s.failed).map((s) => s.key),
