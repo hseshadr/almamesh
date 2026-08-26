@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page, type TestInfo } from '@playwright/test';
 import { bootEngine, seedChart, LLM_SETTINGS_KEY } from './interpretation.helpers';
 
 /**
@@ -110,10 +110,129 @@ async function stubLlm(page: Page): Promise<() => number> {
   return () => providerCalls;
 }
 
+const SEEDED_CHART_ID = 'interp-delhi-1990';
+const PERSISTED_KEYS = [
+  'almamesh-chart-library',
+  'almamesh-interpretations',
+  'almamesh-predictive',
+  'almamesh-profiles',
+] as const;
+
+/**
+ * Redacted persistence + UI evidence around the hard-navigation boundary.
+ * Never reads LLM settings/localStorage, so provider credentials cannot enter
+ * Playwright logs or attachments.
+ */
+async function interpretationLifecycleSnapshot(page: Page) {
+  return page.evaluate(async ({ chartId, keys }) => {
+    const raw = await new Promise<Record<string, unknown>>((resolve, reject) => {
+      const open = indexedDB.open('keyval-store');
+      open.onerror = () => reject(open.error);
+      open.onsuccess = () => {
+        const transaction = open.result.transaction('keyval', 'readonly');
+        const store = transaction.objectStore('keyval');
+        const values: Record<string, unknown> = {};
+        for (const key of keys) {
+          const request = store.get(key);
+          request.onsuccess = () => {
+            const value = request.result;
+            if (typeof value !== 'string') {
+              values[key] = null;
+              return;
+            }
+            try {
+              values[key] = JSON.parse(value) as unknown;
+            } catch {
+              values[key] = { malformed: true };
+            }
+          };
+        }
+        transaction.oncomplete = () => resolve(values);
+        transaction.onerror = () => reject(transaction.error);
+      };
+    });
+    const state = (key: string): Record<string, unknown> => {
+      const envelope = raw[key];
+      if (envelope === null || typeof envelope !== 'object') return {};
+      const candidate = (envelope as { state?: unknown }).state;
+      return candidate !== null && typeof candidate === 'object'
+        ? candidate as Record<string, unknown>
+        : {};
+    };
+    const charts = state('almamesh-chart-library').charts as Record<string, {
+      chart_id?: string;
+      profile_id?: string;
+      is_primary?: boolean;
+    }> | undefined;
+    const interpretations = state('almamesh-interpretations').byChart as Record<string, {
+      status?: string;
+      inputProvenance?: { predictiveRequestKey?: string | null };
+      provenance?: {
+        engine?: string;
+        model?: string;
+        endpoint?: string;
+        predictiveAware?: boolean;
+      };
+      interpretation?: {
+        summary?: { layman?: string };
+        career_guidance?: { layman?: string };
+      };
+    }> | undefined;
+    const predictive = state('almamesh-predictive');
+    const profiles = state('almamesh-profiles');
+    const chart = charts?.[chartId];
+    const entry = interpretations?.[chartId];
+    return {
+      path: location.pathname,
+      chartIds: Object.keys(charts ?? {}),
+      chart: chart ? {
+        id: chart.chart_id ?? null,
+        profileId: chart.profile_id ?? null,
+        primary: chart.is_primary ?? false,
+      } : null,
+      activeProfileId: profiles.activeProfileId ?? null,
+      interpretationIds: Object.keys(interpretations ?? {}),
+      interpretation: entry ? {
+        status: entry.status ?? null,
+        provenance: entry.provenance ? {
+          engine: entry.provenance.engine ?? null,
+          model: entry.provenance.model ?? null,
+          endpoint: entry.provenance.endpoint ?? null,
+          predictiveAware: entry.provenance.predictiveAware ?? false,
+        } : null,
+        hasInputProvenance: entry.inputProvenance !== undefined,
+        predictiveRequestKey: entry.inputProvenance?.predictiveRequestKey ?? null,
+        summary: entry.interpretation?.summary?.layman ?? null,
+        career: entry.interpretation?.career_guidance?.layman ?? null,
+      } : null,
+      predictive: {
+        status: predictive.status ?? null,
+        profileKey: predictive.profileKey ?? null,
+        requestKey: predictive.requestKey ?? null,
+        hasRawContexts: predictive.rawContexts != null,
+      },
+      selectedUi: document.querySelector('[data-testid="life-domain-ai"]')?.textContent ?? null,
+    };
+  }, { chartId: SEEDED_CHART_ID, keys: PERSISTED_KEYS });
+}
+
+async function attachLifecycleSnapshot(
+  page: Page,
+  testInfo: TestInfo,
+  name: string,
+) {
+  const snapshot = await interpretationLifecycleSnapshot(page);
+  await testInfo.attach(name, {
+    body: Buffer.from(JSON.stringify(snapshot, null, 2)),
+    contentType: 'application/json',
+  });
+  return snapshot;
+}
+
 // ===========================================================================
 // Test 1 (unit/contract, stubbed LLM) — interpretation populates from the stub.
 // ===========================================================================
-test('[contract/stubbed] interpretation populates from the stubbed LLM on the dashboard', async ({ page }) => {
+test('[contract/stubbed] interpretation populates from the stubbed LLM on the dashboard', async ({ page }, testInfo) => {
   // Install the LLM config BEFORE any app code runs, so describeLlmStatus()
   // already reports "configured" when the user explicitly generates.
   await page.addInitScript(
@@ -171,9 +290,31 @@ test('[contract/stubbed] interpretation populates from the stubbed LLM on the da
   // The "connect an AI model" CTA must NOT show (a model IS configured).
   await expect(page.getByTestId('connect-ai-link')).toHaveCount(0);
 
+  const beforeNavigation = await attachLifecycleSnapshot(
+    page,
+    testInfo,
+    'interpretation-before-hard-navigation',
+  );
+  expect(beforeNavigation.interpretation).toMatchObject({
+    status: 'complete',
+    summary: 'STUB SUMMARY about this chart.',
+    career: 'Lead teams.',
+  });
+
   // Per-domain detail: /life/career carries the matching AI reading section,
   // and the global content-mode toggle flips its depth (layman → technical).
   await page.goto('/life/career', { waitUntil: 'domcontentloaded' });
+  const afterNavigation = await attachLifecycleSnapshot(
+    page,
+    testInfo,
+    'interpretation-after-hard-navigation',
+  );
+  expect(afterNavigation.chart?.id).toBe(SEEDED_CHART_ID);
+  expect(afterNavigation.interpretation).toMatchObject({
+    status: 'complete',
+    summary: 'STUB SUMMARY about this chart.',
+    career: 'Lead teams.',
+  });
   await expect(page.getByTestId('life-domain-ai')).toContainText('Lead teams.', {
     timeout: 30_000,
   });
