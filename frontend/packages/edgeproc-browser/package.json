@@ -17,19 +17,19 @@
 		"test:coverage": "vitest run --coverage"
 	},
 	"dependencies": {
-		"@hpcc-js/wasm-zstd": "^1.13.0",
+		"@hpcc-js/wasm-zstd": "^1.15.0",
 		"@huggingface/transformers": "^4.2.0",
 		"@noble/ed25519": "^3.1.0",
 		"idb-keyval": "^6.3.0"
 	},
 	"devDependencies": {
-		"@types/node": "^24.13.3",
-		"@vitejs/plugin-react": "^6.0.5",
-		"@vitest/coverage-v8": "4.1.0",
+		"@types/node": "^26.3.0",
+		"@vitejs/plugin-react": "^6.1.0",
+		"@vitest/coverage-v8": "4.1.11",
 		"fake-indexeddb": "^6.2.5",
-		"jsdom": "^29.1.1",
-		"typescript": "~6.0.3",
-		"vite": "^8.2.1",
-		"vitest": "4.1.0"
+		"jsdom": "^30.0.1",
+		"typescript": "~7.0.2",
+		"vite": "^8.2.2",
+		"vitest": "4.1.11"
 	}
 }
