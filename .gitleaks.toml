@@ -11,17 +11,16 @@
 # secret is tracked or in history; the .env.example files ship placeholders.
 #
 # Key-custody tree-guard (ENGINEERING-STANDARDS §7): gitleaks scans CONTENT,
-# so the companion PATH guard lives in CI — the "Tree-guard" step of the
-# secret-scan job (.github/workflows/test.yml) fails the build if anything
-# under backend/keys*/ or backend/origin*/ is ever tracked. Production key
-# custody: password manager + repo secrets (deploy.yml header,
+# so the Dagger secret-scan function appends a PATH guard after Foundation.
+# It fails if anything under backend/keys*/ or backend/origin*/ is tracked.
+# Production key custody: password manager + repo secrets (deploy.yml header,
 # docs/deploy/almamesh-com.md).
 title = "AlmaMesh gitleaks config"
 
 [extend]
 useDefault = true
 
-[allowlist]
+[[allowlists]]
 description = "Known-safe, non-secret strings (verified by inspection)"
 
 # Files that only ever held placeholders, test fixtures, or deleted SaaS-runtime
@@ -55,4 +54,14 @@ stopwords = [
   "dummy",
   "example",
   "placeholder",
+]
+
+[[allowlists]]
+description = "Immutable cross-runtime signing fixture in one historical commit"
+targetRules = ["generic-api-key"]
+condition = "AND"
+commits = ["55dba578dde057d1dd6d680b5f978280498ef0ea"]
+paths = [
+  '''^backend/tests/test_predictive_golden\.py$''',
+  '''^frontend/packages/browser/integration/parity\.mjs$''',
 ]
