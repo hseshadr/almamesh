@@ -1,15 +1,19 @@
-# Privileged production ingress. Dagger owns key restoration, signing, shredding,
-# pinned Wrangler deployment, Cloudflare source verification, live app/bundle
-# identity verification, and the non-fatal IndexNow notification.
+# Privileged production ingress. Dagger binds one protected green-main attempt,
+# signs and previews the exact public source, envelopes the static site plus Pages
+# Functions, delegates one upload to the central provider, then proves live identity.
 name: Deploy almamesh.com
 
-on:
+# The exact workflow contract below makes this exemption conditional: only one
+# workflow_run trigger plus the same-repository push/main/success gate is allowed.
+on: # zizmor: ignore[dangerous-triggers] deploy-after-CI by design; exact same-repo push/main/success attempt is revalidated before secrets or provider access
   workflow_run:
     workflows: ["Dagger"]
     types: [completed]
     branches: [main]
 
 permissions:
+  actions: read
+  checks: read
   contents: read
 
 concurrency:
@@ -24,11 +28,13 @@ jobs:
       github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.head_branch == 'main' &&
       github.event.workflow_run.head_repository.full_name == github.repository
+    environment: production
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
+          fetch-depth: 0
           ref: ${{ github.event.workflow_run.head_sha }}
           persist-credentials: false
       - uses: dagger/dagger-for-github@27b130bf0f79a7f6fbbbe0fbca6760dc9bb40a77 # v8.4.1
@@ -37,14 +43,18 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           BUNDLE_PRIVATE_KEY_B64: ${{ secrets.BUNDLE_PRIVATE_KEY_B64 }}
           BUNDLE_PUBLIC_KEY_B64: ${{ secrets.BUNDLE_PUBLIC_KEY_B64 }}
+          GITHUB_TOKEN: ${{ github.token }}
         with:
           version: "0.21.8"
           verb: call
           args: >-
             deploy
+            --github-token=env:GITHUB_TOKEN
             --cloudflare-api-token=env:CLOUDFLARE_API_TOKEN
             --cloudflare-account-id=env:CLOUDFLARE_ACCOUNT_ID
-            --bundle-private-key-b64=env:BUNDLE_PRIVATE_KEY_B64
-            --bundle-public-key-b64=env:BUNDLE_PUBLIC_KEY_B64
+            --bundle-private-key-b-64=env:BUNDLE_PRIVATE_KEY_B64
+            --bundle-public-key-b-64=env:BUNDLE_PUBLIC_KEY_B64
             --expected-sha=${{ github.event.workflow_run.head_sha }}
+            --workflow-run-id=${{ github.event.workflow_run.id }}
+            --run-attempt=${{ github.event.workflow_run.run_attempt }}
             sync

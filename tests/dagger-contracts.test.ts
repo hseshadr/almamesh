@@ -12,7 +12,6 @@ import {
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 import { spawnSync } from "node:child_process"
-import { deploymentMatches } from "../dagger/scripts/verify-pages-source.mjs"
 
 const root = resolve(import.meta.dir, "..")
 const ansi = /\x1b\[[0-9;]*m/g
@@ -63,12 +62,43 @@ function workflowNames(): string[] {
 
 const checkout = "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
 const daggerAction = "dagger/dagger-for-github@27b130bf0f79a7f6fbbbe0fbca6760dc9bb40a77"
+const deployHelpProbe = {
+  name: "Verify generated deploy CLI",
+  shell: "bash",
+  run: "set -o pipefail\ndagger call deploy --help | dagger/scripts/verify-deploy-help.sh\n",
+}
+
+function exactStep(left: Record<string, unknown>, right: Record<string, unknown>): boolean {
+  return JSON.stringify(Object.entries(left).sort()) === JSON.stringify(Object.entries(right).sort())
+}
+
+function ingressViolations(
+  name: string,
+  ingressSteps: Array<Record<string, unknown>>,
+): string[] {
+  const daggerWorkflow = name === "dagger.yml"
+  const expectedUses = daggerWorkflow
+    ? [checkout, daggerAction, undefined]
+    : [checkout, daggerAction]
+  const violations: string[] = []
+
+  if (ingressSteps.length !== expectedUses.length) violations.push("step-count")
+  if (JSON.stringify(ingressSteps.map((step) => step.uses)) !== JSON.stringify(expectedUses)) {
+    violations.push("step-order")
+  }
+  if (daggerWorkflow) {
+    if (!ingressSteps[2] || !exactStep(ingressSteps[2], deployHelpProbe)) {
+      violations.push("deploy-help-probe")
+    }
+    if (ingressSteps.slice(0, 2).some((step) => "run" in step)) violations.push("unexpected-run")
+  } else if (ingressSteps.some((step) => "run" in step)) {
+    violations.push("unexpected-run")
+  }
+  return violations
+}
 
 function expectThinDaggerIngress(name: string): void {
-  const ingressSteps = steps(name)
-  expect(ingressSteps.length).toBe(2)
-  expect(ingressSteps.map((step) => step.uses)).toEqual([checkout, daggerAction])
-  expect(ingressSteps.every((step) => !("run" in step))).toBe(true)
+  expect(ingressViolations(name, steps(name))).toEqual([])
 }
 
 describe("Dagger public orchestration contract", () => {
@@ -116,18 +146,25 @@ describe("Dagger public orchestration contract", () => {
     })
     const output = `${run.stdout}\n${run.stderr}`
     expect(run.status, output).toBe(0)
+    expect(output).toContain("dagger-deployment-contract.test.ts")
     expect(output).toContain("dagger-foundation-contract.test.ts")
     expect(output).toContain("dagger-workflow-contract.test.ts")
   }, 120_000)
 
-  test("production deploy verifies Cloudflare's recorded source identity", () => {
+  test("production deploy composes one central Pages Functions transaction", () => {
     const source = readFileSync(resolve(root, "dagger/src/index.ts"), "utf8")
-    expect(source).toContain(
-      'const PAGES_SOURCE_VERIFIER = "/opt/almamesh/verify-pages-source.mjs"',
-    )
-    expect(source).toContain("verify-pages-source.mjs")
-    expect(source).not.toContain("node dagger/scripts/verify-pages-source.mjs")
-    expect(source).not.toContain("pages deployment list")
+    expect(source).toContain("deliverProduction")
+    expect(source).toContain(".greenMain(")
+    expect(source).toContain(".source(")
+    expect(source).toContain(".guard(")
+    expect(source).toContain(".envelope(")
+    expect(source).toContain("{ pagesFunctions: request.pagesFunctions }")
+    expect(source).toContain("loadCloudflarePagesDeploymentEvidenceFromID")
+    expect(source).not.toContain(".preflight(")
+    expect(source).not.toContain(".verifyEnvelope(")
+    expect(source).not.toContain("dag.cloudflarePages().verify(")
+    expect(source).not.toContain("verify-pages-source.mjs")
+    expect(source).not.toContain("pagesDeployScript")
   })
 
   test("deploy dry-run serves the closed compiled feedback route without credentials", () => {
@@ -149,34 +186,6 @@ describe("Dagger public orchestration contract", () => {
     )
     expect(output).not.toContain("api.cloudflare.com")
   }, 180_000)
-
-  test("Cloudflare source verification requires the full API commit identity", () => {
-    const expectedSha = "b6cdd41e2ed2eef68af95d926270c5d31c1e80ab"
-    const deployment = {
-      environment: "production",
-      latest_stage: { status: "success" },
-      deployment_trigger: { metadata: { branch: "main", commit_hash: expectedSha } },
-    }
-
-    expect(deploymentMatches(deployment, expectedSha)).toBe(true)
-    expect(deploymentMatches({ ...deployment, environment: "preview" }, expectedSha)).toBe(false)
-    expect(
-      deploymentMatches({ ...deployment, latest_stage: { status: "active" } }, expectedSha),
-    ).toBe(false)
-    expect(
-      deploymentMatches(
-        { ...deployment, deployment_trigger: { metadata: { branch: "preview", commit_hash: expectedSha } } },
-        expectedSha,
-      ),
-    ).toBe(false)
-    expect(deploymentMatches(deployment, "0".repeat(40))).toBe(false)
-    expect(
-      deploymentMatches(
-        { Environment: "Production", Branch: "main", Source: expectedSha.slice(0, 7) },
-        expectedSha,
-      ),
-    ).toBe(false)
-  })
 
   test("package installs cannot reuse partially downloaded Bun tarballs", () => {
     const source = readFileSync(resolve(root, "dagger/src/index.ts"), "utf8")
@@ -245,6 +254,28 @@ describe("canonical GitHub ingress contract", () => {
     ]) expectThinDaggerIngress(name)
   })
 
+  test.each([
+    {
+      name: "extra step",
+      mutate: (source: Array<Record<string, unknown>>) => [
+        ...source,
+        { run: "echo unexpected" },
+      ],
+    },
+    {
+      name: "wrong help command",
+      mutate: (source: Array<Record<string, unknown>>) => source.map((step, index) =>
+        index === 2 ? { ...step, run: "dagger call ci --help" } : step),
+    },
+    {
+      name: "help probe before Dagger",
+      mutate: (source: Array<Record<string, unknown>>) => [source[0], source[2], source[1]],
+    },
+  ])("rejects $name in the protected Dagger ingress", ({ mutate }) => {
+    const mutant = mutate(structuredClone(steps("dagger.yml")))
+    expect(ingressViolations("dagger.yml", mutant)).not.toEqual([])
+  })
+
   test("the security audit invokes its native Dagger function", () => {
     expect(workflowSource("security-audit.yml")).toContain("args: dependency-audit")
   })
@@ -265,13 +296,17 @@ describe("canonical GitHub ingress contract", () => {
     expect(source).not.toContain("VITE_OPENROUTER")
   })
 
-  test("production deployment is privileged, same-SHA guarded, and has no manual bypass", () => {
+  test("production deployment binds the exact protected run through typed secrets", () => {
     const source = workflowSource("deploy.yml")
     expect(source).not.toContain("workflow_dispatch")
     expect(source).toContain("github.event.workflow_run.event == 'push'")
     expect(source).toContain("github.event.workflow_run.head_repository.full_name == github.repository")
     expect(source).toContain("ref: ${{ github.event.workflow_run.head_sha }}")
     expect(source).toContain("--expected-sha=${{ github.event.workflow_run.head_sha }}")
+    expect(source).toContain("--workflow-run-id=${{ github.event.workflow_run.id }}")
+    expect(source).toContain("--run-attempt=${{ github.event.workflow_run.run_attempt }}")
+    expect(source).toContain("--github-token=env:GITHUB_TOKEN")
+    expect(source).toContain("environment: production")
     expect(source).not.toMatch(/args:[\s\S]*\$\{\{ secrets\./)
   })
 
