@@ -8,10 +8,8 @@
  *   body { page, sentiment: 'up'|'down'|null, message?, turnstileToken }
  *   -> 200 {ok:true} | 400 {ok:false,error} | 403 {ok:false,error:'turnstile'} | 500
  *
- * NOTE: this test lives outside `src/` so it is not picked up by the app's
- * default `vitest run` (include: src/**). It is run via the dedicated config
- * documented in docs/feedback-setup.md (and exercised during development with
- * `vitest run --config <functions config>`).
+ * The app's Vitest configuration includes both `src/` and `functions/`, so this
+ * contract runs in the standard web unit-test gate.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
@@ -212,6 +210,7 @@ describe('POST /api/feedback', () => {
   });
 
   it('returns 500 when the D1 binding is missing', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const ctx = makeContext(validBody, {}); // no DB binding
 
     const res = await onRequestPost(ctx);
@@ -219,6 +218,23 @@ describe('POST /api/feedback', () => {
     expect(res.status).toBe(500);
     const json = (await res.json()) as { ok: boolean };
     expect(json.ok).toBe(false);
+    expect(error).toHaveBeenCalledWith('[almamesh:error:feedback.storage_binding_missing]');
+  });
+
+  it('logs only the allowlisted code when the D1 write fails', async () => {
+    const secret = 'private-database-failure';
+    const run = vi.fn().mockRejectedValue(new Error(secret));
+    const bind = vi.fn(() => ({ run }));
+    const prepare = vi.fn(() => ({ bind }));
+    const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const ctx = makeContext(validBody, { DB: { prepare } });
+
+    const res = await onRequestPost(ctx);
+
+    expect(res.status).toBe(500);
+    expect(await res.json()).toEqual({ ok: false, error: 'storage_error' });
+    expect(error).toHaveBeenCalledWith('[almamesh:error:feedback.storage_write_failed]');
+    expect(error.mock.calls.flat().join(' ')).not.toContain(secret);
   });
 
   it('records app_version from the X-App-Version header when not in the body', async () => {

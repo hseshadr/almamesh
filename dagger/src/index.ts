@@ -17,13 +17,15 @@ const DIST = `${WEB}/dist`
 const KEYS = "/run/almamesh-keys"
 const BUN_INSTALLER = "/opt/almamesh/install-bun.sh"
 const PAGES_SOURCE_VERIFIER = "/opt/almamesh/verify-pages-source.mjs"
-const PAGES_SOURCE_MOCK = "/opt/almamesh/mock-pages-fetch.mjs"
 const LIVE_ORIGIN = "https://almamesh.com"
 const REPOSITORY = "hseshadr/almamesh"
+const CONTRACT_SHA = "1111111111111111111111111111111111111111"
 const BUN_IMAGE =
   "oven/bun:1.3.5@sha256:e90cdbaf9ccdb3d4bd693aa335c3310a6004286a880f62f79b18f9b1312a8ec3"
 const NODE_IMAGE =
   "node:22-trixie-slim@sha256:7b8a0c89c54499bee567618f96578e1a12a800f062fbdbfd1fb6a443fa6f6284"
+const PAGES_NODE_IMAGE =
+  "node:24.6.0-bookworm-slim@sha256:9b741b28148b0195d62fa456ed84dd6c953c1f17a3761f3e6e6797a754d9edff"
 const UV_IMAGE =
   "ghcr.io/astral-sh/uv:0.12.1-python3.13-trixie-slim@sha256:8db423175bfff42bd1c81f77280bc92f10ef9cf03161803bd5cb6e15d86c3d10"
 const WRANGLER_VERSION = "4.103.0"
@@ -81,6 +83,52 @@ export class AlmameshCi {
       ])
       .withExec(["sh", BUN_INSTALLER])
       .withExec(["sh", "-c", `git -C ${ROOT} init && git -C ${ROOT} add -A`])
+  }
+
+  private pagesFunctionsBuildArgs(): string[] {
+    return [
+      "wrangler",
+      "pages",
+      "functions",
+      "build",
+      "functions",
+      "--outfile=/derived/_worker.js",
+      "--output-routes-path=/derived/_routes.json",
+      "--project-directory=/project",
+      "--build-output-directory=/project/dist",
+      "--metafile=/derived/_build-metadata.json",
+    ]
+  }
+
+  private pagesFunctionsBase(): Container {
+    return dag
+      .container({ platform: "linux/amd64" })
+      .from(PAGES_NODE_IMAGE)
+      .withEnvVariable("WRANGLER_SEND_METRICS", "false")
+      .withExec([
+        "npm",
+        "install",
+        "--global",
+        "--omit=dev",
+        "--no-audit",
+        "--no-fund",
+        "--loglevel=error",
+        `wrangler@${WRANGLER_VERSION}`,
+      ])
+  }
+
+  private pagesFunctionsBuild(roots: Directory): Container {
+    const closedRoots = roots.withNewDirectory(".wrangler")
+    return this.pagesFunctionsBase()
+      .withMountedDirectory("/project", closedRoots, { readOnly: true })
+      .withMountedTemp("/project/.wrangler")
+      .withDirectory("/derived", dag.directory())
+      .withMountedTemp("/run/functions-cache")
+      .withMountedTemp("/run/functions-config")
+      .withEnvVariable("WRANGLER_CACHE_DIR", "/run/functions-cache")
+      .withEnvVariable("XDG_CONFIG_HOME", "/run/functions-config")
+      .withWorkdir("/project")
+      .withExec(this.pagesFunctionsBuildArgs())
   }
 
   private uvBase(): Container {
@@ -188,7 +236,8 @@ export class AlmameshCi {
   }
 
   @func()
-  contracts(): Container {
+  async contracts(): Promise<Container> {
+    await this.deployDryRun(CONTRACT_SHA).sync()
     return dag
       .container()
       .from(BUN_IMAGE)
@@ -266,7 +315,7 @@ export class AlmameshCi {
   }
   @func()
   async ci(commitSha: string): Promise<string> {
-    await this.contracts().sync()
+    await (await this.contracts()).sync()
     const gates = [
       this.secretScan(commitSha),
       this.backend(),
@@ -327,15 +376,39 @@ export class AlmameshCi {
   }
   @func()
   deployDryRun(expectedSha: string): Container {
-    return this.withoutSigningSecrets(
+    const release = this.withoutSigningSecrets(
       this.releaseBase()
         .withMountedTemp(KEYS)
         .withEnvVariable("EXPECTED_SHA", expectedSha)
         .withExec(["bash", "-c", this.dryRunBuildScript()]),
     )
-      .withNewFile(PAGES_SOURCE_MOCK, this.pagesSourceMock())
-      .withExec(["bash", "-c", this.pagesDryRunScript()])
-      .withExec(["bash", "-c", this.pagesSourceDryRunScript()])
+    const functions = dag.directory().withFile(
+      "api/feedback.ts",
+      this.source.file("frontend/apps/web/functions/api/feedback.ts"),
+    )
+    const roots = dag
+      .directory()
+      .withDirectory("dist", release.directory(DIST))
+      .withDirectory("functions", functions)
+    const derived = this.pagesFunctionsBuild(roots).directory("/derived")
+    const staged = roots
+      .directory("dist")
+      .withFile("_worker.js", derived.file("_worker.js"))
+      .withFile("_routes.json", derived.file("_routes.json"))
+    const closedRoots = roots.withNewDirectory(".wrangler")
+    return this.pagesFunctionsBase()
+      .withMountedDirectory("/project", closedRoots, { readOnly: true })
+      .withMountedTemp("/project/.wrangler")
+      .withMountedTemp("/run/functions-cache")
+      .withMountedTemp("/run/functions-config")
+      .withEnvVariable("WRANGLER_CACHE_DIR", "/run/functions-cache")
+      .withEnvVariable("XDG_CONFIG_HOME", "/run/functions-config")
+      .withFile("/compiled/_worker.js", staged.file("_worker.js"))
+      .withFile("/compiled/_routes.json", staged.file("_routes.json"))
+      .withFile("/compiled/_build-metadata.json", derived.file("_build-metadata.json"))
+      .withWorkdir("/project")
+      .withEnvVariable("EXPECTED_SHA", expectedSha)
+      .withExec(["bash", "-c", this.pagesFunctionsDryRunScript()])
   }
   @func()
   deploy(
@@ -460,21 +533,47 @@ export BUILD_COMMIT="$EXPECTED_SHA" PRODUCTION_KEYS_DIR="${KEYS}"
 export BUNDLE_VERSION="dagger-dry-run" BUNDLE_SEQUENCE="1"
 bash scripts/build-prod.sh`
   }
-  private pagesDryRunScript(): string {
+  private pagesFunctionsDryRunScript(): string {
     return `set -euo pipefail
-test "$($WRANGLER --version)" = "${WRANGLER_VERSION}"
-$WRANGLER pages deploy --help | grep -q -- '--commit-hash'
-$WRANGLER pages dev dist --ip 127.0.0.1 --port 8788 --compatibility-date=${WRANGLER_COMPATIBILITY_DATE} >/tmp/wrangler-pages.log 2>&1 &
+test "$(wrangler --version)" = "${WRANGLER_VERSION}"
+test -f /compiled/_worker.js
+test -f /compiled/_routes.json
+test -f /compiled/_build-metadata.json
+wrangler pages dev dist --ip 127.0.0.1 --port 8788 --compatibility-date=${WRANGLER_COMPATIBILITY_DATE} >/tmp/wrangler-pages.log 2>&1 &
 pid=$!
-trap 'kill "$pid" 2>/dev/null || true' EXIT
+stop_server() {
+  if ! kill -0 "$pid" 2>/dev/null; then wait "$pid" 2>/dev/null || true; return 0; fi
+  kill -TERM "$pid" 2>/dev/null || return 1
+  for _ in $(seq 1 20); do
+    if ! kill -0 "$pid" 2>/dev/null; then wait "$pid" 2>/dev/null || true; return 0; fi
+    sleep 0.1
+  done
+  kill -KILL "$pid" 2>/dev/null || return 1
+  wait "$pid" 2>/dev/null || true
+  ! kill -0 "$pid" 2>/dev/null
+}
+cleanup() {
+  status=$?
+  trap - EXIT
+  if ! stop_server; then cat /tmp/wrangler-pages.log >&2; exit 1; fi
+  if [ "$status" -ne 0 ]; then cat /tmp/wrangler-pages.log >&2; fi
+  exit "$status"
+}
+trap cleanup EXIT
+feedback_verified=""
 for _ in $(seq 1 60); do
-  curl -fsS http://127.0.0.1:8788/build.json >/tmp/build.json && break
+  if node -e 'fetch("http://127.0.0.1:8788/api/feedback",{method:"POST",headers:{"content-type":"application/json"},body:"{}"}).then(async response=>{const body=await response.json();if(response.status!==400||JSON.stringify(body)!==JSON.stringify({ok:false,error:"invalid_page"}))process.exit(1)}).catch(()=>process.exit(75))'; then
+    feedback_verified=1
+    break
+  else
+    request_status=$?
+    [ "$request_status" -eq 75 ] || exit "$request_status"
+  fi
   kill -0 "$pid" 2>/dev/null || { cat /tmp/wrangler-pages.log >&2; exit 1; }
   sleep 1
 done
-node -e 'const f=require("fs");const value=JSON.parse(f.readFileSync("/tmp/build.json","utf8"));if(value.commit!==process.env.EXPECTED_SHA)process.exit(1)'
-curl -fsS http://127.0.0.1:8788/bundle/latest >/dev/null
-echo "Wrangler Pages dry-run verified artifact for $EXPECTED_SHA"`
+test "$feedback_verified" = "1"
+echo "Wrangler Pages Functions dry-run verified closed feedback route for $EXPECTED_SHA"`
   }
   private pagesDeployScript(): string {
     return `set -euo pipefail
@@ -487,25 +586,6 @@ key="$(basename "\${key_file:-}" .txt)"
 if printf '%s' "$key" | grep -Eq '^[0-9a-f]{32}$'; then
   curl -sS --max-time 30 -X POST https://api.indexnow.org/indexnow -H 'Content-Type: application/json; charset=utf-8' --data '{"host":"almamesh.com","key":"'"$key"'","keyLocation":"https://almamesh.com/'"$key"'.txt","urlList":["https://almamesh.com/","https://almamesh.com/welcome","https://almamesh.com/privacy","https://almamesh.com/terms","https://almamesh.com/data-deletion"]}' >/dev/null || echo "IndexNow notification failed (non-fatal)" >&2
 fi`
-  }
-  private pagesSourceMock(): string {
-    return `globalThis.fetch = async (url, init) => {
-  const request = new URL(String(url))
-  const authorized = init?.headers?.Authorization === "Bearer dry-run-token"
-  const queryMatches = request.searchParams.get("env") === "production" && request.searchParams.get("per_page") === "25"
-  if (!authorized || !queryMatches) return new Response("", { status: 400 })
-  return Response.json({ success: true, result: [{
-    environment: "production",
-    latest_stage: { status: "success" },
-    deployment_trigger: { metadata: { branch: "main", commit_hash: process.env.EXPECTED_SHA } },
-  }] })
-}`
-  }
-  private pagesSourceDryRunScript(): string {
-    return `CLOUDFLARE_ACCOUNT_ID=dry-run-account \\
-CLOUDFLARE_API_TOKEN=dry-run-token \\
-NODE_OPTIONS=--import=${PAGES_SOURCE_MOCK} \\
-node ${PAGES_SOURCE_VERIFIER}`
   }
   private liveVerificationScript(artifact: string): string {
     return `expected_bundle=$(node -e 'const f=require("fs");const p=JSON.parse(f.readFileSync("${artifact}/bundle/latest","utf8"));if(!p.manifest_hash||!Number.isInteger(p.sequence))process.exit(2);process.stdout.write(p.manifest_hash+":"+p.sequence)')
