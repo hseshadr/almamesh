@@ -5,7 +5,6 @@ import {
   Secret,
   Service,
   Workspace,
-  check,
   dag,
   func,
   object,
@@ -17,18 +16,16 @@ const WEB = `${FRONTEND}/apps/web`
 const DIST = `${WEB}/dist`
 const KEYS = "/run/almamesh-keys"
 const BUN_INSTALLER = "/opt/almamesh/install-bun.sh"
-const SECRET_SCANNER = "/opt/almamesh/secret-scan.sh"
 const PAGES_SOURCE_VERIFIER = "/opt/almamesh/verify-pages-source.mjs"
 const PAGES_SOURCE_MOCK = "/opt/almamesh/mock-pages-fetch.mjs"
 const LIVE_ORIGIN = "https://almamesh.com"
+const REPOSITORY = "hseshadr/almamesh"
 const BUN_IMAGE =
   "oven/bun:1.3.5@sha256:e90cdbaf9ccdb3d4bd693aa335c3310a6004286a880f62f79b18f9b1312a8ec3"
 const NODE_IMAGE =
   "node:22-trixie-slim@sha256:7b8a0c89c54499bee567618f96578e1a12a800f062fbdbfd1fb6a443fa6f6284"
 const UV_IMAGE =
   "ghcr.io/astral-sh/uv:0.12.1-python3.13-trixie-slim@sha256:8db423175bfff42bd1c81f77280bc92f10ef9cf03161803bd5cb6e15d86c3d10"
-const GITLEAKS_IMAGE =
-  "zricethezav/gitleaks:v8.28.0@sha256:cdbb7c955abce02001a9f6c9f602fb195b7fadc1e812065883f695d1eeaba854"
 const WRANGLER_VERSION = "4.103.0"
 const WRANGLER = "/opt/wrangler/node_modules/.bin/wrangler"
 const WRANGLER_COMPATIBILITY_DATE = "2026-06-24"
@@ -42,6 +39,10 @@ const SOURCE_EXCLUDES = [
   "**/dist*/**",
   "**/.venv/**",
   "dagger/sdk/**",
+]
+const CONTRACT_TESTS = [
+  "tests/dagger-foundation-contract.test.ts",
+  "tests/dagger-workflow-contract.test.ts",
 ]
 
 @object()
@@ -187,6 +188,26 @@ export class AlmameshCi {
   }
 
   @func()
+  contracts(): Container {
+    return dag
+      .container()
+      .from(BUN_IMAGE)
+      .withDirectory(
+        ROOT,
+        this.selected([
+          ".github/workflows/dagger.yml",
+          "dagger.json",
+          "dagger/scripts/**",
+          "dagger/src/**",
+          ...CONTRACT_TESTS,
+        ]),
+      )
+      .withWorkdir(ROOT)
+      .withExec(["bun", "test", ...CONTRACT_TESTS])
+      .withExec(["printf", "%s\n", `Passed: ${CONTRACT_TESTS.join(" ")}`])
+  }
+
+  @func()
   backend(): Container {
     return this.uvBase().withExec(["uv", "run", "poe", "gate"])
   }
@@ -244,10 +265,10 @@ export class AlmameshCi {
       .withExec(["node", "scripts/verify-privacy-reset.mjs", "http://privacy:4173"])
   }
   @func()
-  @check()
-  async ci(): Promise<string> {
+  async ci(commitSha: string): Promise<string> {
+    await this.contracts().sync()
     const gates = [
-      this.secretScan(),
+      this.secretScan(commitSha),
       this.backend(),
       this.frontend(),
       this.browser(),
@@ -255,18 +276,20 @@ export class AlmameshCi {
       this.privacy(),
     ]
     for (const gate of gates) await gate.sync()
-    return "Secret, backend, frontend, browser, PDF, and privacy gates passed in sequence."
+    return "Contract, secret, backend, frontend, browser, PDF, and privacy gates passed in sequence."
   }
   @func()
-  secretScan(): Container {
+  secretScan(commitSha: string): Container {
     return dag
-      .container()
-      .from(GITLEAKS_IMAGE)
-      .withEntrypoint([])
-      .withFile(SECRET_SCANNER, this.source.file("dagger/scripts/secret-scan.sh"))
+      .foundation()
+      .guard(this.source, REPOSITORY, commitSha)
       .withDirectory(ROOT, this.source)
       .withWorkdir(ROOT)
-      .withExec(["sh", SECRET_SCANNER])
+      .withExec([
+        "sh",
+        "-ceu",
+        'test -z "$(find backend -maxdepth 1 \\( -name \'keys*\' -o -name \'origin*\' \\) -print -quit)"',
+      ])
   }
   @func()
   async dependencyAudit(): Promise<string> {
