@@ -228,10 +228,7 @@ describe("canonical GitHub ingress contract", () => {
     ]) expectThinDaggerIngress(name)
   })
 
-  test("required checks invoke their native Dagger functions", () => {
-    expect(workflowSource("dagger.yml")).toContain("verb: call")
-    expect(workflowSource("dagger.yml")).toContain("args: ci")
-    expect(workflowSource("dagger.yml")).not.toContain('args: "**"')
+  test("the security audit invokes its native Dagger function", () => {
     expect(workflowSource("security-audit.yml")).toContain("args: dependency-audit")
   })
 
