@@ -130,7 +130,7 @@ describe("Dagger public orchestration contract", () => {
     expect(source).not.toContain("pages deployment list")
   })
 
-  test("deploy dry-run executes the production Pages verifier from the app workdir", () => {
+  test("deploy dry-run serves the closed compiled feedback route without credentials", () => {
     const expectedSha = "1".repeat(40)
     const run = spawnSync(
       "dagger",
@@ -144,7 +144,10 @@ describe("Dagger public orchestration contract", () => {
     )
     const output = `${run.stdout}\n${run.stderr}`
     expect(run.status, output).toBe(0)
-    expect(output).toContain(`Cloudflare Pages source identity verified: main ${expectedSha}`)
+    expect(output).toContain(
+      `Wrangler Pages Functions dry-run verified closed feedback route for ${expectedSha}`,
+    )
+    expect(output).not.toContain("api.cloudflare.com")
   }, 180_000)
 
   test("Cloudflare source verification requires the full API commit identity", () => {

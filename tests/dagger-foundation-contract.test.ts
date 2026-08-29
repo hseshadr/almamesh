@@ -5,6 +5,23 @@ import { resolve } from "node:path"
 const root = resolve(import.meta.dir, "..")
 const centralSha = "8d9e0c04fcc4093947024d0bdfad2cd9a233b43c"
 const repository = "hseshadr/almamesh"
+const providerMarkers = [
+  "CLOUDFLARE_API_TOKEN",
+  "CLOUDFLARE_ACCOUNT_ID",
+  "withSecretVariable",
+  "pages deploy",
+  "api.cloudflare.com",
+]
+
+function isProviderFree(source: string): boolean {
+  return providerMarkers.every((marker) => !source.includes(marker))
+}
+
+function hasFailClosedCleanup(source: string): boolean {
+  return ["trap cleanup EXIT", 'kill -TERM "$pid"', 'kill -KILL "$pid"', "if ! stop_server"].every(
+    (marker) => source.includes(marker),
+  )
+}
 
 describe("central Dagger Lego pins", () => {
   test("pins Foundation and Cloudflare Pages to one exact central commit", () => {
@@ -28,6 +45,114 @@ describe("central Dagger Lego pins", () => {
 
   test("keeps the shared Foundation guard as the only secret scanner", () => {
     expect(existsSync(resolve(root, "dagger/scripts/secret-scan.sh"))).toBe(false)
+  })
+
+  test("isolates the executable Pages proof from the legacy frontend runtime", () => {
+    const source = readFileSync(resolve(root, "dagger/src/index.ts"), "utf8")
+    const bunBase = source.slice(
+      source.indexOf("private bunBase()"),
+      source.indexOf("private pagesFunctionsBuildArgs()"),
+    )
+    const pagesBase = source.slice(
+      source.indexOf("private pagesFunctionsBase()"),
+      source.indexOf("private pagesFunctionsBuild("),
+    )
+
+    expect(source).toContain(
+      '"node:24.6.0-bookworm-slim@sha256:9b741b28148b0195d62fa456ed84dd6c953c1f17a3761f3e6e6797a754d9edff"',
+    )
+    expect(pagesBase).toContain('.container({ platform: "linux/amd64" })')
+    expect(pagesBase).toContain('`wrangler@${WRANGLER_VERSION}`')
+    expect(source).not.toContain("WRANGLER_NODE")
+    expect(bunBase).toContain("node-gyp nodejs poppler-utils")
+    expect(bunBase).not.toContain("NODE_IMAGE")
+  })
+
+  test("keeps the closed Pages proof local, fixed, and credential-free", () => {
+    const source = readFileSync(resolve(root, "dagger/src/index.ts"), "utf8")
+    const buildArgs = source.slice(
+      source.indexOf("private pagesFunctionsBuildArgs()"),
+      source.indexOf("private pagesFunctionsBase()"),
+    )
+    const build = source.slice(
+      source.indexOf("private pagesFunctionsBuild("),
+      source.indexOf("private uvBase()"),
+    )
+    const dryRun = source.slice(
+      source.indexOf("deployDryRun(expectedSha: string)"),
+      source.indexOf("  @func()\n  deploy(", source.indexOf("deployDryRun(expectedSha: string)")),
+    )
+    const dryRunScript = source.slice(
+      source.indexOf("private pagesFunctionsDryRunScript()"),
+      source.indexOf("private pagesDeployScript()"),
+    )
+    const contracts = source.slice(
+      source.indexOf("async contracts(): Promise<Container>"),
+      source.indexOf("  @func()\n  backend()"),
+    )
+
+    const fixedArgv = [
+      '"wrangler"',
+      '"pages"',
+      '"functions"',
+      '"build"',
+      '"functions"',
+      '"--outfile=/derived/_worker.js"',
+      '"--output-routes-path=/derived/_routes.json"',
+      '"--project-directory=/project"',
+      '"--build-output-directory=/project/dist"',
+      '"--metafile=/derived/_build-metadata.json"',
+    ]
+    let previous = -1
+    for (const argument of fixedArgv) {
+      const index = buildArgs.indexOf(argument, previous + 1)
+      expect(index).toBeGreaterThan(previous)
+      previous = index
+    }
+    expect(build).toContain('roots.withNewDirectory(".wrangler")')
+    expect(build).toContain('.withMountedDirectory("/project", closedRoots, { readOnly: true })')
+    expect(build).toContain('.withMountedTemp("/project/.wrangler")')
+    expect(build).not.toContain('.withMountedTemp("/project/.wrangler/tmp")')
+    for (const authenticatedRoot of ["/project/dist", "/project/functions"]) {
+      expect(build).not.toContain(`.withMountedTemp("${authenticatedRoot}")`)
+      expect(build).not.toContain(`.withMountedDirectory("${authenticatedRoot}"`)
+    }
+    expect(dryRun).toContain('.withFile("_worker.js", derived.file("_worker.js"))')
+    expect(dryRun).toContain('.withFile("_routes.json", derived.file("_routes.json"))')
+    expect(dryRun).toContain('.withFile("/compiled/_worker.js", staged.file("_worker.js"))')
+    expect(dryRun).toContain('.withFile("/compiled/_routes.json", staged.file("_routes.json"))')
+    expect(dryRun).toContain(
+      '.withFile("/compiled/_build-metadata.json", derived.file("_build-metadata.json"))',
+    )
+    expect(dryRunScript).toContain("wrangler pages dev dist")
+    expect(dryRunScript).not.toContain("pages dev /site")
+    expect(dryRunScript).not.toContain("curl")
+    expect(dryRunScript).toContain('fetch("http://127.0.0.1:8788/api/feedback"')
+    expect(dryRunScript).toContain('response.status!==400')
+    expect(dryRunScript).toContain("JSON.stringify(body)!==JSON.stringify({ok:false,error:\"invalid_page\"})")
+    expect(dryRunScript).toContain('kill -KILL "$pid"')
+    expect(contracts).toContain("async contracts(): Promise<Container>")
+    expect(contracts).toContain("await this.deployDryRun(CONTRACT_SHA).sync()")
+    expect(contracts).toContain(".from(BUN_IMAGE)")
+    expect(contracts).not.toContain('.withFile("/usr/local/bin/bun", bun)')
+    expect(contracts.indexOf("await this.deployDryRun(CONTRACT_SHA).sync()")).toBeLessThan(
+      contracts.indexOf(".from(BUN_IMAGE)"),
+    )
+
+    const proof = `${dryRun}\n${dryRunScript}`
+    expect(isProviderFree(proof)).toBe(true)
+    expect(hasFailClosedCleanup(dryRunScript)).toBe(true)
+    for (const marker of providerMarkers) {
+      expect(isProviderFree(`${proof}\n${marker}`)).toBe(false)
+    }
+    for (const marker of [
+      "trap cleanup EXIT",
+      'kill -TERM "$pid"',
+      'kill -KILL "$pid"',
+      "if ! stop_server",
+    ]) {
+      expect(hasFailClosedCleanup(dryRunScript.replace(marker, ""))).toBe(false)
+    }
   })
 })
 

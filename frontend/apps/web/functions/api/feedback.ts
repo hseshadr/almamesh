@@ -19,11 +19,20 @@
  *                           (local dev) Turnstile verification is skipped.
  */
 
-import { safeError } from '@almamesh/shared-types';
-
 interface Env {
   DB?: D1Database;
   TURNSTILE_SECRET?: string;
+}
+
+type FeedbackDiagnosticCode =
+  | 'feedback.storage_binding_missing'
+  | 'feedback.storage_write_failed';
+
+const diagnosticConsole = globalThis.console;
+
+/** Keep the closed Pages Function bundle free of frontend workspace imports. */
+function safeError(code: FeedbackDiagnosticCode, _cause?: unknown): void {
+  diagnosticConsole.error(`[almamesh:error:${code}]`);
 }
 
 const PAGE_MAX = 64;

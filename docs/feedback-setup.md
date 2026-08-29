@@ -98,7 +98,7 @@ Cloudflare dashboard → **Pages** → project **`almamesh`** → **Settings** �
   collect feedback).
 
 The handler returns a clean `500 {ok:false,error:"storage_unavailable"}` and logs
-`[feedback] D1 binding "DB" is not configured` if this binding is absent — so a
+`[almamesh:error:feedback.storage_binding_missing]` if this binding is absent — so a
 missing binding shows up as a clear, logged error rather than a confusing crash.
 
 ## 4. Turnstile (abuse defense)
@@ -158,32 +158,18 @@ bunx wrangler d1 execute almamesh-feedback --remote \
 
 ## Running the handler's unit tests
 
-The handler is covered by `functions/api/__tests__/feedback.test.ts` (Vitest,
-14 cases: valid insert, dev fallback, Turnstile pass/fail/missing-token, the
-400 validation matrix, the "nothing to record" guard, the missing-`DB` 500, the
-`X-App-Version` path, and a privacy assertion that no IP/UA is bound).
+The handler and its source boundary are covered by 17 Vitest cases: request
+validation, Turnstile, D1 writes, allowlisted diagnostics, privacy, and the
+absence of runtime workspace imports. The Dagger contract separately runs the
+pinned Wrangler proof against only `{dist,functions}`, stages `_worker.js` and
+`_routes.json`, and serves the compiled `POST /api/feedback` route locally.
 
-These tests live **outside `src/`**, so the app's default `vitest run`
-(`test:unit`, whose `include` is `src/**`) does **not** pick them up. Run them
-with a one-off node-environment config:
+The standard web test command includes both `src/` and `functions/` tests:
 
 ```bash
 cd frontend/apps/web
-cat > .tmp-functions.vitest.config.mts <<'EOF'
-import { defineConfig } from 'vitest/config';
-export default defineConfig({
-  test: { globals: true, environment: 'node', include: ['functions/**/*.{test,spec}.ts'] },
-});
-EOF
-bunx vitest run --config .tmp-functions.vitest.config.mts
-rm -f .tmp-functions.vitest.config.mts
+bunx vitest run functions/api/__tests__
 ```
-
-**Recommended follow-up (one line, owner's call):** add
-`'functions/**/*.{test,spec}.ts'` to the `test.include` array in
-`frontend/apps/web/vitest.config.ts` so these tests run as part of the standard
-`bun run test:unit` / CI. (That file is owned elsewhere, so it is intentionally
-left untouched here.)
 
 Typecheck the function in isolation (uses `@cloudflare/workers-types`, kept out
 of the React app build):
