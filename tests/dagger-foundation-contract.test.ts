@@ -1,11 +1,9 @@
 import { describe, expect, mock, test } from "bun:test"
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { existsSync, readFileSync } from "node:fs"
 import { resolve } from "node:path"
-import { spawnSync } from "node:child_process"
 
 const root = resolve(import.meta.dir, "..")
-const centralSha = "26bebf5e59ba2e819632ee3f3e3cbcf314d3c1a7"
+const centralSha = "8d9e0c04fcc4093947024d0bdfad2cd9a233b43c"
 const repository = "hseshadr/almamesh"
 
 describe("central Dagger Lego pins", () => {
@@ -27,59 +25,9 @@ describe("central Dagger Lego pins", () => {
       },
     ])
   })
-})
 
-describe("Foundation Gitleaks policy", () => {
-  test("the full repository history has no unapproved finding", () => {
-    const run = spawnSync(
-      "gitleaks",
-      [
-        "git",
-        ".",
-        "--config",
-        ".gitleaks.toml",
-        "--redact",
-        "--no-banner",
-        "--no-color",
-      ],
-      { cwd: root, encoding: "utf8" },
-    )
-
-    expect(run.status, run.stderr).toBe(0)
-  }, 30_000)
-
-  test("the historical fixture exception cannot allow the same pattern in a snapshot", () => {
-    const sandbox = mkdtempSync(`${tmpdir()}/almamesh-gitleaks-snapshot-`)
-    const fixtureSeed = [
-      "616c6d616d6573682d7061726974792d",
-      "666978747572652d7369676e65723030",
-    ].join("")
-    const fixtureDirectory = resolve(sandbox, "backend/tests")
-    mkdirSync(fixtureDirectory, { recursive: true })
-    writeFileSync(
-      resolve(fixtureDirectory, "test_predictive_golden.py"),
-      `FIXTURE_KEY_SEED_HEX = "${fixtureSeed}"\n`,
-    )
-
-    try {
-      const run = spawnSync(
-        "gitleaks",
-        [
-          "dir",
-          sandbox,
-          "--config",
-          resolve(root, ".gitleaks.toml"),
-          "--redact",
-          "--no-banner",
-          "--no-color",
-        ],
-        { encoding: "utf8" },
-      )
-      expect(run.status).toBe(1)
-      expect(run.stderr).toContain("leaks found: 1")
-    } finally {
-      rmSync(sandbox, { recursive: true, force: true })
-    }
+  test("keeps the shared Foundation guard as the only secret scanner", () => {
+    expect(existsSync(resolve(root, "dagger/scripts/secret-scan.sh"))).toBe(false)
   })
 })
 
@@ -89,6 +37,7 @@ describe("Foundation guard composition", () => {
     const commitSha = "1".repeat(40)
     const guardFailure = new Error("central guard rejected source")
     const guardCalls: unknown[] = []
+    const orchestration: string[] = []
     const productGates: string[] = []
     const foundationGate = new Proxy(
       {
@@ -129,6 +78,7 @@ describe("Foundation guard composition", () => {
         container: () => legacyGate,
         foundation: () => ({
           guard: (guardSource: unknown, guardRepository: string, guardCommitSha: string) => {
+            orchestration.push("foundation")
             guardCalls.push({
               source: guardSource,
               repository: guardRepository,
@@ -142,6 +92,13 @@ describe("Foundation guard composition", () => {
 
     const { AlmameshCi } = await import("../dagger/src/index.ts")
     const module = new AlmameshCi({ directory: () => source } as never)
+    Object.assign(module, {
+      contracts: () => ({
+        sync: async () => {
+          orchestration.push("contracts")
+        },
+      }),
+    })
     for (const gate of ["backend", "frontend", "browser", "pdf", "privacy"] as const) {
       module[gate] = (() => ({
         sync: async () => {
@@ -151,6 +108,7 @@ describe("Foundation guard composition", () => {
     }
 
     await expect(module.ci(commitSha)).rejects.toBe(guardFailure)
+    expect(orchestration).toEqual(["contracts", "foundation"])
     expect(guardCalls).toEqual([{ source, repository, commitSha }])
     expect(productGates).toEqual([])
   })

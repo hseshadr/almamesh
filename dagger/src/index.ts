@@ -40,6 +40,10 @@ const SOURCE_EXCLUDES = [
   "**/.venv/**",
   "dagger/sdk/**",
 ]
+const CONTRACT_TESTS = [
+  "tests/dagger-foundation-contract.test.ts",
+  "tests/dagger-workflow-contract.test.ts",
+]
 
 @object()
 export class AlmameshCi {
@@ -184,6 +188,26 @@ export class AlmameshCi {
   }
 
   @func()
+  contracts(): Container {
+    return dag
+      .container()
+      .from(BUN_IMAGE)
+      .withDirectory(
+        ROOT,
+        this.selected([
+          ".github/workflows/dagger.yml",
+          "dagger.json",
+          "dagger/scripts/**",
+          "dagger/src/**",
+          ...CONTRACT_TESTS,
+        ]),
+      )
+      .withWorkdir(ROOT)
+      .withExec(["bun", "test", ...CONTRACT_TESTS])
+      .withExec(["printf", "%s\n", `Passed: ${CONTRACT_TESTS.join(" ")}`])
+  }
+
+  @func()
   backend(): Container {
     return this.uvBase().withExec(["uv", "run", "poe", "gate"])
   }
@@ -242,6 +266,7 @@ export class AlmameshCi {
   }
   @func()
   async ci(commitSha: string): Promise<string> {
+    await this.contracts().sync()
     const gates = [
       this.secretScan(commitSha),
       this.backend(),
@@ -251,7 +276,7 @@ export class AlmameshCi {
       this.privacy(),
     ]
     for (const gate of gates) await gate.sync()
-    return "Secret, backend, frontend, browser, PDF, and privacy gates passed in sequence."
+    return "Contract, secret, backend, frontend, browser, PDF, and privacy gates passed in sequence."
   }
   @func()
   secretScan(commitSha: string): Container {

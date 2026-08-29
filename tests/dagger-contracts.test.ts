@@ -77,6 +77,7 @@ describe("Dagger public orchestration contract", () => {
       expect.arrayContaining([
         "backend",
         "browser",
+        "contracts",
         "dependency-audit",
         "deploy",
         "deploy-dry-run",
@@ -105,6 +106,19 @@ describe("Dagger public orchestration contract", () => {
     expect(help).toContain("--commit-sha")
     expect(args).not.toContain("Secret")
   }, 30_000)
+
+  test("the contract gate executes the pure Foundation and workflow adversaries", () => {
+    const run = spawnSync("dagger", ["call", "contracts", "stdout"], {
+      cwd: root,
+      encoding: "utf8",
+      env: { ...process.env, DAGGER_NO_NAG: "1" },
+      timeout: 120_000,
+    })
+    const output = `${run.stdout}\n${run.stderr}`
+    expect(run.status, output).toBe(0)
+    expect(output).toContain("dagger-foundation-contract.test.ts")
+    expect(output).toContain("dagger-workflow-contract.test.ts")
+  }, 120_000)
 
   test("production deploy verifies Cloudflare's recorded source identity", () => {
     const source = readFileSync(resolve(root, "dagger/src/index.ts"), "utf8")
