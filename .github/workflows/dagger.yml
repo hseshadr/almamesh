@@ -27,3 +27,8 @@ jobs:
         with:
           version: "0.21.8"
           call: ci --commit-sha=${{ github.sha }}
+      - name: Verify generated deploy CLI
+        shell: bash
+        run: |
+          set -o pipefail
+          dagger call deploy --help | dagger/scripts/verify-deploy-help.sh

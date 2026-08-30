@@ -111,9 +111,15 @@ describe('repository truth', () => {
     expect(build).toContain('almamesh.edge.release_guard');
     expect(build).toContain('BUNDLE_LIVE_URL');
     const delivery = readRoot('dagger/src/index.ts');
+    const proof = readRoot('dagger/src/deployment.ts');
     expect(delivery).toContain('export BUNDLE_LIVE_URL="${LIVE_ORIGIN}/bundle/latest"');
-    expect(delivery).toContain('Live app and bundle identity verified');
-    expect(delivery).toContain('expected_bundle=');
+    expect(delivery).toContain('return releaseLiveVerificationScript(');
+    expect(proof).toContain('Live app, bundle, and feedback route identity verified');
+    expect(proof).toContain('expected_bundle=');
+    expect(proof).toContain('AbortSignal.timeout(20_000)');
+    expect(proof).not.toContain('curl');
+    expect(`${delivery}\n${proof}`).not.toContain('wrangler pages deploy');
+    expect(`${delivery}\n${proof}`).not.toContain('verify-pages-source.mjs');
   });
 
   it('requires the live-like WebKit engine and persistent fallback gate in CI', () => {

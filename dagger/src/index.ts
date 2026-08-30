@@ -9,6 +9,16 @@ import {
   func,
   object,
 } from "@dagger.io/dagger"
+import type { CloudflarePagesDeploymentEvidenceID, Platform } from "@dagger.io/dagger"
+import {
+  PAGES_TARGET,
+  deliverProduction,
+  indexNowScript as releaseIndexNowScript,
+  liveVerificationScript as releaseLiveVerificationScript,
+  validateProviderEvidence,
+  type GreenMainEvidence,
+  type ProviderRequest,
+} from "./deployment.js"
 
 const ROOT = "/workspace"
 const FRONTEND = `${ROOT}/frontend`
@@ -16,10 +26,10 @@ const WEB = `${FRONTEND}/apps/web`
 const DIST = `${WEB}/dist`
 const KEYS = "/run/almamesh-keys"
 const BUN_INSTALLER = "/opt/almamesh/install-bun.sh"
-const PAGES_SOURCE_VERIFIER = "/opt/almamesh/verify-pages-source.mjs"
 const LIVE_ORIGIN = "https://almamesh.com"
 const REPOSITORY = "hseshadr/almamesh"
 const CONTRACT_SHA = "1111111111111111111111111111111111111111"
+const CENTRAL_MODULE_SHA = "068c3c08c4d342b3dc2784cdc3804f2b2d51d622"
 const BUN_IMAGE =
   "oven/bun:1.3.5@sha256:e90cdbaf9ccdb3d4bd693aa335c3310a6004286a880f62f79b18f9b1312a8ec3"
 const NODE_IMAGE =
@@ -43,9 +53,18 @@ const SOURCE_EXCLUDES = [
   "dagger/sdk/**",
 ]
 const CONTRACT_TESTS = [
+  "tests/dagger-deployment-contract.test.ts",
   "tests/dagger-foundation-contract.test.ts",
   "tests/dagger-workflow-contract.test.ts",
 ]
+
+interface ReleaseArtifact {
+  dist: Directory
+  roots: Directory
+}
+
+type PagesClient = ReturnType<typeof dag.cloudflarePages>
+type PagesEvidence = ReturnType<PagesClient["deploy"]>
 
 @object()
 export class AlmameshCi {
@@ -102,7 +121,7 @@ export class AlmameshCi {
 
   private pagesFunctionsBase(): Container {
     return dag
-      .container({ platform: "linux/amd64" })
+      .container({ platform: "linux/amd64" as Platform })
       .from(PAGES_NODE_IMAGE)
       .withEnvVariable("WRANGLER_SEND_METRICS", "false")
       .withExec([
@@ -151,7 +170,7 @@ export class AlmameshCi {
       .withExec(["uv", "sync", "--locked", "--extra", "dev"])
   }
 
-  private releaseBase(): Container {
+  private releaseBase(source: Directory): Container {
     const bun = dag.container().from(BUN_IMAGE).file("/usr/local/bin/bun")
     const uv = dag.container().from(UV_IMAGE).file("/usr/local/bin/uv")
     return dag
@@ -160,12 +179,11 @@ export class AlmameshCi {
       .withFile("/usr/local/bin/bun", bun)
       .withFile("/usr/local/bin/uv", uv)
       .withFile("/usr/local/bin/uvx", uv)
-      .withFile(BUN_INSTALLER, this.source.file("dagger/scripts/install-bun.sh"))
-      .withFile(
-        PAGES_SOURCE_VERIFIER,
-        this.source.file("dagger/scripts/verify-pages-source.mjs"),
+      .withFile(BUN_INSTALLER, source.file("dagger/scripts/install-bun.sh"))
+      .withDirectory(
+        ROOT,
+        source.filter({ include: [".gitignore", "backend/**", "frontend/**"], gitignore: false }),
       )
-      .withDirectory(ROOT, this.selected([".gitignore", "backend/**", "frontend/**"]))
       .withWorkdir(FRONTEND)
       .withEnvVariable("UV_LINK_MODE", "copy")
       .withEnvVariable("UV_PROJECT_ENVIRONMENT", "/opt/venv")
@@ -245,6 +263,7 @@ export class AlmameshCi {
         ROOT,
         this.selected([
           ".github/workflows/dagger.yml",
+          ".github/workflows/deploy.yml",
           "dagger.json",
           "dagger/scripts/**",
           "dagger/src/**",
@@ -359,25 +378,27 @@ export class AlmameshCi {
     return "Python and Bun locked dependency graphs passed their advisory audits."
   }
   @func()
-  productionArtifact(
+  async productionArtifact(
     bundlePrivateKeyB64: Secret,
     bundlePublicKeyB64: Secret,
     expectedSha: string,
     bundleVersion: string,
     bundleSequence: number,
-  ): Directory {
-    return this.signedBuild(
+  ): Promise<Directory> {
+    const source = await this.verifiedPublicSource(expectedSha)
+    return this.releaseArtifact(source, this.signedBuild(
+      source,
       bundlePrivateKeyB64,
       bundlePublicKeyB64,
       expectedSha,
       bundleVersion,
       bundleSequence,
-    ).directory(DIST)
+    )).roots
   }
   @func()
   deployDryRun(expectedSha: string): Container {
     const release = this.withoutSigningSecrets(
-      this.releaseBase()
+      this.releaseBase(this.source)
         .withMountedTemp(KEYS)
         .withEnvVariable("EXPECTED_SHA", expectedSha)
         .withExec(["bash", "-c", this.dryRunBuildScript()]),
@@ -390,44 +411,65 @@ export class AlmameshCi {
       .directory()
       .withDirectory("dist", release.directory(DIST))
       .withDirectory("functions", functions)
-    const derived = this.pagesFunctionsBuild(roots).directory("/derived")
-    const staged = roots
-      .directory("dist")
-      .withFile("_worker.js", derived.file("_worker.js"))
-      .withFile("_routes.json", derived.file("_routes.json"))
-    const closedRoots = roots.withNewDirectory(".wrangler")
-    return this.pagesFunctionsBase()
-      .withMountedDirectory("/project", closedRoots, { readOnly: true })
-      .withMountedTemp("/project/.wrangler")
-      .withMountedTemp("/run/functions-cache")
-      .withMountedTemp("/run/functions-config")
-      .withEnvVariable("WRANGLER_CACHE_DIR", "/run/functions-cache")
-      .withEnvVariable("XDG_CONFIG_HOME", "/run/functions-config")
-      .withFile("/compiled/_worker.js", staged.file("_worker.js"))
-      .withFile("/compiled/_routes.json", staged.file("_routes.json"))
-      .withFile("/compiled/_build-metadata.json", derived.file("_build-metadata.json"))
-      .withWorkdir("/project")
-      .withEnvVariable("EXPECTED_SHA", expectedSha)
-      .withExec(["bash", "-c", this.pagesFunctionsDryRunScript()])
+    return this.pagesFunctionsProof(roots, expectedSha)
   }
   @func()
-  deploy(
+  async deploy(
+    githubToken: Secret,
     cloudflareApiToken: Secret,
     cloudflareAccountId: Secret,
     bundlePrivateKeyB64: Secret,
     bundlePublicKeyB64: Secret,
     expectedSha: string,
-  ): Container {
-    return this.withoutSigningSecrets(
-      this.signedBuild(
-        bundlePrivateKeyB64,
-        bundlePublicKeyB64,
-        expectedSha,
+    workflowRunId: string,
+    runAttempt: number,
+  ): Promise<string> {
+    const result = await deliverProduction({
+      greenMain: async () => dag.foundation().greenMain(githubToken, REPOSITORY).serialization(),
+      bindSource: async (evidence) => this.materializedPublicSource(evidence.commitSha),
+      guardSource: async (source, evidence) => {
+        await dag.foundation().guard(source, REPOSITORY, evidence.commitSha).sync()
+      },
+      buildRelease: async (source, evidence) => this.releaseArtifact(
+        source,
+        this.signedBuild(
+          source,
+          bundlePrivateKeyB64,
+          bundlePublicKeyB64,
+          evidence.commitSha,
+        ),
       ),
-    )
-      .withSecretVariable("CLOUDFLARE_API_TOKEN", cloudflareApiToken)
-      .withSecretVariable("CLOUDFLARE_ACCOUNT_ID", cloudflareAccountId)
-      .withExec(["bash", "-c", this.pagesDeployScript()])
+      verifyPreview: async (artifact, evidence) => {
+        await this.pagesFunctionsProof(artifact.roots, evidence.commitSha).sync()
+      },
+      createEnvelope: async (artifact, identities, roots) => {
+        const envelope = dag.foundation().envelope(
+          artifact.roots,
+          identities.consumer,
+          identities.producer,
+          [...roots],
+        )
+        await envelope.digest()
+        return envelope
+      },
+      deployPages: (envelope, request) => this.providerDeploy(
+        envelope,
+        githubToken,
+        cloudflareApiToken,
+        cloudflareAccountId,
+        request,
+      ),
+      evidenceId: async (evidence) => evidence.id(),
+      reloadEvidence: (id) => dag.loadCloudflarePagesDeploymentEvidenceFromID(
+        id as CloudflarePagesDeploymentEvidenceID,
+      ),
+      providerIdentity: async (provider, source) => this.providerIdentity(provider, source),
+      verifyLive: async (artifact, evidence) => this.verifyReleased(artifact, evidence),
+    }, expectedSha, workflowRunId, runAttempt, CENTRAL_MODULE_SHA)
+    return [
+      `Cloudflare Pages deployment verified: ${result.deploymentId} ${result.deploymentUrl}`,
+      result.liveProof,
+    ].join("\n")
   }
   @func()
   verifyLive(expectedSha: string, artifact: Directory): Container {
@@ -469,14 +511,137 @@ export class AlmameshCi {
       .withExec(["bun", "run", "test:e2e:chat:rag:real"])
       .withExec(["bun", "run", "test:e2e:dashboard:agentic:real"])
   }
+  private publicSource(commitSha: string): Directory {
+    const history = dag
+      .git(PAGES_TARGET.repositoryUrl)
+      .commit(commitSha)
+      .tree({ depth: 0, includeTags: true })
+    return dag.foundation().source(history, PAGES_TARGET.repository, commitSha)
+  }
+  private async materializedPublicSource(commitSha: string): Promise<Directory> {
+    const source = this.publicSource(commitSha)
+    await source.digest()
+    return source
+  }
+  private async verifiedPublicSource(commitSha: string): Promise<Directory> {
+    const source = await this.materializedPublicSource(commitSha)
+    await dag.foundation().guard(source, PAGES_TARGET.repository, commitSha).sync()
+    return source
+  }
+  private releaseArtifact(source: Directory, signed: Container): ReleaseArtifact {
+    const clean = this.withoutSigningSecrets(signed)
+    const dist = clean.directory(DIST)
+    const functions = dag.directory().withFile(
+      PAGES_TARGET.functionFiles[0],
+      source.file("frontend/apps/web/functions/api/feedback.ts"),
+    )
+    const roots = dag
+      .directory()
+      .withDirectory(PAGES_TARGET.deployRoot, dist)
+      .withDirectory("functions", functions)
+    return { dist, roots }
+  }
+  private pagesFunctionsProof(roots: Directory, expectedSha: string): Container {
+    const derived = this.pagesFunctionsBuild(roots).directory("/derived")
+    const staged = roots
+      .directory(PAGES_TARGET.deployRoot)
+      .withFile("_worker.js", derived.file("_worker.js"))
+      .withFile("_routes.json", derived.file("_routes.json"))
+    const closedRoots = roots.withNewDirectory(".wrangler")
+    return this.pagesFunctionsBase()
+      .withMountedDirectory("/project", closedRoots, { readOnly: true })
+      .withMountedTemp("/project/.wrangler")
+      .withMountedTemp("/run/functions-cache")
+      .withMountedTemp("/run/functions-config")
+      .withEnvVariable("WRANGLER_CACHE_DIR", "/run/functions-cache")
+      .withEnvVariable("XDG_CONFIG_HOME", "/run/functions-config")
+      .withFile("/compiled/_worker.js", staged.file("_worker.js"))
+      .withFile("/compiled/_routes.json", staged.file("_routes.json"))
+      .withFile("/compiled/_build-metadata.json", derived.file("_build-metadata.json"))
+      .withWorkdir("/project")
+      .withEnvVariable("EXPECTED_SHA", expectedSha)
+      .withExec(["bash", "-c", this.pagesFunctionsDryRunScript()])
+  }
+  private providerDeploy(
+    envelope: Directory,
+    githubToken: Secret,
+    cloudflareApiToken: Secret,
+    cloudflareAccountId: Secret,
+    request: ProviderRequest,
+  ): PagesEvidence {
+    return dag.cloudflarePages().deploy(
+      envelope,
+      githubToken,
+      cloudflareApiToken,
+      cloudflareAccountId,
+      request.workflowRunId,
+      request.runAttempt,
+      request.repository,
+      request.project,
+      request.productionBranch,
+      request.liveDomain,
+      request.deployRoot,
+      request.domains,
+      request.consumerIdentity,
+      request.producingIdentity,
+      request.allowedRoots,
+      { pagesFunctions: request.pagesFunctions },
+    )
+  }
+  private async providerIdentity(
+    evidence: PagesEvidence,
+    source: GreenMainEvidence,
+  ) {
+    const [
+      provider,
+      deploymentId,
+      deploymentUrl,
+      project,
+      repository,
+      branch,
+      sourceSha,
+      workflowRunId,
+      runAttempt,
+    ] = await Promise.all([
+      evidence.provider(),
+      evidence.deploymentId(),
+      evidence.deploymentUrl(),
+      evidence.project(),
+      evidence.repository(),
+      evidence.branch(),
+      evidence.sourceSha(),
+      evidence.workflowRunId(),
+      evidence.runAttempt(),
+    ])
+    return validateProviderEvidence({
+      provider,
+      deploymentId,
+      deploymentUrl,
+      project,
+      repository,
+      branch,
+      sourceSha,
+      workflowRunId,
+      runAttempt,
+    }, source)
+  }
+  private async verifyReleased(
+    artifact: ReleaseArtifact,
+    evidence: GreenMainEvidence,
+  ): Promise<string> {
+    const verified = this.verifyLive(evidence.commitSha, artifact.dist)
+      .withExec(["bash", "-c", this.indexNowScript("/artifact")])
+    return (await verified.stdout()).trim()
+  }
   private signedBuild(
+    source: Directory,
     privateKey: Secret,
     publicKey: Secret,
     expectedSha: string,
     bundleVersion?: string,
     bundleSequence?: number,
   ): Container {
-    let build = this.releaseBase()
+    let build = this.releaseBase(source)
       .withMountedTemp(KEYS)
       .withSecretVariable("BUNDLE_PRIVATE_KEY_B64", privateKey)
       .withSecretVariable("BUNDLE_PUBLIC_KEY_B64", publicKey)
@@ -561,8 +726,9 @@ cleanup() {
 }
 trap cleanup EXIT
 feedback_verified=""
+export EXPECTED_BUNDLE=$(node -e 'const p=JSON.parse(require("fs").readFileSync("dist/bundle/latest","utf8"));if(!/^[0-9a-f]{64}$/.test(p.manifest_hash)||!Number.isSafeInteger(p.sequence))process.exit(1);process.stdout.write(p.manifest_hash+":"+p.sequence)')
 for _ in $(seq 1 60); do
-  if node -e 'fetch("http://127.0.0.1:8788/api/feedback",{method:"POST",headers:{"content-type":"application/json"},body:"{}"}).then(async response=>{const body=await response.json();if(response.status!==400||JSON.stringify(body)!==JSON.stringify({ok:false,error:"invalid_page"}))process.exit(1)}).catch(()=>process.exit(75))'; then
+  if node -e 'Promise.all([fetch("http://127.0.0.1:8788/build.json"),fetch("http://127.0.0.1:8788/bundle/latest"),fetch("http://127.0.0.1:8788/api/feedback",{method:"POST",headers:{"content-type":"application/json"},body:"{}"})]).then(async([buildResponse,bundleResponse,response])=>{const build=await buildResponse.json();const bundle=await bundleResponse.json();const body=await response.json();const actualBundle=bundle.manifest_hash+":"+bundle.sequence;if(buildResponse.status!==200||build.commit!==process.env.EXPECTED_SHA||bundleResponse.status!==200||actualBundle!==process.env.EXPECTED_BUNDLE||response.status!==400||JSON.stringify(body)!==JSON.stringify({ok:false,error:"invalid_page"}))process.exit(1)}).catch(()=>process.exit(75))'; then
     feedback_verified=1
     break
   else
@@ -575,29 +741,17 @@ done
 test "$feedback_verified" = "1"
 echo "Wrangler Pages Functions dry-run verified closed feedback route for $EXPECTED_SHA"`
   }
-  private pagesDeployScript(): string {
-    return `set -euo pipefail
-test "$($WRANGLER --version)" = "${WRANGLER_VERSION}"
-$WRANGLER pages deploy dist --project-name=almamesh --branch=main --commit-hash="$EXPECTED_SHA" --commit-dirty=false
-node ${PAGES_SOURCE_VERIFIER}
-${this.liveVerificationScript(DIST)}
-key_file=$(find dist -maxdepth 1 -type f -name '????????????????????????????????.txt' -print -quit)
-key="$(basename "\${key_file:-}" .txt)"
-if printf '%s' "$key" | grep -Eq '^[0-9a-f]{32}$'; then
-  curl -sS --max-time 30 -X POST https://api.indexnow.org/indexnow -H 'Content-Type: application/json; charset=utf-8' --data '{"host":"almamesh.com","key":"'"$key"'","keyLocation":"https://almamesh.com/'"$key"'.txt","urlList":["https://almamesh.com/","https://almamesh.com/welcome","https://almamesh.com/privacy","https://almamesh.com/terms","https://almamesh.com/data-deletion"]}' >/dev/null || echo "IndexNow notification failed (non-fatal)" >&2
-fi`
+  private indexNowScript(artifact: string): string {
+    return releaseIndexNowScript(artifact)
   }
   private liveVerificationScript(artifact: string): string {
-    return `expected_bundle=$(node -e 'const f=require("fs");const p=JSON.parse(f.readFileSync("${artifact}/bundle/latest","utf8"));if(!p.manifest_hash||!Number.isInteger(p.sequence))process.exit(2);process.stdout.write(p.manifest_hash+":"+p.sequence)')
-for attempt in $(seq 1 12); do
-  actual_sha=$(curl -fsS --retry 2 --max-time 20 "${LIVE_ORIGIN}/build.json?t=$(date +%s)" | node -e 'let s="";process.stdin.on("data",c=>s+=c);process.stdin.on("end",()=>{try{process.stdout.write(JSON.parse(s).commit||"")}catch{}})') || true
-  actual_bundle=$(curl -fsS --retry 2 --max-time 20 "${LIVE_ORIGIN}/bundle/latest?t=$(date +%s)" | node -e 'let s="";process.stdin.on("data",c=>s+=c);process.stdin.on("end",()=>{try{const p=JSON.parse(s);if(p.manifest_hash&&Number.isInteger(p.sequence))process.stdout.write(p.manifest_hash+":"+p.sequence)}catch{}})') || true
-  if [ "$actual_sha" = "$EXPECTED_SHA" ] && [ "$actual_bundle" = "$expected_bundle" ]; then echo "Live app and bundle identity verified: $actual_sha $actual_bundle"; exit 0; fi
-  echo "Waiting for live identity attempt=$attempt expected_sha=$EXPECTED_SHA actual_sha=\${actual_sha:-missing} expected_bundle=$expected_bundle actual_bundle=\${actual_bundle:-missing}"
-  sleep 10
-done
-echo "live application or bundle identity did not converge" >&2
-exit 1`
+    return releaseLiveVerificationScript(
+      artifact,
+      LIVE_ORIGIN,
+      12,
+      10,
+      `https://${PAGES_TARGET.domains[0]}`,
+    )
   }
   private localPreview(container: Container, output: string, commands: readonly string[]): Container {
     const preview = `./node_modules/.bin/vite preview --outDir ${output} --host 127.0.0.1 --port 4199 --strictPort`

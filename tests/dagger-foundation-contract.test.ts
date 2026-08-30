@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from "node:fs"
 import { resolve } from "node:path"
 
 const root = resolve(import.meta.dir, "..")
-const centralSha = "8d9e0c04fcc4093947024d0bdfad2cd9a233b43c"
+const centralSha = "068c3c08c4d342b3dc2784cdc3804f2b2d51d622"
 const repository = "hseshadr/almamesh"
 const providerMarkers = [
   "CLOUDFLARE_API_TOKEN",
@@ -61,7 +61,7 @@ describe("central Dagger Lego pins", () => {
     expect(source).toContain(
       '"node:24.6.0-bookworm-slim@sha256:9b741b28148b0195d62fa456ed84dd6c953c1f17a3761f3e6e6797a754d9edff"',
     )
-    expect(pagesBase).toContain('.container({ platform: "linux/amd64" })')
+    expect(pagesBase).toContain('.container({ platform: "linux/amd64" as Platform })')
     expect(pagesBase).toContain('`wrangler@${WRANGLER_VERSION}`')
     expect(source).not.toContain("WRANGLER_NODE")
     expect(bunBase).toContain("node-gyp nodejs poppler-utils")
@@ -80,11 +80,15 @@ describe("central Dagger Lego pins", () => {
     )
     const dryRun = source.slice(
       source.indexOf("deployDryRun(expectedSha: string)"),
-      source.indexOf("  @func()\n  deploy(", source.indexOf("deployDryRun(expectedSha: string)")),
+      source.indexOf("  @func()\n  async deploy(", source.indexOf("deployDryRun(expectedSha: string)")),
+    )
+    const proofSetup = source.slice(
+      source.indexOf("private pagesFunctionsProof("),
+      source.indexOf("private providerDeploy("),
     )
     const dryRunScript = source.slice(
       source.indexOf("private pagesFunctionsDryRunScript()"),
-      source.indexOf("private pagesDeployScript()"),
+      source.indexOf("private indexNowScript("),
     )
     const contracts = source.slice(
       source.indexOf("async contracts(): Promise<Container>"),
@@ -117,16 +121,19 @@ describe("central Dagger Lego pins", () => {
       expect(build).not.toContain(`.withMountedTemp("${authenticatedRoot}")`)
       expect(build).not.toContain(`.withMountedDirectory("${authenticatedRoot}"`)
     }
-    expect(dryRun).toContain('.withFile("_worker.js", derived.file("_worker.js"))')
-    expect(dryRun).toContain('.withFile("_routes.json", derived.file("_routes.json"))')
-    expect(dryRun).toContain('.withFile("/compiled/_worker.js", staged.file("_worker.js"))')
-    expect(dryRun).toContain('.withFile("/compiled/_routes.json", staged.file("_routes.json"))')
-    expect(dryRun).toContain(
+    expect(dryRun).toContain("return this.pagesFunctionsProof(roots, expectedSha)")
+    expect(proofSetup).toContain('.withFile("_worker.js", derived.file("_worker.js"))')
+    expect(proofSetup).toContain('.withFile("_routes.json", derived.file("_routes.json"))')
+    expect(proofSetup).toContain('.withFile("/compiled/_worker.js", staged.file("_worker.js"))')
+    expect(proofSetup).toContain('.withFile("/compiled/_routes.json", staged.file("_routes.json"))')
+    expect(proofSetup).toContain(
       '.withFile("/compiled/_build-metadata.json", derived.file("_build-metadata.json"))',
     )
     expect(dryRunScript).toContain("wrangler pages dev dist")
     expect(dryRunScript).not.toContain("pages dev /site")
     expect(dryRunScript).not.toContain("curl")
+    expect(dryRunScript).toContain('fetch("http://127.0.0.1:8788/build.json"')
+    expect(dryRunScript).toContain('fetch("http://127.0.0.1:8788/bundle/latest"')
     expect(dryRunScript).toContain('fetch("http://127.0.0.1:8788/api/feedback"')
     expect(dryRunScript).toContain('response.status!==400')
     expect(dryRunScript).toContain("JSON.stringify(body)!==JSON.stringify({ok:false,error:\"invalid_page\"})")
@@ -134,6 +141,8 @@ describe("central Dagger Lego pins", () => {
     expect(contracts).toContain("async contracts(): Promise<Container>")
     expect(contracts).toContain("await this.deployDryRun(CONTRACT_SHA).sync()")
     expect(contracts).toContain(".from(BUN_IMAGE)")
+    expect(contracts).not.toContain("dagger call deploy --help")
+    expect(contracts).not.toContain("verify-deploy-help")
     expect(contracts).not.toContain('.withFile("/usr/local/bin/bun", bun)')
     expect(contracts.indexOf("await this.deployDryRun(CONTRACT_SHA).sync()")).toBeLessThan(
       contracts.indexOf(".from(BUN_IMAGE)"),
@@ -153,6 +162,23 @@ describe("central Dagger Lego pins", () => {
     ]) {
       expect(hasFailClosedCleanup(dryRunScript.replace(marker, ""))).toBe(false)
     }
+  })
+
+  test("runs the bounded nonfatal IndexNow notification strictly after live proof", () => {
+    const source = readFileSync(resolve(root, "dagger/src/index.ts"), "utf8")
+    const released = source.slice(
+      source.indexOf("private async verifyReleased("),
+      source.indexOf("private signedBuild("),
+    )
+    const live = released.indexOf("this.verifyLive(")
+    const notification = released.indexOf(
+      '.withExec(["bash", "-c", this.indexNowScript("/artifact")])',
+    )
+
+    expect(live).toBeGreaterThan(-1)
+    expect(notification).toBeGreaterThan(live)
+    expect(released).not.toContain("curl")
+    expect(source).toContain("return releaseIndexNowScript(artifact)")
   })
 })
 

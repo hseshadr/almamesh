@@ -269,16 +269,26 @@ describe('IndexNow key', () => {
       path.join(repoRoot, 'dagger/src/index.ts'),
       'utf-8',
     );
-    expect(delivery).toContain('api.indexnow.org');
+    const proof = readFileSync(
+      path.join(repoRoot, 'dagger/src/deployment.ts'),
+      'utf-8',
+    );
+    expect(delivery).toContain('return releaseIndexNowScript(artifact)');
+    expect(proof).toContain('fetch("https://api.indexnow.org/indexnow"');
+    expect(proof).toContain('AbortSignal.timeout(${timeoutMs})');
+    expect(proof).toContain('redirect: "error"');
     // No key literal in delivery code (gitleaks false-positives on inline hex
     // keys): it must derive the key from the key file shipped in public/.
-    expect(delivery).toContain("find dist -maxdepth 1 -type f -name '????????????????????????????????.txt'");
+    expect(proof).toContain("find ${shellQuote(artifact)} -maxdepth 1 -type f -name '????????????????????????????????.txt'");
     const key = keyFiles[0].replace(/\.txt$/, '');
-    expect(delivery).not.toContain(key);
+    expect(`${delivery}\n${proof}`).not.toContain(key);
     for (const head of PUBLIC_ROUTE_HEADS) {
-      expect(delivery, head.canonical).toContain(head.canonical);
+      expect(proof, head.canonical).toContain(head.canonical);
     }
     // Non-fatal by contract: the ping must never break a deploy.
-    expect(delivery).toContain('|| echo "IndexNow notification failed (non-fatal)"');
+    expect(proof).toContain('|| echo "IndexNow notification failed (non-fatal)" >&2');
+    expect(proof).not.toContain('curl');
+    expect(`${delivery}\n${proof}`).not.toContain('wrangler pages deploy');
+    expect(`${delivery}\n${proof}`).not.toContain('verify-pages-source.mjs');
   });
 });
