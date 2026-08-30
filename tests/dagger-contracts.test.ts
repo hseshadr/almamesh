@@ -96,6 +96,7 @@ describe("Dagger public orchestration contract", () => {
         "pdf",
         "privacy",
         "production-artifact",
+        "relay-production-secrets",
         "secret-scan",
         "verify-live",
         "web",
@@ -117,6 +118,19 @@ describe("Dagger public orchestration contract", () => {
     expect(args).not.toContain("Secret")
   }, 30_000)
 
+  test("the temporary relay requires five typed secrets and a non-secret cache buster", () => {
+    const help = daggerHelp("relay-production-secrets")
+    const args = help.split("ARGUMENTS", 2)[1]?.split('Use "dagger', 1)[0] ?? ""
+    for (const name of [
+      "--admin-token",
+      "--bundle-private-key-b-64",
+      "--bundle-public-key-b-64",
+      "--cloudflare-account-id",
+      "--cloudflare-api-token",
+    ]) expect(args).toContain(`${name} Secret`)
+    expect(args).toContain("--operation-id string")
+  }, 30_000)
+
   test("the contract gate executes the pure Foundation and workflow adversaries", () => {
     const run = spawnSync("dagger", ["call", "contracts", "stdout"], {
       cwd: root,
@@ -128,6 +142,7 @@ describe("Dagger public orchestration contract", () => {
     expect(run.status, output).toBe(0)
     expect(output).toContain("dagger-deployment-contract.test.ts")
     expect(output).toContain("dagger-foundation-contract.test.ts")
+    expect(output).toContain("dagger-secret-relay-contract.test.ts")
     expect(output).toContain("dagger-workflow-contract.test.ts")
   }, 120_000)
 
@@ -231,6 +246,7 @@ describe("canonical GitHub ingress contract", () => {
       "security-audit.yml",
       "nightly-e2e.yml",
       "deploy.yml",
+      "production-secret-migration.yml",
     ]) expectThinDaggerIngress(name)
   })
 
