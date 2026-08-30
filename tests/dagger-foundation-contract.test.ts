@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from "node:fs"
 import { resolve } from "node:path"
 
 const root = resolve(import.meta.dir, "..")
-const centralSha = "068c3c08c4d342b3dc2784cdc3804f2b2d51d622"
+const centralSha = "cd2858547b301c3c21ddcf24a538aebdb5cfbc52"
 const repository = "hseshadr/almamesh"
 const providerMarkers = [
   "CLOUDFLARE_API_TOKEN",
@@ -41,6 +41,12 @@ describe("central Dagger Lego pins", () => {
         pin: centralSha,
       },
     ])
+  })
+
+  test("binds production evidence to the exact central producer commit", () => {
+    const source = readFileSync(resolve(root, "dagger/src/index.ts"), "utf8")
+
+    expect(source).toContain(`const CENTRAL_MODULE_SHA = "${centralSha}"`)
   })
 
   test("keeps the shared Foundation guard as the only secret scanner", () => {

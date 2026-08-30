@@ -5,24 +5,18 @@ import { resolve } from "node:path"
 const root = resolve(import.meta.dir, "..")
 const workflowPath = resolve(root, ".github/workflows/dagger.yml")
 const deployWorkflowPath = resolve(root, ".github/workflows/deploy.yml")
-const deployHelpContractPath = resolve(root, "dagger/scripts/verify-deploy-help.sh")
 const checkout = "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
 const daggerAction = "dagger/dagger-for-github@27b130bf0f79a7f6fbbbe0fbca6760dc9bb40a77"
-const deployHelpFixture = `-
-
-USAGE
-  dagger call deploy [arguments]
-
-ARGUMENTS
-      --bundle-private-key-b-64 Secret   [required]
-      --bundle-public-key-b-64 Secret    [required]
-      --cloudflare-account-id Secret     [required]
-      --cloudflare-api-token Secret      [required]
-      --expected-sha string              [required]
-      --github-token Secret              [required]
-      --run-attempt int                  [required]
-      --workflow-run-id string           [required]
-`
+const expectedDeployFlags = [
+  "--github-token",
+  "--cloudflare-api-token",
+  "--cloudflare-account-id",
+  "--bundle-private-key-b-64",
+  "--bundle-public-key-b-64",
+  "--expected-sha",
+  "--workflow-run-id",
+  "--run-attempt",
+]
 
 type Mapping = Record<string, unknown>
 
@@ -89,15 +83,21 @@ function exactDaggerWorkflowViolations(source: string): string[] {
           call: "ci --commit-sha=${{ github.sha }}",
         },
       },
-      {
-        name: "Verify generated deploy CLI",
-        shell: "bash",
-        run: "set -o pipefail\ndagger call deploy --help | dagger/scripts/verify-deploy-help.sh\n",
-      },
     ],
   })) violations.push("dagger-job")
 
   return violations
+}
+
+function deployArgumentFlags(source: string): string[] {
+  const workflow = mapping(Bun.YAML.parse(source))
+  const job = mapping(mapping(workflow.jobs).deploy)
+  const steps = Array.isArray(job.steps) ? job.steps : []
+  const daggerStep = steps.map(mapping).find((step) => step.uses === daggerAction)
+  const args = mapping(daggerStep?.with).args
+  if (typeof args !== "string") return []
+  return args.split(/\s+/).filter((argument) => argument.startsWith("--"))
+    .map((argument) => argument.split("=", 1)[0])
 }
 
 function exactDeployWorkflowViolations(source: string): string[] {
@@ -193,11 +193,6 @@ const canonicalFixture = [
   "        with:",
   "          version: \"0.21.8\"",
   "          call: ci --commit-sha=${{ github.sha }}",
-  "      - name: Verify generated deploy CLI",
-  "        shell: bash",
-  "        run: |",
-  "          set -o pipefail",
-  "          dagger call deploy --help | dagger/scripts/verify-deploy-help.sh",
   "",
 ].join("\n")
 
@@ -301,18 +296,26 @@ describe("atomic hosted Dagger workflow", () => {
       violation: "dagger-job",
     },
     {
-      name: "missing generated-help probe",
+      name: "post-Dagger shell step",
       source: canonicalFixture.replace(
-        "      - name: Verify generated deploy CLI\n        shell: bash\n        run: |\n          set -o pipefail\n          dagger call deploy --help | dagger/scripts/verify-deploy-help.sh\n",
-        "",
+        "          call: ci --commit-sha=${{ github.sha }}\n",
+        "          call: ci --commit-sha=${{ github.sha }}\n      - run: dagger call deploy --help\n",
       ),
       violation: "dagger-job",
     },
     {
-      name: "wrong generated-help function",
+      name: "pre-Dagger shell step",
       source: canonicalFixture.replace(
-        "dagger call deploy --help",
-        "dagger call deploy-dry-run --help",
+        `      - uses: ${daggerAction} # v8.4.1`,
+        `      - run: dagger functions\n      - uses: ${daggerAction} # v8.4.1`,
+      ),
+      violation: "dagger-job",
+    },
+    {
+      name: "post-Dagger action step",
+      source: canonicalFixture.replace(
+        "          call: ci --commit-sha=${{ github.sha }}\n",
+        "          call: ci --commit-sha=${{ github.sha }}\n      - uses: actions/setup-node@v4\n",
       ),
       violation: "dagger-job",
     },
@@ -332,33 +335,20 @@ describe("privileged production delivery workflow", () => {
     expect(exactDeployWorkflowViolations(source)).toEqual([])
   })
 
-  test("the generated deploy help exposes exactly the workflow's typed flags", () => {
-    const result = Bun.spawnSync({
-      cmd: ["bash", deployHelpContractPath],
-      stdin: Buffer.from(deployHelpFixture),
-      stdout: "pipe",
-      stderr: "pipe",
-    })
-
-    expect(result.exitCode).toBe(0)
+  test("the deploy workflow uses exactly the Dagger 0.21.8 typed flags", () => {
+    const source = readFileSync(deployWorkflowPath, "utf8")
+    expect(deployArgumentFlags(source)).toEqual(expectedDeployFlags)
   })
 
   test.each([
     [
       "legacy private-key spelling",
-      deployHelpFixture.replace("private-key-b-64", ["private-key-b", "64"].join("")),
+      canonicalDeployFixture.replace("private-key-b-64", ["private-key-b", "64"].join("")),
     ],
-    ["missing run attempt", deployHelpFixture.replace("      --run-attempt int                  [required]\n", "")],
-    ["unexpected argument", deployHelpFixture.replace("ARGUMENTS\n", "ARGUMENTS\n      --project string                   [required]\n")],
-  ])("rejects %s in generated deploy help", (_name, source) => {
-    const result = Bun.spawnSync({
-      cmd: ["bash", deployHelpContractPath],
-      stdin: Buffer.from(source),
-      stdout: "pipe",
-      stderr: "pipe",
-    })
-
-    expect(result.exitCode).not.toBe(0)
+    ["missing run attempt", canonicalDeployFixture.replace(/\s+--run-attempt=\S+/, "")],
+    ["unexpected argument", canonicalDeployFixture.replace("deploy\n", "deploy --project=almamesh\n")],
+  ])("rejects %s in the static deploy flag contract", (_name, source) => {
+    expect(deployArgumentFlags(source)).not.toEqual(expectedDeployFlags)
   })
 
   test.each([
