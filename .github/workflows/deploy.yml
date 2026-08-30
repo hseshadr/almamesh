@@ -57,4 +57,3 @@ jobs:
             --expected-sha=${{ github.event.workflow_run.head_sha }}
             --workflow-run-id=${{ github.event.workflow_run.id }}
             --run-attempt=${{ github.event.workflow_run.run_attempt }}
-            sync
