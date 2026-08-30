@@ -19,7 +19,6 @@ import {
   type GreenMainEvidence,
   type ProviderRequest,
 } from "./deployment.js"
-import { relayProductionSecrets as relaySecrets } from "./secret-relay.js"
 
 const ROOT = "/workspace"
 const FRONTEND = `${ROOT}/frontend`
@@ -56,7 +55,6 @@ const SOURCE_EXCLUDES = [
 const CONTRACT_TESTS = [
   "tests/dagger-deployment-contract.test.ts",
   "tests/dagger-foundation-contract.test.ts",
-  "tests/dagger-secret-relay-contract.test.ts",
   "tests/dagger-workflow-contract.test.ts",
 ]
 
@@ -266,7 +264,6 @@ export class AlmameshCi {
         this.selected([
           ".github/workflows/dagger.yml",
           ".github/workflows/deploy.yml",
-          ".github/workflows/production-secret-migration.yml",
           "dagger.json",
           "dagger/scripts/**",
           "dagger/src/**",
@@ -397,23 +394,6 @@ export class AlmameshCi {
       bundleVersion,
       bundleSequence,
     )).roots
-  }
-  @func()
-  async relayProductionSecrets(
-    adminToken: Secret,
-    bundlePrivateKeyB64: Secret,
-    bundlePublicKeyB64: Secret,
-    cloudflareAccountId: Secret,
-    cloudflareApiToken: Secret,
-    operationId: string,
-  ): Promise<string> {
-    const sources = [
-      bundlePrivateKeyB64,
-      bundlePublicKeyB64,
-      cloudflareAccountId,
-      cloudflareApiToken,
-    ] as const
-    return relaySecrets(dag, adminToken, sources, operationId)
   }
   @func()
   deployDryRun(expectedSha: string): Container {
