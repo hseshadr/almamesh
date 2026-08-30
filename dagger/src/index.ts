@@ -29,7 +29,7 @@ const BUN_INSTALLER = "/opt/almamesh/install-bun.sh"
 const LIVE_ORIGIN = "https://almamesh.com"
 const REPOSITORY = "hseshadr/almamesh"
 const CONTRACT_SHA = "1111111111111111111111111111111111111111"
-const CENTRAL_MODULE_SHA = "068c3c08c4d342b3dc2784cdc3804f2b2d51d622"
+const CENTRAL_MODULE_SHA = "cd2858547b301c3c21ddcf24a538aebdb5cfbc52"
 const BUN_IMAGE =
   "oven/bun:1.3.5@sha256:e90cdbaf9ccdb3d4bd693aa335c3310a6004286a880f62f79b18f9b1312a8ec3"
 const NODE_IMAGE =

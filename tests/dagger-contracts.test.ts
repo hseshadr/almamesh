@@ -62,43 +62,23 @@ function workflowNames(): string[] {
 
 const checkout = "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
 const daggerAction = "dagger/dagger-for-github@27b130bf0f79a7f6fbbbe0fbca6760dc9bb40a77"
-const deployHelpProbe = {
-  name: "Verify generated deploy CLI",
-  shell: "bash",
-  run: "set -o pipefail\ndagger call deploy --help | dagger/scripts/verify-deploy-help.sh\n",
-}
 
-function exactStep(left: Record<string, unknown>, right: Record<string, unknown>): boolean {
-  return JSON.stringify(Object.entries(left).sort()) === JSON.stringify(Object.entries(right).sort())
-}
-
-function ingressViolations(
-  name: string,
-  ingressSteps: Array<Record<string, unknown>>,
-): string[] {
-  const daggerWorkflow = name === "dagger.yml"
-  const expectedUses = daggerWorkflow
-    ? [checkout, daggerAction, undefined]
-    : [checkout, daggerAction]
+function ingressViolations(ingressSteps: Array<Record<string, unknown>>): string[] {
+  const expectedUses = [checkout, daggerAction]
   const violations: string[] = []
 
   if (ingressSteps.length !== expectedUses.length) violations.push("step-count")
   if (JSON.stringify(ingressSteps.map((step) => step.uses)) !== JSON.stringify(expectedUses)) {
     violations.push("step-order")
   }
-  if (daggerWorkflow) {
-    if (!ingressSteps[2] || !exactStep(ingressSteps[2], deployHelpProbe)) {
-      violations.push("deploy-help-probe")
-    }
-    if (ingressSteps.slice(0, 2).some((step) => "run" in step)) violations.push("unexpected-run")
-  } else if (ingressSteps.some((step) => "run" in step)) {
+  if (ingressSteps.some((step) => "run" in step)) {
     violations.push("unexpected-run")
   }
   return violations
 }
 
 function expectThinDaggerIngress(name: string): void {
-  expect(ingressViolations(name, steps(name))).toEqual([])
+  expect(ingressViolations(steps(name))).toEqual([])
 }
 
 describe("Dagger public orchestration contract", () => {
@@ -263,17 +243,20 @@ describe("canonical GitHub ingress contract", () => {
       ],
     },
     {
-      name: "wrong help command",
-      mutate: (source: Array<Record<string, unknown>>) => source.map((step, index) =>
-        index === 2 ? { ...step, run: "dagger call ci --help" } : step),
+      name: "shell step between ingress actions",
+      mutate: (source: Array<Record<string, unknown>>) => [
+        source[0],
+        { run: "dagger call ci --help" },
+        source[1],
+      ],
     },
     {
-      name: "help probe before Dagger",
-      mutate: (source: Array<Record<string, unknown>>) => [source[0], source[2], source[1]],
+      name: "reversed ingress actions",
+      mutate: (source: Array<Record<string, unknown>>) => [source[1], source[0]],
     },
   ])("rejects $name in the protected Dagger ingress", ({ mutate }) => {
     const mutant = mutate(structuredClone(steps("dagger.yml")))
-    expect(ingressViolations("dagger.yml", mutant)).not.toEqual([])
+    expect(ingressViolations(mutant)).not.toEqual([])
   })
 
   test("the security audit invokes its native Dagger function", () => {
