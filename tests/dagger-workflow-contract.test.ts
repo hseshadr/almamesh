@@ -154,7 +154,7 @@ function exactDeployWorkflowViolations(source: string): string[] {
         with: {
           version: "0.21.8",
           verb: "call",
-          args: "deploy --github-token=env:GITHUB_TOKEN --cloudflare-api-token=env:CLOUDFLARE_API_TOKEN --cloudflare-account-id=env:CLOUDFLARE_ACCOUNT_ID --bundle-private-key-b-64=env:BUNDLE_PRIVATE_KEY_B64 --bundle-public-key-b-64=env:BUNDLE_PUBLIC_KEY_B64 --expected-sha=${{ github.event.workflow_run.head_sha }} --workflow-run-id=${{ github.event.workflow_run.id }} --run-attempt=${{ github.event.workflow_run.run_attempt }} sync",
+          args: "deploy --github-token=env:GITHUB_TOKEN --cloudflare-api-token=env:CLOUDFLARE_API_TOKEN --cloudflare-account-id=env:CLOUDFLARE_ACCOUNT_ID --bundle-private-key-b-64=env:BUNDLE_PRIVATE_KEY_B64 --bundle-public-key-b-64=env:BUNDLE_PUBLIC_KEY_B64 --expected-sha=${{ github.event.workflow_run.head_sha }} --workflow-run-id=${{ github.event.workflow_run.id }} --run-attempt=${{ github.event.workflow_run.run_attempt }}",
         },
       },
     ],
@@ -256,7 +256,6 @@ const canonicalDeployFixture = [
   "            --expected-sha=${{ github.event.workflow_run.head_sha }}",
   "            --workflow-run-id=${{ github.event.workflow_run.id }}",
   "            --run-attempt=${{ github.event.workflow_run.run_attempt }}",
-  "            sync",
   "",
 ].join("\n")
 
@@ -413,6 +412,14 @@ describe("privileged production delivery workflow", () => {
       source: canonicalDeployFixture.replace(
         "--bundle-private-key-b-64=env:BUNDLE_PRIVATE_KEY_B64",
         "--bundle-private-key-b64=env:BUNDLE_PRIVATE_KEY_B64",
+      ),
+      violation: "deploy-job",
+    },
+    {
+      name: "terminal deploy subcommand",
+      source: canonicalDeployFixture.replace(
+        "--run-attempt=${{ github.event.workflow_run.run_attempt }}",
+        "--run-attempt=${{ github.event.workflow_run.run_attempt }} sync",
       ),
       violation: "deploy-job",
     },
