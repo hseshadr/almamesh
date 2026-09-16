@@ -184,7 +184,8 @@ Verify live bundles against the live `/public.key`.
 
 ## Architecture
 
-Deeper dives: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) (the signed-bundle →
+Explore the [interactive runtime map](docs/architecture/index.html). Deeper dives:
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) (the signed-bundle →
 durable browser cache → Pyodide flow, with the d2 diagram) and
 [docs/QUICKSTART.md](docs/QUICKSTART.md) (`make demo` to a rendered chart).
 
