@@ -1,0 +1,187 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "AlmaMesh — Local-First Chart Runtime",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/hseshadr/almamesh",
+      "revision": "6ccaefe9676241adead8edffa55b916f15ab9448"
+    },
+    "viewBox": [1390, 700],
+    "views": [
+      {
+        "id": "chart-path",
+        "label": "Deterministic chart path",
+        "focus": ["person", "react_ui", "runtime", "sync_worker", "bundle_cache", "pyodide_worker", "python_engine"],
+        "note": "Birth inputs stay in the tab while the unchanged Python engine computes off the UI thread."
+      },
+      {
+        "id": "trusted-delivery",
+        "label": "Trusted engine delivery",
+        "focus": ["static_origin", "sync_worker", "bundle_cache", "pyodide_worker"],
+        "note": "The browser verifies signed, content-addressed engine bytes before Pyodide can boot them."
+      },
+      {
+        "id": "explicit-egress",
+        "label": "Explicit optional egress",
+        "focus": ["react_ui", "geocoder", "python_engine", "privacy_gate", "ai_endpoint"],
+        "note": "City search is narrow; AI is optional and receives an allowlisted, PII-redacted chart projection."
+      },
+      {
+        "id": "durable-device-state",
+        "label": "Durable device state",
+        "focus": ["runtime", "app_data", "sync_worker", "bundle_cache"],
+        "note": "Personal data and authenticated engine bytes use separate on-device storage contracts."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "person",
+      "type": "external",
+      "label": "Person",
+      "sublabel": "Birth inputs + intent",
+      "pos": [20, 320],
+      "size": [130, 66],
+      "sources": [{ "path": "README.md", "line": 1, "end_line": 14, "label": "Product boundary" }]
+    },
+    {
+      "id": "react_ui",
+      "type": "frontend",
+      "label": "React PWA",
+      "sublabel": "Routes, charts, reports",
+      "pos": [185, 320],
+      "size": [140, 66],
+      "sources": [{ "path": "frontend/apps/web/src/main.tsx", "line": 65, "end_line": 78, "label": "Web entrypoint" }]
+    },
+    {
+      "id": "runtime",
+      "type": "backend",
+      "label": "AlmaMeshRuntime",
+      "sublabel": "Bootstrap + chart API",
+      "pos": [355, 320],
+      "size": [145, 72],
+      "sources": [
+        { "path": "frontend/apps/web/src/providers/AlmaMeshRuntimeProvider.tsx", "line": 1, "end_line": 18, "label": "Runtime owner" },
+        { "path": "frontend/packages/browser/src/pyodide/runtime.ts", "line": 155, "end_line": 184, "label": "Runtime facade" }
+      ]
+    },
+    {
+      "id": "sync_worker",
+      "type": "security",
+      "label": "Verify + Sync Worker",
+      "sublabel": "Ed25519 · SHA-256",
+      "tag": "fail closed",
+      "pos": [530, 320],
+      "size": [145, 72],
+      "sources": [{ "path": "frontend/packages/browser/src/pyodide/runtime.ts", "line": 1, "end_line": 13, "label": "Two-worker boot" }]
+    },
+    {
+      "id": "bundle_cache",
+      "type": "database",
+      "label": "Engine Bundle Cache",
+      "sublabel": "OPFS · IndexedDB fallback",
+      "pos": [705, 320],
+      "size": [145, 72],
+      "sources": [{ "path": "docs/ARCHITECTURE.md", "line": 20, "end_line": 29, "label": "Durable cache contract" }]
+    },
+    {
+      "id": "pyodide_worker",
+      "type": "backend",
+      "label": "Pyodide Worker",
+      "sublabel": "Python in WebAssembly",
+      "pos": [880, 320],
+      "size": [145, 72],
+      "sources": [{ "path": "frontend/packages/browser/src/pyodide/chartWorker.ts", "line": 1, "end_line": 12, "label": "Worker boundary" }]
+    },
+    {
+      "id": "python_engine",
+      "type": "backend",
+      "label": "Python Chart Engine",
+      "sublabel": "Skyfield calculations",
+      "pos": [1055, 320],
+      "size": [150, 72],
+      "sources": [
+        { "path": "backend/src/almamesh/calculations.py", "line": 1, "end_line": 20, "label": "Engine contract" },
+        { "path": "frontend/packages/browser/src/pyodide/chartWorker.ts", "line": 51, "end_line": 77, "label": "Shipped Python glue" }
+      ]
+    },
+    {
+      "id": "static_origin",
+      "type": "cloud",
+      "label": "Static Signed Origin",
+      "sublabel": "Cloudflare Pages bundle",
+      "pos": [530, 80],
+      "size": [145, 66],
+      "sources": [{ "path": "docs/ARCHITECTURE.md", "line": 34, "end_line": 46, "label": "Publish and delivery" }]
+    },
+    {
+      "id": "app_data",
+      "type": "database",
+      "label": "Personal App Data",
+      "sublabel": "IndexedDB + preferences",
+      "pos": [355, 535],
+      "size": [145, 66],
+      "sources": [{ "path": "frontend/packages/store/src/index.ts", "line": 1, "end_line": 17, "label": "Storage ownership" }]
+    },
+    {
+      "id": "geocoder",
+      "type": "external",
+      "label": "Open-Meteo",
+      "sublabel": "City-only geocoding",
+      "pos": [185, 535],
+      "size": [140, 66],
+      "sources": [{ "path": "frontend/apps/web/src/lib/geo/onlineGeocoder.ts", "line": 1, "end_line": 19, "label": "Narrow egress" }]
+    },
+    {
+      "id": "privacy_gate",
+      "type": "security",
+      "label": "PII-Safe Prompt Gate",
+      "sublabel": "Allowlist projection",
+      "pos": [1055, 80],
+      "size": [150, 66],
+      "sources": [{ "path": "frontend/packages/llm/src/sanitize.ts", "line": 435, "end_line": 464, "label": "Chart sanitizer" }]
+    },
+    {
+      "id": "ai_endpoint",
+      "type": "external",
+      "label": "Chosen AI Endpoint",
+      "sublabel": "Local or opt-in cloud",
+      "pos": [1235, 80],
+      "size": [145, 66],
+      "sources": [{ "path": "frontend/packages/llm/src/client.ts", "line": 1, "end_line": 10, "label": "Privacy-gated client" }]
+    }
+  ],
+  "connections": [
+    { "id": "person_enters", "from": "person", "to": "react_ui", "label": "birth inputs", "variant": "emphasis", "labelAt": [168, 415] },
+    { "id": "ui_generates", "from": "react_ui", "to": "runtime", "label": "generate", "variant": "emphasis", "labelAt": [340, 415] },
+    { "id": "runtime_boots", "from": "runtime", "to": "sync_worker", "label": "bootstrap", "variant": "emphasis", "labelAt": [515, 415] },
+    { "id": "sync_promotes", "from": "sync_worker", "to": "bundle_cache", "label": "verified chunks", "variant": "security", "labelAt": [690, 415] },
+    { "id": "cache_feeds", "from": "bundle_cache", "to": "pyodide_worker", "label": "wheel + ephemeris", "labelAt": [865, 415] },
+    { "id": "worker_calls", "from": "pyodide_worker", "to": "python_engine", "label": "Python calls", "variant": "emphasis", "labelAt": [1040, 415] },
+    { "id": "origin_delivers", "from": "static_origin", "to": "sync_worker", "label": "signed CAS bytes", "fromSide": "bottom", "toSide": "top", "labelAt": [602, 235] },
+    { "id": "runtime_persists", "from": "runtime", "to": "app_data", "label": "local state", "fromSide": "bottom", "toSide": "top", "labelAt": [427, 475] },
+    { "id": "ui_geocodes", "from": "react_ui", "to": "geocoder", "label": "typed city only", "variant": "dashed", "fromSide": "bottom", "toSide": "top", "labelAt": [257, 475] },
+    { "id": "engine_sanitizes", "from": "python_engine", "to": "privacy_gate", "label": "optional chart facts", "variant": "security", "fromSide": "top", "toSide": "bottom", "labelAt": [1130, 235] },
+    { "id": "privacy_calls", "from": "privacy_gate", "to": "ai_endpoint", "label": "redacted prompt", "variant": "dashed", "labelAt": [1220, 205] }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Computation stays local",
+      "items": ["The chart path has no application server", "The same Python wheel runs under Pyodide off the UI thread"]
+    },
+    {
+      "dot": "rose",
+      "title": "Trust before execution",
+      "items": ["Ed25519 and SHA-256 checks fail closed", "Only authenticated bundle bytes reach the chart worker"]
+    },
+    {
+      "dot": "amber",
+      "title": "Egress is explicit",
+      "items": ["Geocoding sends only the typed city query", "AI is optional and chart prompts pass through an allowlist sanitizer"]
+    }
+  ]
+}
