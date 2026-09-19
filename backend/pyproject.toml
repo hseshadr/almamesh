@@ -57,7 +57,7 @@ dev = [
     # dependencies): the Python Avow kernel that produced testdata/vectors/.
     # Never imported by `src/almamesh` — tests/test_engine_is_crypto_free.py
     # fails the build if it ever is.
-    "avow>=0.1.1,<0.2",
+    "avow>=0.1.1,<0.5",
 ]
 
 [project.scripts]
