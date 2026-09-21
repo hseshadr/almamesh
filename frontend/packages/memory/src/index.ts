@@ -1,8 +1,9 @@
 /**
  * `@almamesh/memory` — in-browser, zero-egress semantic memory (RAG) over chat
  * history. A chat message is chunked, embedded on-device (self-hosted model in a
- * Web Worker; see {@link createWorkerEmbedder}), stored as vectors in IndexedDB,
- * and retrieved by cosine similarity. No network, offline-first.
+ * Web Worker; see {@link createWorkerEmbedder}), stored in an OPFS-backed
+ * SQLite database, and retrieved by sqlite-vector in a second Worker. No
+ * network, offline-first.
  *
  * The pipeline depends only on the {@link Embedder} contract, so unit tests
  * inject a deterministic stub and never load the model runtime. This module and
@@ -19,7 +20,6 @@ import {
 } from "./vectorStore";
 
 export { chunkText, type ChunkOptions } from "./chunk";
-export { cosineSimilarity } from "./cosine";
 export {
   createWorkerEmbedder,
   type Embedder,
@@ -28,7 +28,9 @@ export {
 } from "./embedder";
 export {
   createVectorStore,
+  SemanticMemoryStorageUnavailableError,
   type ScoredRecord,
+  type SqliteVectorIndexLike,
   type VectorRecord,
   type VectorStore,
 } from "./vectorStore";
@@ -67,7 +69,7 @@ export interface ChatMemory {
   ): Promise<readonly RetrievedChunk[]>;
 }
 
-/** Injectable collaborators; `store` defaults to a fresh IndexedDB-backed store. */
+/** Injectable collaborators; `store` defaults to the OPFS SQLite vector adapter. */
 export interface ChatMemoryDeps {
   readonly embedder: Embedder;
   readonly store?: VectorStore;

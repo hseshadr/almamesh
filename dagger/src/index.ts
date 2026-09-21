@@ -28,7 +28,7 @@ const KEYS = "/run/almamesh-keys"
 const BUN_INSTALLER = "/opt/almamesh/install-bun.sh"
 const LIVE_ORIGIN = "https://almamesh.com"
 const REPOSITORY = "hseshadr/almamesh"
-const EDGEPROC_BROWSER_SHA = "f1ae371c8dfe441c6a3dd845e92c3d67adf654bd"
+const EDGEPROC_BROWSER_SHA = "a94e7f2a0237a7144658351c07cb296fcb0540fb"
 const CONTRACT_SHA = "1111111111111111111111111111111111111111"
 const CENTRAL_MODULE_SHA = "cd2858547b301c3c21ddcf24a538aebdb5cfbc52"
 const BUN_IMAGE =
@@ -247,7 +247,7 @@ export class AlmameshCi {
     return [
       "sh",
       "-c",
-      `grep -F ${JSON.stringify(pin)} packages/browser/package.json >/dev/null && grep -F ${JSON.stringify(EDGEPROC_BROWSER_SHA)} bun.lock >/dev/null`,
+      `grep -F ${JSON.stringify(pin)} packages/browser/package.json >/dev/null && grep -F ${JSON.stringify(pin)} packages/memory/package.json >/dev/null && grep -F ${JSON.stringify(EDGEPROC_BROWSER_SHA)} bun.lock >/dev/null`,
     ]
   }
 
@@ -301,6 +301,7 @@ export class AlmameshCi {
     let checked = this.builtBrowser("dist-verify", true)
       .withExec(["node", "scripts/verify-precache-redirect.mjs", "dist-verify"])
     checked = this.localPreview(checked, "dist-verify", [
+      "node scripts/verify-sqlite-memory.mjs http://127.0.0.1:4199 --browser=chromium",
       "node scripts/verify-exit-gate.mjs http://127.0.0.1:4199",
       "node scripts/verify-i18n.mjs http://127.0.0.1:4199",
       "node scripts/verify-browser-parity.mjs http://127.0.0.1:4199 --reference-date=2025-01-01T00:00:00+00:00",
@@ -310,6 +311,7 @@ export class AlmameshCi {
       "python3 -m http.server 4200 --directory dist-verify --bind 127.0.0.1",
       4200,
       [
+        "node scripts/verify-sqlite-memory.mjs http://127.0.0.1:4200 --browser=webkit",
         "node scripts/verify-webkit-engine.mjs http://127.0.0.1:4200",
         "node scripts/verify-webkit-engine.mjs http://127.0.0.1:4200 --first-session --transient-cache-visibility",
       ],

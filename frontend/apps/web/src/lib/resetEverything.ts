@@ -47,6 +47,7 @@ import {
   useProfilesStore,
   useRectificationRecordsStore,
 } from '@almamesh/store';
+import { SemanticMemoryStorageUnavailableError } from '@almamesh/memory';
 import { clearMemory } from './chatMemory';
 import { publishDeletionNotice } from './deletionPropagation';
 
@@ -130,7 +131,17 @@ export async function resetEverything(deps: ResetEverythingDeps = DEFAULT_DEPS):
   try {
     // The generation fence lands before vector draining, so another live
     // realm's in-flight embed cannot repopulate the reset dataset after clear.
-    await clearMemory();
+    try {
+      await clearMemory();
+    } catch (error) {
+      // Semantic memory is optional and intentionally unavailable on browsers
+      // without OPFS. The durable generation commit below still makes every
+      // prior vector unreachable; an unrelated SQLite failure remains fatal so
+      // a real deletion defect cannot be mistaken for a capability limitation.
+      if (!(error instanceof SemanticMemoryStorageUnavailableError)) {
+        throw error;
+      }
+    }
 
     useChartLibraryStore.getState().clearAll();
     useProfilesStore.getState().clearAll();

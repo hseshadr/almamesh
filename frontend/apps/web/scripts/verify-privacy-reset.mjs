@@ -40,6 +40,70 @@ page.on('request', (request) => {
   if (new URL(request.url()).origin !== origin) offOrigin.add(request.url());
 });
 
+async function openKeyvalDatabase() {
+  return page.evaluateHandle(
+    () =>
+      new Promise((resolve, reject) => {
+        const request = indexedDB.open('keyval-store');
+        request.onerror = () => reject(request.error);
+        request.onupgradeneeded = () => {
+          if (!request.result.objectStoreNames.contains('keyval')) {
+            request.result.createObjectStore('keyval');
+          }
+        };
+        request.onsuccess = () => resolve(request.result);
+      }),
+  );
+}
+
+async function putIdbValue(key, value) {
+  const database = await openKeyvalDatabase();
+  try {
+    await page.evaluate(
+      ([db, entryKey, entryValue]) =>
+        new Promise((resolve, reject) => {
+          const transaction = db.transaction('keyval', 'readwrite');
+          transaction.onerror = () => reject(transaction.error);
+          transaction.oncomplete = () => resolve();
+          transaction.objectStore('keyval').put(entryValue, entryKey);
+        }),
+      [database, key, value],
+    );
+  } finally {
+    await database.evaluate((db) => db.close());
+    await database.dispose();
+  }
+}
+
+async function getIdbValue(key) {
+  const database = await openKeyvalDatabase();
+  try {
+    return await page.evaluate(
+      ([db, entryKey]) =>
+        new Promise((resolve, reject) => {
+          const request = db.transaction('keyval', 'readonly').objectStore('keyval').get(entryKey);
+          request.onerror = () => reject(request.error);
+          request.onsuccess = () => resolve(request.result ?? null);
+        }),
+      [database, key],
+    );
+  } finally {
+    await database.evaluate((db) => db.close());
+    await database.dispose();
+  }
+}
+
+async function resetDiagnostics() {
+  const confirm = page.getByTestId('reset-confirm');
+  return {
+    url: page.url(),
+    errors,
+    confirmCount: await confirm.count(),
+    confirmDisabled: (await confirm.count()) > 0 ? await confirm.isDisabled() : null,
+    body: (await page.locator('body').innerText()).slice(0, 500),
+  };
+}
+
 try {
   await page.goto(`${baseUrl}/settings/data`, { waitUntil: 'networkidle' });
   if (await page.evaluate(() => 'showSaveFilePicker' in window)) {
@@ -67,9 +131,33 @@ try {
   const backup = JSON.parse(exported.text);
 
   await page.goto(`${baseUrl}/settings/preferences`, { waitUntil: 'networkidle' });
-  await page.getByTestId('reset-start-fresh').click();
-  await page.getByTestId('reset-confirm').click();
-  await page.waitForURL(`${baseUrl}/`, { timeout: 15_000 });
+  await page.evaluate(() => {
+    localStorage.setItem('almamesh-chart', '1');
+    localStorage.setItem('almamesh-interpretations', 'reset-proof');
+  });
+  await putIdbValue('almamesh-chart-library', 'reset-proof');
+  try {
+    await page.getByTestId('reset-start-fresh').click();
+    await page.getByTestId('reset-confirm').click();
+    await page.getByTestId('landing-nav-cta').waitFor({ state: 'visible', timeout: 30_000 });
+    await page.waitForFunction(
+      () =>
+        localStorage.getItem('almamesh-chart') === null &&
+        localStorage.getItem('almamesh-interpretations') === null,
+      undefined,
+      { timeout: 10_000 },
+    );
+    if ((await getIdbValue('almamesh-chart-library')) !== null) {
+      throw new Error('IndexedDB chart library survived reset');
+    }
+    if (new URL(page.url()).pathname !== '/') {
+      throw new Error(`Reset route differs: ${page.url()}`);
+    }
+  } catch (error) {
+    throw new Error(
+      `Reset postcondition failed: ${error instanceof Error ? error.message : String(error)} :: ${JSON.stringify(await resetDiagnostics())}`,
+    );
+  }
 
   if (backup.format !== 'almamesh-backup' || backup.formatVersion !== 1) {
     throw new Error('Backup envelope contract failed');
@@ -79,7 +167,7 @@ try {
   }
   if (offOrigin.size > 0) throw new Error(`Off-origin requests: ${[...offOrigin].join(', ')}`);
   if (errors.length > 0) throw new Error(`Browser errors: ${errors.join(' | ')}`);
-  console.log('privacy: backup v1, reset /, zero egress, clean console');
+  console.log('privacy: backup v1, durable reset + landing, zero egress, clean console');
 } finally {
   await browser.close();
 }

@@ -1,27 +1,21 @@
 /**
- * The on-device vector store for chat-memory RAG: persists embedding vectors in
- * IndexedDB (via `idb-keyval`) and ranks them by cosine similarity at query
- * time. Local-first and zero-egress — nothing leaves the browser.
- *
- * Storage shape: every record lives under a single IndexedDB key as a JSON-safe
- * payload (Float32Array serialized to `number[]`). On first access the store
- * lazily rehydrates that payload into an in-memory cache keyed by record id, so
- * subsequent `search`/`allForProfile` calls are synchronous over memory. Writes
- * update the cache and flush the whole payload back (mirrors the chat store's
- * single-key `idb-keyval` pattern). Outside a browser (SSR/tests without a
- * polyfill) IndexedDB is absent and the store degrades to in-memory only.
+ * AlmaMesh's thin domain adapter over the shared SQLite + sqlite-vector Worker.
+ * Chat embeddings live in an OPFS-backed SQLite database; similarity and
+ * metadata filtering execute inside sqlite-vector, never in the UI thread.
  */
 
+import type {
+  Metadata,
+  VectorRecord as SharedVectorRecord,
+} from "@edgeproc/browser/vector";
 import {
-  createStore,
-  get as idbGet,
-  promisifyRequest,
-  set as idbSet,
-} from "idb-keyval";
+  createSqliteVectorIndex,
+  type SqliteVectorRuntimeInfo,
+  type SqliteVectorWorkerOptions,
+  type SqliteWorkerVectorIndex,
+} from "@edgeproc/browser/vector/sqlite";
 
-import { cosineSimilarity } from "./cosine";
-
-/** One indexed chat chunk: its embedding plus the metadata needed to retrieve it. */
+/** One indexed chat chunk plus the metadata needed to retrieve it. */
 export interface VectorRecord {
   readonly id: string;
   readonly profile_id: string;
@@ -31,216 +25,242 @@ export interface VectorRecord {
   readonly vector: Float32Array;
 }
 
-/** A record paired with its cosine similarity to a query vector. */
+/** Metadata returned from SQLite; vectors stay inside the Worker. */
+export type RetrievedVectorRecord = Omit<VectorRecord, "vector">;
+
+/** A record paired with cosine similarity (one minus sqlite-vector distance). */
 export interface ScoredRecord {
-  readonly record: VectorRecord;
+  readonly record: RetrievedVectorRecord;
   readonly score: number;
 }
 
-/** The persistent, cosine-ranked vector store the RAG pipeline writes to and reads from. */
+/** Shared SQLite API alias retained only as the unit-test injection type. */
+export type SqliteVectorIndexLike = SqliteWorkerVectorIndex;
+
+/** Browser-local semantic memory used by the RAG facade. */
 export interface VectorStore {
-  /** Insert or replace records by id, then flush to IndexedDB. */
+  ready(): Promise<void>;
   upsert(records: readonly VectorRecord[], generation?: string | number): Promise<void>;
-  /** Delete every record belonging to `profileId`, then flush to IndexedDB. */
   deleteForProfile(profileId: string): Promise<void>;
-  /** Delete every record belonging to `threadId`, then flush to IndexedDB. */
   deleteForThread(threadId: string): Promise<void>;
-  /** Delete every record, then flush the empty index to IndexedDB. */
   clear(): Promise<void>;
-  /** Every record belonging to `profileId` (load order, unranked). */
-  allForProfile(profileId: string): Promise<readonly VectorRecord[]>;
-  /** Top-`k` records for `profileId` ranked by descending cosine similarity. */
   search(
     queryVec: Float32Array,
     profileId: string,
     k: number,
     generation?: string | number,
   ): Promise<readonly ScoredRecord[]>;
-}
-
-/** The single IndexedDB key holding the whole vector index. */
-const STORE_KEY = "almamesh-chat-vectors";
-
-/** JSON-safe on-disk shape: `vector` as `number[]` so `idb-keyval` can clone it. */
-interface PersistedRecord {
-  readonly id: string;
-  readonly profile_id: string;
-  readonly thread_id: string;
-  readonly message_id: string;
-  readonly text: string;
-  readonly vector: readonly number[];
-}
-
-interface PersistedVectorIndex {
-  readonly generation?: string | number;
-  readonly records: readonly PersistedRecord[];
+  runtimeInfo(): Promise<SqliteVectorRuntimeInfo>;
+  dispose(): Promise<void>;
 }
 
 export interface VectorStoreOptions {
+  readonly name?: string;
+  readonly dimension?: number;
   readonly generation?: () => string | number;
+  /** Reads the durable deletion/restore ledger before and after each write. */
   readonly ledgerGuard?: {
-    readonly key: string;
-    readonly accepts: (ledger: unknown, generation: string | number) => boolean;
+    readonly acceptsWrite: (generation: string | number) => boolean | Promise<boolean>;
+    readonly acceptsRead: (generation: string | number) => boolean | Promise<boolean>;
+  };
+  /** Unit-test seam. Production always uses createSqliteVectorIndex. */
+  readonly indexFactory?: (
+    options: SqliteVectorWorkerOptions,
+  ) => SqliteVectorIndexLike | Promise<SqliteVectorIndexLike>;
+  /** Unit-test seam for the browser OPFS capability probe. */
+  readonly opfsProbe?: () => Promise<unknown>;
+}
+
+const DEFAULT_INDEX_NAME = "almamesh-chat-memory-v1";
+const DEFAULT_DIMENSION = 384;
+
+export class SemanticMemoryStorageUnavailableError extends Error {
+  public readonly code = "memory.opfs_unavailable";
+
+  public constructor(cause?: unknown) {
+    super(
+      "Semantic memory requires a working Origin Private File System; chat remains available without memory retrieval.",
+      { cause },
+    );
+    this.name = "SemanticMemoryStorageUnavailableError";
+  }
+}
+
+async function probeOpfs(): Promise<void> {
+  const getDirectory = globalThis.navigator?.storage?.getDirectory;
+  if (typeof getDirectory !== "function") {
+    throw new SemanticMemoryStorageUnavailableError();
+  }
+  try {
+    await getDirectory.call(globalThis.navigator.storage);
+  } catch (error) {
+    throw new SemanticMemoryStorageUnavailableError(error);
+  }
+}
+
+function generationString(value: string | number | undefined): string {
+  return String(value ?? 0);
+}
+
+function physicalId(generation: string, logicalId: string): string {
+  return JSON.stringify([generation, logicalId]);
+}
+
+function metadataFor(record: VectorRecord, generation: string): Metadata {
+  return {
+    generation,
+    record_id: record.id,
+    profile_id: record.profile_id,
+    thread_id: record.thread_id,
+    message_id: record.message_id,
+    text: record.text,
   };
 }
 
-const useKeyvalStore = createStore("keyval-store", "keyval");
-
-/** Only persist when a real IndexedDB is present; tests/SSR fall back to memory. */
-function hasIndexedDb(): boolean {
-  return typeof indexedDB !== "undefined";
+function requiredString(metadata: Metadata, key: string): string {
+  const value = metadata[key];
+  if (typeof value !== "string" || value.length === 0) {
+    throw new Error(`invalid SQLite vector metadata: ${key}`);
+  }
+  return value;
 }
 
-/** Rehydrate a persisted record's `number[]` vector into a `Float32Array`. */
-function fromPersisted(p: PersistedRecord): VectorRecord {
+function fromHit(hit: {
+  readonly distance: number;
+  readonly metadata: Metadata;
+}): ScoredRecord {
+  if (!Number.isFinite(hit.distance)) {
+    throw new Error("invalid SQLite vector distance");
+  }
   return {
-    id: p.id,
-    profile_id: p.profile_id,
-    thread_id: p.thread_id,
-    message_id: p.message_id,
-    text: p.text,
-    vector: new Float32Array(p.vector),
-  };
-}
-
-/** Serialize a record's `Float32Array` vector down to a JSON-safe `number[]`. */
-function toPersisted(r: VectorRecord): PersistedRecord {
-  return {
-    id: r.id,
-    profile_id: r.profile_id,
-    thread_id: r.thread_id,
-    message_id: r.message_id,
-    text: r.text,
-    vector: Array.from(r.vector),
+    record: {
+      id: requiredString(hit.metadata, "record_id"),
+      profile_id: requiredString(hit.metadata, "profile_id"),
+      thread_id: requiredString(hit.metadata, "thread_id"),
+      message_id: requiredString(hit.metadata, "message_id"),
+      text: requiredString(hit.metadata, "text"),
+    },
+    score: 1 - hit.distance,
   };
 }
 
 /**
- * Create a vector store backed by a single `idb-keyval` key. Each call yields an
- * independent instance with its own lazy cache, so tests can spin up a fresh
- * store that re-reads whatever a prior instance flushed to IndexedDB.
+ * Build the AlmaMesh adapter. The shared Worker is opened lazily so importing
+ * chat code does not claim an OPFS connection until memory is actually used.
  */
 export function createVectorStore(options: VectorStoreOptions = {}): VectorStore {
-  const cache = new Map<string, VectorRecord>();
-  let loaded = false;
-  let loadedGeneration: string | number | undefined;
-
-  async function ensureLoaded(generation = options.generation?.()): Promise<void> {
-    if (loaded && (generation === undefined || loadedGeneration === generation)) {
-      return;
-    }
-    cache.clear();
-    if (hasIndexedDb()) {
-      const stored = await idbGet<PersistedRecord[] | PersistedVectorIndex>(STORE_KEY);
-      const records = Array.isArray(stored) ? stored : stored?.records;
-      const storedGeneration = Array.isArray(stored) ? 0 : stored?.generation;
-      if (
-        records !== undefined &&
-        (generation === undefined || storedGeneration === generation)
-      ) {
-        for (const p of records) {
-          cache.set(p.id, fromPersisted(p));
-        }
+  const indexOptions: SqliteVectorWorkerOptions = {
+    name: options.name ?? DEFAULT_INDEX_NAME,
+    dimension: options.dimension ?? DEFAULT_DIMENSION,
+    persistence: "opfs",
+  };
+  const factory =
+    options.indexFactory ??
+    (async (value: SqliteVectorWorkerOptions) => {
+      try {
+        await (options.opfsProbe ?? probeOpfs)();
+      } catch (error) {
+        if (error instanceof SemanticMemoryStorageUnavailableError) throw error;
+        throw new SemanticMemoryStorageUnavailableError(error);
       }
+      return createSqliteVectorIndex(value);
+    });
+  let indexPromise: Promise<SqliteVectorIndexLike> | undefined;
+  let disposed = false;
+
+  function index(): Promise<SqliteVectorIndexLike> {
+    if (disposed) {
+      return Promise.reject(new Error("AlmaMesh vector store is disposed"));
     }
-    loaded = true;
-    loadedGeneration = generation;
+    indexPromise ??= Promise.resolve(factory(indexOptions));
+    return indexPromise;
   }
 
-  async function flush(generation = options.generation?.()): Promise<void> {
-    if (!hasIndexedDb()) {
-      return;
-    }
-    const payload: PersistedVectorIndex = {
-      ...(generation !== undefined ? { generation } : {}),
-      records: Array.from(cache.values()).map(toPersisted),
-    };
-    if (generation === undefined || options.ledgerGuard === undefined) {
-      await idbSet(STORE_KEY, payload);
-      return;
-    }
-    let committed = false;
-    await useKeyvalStore("readwrite", (store) =>
-      new Promise<void>((resolve, reject) => {
-        const request = store.get(options.ledgerGuard!.key);
-        request.onerror = () => reject(request.error);
-        request.onsuccess = () => {
-          if (options.ledgerGuard!.accepts(request.result, generation)) {
-            store.put(payload, STORE_KEY);
-            committed = true;
-          }
-          void promisifyRequest(store.transaction).then(() => resolve(), reject);
-        };
-      }),
-    );
-    if (!committed) {
-      cache.clear();
-      loaded = false;
-      loadedGeneration = undefined;
-    }
+  async function writeAccepted(generation: string | number): Promise<boolean> {
+    return options.ledgerGuard === undefined
+      ? true
+      : options.ledgerGuard.acceptsWrite(generation);
+  }
+
+  async function readAccepted(generation: string | number): Promise<boolean> {
+    return options.ledgerGuard === undefined
+      ? true
+      : options.ledgerGuard.acceptsRead(generation);
   }
 
   return {
+    async ready(): Promise<void> {
+      await index();
+    },
+
     async upsert(
       records: readonly VectorRecord[],
-      generation = options.generation?.(),
+      generation = options.generation?.() ?? 0,
     ): Promise<void> {
-      await ensureLoaded(generation);
-      for (const record of records) {
-        cache.set(record.id, record);
+      if (records.length === 0 || !(await writeAccepted(generation))) {
+        return;
       }
-      await flush(generation);
+      const normalizedGeneration = generationString(generation);
+      const insertedIds = records.map((record) => physicalId(normalizedGeneration, record.id));
+      const opened = await index();
+      await opened.insert(
+        records.map((record, recordIndex): SharedVectorRecord => ({
+          id: insertedIds[recordIndex],
+          vector: record.vector,
+          metadata: metadataFor(record, normalizedGeneration),
+        })),
+      );
+      if (!(await writeAccepted(generation))) {
+        await opened.delete(insertedIds, { generation: normalizedGeneration });
+      }
     },
 
     async deleteForProfile(profileId: string): Promise<void> {
-      await ensureLoaded();
-      for (const [id, record] of cache) {
-        if (record.profile_id === profileId) {
-          cache.delete(id);
-        }
-      }
-      await flush();
+      await (await index()).deleteWhere({ profile_id: profileId });
     },
 
     async deleteForThread(threadId: string): Promise<void> {
-      await ensureLoaded();
-      for (const [id, record] of cache) {
-        if (record.thread_id === threadId) {
-          cache.delete(id);
-        }
-      }
-      await flush();
+      await (await index()).deleteWhere({ thread_id: threadId });
     },
 
     async clear(): Promise<void> {
-      await ensureLoaded();
-      cache.clear();
-      await flush();
-    },
-
-    async allForProfile(profileId: string): Promise<readonly VectorRecord[]> {
-      await ensureLoaded();
-      return Array.from(cache.values()).filter(
-        (r) => r.profile_id === profileId,
-      );
+      await (await index()).clear();
     },
 
     async search(
       queryVec: Float32Array,
       profileId: string,
       k: number,
-      generation = options.generation?.(),
+      generation = options.generation?.() ?? 0,
     ): Promise<readonly ScoredRecord[]> {
-      await ensureLoaded(generation);
-      const scored: ScoredRecord[] = [];
-      for (const record of cache.values()) {
-        if (record.profile_id !== profileId) {
-          continue;
-        }
-        scored.push({ record, score: cosineSimilarity(queryVec, record.vector) });
+      if (k <= 0 || !(await readAccepted(generation))) {
+        return [];
       }
-      scored.sort((a, b) => b.score - a.score);
-      return scored.slice(0, Math.max(0, k));
+      const hits = await (
+        await index()
+      ).search(queryVec, k, {
+        profile_id: profileId,
+        generation: generationString(generation),
+      });
+      if (!(await readAccepted(generation))) {
+        return [];
+      }
+      return hits.map(fromHit);
+    },
+
+    async runtimeInfo(): Promise<SqliteVectorRuntimeInfo> {
+      return (await index()).runtimeInfo();
+    },
+
+    async dispose(): Promise<void> {
+      if (disposed) {
+        return;
+      }
+      const pending = indexPromise;
+      disposed = true;
+      if (pending !== undefined) {
+        await (await pending).dispose();
+      }
     },
   };
 }

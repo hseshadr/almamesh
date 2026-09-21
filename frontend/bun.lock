@@ -105,7 +105,7 @@
       "dependencies": {
         "@edgeproc/assay": "0.5.0-dev.3",
         "@edgeproc/avow": "0.1.1",
-        "@edgeproc/browser": "github:hseshadr/edgeproc-browser#f1ae371c8dfe441c6a3dd845e92c3d67adf654bd",
+        "@edgeproc/browser": "github:hseshadr/edgeproc-browser#a94e7f2a0237a7144658351c07cb296fcb0540fb",
         "pyodide": "^0.29.4",
       },
       "devDependencies": {
@@ -137,11 +137,10 @@
       "name": "@almamesh/memory",
       "version": "0.0.1",
       "dependencies": {
+        "@edgeproc/browser": "github:hseshadr/edgeproc-browser#a94e7f2a0237a7144658351c07cb296fcb0540fb",
         "@huggingface/transformers": "^3.8.1",
-        "idb-keyval": "^6.3.0",
       },
       "devDependencies": {
-        "fake-indexeddb": "^6.2.5",
         "typescript": "~5.7.3",
         "vitest": "^4.1.10",
       },
@@ -455,7 +454,7 @@
 
     "@edgeproc/avow": ["@edgeproc/avow@0.1.1", "", { "dependencies": { "@noble/ed25519": "^3.1.0", "canonicalize": "^3.0.0" } }, "sha512-BgqgxPox/PpLSNL7gKN8tovrOBSuLBVk2uAnYu8+5ZXq7KKQBPvSZCA/qF9vkAVE6ubRXm4TcOPJBicy51sALg=="],
 
-    "@edgeproc/browser": ["@edgeproc/browser@github:hseshadr/edgeproc-browser#f1ae371", { "dependencies": { "@hpcc-js/wasm-zstd": "^1.15.0", "@noble/ed25519": "^3.1.0", "idb-keyval": "^6.3.0" } }, "hseshadr-edgeproc-browser-f1ae371"],
+    "@edgeproc/browser": ["@edgeproc/browser@github:hseshadr/edgeproc-browser#a94e7f2", { "dependencies": { "@hpcc-js/wasm-zstd": "^1.15.0", "@noble/ed25519": "^3.1.0", "idb-keyval": "^6.3.0" } }, "hseshadr-edgeproc-browser-a94e7f2"],
 
     "@edgeproc/errors": ["@edgeproc/errors@0.1.1", "", {}, "sha512-5eLXm6Dp99oSBhQSCeTns5CRLoYypkxRw4GP0kIesOutt55Y+FluygxGQdXN0V88NPRmHZFPovrAuVf9UH0Vig=="],
 

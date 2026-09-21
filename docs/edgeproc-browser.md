@@ -11,9 +11,9 @@ and exit-gate observability.
 |---|---|
 | Repository | `https://github.com/hseshadr/edgeproc-browser` |
 | Package | `@edgeproc/browser` |
-| Commit | `f1ae371c8dfe441c6a3dd845e92c3d67adf654bd` |
+| Commit | `a94e7f2a0237a7144658351c07cb296fcb0540fb` |
 | License | MIT |
-| Consumer manifest | `frontend/packages/browser/package.json` |
+| Consumer manifests | `frontend/packages/browser/package.json`, `frontend/packages/memory/package.json` |
 | Reproducible lock | `frontend/bun.lock` |
 
 The Git commit includes deterministic `dist/` output for Bun's exact-Git
@@ -36,13 +36,27 @@ Generic signature verification, bounded fetch/decompression, content-addressed
 sync, OPFS/IndexedDB persistence, locking, Worker protocol, and vector adapters
 live only in the standalone package.
 
+`frontend/packages/memory/src/vectorStore.ts` is a second thin domain adapter:
+it maps chat chunks to flat SQLite metadata, applies the durable dataset
+generation fence, and delegates all live similarity, scoped deletion, and OPFS
+persistence to `@edgeproc/browser/vector/sqlite`.
+
 ## Upgrade gate
 
 1. Pin a reviewed 40-character upstream commit in the manifest, Bun lock, and
    Dagger contract.
 2. Run the complete frontend gate.
-3. Build the real Vite app and confirm it emits one `edgeproc.worker-*.js` asset.
+3. Build the real Vite app and confirm it emits one signed-bundle Worker asset
+   and one SQLite-vector Worker asset.
 4. Run the Chromium parity journey and both WebKit persistence journeys. They
    prove warm OPFS reuse, forced IndexedDB fallback using the historical layout,
    offline reload, trust-root refresh, and exactly one sync Worker asset.
 5. Run the security audit and secret scan before merge.
+
+The browser gate also writes, searches, disposes, reopens, and searches a real
+OPFS SQLite vector index in Chromium. That is the consumer proof that the exact
+Git artifact contains runnable SQLite and sqlite-vector assets, not merely
+passing mocked adapter tests. The WebKit leg capability-probes OPFS: Playwright
+WebKit currently throws `UnknownError` while opening the root, so AlmaMesh must
+return the stable `memory.opfs_unavailable` refusal without spawning a Worker or
+falling back to a weaker index. Authoritative chat remains usable.

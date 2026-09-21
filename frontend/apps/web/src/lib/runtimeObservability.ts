@@ -1,4 +1,5 @@
 import type { ChartEngine } from '@almamesh/browser'
+import type { SqliteMemoryProof } from './chatMemory'
 
 export type RuntimeChartGenerator = ChartEngine['generateChart']
 
@@ -7,6 +8,7 @@ declare global {
     __ALMAMESH_STAGE__?: string
     __ALMAMESH_ERROR__?: string
     __almameshGenerate?: RuntimeChartGenerator
+    __almameshVerifySqliteMemory?: () => Promise<SqliteMemoryProof>
   }
 }
 

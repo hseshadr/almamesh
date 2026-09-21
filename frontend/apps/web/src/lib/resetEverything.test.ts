@@ -13,6 +13,7 @@
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { SemanticMemoryStorageUnavailableError } from '@almamesh/memory';
 import type { VedicInterpretation } from '@almamesh/shared-types';
 import {
   CHART_LIBRARY_FLAG_KEY,
@@ -241,6 +242,38 @@ describe('resetEverything', () => {
     deletion.resolve();
     await pending;
     expect(settled).toBe(true);
+  });
+
+  it('commits the fenced reset when optional semantic storage is unavailable', async () => {
+    const clearPersisted = vi.fn(async () => undefined);
+    vi.mocked(clearMemory).mockRejectedValueOnce(
+      new SemanticMemoryStorageUnavailableError(new DOMException('OPFS unavailable')),
+    );
+
+    await expect(
+      resetEverything({
+        waitForHydration: () => Promise.resolve(),
+        beginDatasetReset: () => Promise.resolve(4),
+        clearPersisted,
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(clearPersisted).toHaveBeenCalledWith(4);
+  });
+
+  it('still aborts when semantic memory fails for a non-capability reason', async () => {
+    const clearPersisted = vi.fn(async () => undefined);
+    vi.mocked(clearMemory).mockRejectedValueOnce(new Error('SQLite clear failed'));
+
+    await expect(
+      resetEverything({
+        waitForHydration: () => Promise.resolve(),
+        beginDatasetReset: () => Promise.resolve(4),
+        clearPersisted,
+      }),
+    ).rejects.toThrow('SQLite clear failed');
+
+    expect(clearPersisted).not.toHaveBeenCalled();
   });
 
   it('rejects when durable persistence deletion fails', async () => {

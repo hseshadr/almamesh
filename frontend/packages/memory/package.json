@@ -2,7 +2,7 @@
   "name": "@almamesh/memory",
   "version": "0.0.1",
   "license": "MIT",
-  "description": "In-browser, zero-egress semantic memory for AlmaMesh chat: chunk + embed (Transformers.js, self-hosted weights) + IndexedDB vector store + cosine RAG retrieval. No network, offline-first.",
+  "description": "In-browser, zero-egress semantic memory for AlmaMesh chat: local embeddings plus an OPFS-backed SQLite + sqlite-vector Worker. No network, offline-first.",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
@@ -19,11 +19,10 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@huggingface/transformers": "^3.8.1",
-    "idb-keyval": "^6.3.0"
+    "@edgeproc/browser": "github:hseshadr/edgeproc-browser#a94e7f2a0237a7144658351c07cb296fcb0540fb",
+    "@huggingface/transformers": "^3.8.1"
   },
   "devDependencies": {
-    "fake-indexeddb": "^6.2.5",
     "typescript": "~5.7.3",
     "vitest": "^4.1.10"
   }

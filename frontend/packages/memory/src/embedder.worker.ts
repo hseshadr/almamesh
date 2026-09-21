@@ -26,7 +26,7 @@
  *   them. This module is exercised in live e2e, NOT in unit tests.
  *
  * The heavy `@huggingface/transformers` import is confined to this file so the
- * unit-tested modules (chunk/cosine/vectorStore/index) never load the runtime.
+ * unit-tested modules (chunk/vectorStore/index) never load the runtime.
  */
 
 import {
