@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, '../../../../../..');
+const EDGEPROC_BROWSER_SHA = 'f1ae371c8dfe441c6a3dd845e92c3d67adf654bd';
 const readRoot = (path: string): string => readFileSync(resolve(root, path), 'utf8');
 const readSection = (document: string, heading: string): string => {
   const start = document.indexOf(heading);
@@ -31,7 +32,6 @@ describe('repository truth', () => {
       'frontend/packages/shared-types',
       'frontend/packages/constants',
       'frontend/packages/memory',
-      'frontend/packages/edgeproc-browser',
       'backend/src/almamesh',
     ];
     for (const path of paths) {
@@ -129,7 +129,7 @@ describe('repository truth', () => {
 
     expect(workflow).toContain('["chromium", "webkit"]');
     expect(workflow).toContain('"playwright", "install", "--with-deps", ...browsers');
-    expect(frontendPackage).toContain('@edgeproc/browser test:coverage');
+    expect(frontendPackage).not.toContain('@edgeproc/browser test:coverage');
     expect(workflow).toContain(
       'node scripts/verify-webkit-engine.mjs http://127.0.0.1:4200',
     );
@@ -149,6 +149,7 @@ describe('repository truth', () => {
     expect(gate).toContain("proxy.state.rejected.includes('/public.key')");
     expect(gate).toContain('keyRequestsAfterRotation > keyRequestsBeforeRotation');
     expect(gate).toContain('blockedKeys.length >= 2');
+    expect(gate).toContain('assertSingleSyncWorker');
     expect(gate).not.toContain("window.dispatchEvent(new Event('online'))");
     const provider = readRoot(
       'frontend/apps/web/src/providers/AlmaMeshRuntimeProvider.tsx',
@@ -156,10 +157,35 @@ describe('repository truth', () => {
     expect(provider).toContain(
       "if (typeof window !== 'undefined' && EXIT_GATE_HOOKS)",
     );
-    const worker = readRoot(
-      'frontend/packages/edgeproc-browser/src/engine/worker.ts',
+    const worker = readRoot('frontend/packages/browser/src/edgeproc.worker.ts');
+    expect(worker.trim()).toBe('import "@edgeproc/browser/worker";');
+    const adapter = readRoot('frontend/packages/browser/src/edgeprocClient.ts');
+    expect(adapter).toContain('database: "edgeproc-browser-cache"');
+    expect(adapter).toContain('store: "content-addressed-cache"');
+    expect(adapter).toContain('storageBackend: "indexeddb"');
+    const chromium = readRoot('frontend/apps/web/scripts/verify-browser-parity.mjs');
+    expect(chromium).toContain('exactly one consumer-owned edgeproc Worker asset');
+  });
+
+  it('pins the standalone browser Lego and removes the vendored workspace copy', () => {
+    const browserPackage = JSON.parse(readRoot('frontend/packages/browser/package.json')) as {
+      dependencies: Record<string, string>;
+    };
+    const frontendPackage = JSON.parse(readRoot('frontend/package.json')) as {
+      trustedDependencies?: string[];
+    };
+    expect(browserPackage.dependencies['@edgeproc/browser']).toBe(
+      `github:hseshadr/edgeproc-browser#${EDGEPROC_BROWSER_SHA}`,
     );
-    expect(worker).toContain('withCacheLock(() => handleReadFileUnlocked(req))');
+    expect(frontendPackage.trustedDependencies ?? []).not.toContain('@edgeproc/browser');
+    expect(readRoot('frontend/bun.lock')).toContain(EDGEPROC_BROWSER_SHA);
+    expect(existsSync(resolve(root, 'frontend/packages/edgeproc-browser/package.json'))).toBe(false);
+    expect(readRoot('frontend/apps/web/vite.config.ts')).not.toMatch(
+      /vendored at packages\/edgeproc-browser|vendored packages\/edgeproc-browser/,
+    );
+    expect(readRoot('dagger/src/index.ts')).toContain(
+      `const EDGEPROC_BROWSER_SHA = "${EDGEPROC_BROWSER_SHA}"`,
+    );
   });
 
   it('keeps ordinary builds keyless while production and engine gates fail closed on trust assets', () => {

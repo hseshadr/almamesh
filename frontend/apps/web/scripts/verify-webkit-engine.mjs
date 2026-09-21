@@ -153,6 +153,17 @@ async function generateReferenceChart(page) {
   }, BIRTH)
 }
 
+function assertSingleSyncWorker(workerUrls, label) {
+  const syncWorkerAssets = [...workerUrls].filter((url) =>
+    /\/edgeproc\.worker-[^/]+\.js(?:\?|$)/.test(url),
+  )
+  invariant(
+    syncWorkerAssets.length === 1,
+    `${label} did not load exactly one consumer-owned edgeproc Worker asset: ${JSON.stringify(syncWorkerAssets)}`,
+  )
+  return syncWorkerAssets
+}
+
 async function storageEvidence(page) {
   return page.evaluate(async () => {
     const databases = (await indexedDB.databases()).flatMap((database) =>
@@ -241,6 +252,7 @@ async function verifyFirstSessionOffline() {
     ...devices['iPhone 13'],
     serviceWorkers: 'allow',
   })
+  const workerUrls = new Set()
   if (TRANSIENT_CACHE_VISIBILITY) {
     await context.exposeBinding('__almameshRecordTransientCacheRead', () => {
       transientCacheReadInjected = true
@@ -272,6 +284,7 @@ async function verifyFirstSessionOffline() {
   }
   try {
     let page = await context.newPage()
+    page.on('worker', (worker) => workerUrls.add(worker.url()))
     const url = new URL(proxy.origin)
     await bounded(
       page.goto(url.href, { waitUntil: 'domcontentloaded' }),
@@ -300,6 +313,7 @@ async function verifyFirstSessionOffline() {
 
     await openEngineRoute(page)
     const cold = await waitForRecoveredEngine(page, 'first-session cold boot')
+    const syncWorkerAssets = assertSingleSyncWorker(workerUrls, 'WebKit first-session boot')
     const coldChart = await generateReferenceChart(page)
     invariant(coldChart.lagna === 'gemini', `unexpected first-session chart: ${JSON.stringify(coldChart)}`)
 
@@ -384,6 +398,7 @@ async function verifyFirstSessionOffline() {
       rejectedTransportPaths: proxy.state.rejected,
       keyRequestsBeforeRotation,
       keyRequestsAfterRotation,
+      syncWorkerAssets,
     }
     console.log(JSON.stringify({ firstSessionOffline: evidence }, null, 2))
     return evidence
@@ -406,6 +421,8 @@ async function main() {
       serviceWorkers: 'block',
     })
     const page = await context.newPage()
+    const workerUrls = new Set()
+    page.on('worker', (worker) => workerUrls.add(worker.url()))
 
     const forcedFallbackUrl = new URL(BASE_URL)
     forcedFallbackUrl.searchParams.set(FALLBACK_PARAMETER, '1')
@@ -413,6 +430,7 @@ async function main() {
     await openEngineRoute(page)
     const cold = await waitForEngine(page)
     invariant(cold.stage === 'ready' && cold.hasGenerator, `WebKit cold boot failed: ${JSON.stringify(cold)}`)
+    const syncWorkerAssets = assertSingleSyncWorker(workerUrls, 'WebKit forced-fallback boot')
 
     const storage = await storageEvidence(page)
     invariant(storage.opfs === 'forced-unavailable', `OPFS fallback was not forced: ${JSON.stringify(storage)}`)
@@ -484,6 +502,7 @@ async function main() {
           recoveredChart,
           blockedBundleRequests: blocked.length,
           blockedPublicKeyRequests: blockedKeys.length,
+          syncWorkerAssets,
         },
         null,
         2,

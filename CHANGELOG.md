@@ -105,17 +105,28 @@ All notable changes to AlmaMesh are documented here. Format follows
   become fail-always.
 
   Blast radius, stated plainly: **latent, not live.** No user device ever ran
-  this code. The device-side promote ships as TypeScript
-  (`frontend/packages/edgeproc-browser`, `canPromotePointer`), which already
-  refuses an equal `sequence` unless the pointer is byte-identical. The Python
-  path is reached only by the build-time publisher — which clears its origin dir
-  before every publish, so it is always a first promote — and by
+  this code. The device-side promote ships in the exact-commit
+  [`@edgeproc/browser`](https://github.com/hseshadr/edgeproc-browser) dependency,
+  which refuses an equal `sequence` unless the pointer is byte-identical. The
+  Python path is reached only by the build-time publisher — which clears its
+  origin dir before every publish, so it is always a first promote — and by
   `almamesh.edge.bundle.sync_constructs`, a public API of this package whose only
   callers today are its own tests. What shipped was a published module promising
   "fail-closed … never downgrades" over an implementation that did not, and a
   gate that certified the gap as intended.
 
 ### Changed
+- **Browser signed-bundle infrastructure is one shared Lego, not an AlmaMesh
+  fork.** The generic sync, verification, OPFS/IndexedDB persistence, locking,
+  Worker protocol, and vector implementation now come from the public
+  `@edgeproc/browser` repository at one exact Git commit. AlmaMesh keeps only a
+  consumer-owned Vite Worker entry and a small product adapter that preserves
+  the existing cache database/store/key layout and exit-gate fallback hook.
+  The tracked duplicate workspace package and its duplicate fixtures/tests are
+  removed. Dagger rejects any manifest/lock pin mismatch, and the real-browser
+  gates require exactly one emitted sync Worker while exercising warm OPFS,
+  forced IndexedDB, and offline reload paths.
+
 - **Registry releases are accepted by evidence, not elapsed time.** The Bun
   publication-age delay and its exemption machinery are removed. Exact versions,
   frozen locks, registry integrity, provenance contracts, Gitleaks, and

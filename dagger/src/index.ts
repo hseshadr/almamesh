@@ -28,6 +28,7 @@ const KEYS = "/run/almamesh-keys"
 const BUN_INSTALLER = "/opt/almamesh/install-bun.sh"
 const LIVE_ORIGIN = "https://almamesh.com"
 const REPOSITORY = "hseshadr/almamesh"
+const EDGEPROC_BROWSER_SHA = "f1ae371c8dfe441c6a3dd845e92c3d67adf654bd"
 const CONTRACT_SHA = "1111111111111111111111111111111111111111"
 const CENTRAL_MODULE_SHA = "cd2858547b301c3c21ddcf24a538aebdb5cfbc52"
 const BUN_IMAGE =
@@ -100,6 +101,7 @@ export class AlmameshCi {
         "-c",
         "apt-get update && apt-get install -y --no-install-recommends build-essential git node-gyp nodejs poppler-utils && rm -rf /var/lib/apt/lists/*",
       ])
+      .withExec(this.edgeprocPinCheck())
       .withExec(["sh", BUN_INSTALLER])
       .withExec(["sh", "-c", `git -C ${ROOT} init && git -C ${ROOT} add -A`])
   }
@@ -196,6 +198,7 @@ export class AlmameshCi {
         "-c",
         "apt-get update && apt-get install -y --no-install-recommends build-essential ca-certificates curl git node-gyp openssl poppler-utils python3 python3-dev && rm -rf /var/lib/apt/lists/*",
       ])
+      .withExec(this.edgeprocPinCheck())
       .withExec(["sh", BUN_INSTALLER])
       .withExec([
         "npm",
@@ -232,10 +235,20 @@ export class AlmameshCi {
         "-c",
         "apt-get update && apt-get install -y --no-install-recommends build-essential ca-certificates curl git node-gyp nodejs openssl poppler-utils && rm -rf /var/lib/apt/lists/*",
       ])
+      .withExec(this.edgeprocPinCheck())
       .withExec(["sh", BUN_INSTALLER])
       .withExec(["bash", "apps/web/scripts/setup-dev-assets.sh"])
       .withWorkdir(WEB)
       .withExec(["bun", "x", "playwright", "install", "--with-deps", ...browsers])
+  }
+
+  private edgeprocPinCheck(): string[] {
+    const pin = `github:hseshadr/edgeproc-browser#${EDGEPROC_BROWSER_SHA}`
+    return [
+      "sh",
+      "-c",
+      `grep -F ${JSON.stringify(pin)} packages/browser/package.json >/dev/null && grep -F ${JSON.stringify(EDGEPROC_BROWSER_SHA)} bun.lock >/dev/null`,
+    ]
   }
 
   private builtBrowser(

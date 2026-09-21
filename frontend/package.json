@@ -13,11 +13,11 @@
     "typecheck": "bun run --filter '*' typecheck",
     "lint": "bun run --filter '*' lint",
     "knip": "bunx knip@6.26.0 --no-progress",
-    "gate": "bunx tsc -b packages/shared-types packages/constants packages/store packages/llm --force && bun run --filter '*' typecheck && bun run --filter @almamesh/web lint && bun run knip && EDGE_RECO_SKIP_EMBEDDING_PARITY=1 bun run --filter @edgeproc/browser test:coverage && bun run --filter @almamesh/browser test && bun run --filter @almamesh/store test && bun run --filter @almamesh/llm test && bun run --filter @almamesh/web test:unit && bun run --filter @almamesh/web build",
+    "gate": "bunx tsc -b packages/shared-types packages/constants packages/store packages/llm --force && bun run --filter '*' typecheck && bun run --filter @almamesh/web lint && bun run knip && bun run --filter @almamesh/browser test && bun run --filter @almamesh/store test && bun run --filter @almamesh/llm test && bun run --filter @almamesh/web test:unit && bun run --filter @almamesh/web build",
     "clean": "bun run --filter '*' clean && rm -rf node_modules",
     "prepare": "cd .. && husky frontend/.husky"
   },
-  "//gate": "The frontend quality gate — CI's frontend job runs exactly this script (ENGINEERING-STANDARDS §3: gate mirrors CI, both directions). EDGE_RECO_SKIP_EMBEDDING_PARITY=1 keeps the vendored @edgeproc/browser coverage suite offline-deterministic while its 90% thresholds remain mandatory (see packages/edgeproc-browser/VENDORED.md). The `knip` step is the TypeScript dead-code / unused-export axis (config in knip.json) — see '//knip'. Playwright e2e is deliberately NOT here — it needs generated 38MB engine assets and runs as the exit-gate / e2e-smoke / nightly CI lanes (see CLAUDE.md 'Playwright e2e tiering').",
+  "//gate": "The frontend quality gate — CI's frontend job runs exactly this script (ENGINEERING-STANDARDS §3: gate mirrors CI, both directions). The standalone @edgeproc/browser package runs its own upstream gate; this consumer gate proves the pinned package integration and AlmaMesh adapter. The `knip` step is the TypeScript dead-code / unused-export axis (config in knip.json). Playwright e2e is deliberately NOT here — it needs generated 38MB engine assets and runs as the exit-gate / e2e-smoke / nightly CI lanes (see CLAUDE.md 'Playwright e2e tiering'). Git dependencies remain untrusted for lifecycle execution; the pinned browser Lego commits deterministic dist instead.",
   "//knip": "knip is the frontend dead-code / unused-export axis (config in knip.json). Pinned via bunx (6.26.0), matching the existing `bunx tsc` / `bunx playwright` toolchain pattern; graduating it to a locked devDependency is a follow-up. SCOPE is deliberately incremental, mirroring security-audit.yml's documented pip-audit scoping: the whole-dead-module axis ('files') is HARD-ENFORCED and kept green, while the symbol-level axes (unused exports/types/enum members) and the dependency-hygiene axes are surfaced as non-blocking WARNINGS on every gate run — a pre-existing backlog (~280 exports, ~87 types, a few dynamic-import-only deps). They auto-verify and print but do not block, so knip is not a permanently-red signal; a dedicated cleanup pass will retire the backlog and graduate those rules to 'error'.",
   "lint-staged": {
     "apps/web/**/*.{ts,tsx}": "bun run --filter @almamesh/web lint"
@@ -41,7 +41,7 @@
   "//overrides.postcss": "BUILD-TIME security floor. postcss is the CSS pipeline behind vite + tailwindcss + autoprefixer and resolved to four copies (8.4.49 / 8.5.6 / 8.5.15 / 8.5.16), every one inside the vulnerable range of GHSA-r28c-9q8g-f849 (high: path traversal in previous-source-map auto-loading via sourceMappingURL, disclosing arbitrary .map files; vulnerable <=8.5.17, first patched 8.5.18). The floor collapses all four to a single 8.5.23 (npm `latest`). postcss 8.5.x is patch-level throughout, so there is no API change — but because postcss emits the shipped stylesheet, this bump is validated by a real build + browser run, not by unit tests alone.",
   "//overrides.brace-expansion": "DEV-CHAIN security floor. brace-expansion 5 exports a named `expand`; minimatch >=10.2.5 is the compatible consumer, and filelist >=2.0.2 prevents an old minimatch copy from re-entering the tree. Keep these three floors together. The 5.0.9 floor includes the follow-up GHSA-rgw5-rvv9-x895 fix.",
   "//overrides.audit-2026-09-16": "Transitive security floors from the reproducible `bun audit --audit-level moderate` gate. Every override stays on the dependency's existing major line except adm-zip, sharp, and fflate, whose vulnerable 0.x lines require the first patched release. The full frontend gate, real Worker parity, onboarding/offline recovery, and real report-PDF journey validate the assembled tree.",
-  "//overrides.wasm-zstd": "1.15 changed the compression API from `(bytes, level)` to `(bytes)`. Keep the behaviorally verified 1.13 adapter contract until the vendored browser Lego migrates deliberately with parity tests.",
+  "//overrides.wasm-zstd": "Pin the exact runtime version proven by the standalone @edgeproc/browser gate; the consumer lock must not float its Git dependency onto a different WASM payload.",
   "overrides": {
     "caniuse-lite": "^1.0.30001809",
     "protobufjs": ">=7.6.5 <8",
@@ -68,6 +68,6 @@
     "browserslist": ">=4.28.7 <5",
     "fflate": ">=0.8.3 <1",
     "postcss-selector-parser": ">=6.1.3 <7",
-    "@hpcc-js/wasm-zstd": "1.13.0"
+    "@hpcc-js/wasm-zstd": "1.15.0"
   }
 }

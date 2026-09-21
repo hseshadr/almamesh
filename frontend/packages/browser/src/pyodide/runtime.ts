@@ -12,8 +12,9 @@
 // is booted once and cached. After the first run everything needed lives in
 // OPFS, so reloads are offline-capable.
 
-import { EngineClient, type SyncResult } from "@edgeproc/browser/engine";
+import type { SyncResult } from "@edgeproc/browser";
 
+import { spawnAlmaSyncEngine } from "../edgeprocClient";
 import type { SiderealChart } from "./chart";
 import { ChartEngineClient } from "./chartEngineClient";
 import type { MeshEdgeContext } from "./mesh";
@@ -119,7 +120,7 @@ export interface RuntimeDeps {
 }
 
 const defaultDeps: RuntimeDeps = {
-  spawnSyncEngine: () => EngineClient.spawn(),
+  spawnSyncEngine: spawnAlmaSyncEngine,
   spawnChartEngine: () => ChartEngineClient.spawn(),
 };
 

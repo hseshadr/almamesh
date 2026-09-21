@@ -581,17 +581,17 @@ export default defineConfig({
       // `/types` must precede the bare alias so the more specific one wins.
       '@almamesh/browser/types': path.resolve(__dirname, '../../packages/browser/src/types'),
       '@almamesh/browser': path.resolve(__dirname, '../../packages/browser/src'),
-      // Transitive `@edgeproc/browser/*` imports (the edge-proc sync tier) resolve
-      // through the workspace: it is vendored at packages/edgeproc-browser and its
-      // package.json `exports` map points at TS source, which Vite compiles.
+      // `@edgeproc/browser/*` resolves through its exact-Git package exports.
+      // AlmaMesh owns the one-line Vite Worker entry in @almamesh/browser; the
+      // standalone package owns the compiled sync/storage implementation.
     },
   },
   server: {
     port: 3000,
     allowedHosts: ['host.docker.internal', 'localhost', '127.0.0.1'],
-    // Allow serving workspace files above apps/web (packages/*, incl. the
-    // vendored packages/edgeproc-browser sync Worker entry) in dev. (No effect
-    // on the production build / preview.)
+    // Allow serving AlmaMesh workspace packages above apps/web in dev. The
+    // standalone sync Worker is an installed dependency. (No effect on the
+    // production build / preview.)
     fs: {
       allow: ['..'],
     },

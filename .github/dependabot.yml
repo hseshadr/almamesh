@@ -1,10 +1,7 @@
 # Weekly grouped dependency PRs (ENGINEERING-STANDARDS §4, Published tier).
-# The one remaining vendored tree (frontend/packages/edgeproc-browser) is
-# deliberately NOT covered — it re-vendors from its source repo on its own
-# policy (see its VENDORED.md), never via dependency PRs here. `edge-proc` is
-# no longer vendored: it resolves from PyPI and rides the `uv` group below, so
-# an upstream security release reaches this repo as a PR instead of waiting for
-# somebody to notice a stale snapshot.
+# No generic browser substrate is vendored. `@edgeproc/browser` is an exact Git
+# commit with an explicit provenance/live-browser upgrade gate, while
+# `edge-proc` resolves from PyPI and rides the `uv` group below.
 version: 2
 updates:
   - package-ecosystem: "github-actions"
