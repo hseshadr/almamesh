@@ -225,6 +225,18 @@ describe('repository truth', () => {
     );
   });
 
+  it('arms the destructive reset navigation before confirmation and waits only for DOM readiness', () => {
+    const proof = readRoot('frontend/apps/web/scripts/verify-privacy-reset.mjs');
+    const navigation = "const resetNavigation = page.waitForURL(`${baseUrl}/`, {";
+    const confirm = "page.getByTestId('reset-confirm').click()";
+
+    expect(proof).toContain(navigation);
+    expect(proof).toContain("waitUntil: 'domcontentloaded'");
+    expect(proof).toContain('timeout: 30_000');
+    expect(proof.indexOf(navigation)).toBeLessThan(proof.indexOf(confirm));
+    expect(proof).toContain('await resetNavigation;');
+  });
+
   it('keeps ordinary builds keyless while production and engine gates fail closed on trust assets', () => {
     const config = readRoot('frontend/apps/web/vite.config.ts');
     const testWorkflow = readRoot('dagger/src/index.ts');

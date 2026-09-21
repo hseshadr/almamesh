@@ -68,8 +68,12 @@ try {
 
   await page.goto(`${baseUrl}/settings/preferences`, { waitUntil: 'networkidle' });
   await page.getByTestId('reset-start-fresh').click();
+  const resetNavigation = page.waitForURL(`${baseUrl}/`, {
+    waitUntil: 'domcontentloaded',
+    timeout: 30_000,
+  });
   await page.getByTestId('reset-confirm').click();
-  await page.waitForURL(`${baseUrl}/`, { timeout: 15_000 });
+  await resetNavigation;
 
   if (backup.format !== 'almamesh-backup' || backup.formatVersion !== 1) {
     throw new Error('Backup envelope contract failed');
