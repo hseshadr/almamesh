@@ -3,7 +3,7 @@ import { render, screen, fireEvent, within } from '@testing-library/react';
 import type { VedicInterpretation } from '@almamesh/shared-types';
 
 import '../../../../i18n/config';
-import { DashboardInterpretation } from '../DashboardInterpretation';
+import { DashboardCurrentTimeline, DashboardInterpretation } from '../DashboardInterpretation';
 
 /**
  * A SYNTHETIC full reading — no real birth data. Every persona carries a
@@ -80,7 +80,9 @@ describe('DashboardInterpretation', () => {
     expect(screen.getByTestId('dashboard-guidance-spiritual')).toBeTruthy();
     expect(screen.getByTestId('dashboard-guidance-life_evolution')).toBeTruthy();
     expect(screen.getByTestId('dashboard-guidance-remedial')).toBeTruthy();
-    expect(screen.getByTestId('dashboard-road-ahead')).toBeTruthy();
+    // Time-sensitive Road Ahead content is rendered by DashboardCurrentTimeline,
+    // never inside the stable natal reading.
+    expect(screen.queryByTestId('dashboard-road-ahead')).toBeNull();
   });
 
   it('starts every collapsible closed (trigger aria-expanded=false)', () => {
@@ -132,22 +134,22 @@ describe('DashboardInterpretation', () => {
     expect(screen.queryByText('A rare uplifting pattern.')).toBeNull();
   });
 
-  it('shows a quiet "deepening" affordance while an upgrade streams over the visible reading', () => {
-    const { rerender } = render(
-      <DashboardInterpretation
-        interpretation={minimalInterpretation()}
-        audience="you"
-        deepeningWithTiming
-      />,
-    );
-    expect(screen.getByTestId('dashboard-deepening-notice')).toBeTruthy();
-
-    rerender(<DashboardInterpretation interpretation={minimalInterpretation()} audience="you" />);
-    expect(screen.queryByTestId('dashboard-deepening-notice')).toBeNull();
+  it('does not render legacy timing fields as part of the stable natal reading', () => {
+    render(<DashboardInterpretation interpretation={fullInterpretation()} audience="you" />);
+    expect(screen.queryByTestId('dashboard-current-sky')).toBeNull();
+    expect(screen.queryByTestId('dashboard-road-ahead')).toBeNull();
   });
 
-  it('renders the current_sky section prominently, always visible (not collapsed), when populated', () => {
-    render(<DashboardInterpretation interpretation={fullInterpretation()} audience="you" />);
+  it('renders the independent current timeline prominently with its provenance caption', () => {
+    const interpretation = fullInterpretation();
+    render(
+      <DashboardCurrentTimeline
+        currentSky={interpretation.current_sky ?? []}
+        upcomingPeriods={interpretation.upcoming_periods ?? []}
+        audience="you"
+        caption="Timeline generated Sep 21, 2026"
+      />,
+    );
 
     const currentSky = screen.getByTestId('dashboard-current-sky');
     expect(currentSky).toBeTruthy();
@@ -155,35 +157,18 @@ describe('DashboardInterpretation', () => {
     expect(screen.getByText('A steady, building phase.')).toBeTruthy();
     // Not a collapsible: no toggle button inside it.
     expect(within(currentSky).queryByRole('button')).toBeNull();
+    expect(screen.getByTestId('dashboard-road-ahead')).toBeTruthy();
+    expect(screen.getByTestId('timeline-provenance').textContent).toContain('Sep 21, 2026');
   });
 
-  it('omits the current_sky section when null (honesty fence: never invent timing)', () => {
+  it('omits the independent timeline when both timing sections are empty', () => {
     render(
-      <DashboardInterpretation
-        interpretation={{ ...fullInterpretation(), current_sky: null }}
+      <DashboardCurrentTimeline
+        currentSky={[]}
+        upcomingPeriods={[]}
         audience="you"
       />,
     );
-    expect(screen.queryByTestId('dashboard-current-sky')).toBeNull();
-  });
-
-  it('omits the current_sky section when the array is empty', () => {
-    render(
-      <DashboardInterpretation
-        interpretation={{ ...fullInterpretation(), current_sky: [] }}
-        audience="you"
-      />,
-    );
-    expect(screen.queryByTestId('dashboard-current-sky')).toBeNull();
-  });
-
-  it('shows the "Enriched with your current timing" caption only when predictiveAware', () => {
-    const { rerender } = render(
-      <DashboardInterpretation interpretation={fullInterpretation()} audience="you" predictiveAware />,
-    );
-    expect(screen.getByTestId('dashboard-enriched-caption')).toBeTruthy();
-
-    rerender(<DashboardInterpretation interpretation={fullInterpretation()} audience="you" />);
-    expect(screen.queryByTestId('dashboard-enriched-caption')).toBeNull();
+    expect(screen.queryByTestId('current-timeline-section')).toBeNull();
   });
 });

@@ -44,9 +44,8 @@ const execFileAsync = promisify(execFile);
  *      "no reading yet" note rather than silently deleted, and that the document
  *      never shrinks below its measured 26-page baseline.
  *
- * A fourth test covers the stale-status regression: a complete natal-only
- * reading beside a `ready` predictive slice (the combination that downgrades the
- * reading's status to 'idle') must still print its narrative in the PDF.
+ * A fourth test covers stable natal export: a complete natal-only reading beside
+ * refreshed predictive facts must still print its narrative in the PDF.
  *
  * The proof case is the reference native: Bengaluru, India, 08 Aug 1988, 06:44 IST.
  * The lagna sits on the Cancer / Leo cusp:
@@ -70,6 +69,7 @@ const EN_REPORT_CATALOG = resolve(HERE, '../src/locales/en/report.json');
 const SYNTHETIC_PROFILE_ID = 'report-pdf-maximal-profile';
 const SYNTHETIC_CHART_ID = 'report-pdf-maximal-chart';
 const SYNTHETIC_EVENT_COUNT = 18;
+const NATAL_REPORT_SENTINEL = 'Stable natal browser-download sentinel';
 const CURRENT_SKY_SENTINEL = 'Current sky browser-download sentinel';
 const TRANSIT_REFERENCE_TIME = '2026-07-11T12:00:00Z';
 
@@ -280,12 +280,9 @@ const SYNTHETIC_VARGA_CONTEXT: VargaCtxFull = {
  * The stored reading seeded beside the synthetic chart.
  *
  * `staleNatalOnly` reproduces the reported production case: the reading is
- * natal-only, so its provenance key is `null`, which the interpretation store
- * treats as current ONLY while no predictive facts exist. Seeded next to a
- * `ready` predictive slice carrying `rawContexts`, the reading's status is
- * downgraded to 'idle' — exactly the condition the export used to gate on.
- * Otherwise the reading is keyed to the current predictive request and stays
- * complete on every code path.
+ * natal-only and remains stable when predictive facts change. The ordinary
+ * maximal fixture also carries a separately dated current timeline, matching
+ * the v6 production shape; report/PDF export must keep that timeline separate.
  */
 function syntheticInterpretationEntry(requestKey: string, staleNatalOnly: boolean) {
   const base = {
@@ -318,32 +315,40 @@ function syntheticInterpretationEntry(requestKey: string, staleNatalOnly: boolea
   }
   return {
     ...base,
-    sections: { current_sky: true },
-    inputProvenance: { predictiveRequestKey: requestKey },
+    sections: { summary: true },
+    inputProvenance: { predictiveRequestKey: null },
     interpretation: {
       summary: {
-        layman: 'A synthetic maximal-report reading.',
-        technical: 'A synthetic maximal-report reading.',
+        layman: NATAL_REPORT_SENTINEL,
+        technical: NATAL_REPORT_SENTINEL,
       },
       strengths: [],
       challenges: [],
       life_themes: [],
-      current_sky: [
-        {
-          title: 'Jupiter transit',
-          layman: CURRENT_SKY_SENTINEL,
-          technical: CURRENT_SKY_SENTINEL,
-        },
-      ],
+    },
+    timeline: {
+      status: 'complete',
+      updatedAt: '2026-07-11T12:00:00Z',
+      inputProvenance: { predictiveRequestKey: requestKey },
+      sections: { current_sky: true },
+      content: {
+        upcoming_periods: null,
+        current_sky: [
+          {
+            title: 'Jupiter transit',
+            layman: CURRENT_SKY_SENTINEL,
+            technical: CURRENT_SKY_SENTINEL,
+          },
+        ],
+      },
     },
   };
 }
 
 interface MaximalSeedOptions {
   /**
-   * Seed the PRODUCTION staleness case instead of the all-current one: a
-   * natal-only reading (`predictiveRequestKey: null`) beside a `ready`
-   * predictive slice that carries `rawContexts`. See
+   * Seed a natal-only reading (`predictiveRequestKey: null`) beside a `ready`
+   * predictive slice that carries refreshed `rawContexts`. See
    * `syntheticInterpretationEntry` and `RAW_PREDICTIVE_CONTEXTS`.
    */
   readonly staleNatalOnlyReading?: boolean;
@@ -519,7 +524,7 @@ async function seedSyntheticMaximalReport(
             [SYNTHETIC_CHART_ID]: syntheticInterpretationEntry(requestKey, staleNatalOnly),
           },
         },
-        version: 5,
+        version: 6,
       }),
     ],
     [
@@ -1418,7 +1423,7 @@ test('REAL onboarding -> rectify -> offline reload -> predictive PDF is correct'
   expect(errors, `console errors during the full journey:\n${errors.join('\n')}`).toEqual([]);
 });
 
-test('synthetic maximal state -> real browser download preserves every report family', async ({
+test('synthetic maximal state -> real browser download preserves report families without the separate timeline', async ({
   page,
 }) => {
   test.setTimeout(120_000);
@@ -1505,28 +1510,27 @@ test('synthetic maximal state -> real browser download preserves every report fa
     'accepted the maximal browser sentinel role',
     'final yoga sentinel',
     'final paginated event sentinel',
-    CURRENT_SKY_SENTINEL.toLowerCase(),
+    NATAL_REPORT_SENTINEL.toLowerCase(),
     '08:15',
     'timed to the sub-sub-period',
   ]) {
     expect(pdfText, `downloaded maximal PDF is missing ${sentinel}`).toContain(sentinel);
   }
+  expect(
+    pdfText,
+    'the independently dated current timeline must remain dashboard-only',
+  ).not.toContain(CURRENT_SKY_SENTINEL.toLowerCase());
 });
 
-test('a natal-only reading gone stale still prints its narrative in the downloaded PDF', async ({
+test('a natal-only reading still prints after predictive facts refresh', async ({
   page,
 }) => {
   test.setTimeout(120_000);
   await mkdir(OUT_DIR, { recursive: true });
 
-  // THE REPORTED BUG. Seed a stored chart plus a COMPLETE natal-only reading
-  // (`inputProvenance.predictiveRequestKey: null`) beside a `ready` predictive
-  // slice carrying `rawContexts`. That is production, exactly: the moment the
-  // predictive layer computes, a natal-only reading stops being "input-current"
-  // and its status drops to 'idle'. The dashboard kept rendering the reading
-  // from the permissive value while the export — gated on `status === 'complete'`
-  // — dropped the whole Interpretation section without a word. `rawContexts` is
-  // the load-bearing part of this fixture; remove it and the bug cannot fire.
+  // Seed a stored chart plus a complete natal-only reading beside a refreshed
+  // predictive slice carrying raw contexts. The stable reading must remain in
+  // the report; changing current timing facts no longer invalidates natal prose.
   await seedSyntheticMaximalReport(page, { staleNatalOnlyReading: true });
   await page.goto('/report?mode=astrologer', { waitUntil: 'domcontentloaded' });
 

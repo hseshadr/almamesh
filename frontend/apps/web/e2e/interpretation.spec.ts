@@ -38,7 +38,14 @@ const LLM_CONFIG = {
 // The structured generator embeds a `SECTION:<key>` marker in each request body,
 // so the route picks the right canned JSON by reading request.postData().
 // ---------------------------------------------------------------------------
-type SectionKey = 'core' | 'yoga' | 'guidance1' | 'guidance2' | 'remedial';
+type SectionKey =
+  | 'core'
+  | 'yoga'
+  | 'guidance1'
+  | 'guidance2'
+  | 'remedial'
+  | 'upcoming_periods'
+  | 'current_sky';
 
 const SECTION_JSON: Record<SectionKey, unknown> = {
   core: {
@@ -73,6 +80,16 @@ const SECTION_JSON: Record<SectionKey, unknown> = {
   remedial: {
     remedial_measures: { layman: 'Meditate and journal.', technical: 'Universal practices.' },
   },
+  upcoming_periods: {
+    upcoming_periods: [
+      { title: 'Next chapter', layman: 'Plan deliberately.', technical: 'Dasha timing.' },
+    ],
+  },
+  current_sky: {
+    current_sky: [
+      { title: 'Current sky', layman: 'Pause before acting.', technical: 'Transit timing.' },
+    ],
+  },
 };
 
 function sectionFor(body: string | null): SectionKey | null {
@@ -89,8 +106,17 @@ function sectionFor(body: string | null): SectionKey | null {
  * the request asked for. The structured generator POSTs to
  * `<apiBase>/chat/completions` (here openrouter.ai/api/v1/chat/completions).
  */
-async function stubLlm(page: Page): Promise<() => number> {
+interface StubLlmControl {
+  readonly providerCalls: () => number;
+  readonly requestedSections: () => readonly SectionKey[];
+  readonly holdRequests: () => () => void;
+}
+
+async function stubLlm(page: Page): Promise<StubLlmControl> {
   let providerCalls = 0;
+  const requestedSections: SectionKey[] = [];
+  let held: Promise<void> | null = null;
+  let releaseHeld: (() => void) | null = null;
   await page.route('**/chat/completions', async (route) => {
     providerCalls += 1;
     const body = route.request().postData();
@@ -99,6 +125,8 @@ async function stubLlm(page: Page): Promise<() => number> {
       // Unknown request — fail it so a missing marker is visible, not silent.
       return route.fulfill({ status: 400, body: 'no SECTION marker' });
     }
+    requestedSections.push(section);
+    if (held) await held;
     const content = JSON.stringify(SECTION_JSON[section]);
     const openAiBody = JSON.stringify({ choices: [{ message: { content } }] });
     return route.fulfill({
@@ -107,7 +135,20 @@ async function stubLlm(page: Page): Promise<() => number> {
       body: openAiBody,
     });
   });
-  return () => providerCalls;
+  return {
+    providerCalls: () => providerCalls,
+    requestedSections: () => requestedSections,
+    holdRequests: () => {
+      held = new Promise<void>((resolve) => {
+        releaseHeld = resolve;
+      });
+      return () => {
+        releaseHeld?.();
+        held = null;
+        releaseHeld = null;
+      };
+    },
+  };
 }
 
 const SEEDED_CHART_ID = 'interp-delhi-1990';
@@ -241,7 +282,16 @@ test('[contract/stubbed] interpretation populates from the stubbed LLM on the da
     },
     [LLM_SETTINGS_KEY, JSON.stringify(LLM_CONFIG)] as const,
   );
-  const providerCalls = await stubLlm(page);
+  const llm = await stubLlm(page);
+  // Observe the browser through Chrome DevTools Protocol as well as Playwright's
+  // route layer. This catches an accidental provider request even if its body
+  // no longer matches the section stub.
+  const cdp = await page.context().newCDPSession(page);
+  const cdpProviderRequests: string[] = [];
+  await cdp.send('Network.enable');
+  cdp.on('Network.requestWillBeSent', ({ request }) => {
+    if (request.url.includes('/chat/completions')) cdpProviderRequests.push(request.url);
+  });
 
   await bootEngine(page);
   const seeded = await seedChart(page);
@@ -252,7 +302,8 @@ test('[contract/stubbed] interpretation populates from the stubbed LLM on the da
   await page.setViewportSize({ width: 390, height: 844 });
   const generate = page.getByTestId('generate-reading');
   await expect(generate).toBeVisible();
-  expect(providerCalls(), 'mounting the dashboard must not spend a provider request').toBe(0);
+  expect(llm.providerCalls(), 'mounting the dashboard must not spend a provider request').toBe(0);
+  expect(cdpProviderRequests, 'CDP must observe no automatic provider request').toHaveLength(0);
   const bounds = await generate.boundingBox();
   expect(bounds).not.toBeNull();
   expect(bounds?.x ?? -1).toBeGreaterThanOrEqual(0);
@@ -284,6 +335,37 @@ test('[contract/stubbed] interpretation populates from the stubbed LLM on the da
   // 'interpretation-progress') is only shown while generating; once complete it
   // disappears and the real reading shows.
   await expect(page.getByTestId('interpretation-progress')).toHaveCount(0);
+  expect(llm.requestedSections()).toEqual([
+    'core',
+    'yoga',
+    'guidance1',
+    'guidance2',
+    'remedial',
+  ]);
+
+  // Regression: regenerating a retained reading must show the full progress
+  // card, not only the tiny button spinner. Hold the provider replies long
+  // enough to inspect the in-flight UI while the previous prose stays visible.
+  const releaseRegeneration = llm.holdRequests();
+  await page.getByTestId('regenerate-reading').click();
+  await expect(page.getByTestId('interpretation-progress')).toBeVisible();
+  await expect(summary).toBeVisible();
+  releaseRegeneration();
+  await expect(page.getByTestId('interpretation-progress')).toHaveCount(0, {
+    timeout: 60_000,
+  });
+  expect(llm.requestedSections()).toEqual([
+    'core',
+    'yoga',
+    'guidance1',
+    'guidance2',
+    'remedial',
+    'core',
+    'yoga',
+    'guidance1',
+    'guidance2',
+    'remedial',
+  ]);
 
   // The "no interpretation" empty-state must NOT be present.
   await expect(page.getByText('Interpretation data not available')).toHaveCount(0);
@@ -325,6 +407,41 @@ test('[contract/stubbed] interpretation populates from the stubbed LLM on the da
     path: 'test-results/interpretation-populated.png',
     fullPage: true,
   });
+});
+
+// ===========================================================================
+// Test 1a — current timing is a separate, explicit two-section generation.
+// ===========================================================================
+test('current timeline is generated only by its explicit control', async ({ page }) => {
+  await page.addInitScript(
+    ([key, cfg]) => {
+      window.localStorage.setItem(key as string, cfg as string);
+    },
+    [LLM_SETTINGS_KEY, JSON.stringify(LLM_CONFIG)] as const,
+  );
+  const llm = await stubLlm(page);
+
+  await bootEngine(page);
+  await seedChart(page);
+  await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
+
+  const generateTimeline = page.getByTestId('generate-timeline');
+  await expect(generateTimeline).toBeVisible({ timeout: 60_000 });
+  expect(llm.providerCalls(), 'a dashboard visit must not refresh the timeline').toBe(0);
+
+  // Life Atlas computes the deterministic current facts locally. The explicit
+  // action is enabled after that token-free input settles.
+  await expect(generateTimeline).toBeEnabled({ timeout: 90_000 });
+  const releaseTimeline = llm.holdRequests();
+  await generateTimeline.click();
+  await expect(page.getByTestId('timeline-progress')).toBeVisible({ timeout: 120_000 });
+  await expect(page.getByTestId('interpretation-progress')).toHaveCount(0);
+  releaseTimeline();
+
+  await expect(page.getByTestId('current-timeline-section')).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByTestId('dashboard-current-sky')).toContainText('Pause before acting.');
+  expect(llm.requestedSections()).toEqual(['upcoming_periods', 'current_sky']);
+  await expect(page.getByTestId('generate-reading')).toBeVisible();
 });
 
 // ===========================================================================

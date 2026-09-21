@@ -83,6 +83,34 @@ describe('ReportView', () => {
     expect(screen.getByTestId('report-footer')).toBeTruthy();
   });
 
+  it('does not flatten the independently dated current timeline into the report or PDF', async () => {
+    seed();
+    void useInterpretationStore.getState().setCurrentTimeline(
+      'chart-1',
+      {
+        upcoming_periods: [
+          { title: 'STALE ROAD AHEAD', layman: 'Old timing prose.', technical: 'Old timing.' },
+        ],
+        current_sky: [
+          { title: 'STALE CURRENT SKY', layman: 'Old sky prose.', technical: 'Old sky.' },
+        ],
+      },
+      '2025-01-01T00:00:00Z',
+    );
+
+    renderReport('astrologer');
+
+    expect(screen.queryByText('STALE ROAD AHEAD')).toBeNull();
+    expect(screen.queryByText('STALE CURRENT SKY')).toBeNull();
+
+    fireEvent.click(screen.getByTestId('report-download-pdf'));
+    await waitFor(() => expect(downloadReportPdf).toHaveBeenCalled());
+    const [input] = vi.mocked(downloadReportPdf).mock.calls.at(-1)!;
+    expect(input).not.toHaveProperty('timeline');
+    expect(JSON.stringify(input)).not.toContain('STALE ROAD AHEAD');
+    expect(JSON.stringify(input)).not.toContain('STALE CURRENT SKY');
+  });
+
   it('renders legacy yogas without percentages when the fixture omits strength_pct', () => {
     seed();
     renderReport('astrologer');

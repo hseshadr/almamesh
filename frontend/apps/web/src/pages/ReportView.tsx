@@ -200,6 +200,10 @@ export default function ReportView(): ReactElement {
   // computes. That extra gate is what silently dropped the narrative from the
   // report and the PDF while the dashboard went on showing it. Display and
   // export now read the same field, so they cannot disagree.
+  // Time-sensitive AI prose stays on the dashboard where its independent
+  // generated/as-of date is visible. The report uses stable natal prose plus
+  // its deterministic predictive sections; it never makes an old timeline
+  // look current by flattening away that date.
   const readyInterpretation = interpretation;
 
   const birth = storedChart.birth_data as ProcessedBirthData | undefined;

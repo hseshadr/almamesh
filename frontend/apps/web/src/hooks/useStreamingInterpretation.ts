@@ -24,7 +24,9 @@ import {
   configProvenance,
   PrivacyViolationError,
   resolveProviderConfig,
-  streamStructuredInterpretation,
+  streamCurrentTimeline,
+  streamNatalInterpretation,
+  type CurrentTimelineSectionKey,
   type InterpretationSectionKey,
   type LlmEnv,
   type ProviderConfig,
@@ -37,6 +39,7 @@ import {
   usePredictiveStore,
   predictiveRequestKey,
   type CachedPredictiveContexts,
+  type CurrentTimelineContent,
   type InterpretationErrorKind,
   type InterpretationInputProvenance,
   type InterpretationStatus,
@@ -56,6 +59,10 @@ export const INTERPRETATION_SECTIONS: readonly InterpretationSectionKey[] = [
   'guidance1',
   'guidance2',
   'remedial',
+];
+
+export const CURRENT_TIMELINE_SECTIONS: readonly CurrentTimelineSectionKey[] = [
+  'upcoming_periods',
   'current_sky',
 ];
 
@@ -78,6 +85,8 @@ export interface StreamInterpretationOptions {
 export interface UseStreamingInterpretationResult {
   /** Begin (or restart) generation for a chart; resolves when done/aborted. */
   streamInterpretation: (chartId: string, options: StreamInterpretationOptions) => Promise<void>;
+  /** Explicitly refresh the date-sensitive timeline; never called on mount/day rollover. */
+  streamCurrentTimeline: (chartId: string, options: StreamInterpretationOptions) => Promise<void>;
   /** The finished structured reading for the active chart, if complete. */
   interpretation: VedicInterpretation | undefined;
   /**
@@ -104,10 +113,19 @@ export interface UseStreamingInterpretationResult {
   errorKind: InterpretationErrorKind | null;
   /** True while a generation is in flight. */
   isStreaming: boolean;
+  /** Independently persisted time-sensitive narration. */
+  currentTimeline: CurrentTimelineContent | undefined;
+  timelineStatus: InterpretationStatus;
+  timelineSections: readonly SectionProgress[];
+  failedTimelineSections: readonly CurrentTimelineSectionKey[];
+  timelineError: string | null;
+  timelineErrorKind: InterpretationErrorKind | null;
+  isTimelineStreaming: boolean;
   /** Drop the active chart's interpretation entry. */
   reset: () => void;
   /** Abort the in-flight generation. */
   cancel: () => void;
+  cancelCurrentTimeline: () => void;
 }
 
 /**
@@ -174,24 +192,28 @@ function expectedPredictiveKey(chartId: string | null): string | null {
 }
 
 /**
- * Whether an explicitly requested narration has current predictive input.
- *
- * An unpublished predictive request preserves the historical natal-only path.
- * Once a request identity exists, however, a stale key or an in-flight current
- * key must settle before a paid request: otherwise narration can snapshot
- * natal-only provenance between `loading` and `ready`. A settled error still
- * permits the explicit fail-open natal-only behavior.
+ * Whether the separate current timeline has exact-day deterministic inputs.
+ * Paid timeline narration never fails open to a natal-only chart: that would
+ * spend the user's provider tokens on prose that cannot describe the current
+ * sky honestly.
  */
-export function isNarrationInputSettled(chartId: string | null): boolean {
+export type CurrentTimelineInputState = 'pending' | 'ready' | 'error';
+
+export function currentTimelineInputState(chartId: string | null): CurrentTimelineInputState {
   const expectedRequest = expectedPredictiveKey(chartId);
-  const { requestKey, status } = usePredictiveStore.getState();
-  if (expectedRequest === null || requestKey === undefined) {
-    return true;
+  const { profileKey, rawContexts, requestKey, status } = usePredictiveStore.getState();
+  if (expectedRequest === null) {
+    return 'error';
   }
-  if (requestKey !== expectedRequest) {
-    return false;
+  if (requestKey === expectedRequest && status === 'error') {
+    return 'error';
   }
-  return status !== 'loading';
+  return requestKey === expectedRequest &&
+    profileKey === predictiveProfileKey(chartId) &&
+    status === 'ready' &&
+    rawContexts !== undefined
+    ? 'ready'
+    : 'pending';
 }
 
 /** Return predictive facts only when every identity and readiness guard agrees. */
@@ -221,39 +243,20 @@ function narrationInput(chart: SiderealChart, chartId: string | null): Narration
   };
 }
 
-/**
- * True only when a persisted reading's deterministic inputs are still valid.
- * Legacy entries fail closed because they may contain unkeyed predictive prose.
- */
+/** Stable natal prose no longer expires when the predictive day changes. */
 export function isInterpretationInputCurrent(
   provenance: InterpretationInputProvenance | undefined,
-  chartId: string | null,
+  _chartId: string | null,
 ): boolean {
-  if (!provenance) {
-    return false;
-  }
-  if (provenance.predictiveRequestKey === null) {
-    return currentPredictiveFacts(chartId) === null;
-  }
-  return provenance.predictiveRequestKey === expectedPredictiveKey(chartId);
+  return provenance?.predictiveRequestKey !== undefined;
 }
 
-/**
- * Whether persisted prose is honest to keep on screen while fresher narration
- * is attempted. Natal-only prose remains valid natal interpretation; an exact
- * predictive reading is display-safe only for its own current request key.
- */
+/** Natal prose is always safe to display; timing now lives in its own artifact. */
 export function isInterpretationInputSafeToDisplay(
-  provenance: InterpretationInputProvenance | undefined,
-  chartId: string | null,
+  _provenance: InterpretationInputProvenance | undefined,
+  _chartId: string | null,
 ): boolean {
-  if (!provenance) {
-    return false;
-  }
-  return (
-    provenance.predictiveRequestKey === null ||
-    provenance.predictiveRequestKey === expectedPredictiveKey(chartId)
-  );
+  return true;
 }
 
 /** Read a complete interpretation only when its deterministic inputs are current. */
@@ -264,10 +267,7 @@ export function currentInterpretationForChart(
     return undefined;
   }
   const entry = useInterpretationStore.getState().getEntry(chartId);
-  if (
-    entry?.status !== 'complete' ||
-    !isInterpretationInputCurrent(entry.inputProvenance, chartId)
-  ) {
+  if (entry?.status !== 'complete') {
     return undefined;
   }
   return entry.interpretation;
@@ -281,9 +281,7 @@ export function displayInterpretationForChart(
     return undefined;
   }
   const entry = useInterpretationStore.getState().getEntry(chartId);
-  return isInterpretationInputSafeToDisplay(entry?.inputProvenance, chartId)
-    ? entry?.interpretation
-    : undefined;
+  return entry?.interpretation;
 }
 
 /**
@@ -365,6 +363,15 @@ export function useStreamingInterpretation(chartId?: string | null): UseStreamin
   const setInterpretation = useInterpretationStore((s) => s.setInterpretation);
   const setEvidenceAnnotations = useInterpretationStore((s) => s.setEvidenceAnnotations);
   const setError = useInterpretationStore((s) => s.setError);
+  const startCurrentTimeline = useInterpretationStore((s) => s.startCurrentTimeline);
+  const markCurrentTimelineSectionComplete = useInterpretationStore(
+    (s) => s.markCurrentTimelineSectionComplete,
+  );
+  const markCurrentTimelineSectionFailed = useInterpretationStore(
+    (s) => s.markCurrentTimelineSectionFailed,
+  );
+  const setCurrentTimeline = useInterpretationStore((s) => s.setCurrentTimeline);
+  const setCurrentTimelineError = useInterpretationStore((s) => s.setCurrentTimelineError);
   const resetEntry = useInterpretationStore((s) => s.reset);
 
   // The persisted UI language threads into the prompt so the reading is narrated
@@ -373,16 +380,22 @@ export function useStreamingInterpretation(chartId?: string | null): UseStreamin
   const language = useLanguageStore((s) => s.language);
 
   const abortControllerRef = useRef<AbortController | null>(null);
+  const timelineAbortControllerRef = useRef<AbortController | null>(null);
   // `setInterpretation` publishes to the zustand store synchronously but its
   // Promise resolves only after the IndexedDB snapshot commits. Keep that new
   // reading behind a local durability gate so a user-visible completion can
   // never be followed immediately by a hard reload that loses the prose.
   const [durabilityPendingRun, setDurabilityPendingRun] = useState<number | null>(null);
+  const [timelineDurabilityPendingRun, setTimelineDurabilityPendingRun] = useState<number | null>(null);
 
   const reset = useCallback(() => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
+    }
+    if (timelineAbortControllerRef.current) {
+      timelineAbortControllerRef.current.abort();
+      timelineAbortControllerRef.current = null;
     }
     if (chartId) {
       resetEntry(chartId);
@@ -393,6 +406,13 @@ export function useStreamingInterpretation(chartId?: string | null): UseStreamin
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
+    }
+  }, []);
+
+  const cancelCurrentTimeline = useCallback(() => {
+    if (timelineAbortControllerRef.current) {
+      timelineAbortControllerRef.current.abort();
+      timelineAbortControllerRef.current = null;
     }
   }, []);
 
@@ -415,27 +435,16 @@ export function useStreamingInterpretation(chartId?: string | null): UseStreamin
       }
 
       const config = resolveInterpretationConfig();
-      // Compose the persisted raw predictive contexts (when ready AND
-      // identity-current for this profile) so the section prompts carry the
-      // delimited engine predictive block; absent or stale contexts → natal-only,
-      // exactly as before. `predictiveAware` is DERIVED from the identity-keyed
-      // input provenance — a non-null `predictiveRequestKey` means the full
-      // predictive superset was composed into THIS reading — and is stamped onto
-      // the reading's provenance below as the single source of truth gating the
-      // one-shot enrich-when-ready upgrade (Spec 065).
-      const input = narrationInput(chart, id);
-      const predictiveAware = input.provenance.predictiveRequestKey !== null;
-
       const controller = new AbortController();
       abortControllerRef.current = controller;
 
-      const runToken = startInterpretation(id);
+      const runToken = startInterpretation(id, stored.profile_id);
       // Whether the reading itself landed. Gates the annotation step below: a run
       // that errored or was cancelled has nothing to annotate.
       let readingCompleted = false;
       try {
-        for await (const event of streamStructuredInterpretation({
-          chart: input.chart,
+        for await (const event of streamNatalInterpretation({
+          chart,
           config,
           mode: options.view_mode === 'expert' ? 'expert' : 'layman',
           language,
@@ -463,8 +472,8 @@ export function useStreamingInterpretation(chartId?: string | null): UseStreamin
               id,
               event.interpretation,
               new Date().toISOString(),
-              { ...configProvenance(config), predictiveAware },
-              input.provenance,
+              { ...configProvenance(config), predictiveAware: false },
+              { predictiveRequestKey: null },
               runToken,
             );
             setDurabilityPendingRun((pending) => pending === runToken ? null : pending);
@@ -493,7 +502,7 @@ export function useStreamingInterpretation(chartId?: string | null): UseStreamin
         return;
       }
       const annotations = await fetchEvidenceAnnotations({
-        chart: input.chart,
+        chart,
         config,
         language,
         signal: controller.signal,
@@ -513,17 +522,90 @@ export function useStreamingInterpretation(chartId?: string | null): UseStreamin
     ]
   );
 
-  const resolvedChartId = chartId ?? null;
-  const inputIsCurrent = isInterpretationInputCurrent(entry?.inputProvenance, resolvedChartId);
-  const inputIsSafeToDisplay = isInterpretationInputSafeToDisplay(
-    entry?.inputProvenance,
-    resolvedChartId,
+  const streamTimeline = useCallback(
+    async (id: string, options: StreamInterpretationOptions) => {
+      if (options.intent !== 'user-request') return;
+      const stored = useChartLibraryStore.getState().getChart(id);
+      const chart = stored?.sidereal_chart;
+      if (!chart) {
+        startCurrentTimeline(id, stored?.profile_id);
+        setCurrentTimelineError(
+          id,
+          'This chart needs to be regenerated before its current timeline can be interpreted.',
+          'needs_regeneration',
+        );
+        return;
+      }
+
+      const predictive = currentPredictiveFacts(id);
+      if (predictive === null) {
+        startCurrentTimeline(id, stored.profile_id);
+        setCurrentTimelineError(
+          id,
+          'Current timing facts are not ready. Retry after Sky & Timing finishes.',
+          'unknown',
+        );
+        return;
+      }
+      const input: NarrationInput = {
+        chart: { ...chart, ...predictive.rawContexts },
+        provenance: { predictiveRequestKey: predictive.requestKey },
+      };
+      const config = resolveInterpretationConfig();
+      const controller = new AbortController();
+      timelineAbortControllerRef.current = controller;
+      const runToken = startCurrentTimeline(id, stored.profile_id);
+
+      try {
+        for await (const event of streamCurrentTimeline({
+          chart: input.chart,
+          config,
+          mode: options.view_mode === 'expert' ? 'expert' : 'layman',
+          language,
+          signal: controller.signal,
+        })) {
+          if (controller.signal.aborted) return;
+          if (event.type === 'section_complete') {
+            markCurrentTimelineSectionComplete(id, event.section, runToken);
+          } else if (event.type === 'error') {
+            markCurrentTimelineSectionFailed(id, event.section, runToken);
+          } else if (event.type === 'complete') {
+            setTimelineDurabilityPendingRun(runToken);
+            await setCurrentTimeline(
+              id,
+              event.timeline,
+              new Date().toISOString(),
+              { ...configProvenance(config), predictiveAware: true },
+              input.provenance,
+              runToken,
+            );
+            setTimelineDurabilityPendingRun((pending) =>
+              pending === runToken ? null : pending,
+            );
+          }
+        }
+      } catch (err) {
+        setTimelineDurabilityPendingRun((pending) => pending === runToken ? null : pending);
+        if (err instanceof Error && err.name === 'AbortError') return;
+        const failure = describeError(err);
+        setCurrentTimelineError(id, failure.message, failure.kind, runToken);
+      }
+    },
+    [
+      language,
+      markCurrentTimelineSectionComplete,
+      markCurrentTimelineSectionFailed,
+      setCurrentTimeline,
+      setCurrentTimelineError,
+      startCurrentTimeline,
+    ],
   );
+
   const storedStatus: InterpretationStatus = entry?.status ?? 'idle';
   const waitingForDurability = durabilityPendingRun !== null;
   const status: InterpretationStatus = waitingForDurability
     ? 'generating'
-    : storedStatus === 'complete' && !inputIsCurrent ? 'idle' : storedStatus;
+    : storedStatus;
   const completed = entry?.sections ?? {};
   const failed = entry?.failedSections ?? {};
   const sections: readonly SectionProgress[] = INTERPRETATION_SECTIONS.map((key) => ({
@@ -531,26 +613,45 @@ export function useStreamingInterpretation(chartId?: string | null): UseStreamin
     complete: Boolean(completed[key]),
     failed: Boolean(failed[key]),
   }));
+  const storedTimelineStatus: InterpretationStatus = entry?.timeline?.status ?? 'idle';
+  const waitingForTimelineDurability = timelineDurabilityPendingRun !== null;
+  const timelineStatus: InterpretationStatus = waitingForTimelineDurability
+    ? 'generating'
+    : storedTimelineStatus;
+  const timelineCompleted = entry?.timeline?.sections ?? {};
+  const timelineFailed = entry?.timeline?.failedSections ?? {};
+  const timelineSections: readonly SectionProgress[] = CURRENT_TIMELINE_SECTIONS.map((key) => ({
+    key,
+    complete: Boolean(timelineCompleted[key]),
+    failed: Boolean(timelineFailed[key]),
+  }));
 
   return {
     streamInterpretation,
-    interpretation: inputIsSafeToDisplay && !waitingForDurability
-      ? entry?.interpretation
-      : undefined,
+    streamCurrentTimeline: streamTimeline,
+    interpretation: !waitingForDurability ? entry?.interpretation : undefined,
     // UNVALIDATED model output, handed on deliberately raw. `buildEvidenceLedger`
     // is the single place it is ever checked against the computed chart, so
     // passing it through here cannot create a second, laxer validation site.
-    evidenceAnnotations: inputIsSafeToDisplay && !waitingForDurability
-      ? entry?.evidenceAnnotations
-      : undefined,
+    evidenceAnnotations: !waitingForDurability ? entry?.evidenceAnnotations : undefined,
     status,
     sections,
     failedSections: sections.filter((s) => s.failed).map((s) => s.key),
     error: entry?.error ?? null,
     errorKind: entry?.errorKind ?? null,
     isStreaming: status === 'generating',
+    currentTimeline: !waitingForTimelineDurability ? entry?.timeline?.content : undefined,
+    timelineStatus,
+    timelineSections,
+    failedTimelineSections: timelineSections
+      .filter((section) => section.failed)
+      .map((section) => section.key as CurrentTimelineSectionKey),
+    timelineError: entry?.timeline?.error ?? null,
+    timelineErrorKind: entry?.timeline?.errorKind ?? null,
+    isTimelineStreaming: timelineStatus === 'generating',
     reset,
     cancel,
+    cancelCurrentTimeline,
   };
 }
 

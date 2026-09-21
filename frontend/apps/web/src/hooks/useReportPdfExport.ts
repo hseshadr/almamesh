@@ -82,6 +82,10 @@ export function useReportPdfExport(audience: ReportAudience): UseReportPdfExport
   // a perfectly valid natal-only reading from the export the moment the
   // predictive layer computed and turned its status stale.
   const { interpretation, evidenceAnnotations } = useStreamingInterpretation(chartId);
+  // The current timeline is intentionally dashboard-only for now. Flattening
+  // it into the report would discard its independent generated/as-of date and
+  // could present retained timing prose as freshly generated.
+  const reportInterpretation = interpretation;
   const predictive = usePredictiveLayer();
 
   const profileId = activeProfileId ?? storedChart?.profile_id ?? null;
@@ -255,7 +259,7 @@ export function useReportPdfExport(audience: ReportAudience): UseReportPdfExport
       lagna,
       chart: { ayanamsa_value: sidereal.ayanamsa_value },
       sidereal,
-      interpretation,
+      interpretation: reportInterpretation,
       audience,
       narrativeTitles: {
         currentSky: t('interpretation.current_sky'),
@@ -308,7 +312,7 @@ export function useReportPdfExport(audience: ReportAudience): UseReportPdfExport
     storedChart,
     sidereal,
     birth,
-    interpretation,
+    reportInterpretation,
     evidenceAnnotations,
     audience,
     predictive,

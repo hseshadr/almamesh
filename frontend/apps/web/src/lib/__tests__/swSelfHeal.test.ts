@@ -26,6 +26,7 @@ function stubEnv(opts: {
   vi.stubGlobal('navigator', {
     serviceWorker: {
       controller: 'controller' in opts ? opts.controller : {},
+      getRegistration: vi.fn().mockResolvedValue({ active: { state: 'activated' } }),
       getRegistrations: vi.fn().mockResolvedValue([{ unregister }]),
     },
   });
@@ -94,6 +95,30 @@ describe('healStrandedServiceWorker', () => {
     expect(reload).not.toHaveBeenCalled();
   });
 
+  it('does not unregister when WebKit hides a healthy precache across consecutive browser tasks', async () => {
+    const healthyCaches = [...IMMUTABLE, ...RUNTIME, PRECACHE];
+    const { unregister, reload } = stubEnv({
+      cacheNames: healthyCaches,
+      cacheNameReads: [[], [], healthyCaches],
+      precacheEntries: ['https://almamesh.com/?__WB_REVISION__=abc'],
+    });
+
+    await healStrandedServiceWorker();
+
+    expect(unregister).not.toHaveBeenCalled();
+    expect(reload).not.toHaveBeenCalled();
+  });
+
+  it('does not destructively heal while WebKit temporarily hides the active registration', async () => {
+    const { unregister, reload } = stubEnv({ cacheNames: [...IMMUTABLE, ...RUNTIME] });
+    vi.mocked(navigator.serviceWorker.getRegistration).mockResolvedValue(undefined);
+
+    await healStrandedServiceWorker();
+
+    expect(unregister).not.toHaveBeenCalled();
+    expect(reload).not.toHaveBeenCalled();
+  });
+
   it('does NOTHING when no service worker controls the page', async () => {
     const { unregister, reload } = stubEnv({ controller: null, cacheNames: [...IMMUTABLE] });
     await healStrandedServiceWorker();
@@ -105,6 +130,25 @@ describe('healStrandedServiceWorker', () => {
     const { reload } = stubEnv({ cacheNames: [...IMMUTABLE, ...RUNTIME], healFlagSet: true });
     await healStrandedServiceWorker();
     expect(reload).not.toHaveBeenCalled();
+  });
+
+  it('coalesces concurrent self-heal checks into one destructive recovery', async () => {
+    vi.useFakeTimers();
+    const { unregister, reload } = stubEnv({ cacheNames: [...IMMUTABLE, ...RUNTIME] });
+
+    try {
+      const recoveries = Promise.all([
+        healStrandedServiceWorker(),
+        healStrandedServiceWorker(),
+      ]);
+      await vi.runAllTimersAsync();
+      await recoveries;
+
+      expect(unregister).toHaveBeenCalledTimes(1);
+      expect(reload).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('does not start a second recovery reload immediately after backup restore reload', async () => {

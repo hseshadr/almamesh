@@ -454,9 +454,241 @@ describe('interpretationStore — provenance + keep-old-until-success', () => {
   });
 });
 
-describe('persist v5 migration (owner attribution)', () => {
-  it('the persist version is bumped to 5', () => {
-    expect(INTERPRETATION_PERSIST_VERSION).toBe(5);
+describe('interpretationStore — independent current timeline', () => {
+  const PROVENANCE = {
+    engine: 'openai-http',
+    model: 'model-a',
+    baseUrl: 'https://openrouter.ai/api/v1',
+  } as const;
+  const TIMELINE = {
+    upcoming_periods: [
+      {
+        title: 'A dated chapter',
+        layman: 'A steady opening arrives next month.',
+        technical: 'The next antardasha begins next month.',
+      },
+    ],
+    current_sky: [
+      {
+        title: 'Active now',
+        layman: 'Focus on patient progress.',
+        technical: 'The current transit emphasizes the tenth house.',
+      },
+    ],
+  } as const;
+
+  it('a timeline run cannot mutate the saved natal reading or its timestamp', async () => {
+    const store = newStore();
+    const natal = makeInterpretation('Stable natal reading.');
+    await store
+      .getState()
+      .setInterpretation('c1', natal, '2026-07-01T00:00:00Z', PROVENANCE, {
+        predictiveRequestKey: null,
+      });
+
+    const timelineRun = store.getState().startCurrentTimeline('c1', 'profile-1');
+    store.getState().markCurrentTimelineSectionComplete('c1', 'current_sky', timelineRun);
+    await store.getState().setCurrentTimeline(
+      'c1',
+      TIMELINE,
+      '2026-07-02T00:00:00Z',
+      PROVENANCE,
+      { predictiveRequestKey: 'today-key' },
+      timelineRun,
+    );
+
+    const entry = store.getState().getEntry('c1');
+    expect(entry?.interpretation).toBe(natal);
+    expect(entry?.updatedAt).toBe('2026-07-01T00:00:00Z');
+    expect(entry?.status).toBe('complete');
+    expect(entry?.timeline).toMatchObject({
+      status: 'complete',
+      content: TIMELINE,
+      updatedAt: '2026-07-02T00:00:00Z',
+      inputProvenance: { predictiveRequestKey: 'today-key' },
+      sections: { current_sky: true },
+    });
+  });
+
+  it('a failed timeline refresh keeps both the natal reading and previous timeline', async () => {
+    const store = newStore();
+    const natal = makeInterpretation('Stable natal reading.');
+    await store
+      .getState()
+      .setInterpretation('c1', natal, '2026-07-01T00:00:00Z', PROVENANCE, {
+        predictiveRequestKey: null,
+      });
+    await store.getState().setCurrentTimeline(
+      'c1',
+      TIMELINE,
+      '2026-07-02T00:00:00Z',
+      PROVENANCE,
+      { predictiveRequestKey: 'yesterday-key' },
+    );
+
+    const run = store.getState().startCurrentTimeline('c1');
+    store.getState().setCurrentTimelineError('c1', 'provider unavailable', 'server', run);
+
+    const entry = store.getState().getEntry('c1');
+    expect(entry?.interpretation).toBe(natal);
+    expect(entry?.status).toBe('complete');
+    expect(entry?.timeline?.status).toBe('error');
+    expect(entry?.timeline?.error).toBe('provider unavailable');
+    expect(entry?.timeline?.content).toEqual(TIMELINE);
+    expect(entry?.timeline?.updatedAt).toBe('2026-07-02T00:00:00Z');
+  });
+
+  it('a natal regeneration cannot erase or update the saved current timeline', async () => {
+    const store = newStore();
+    await store.getState().setCurrentTimeline(
+      'c1',
+      TIMELINE,
+      '2026-07-02T00:00:00Z',
+      PROVENANCE,
+      { predictiveRequestKey: 'today-key' },
+    );
+
+    const before = store.getState().getEntry('c1')?.timeline;
+    const run = store.getState().startInterpretation('c1');
+    await store.getState().setInterpretation(
+      'c1',
+      makeInterpretation('Fresh natal reading.'),
+      '2026-07-03T00:00:00Z',
+      PROVENANCE,
+      { predictiveRequestKey: null },
+      run,
+    );
+
+    expect(store.getState().getEntry('c1')?.timeline).toEqual(before);
+  });
+
+  it('moves legacy combined timing fields into an independent timeline during v6 migration', () => {
+    const legacy = makeInterpretation('Legacy combined reading.');
+    legacy.upcoming_periods = [...TIMELINE.upcoming_periods];
+    legacy.current_sky = [...TIMELINE.current_sky];
+    const migrated = migrateInterpretationPersistedState(
+      {
+        byChart: {
+          c1: {
+            status: 'complete',
+            sections: { core: true, upcoming_periods: true, current_sky: true },
+            updatedAt: '2026-07-02T00:00:00Z',
+            provenance: PROVENANCE,
+            inputProvenance: { predictiveRequestKey: 'legacy-day-key' },
+            interpretation: legacy,
+          },
+        },
+      },
+      5,
+    );
+
+    const entry = migrated.byChart.c1;
+    // Older predictive-aware generators also threaded timing facts through
+    // guidance/remedies. Those fields cannot honestly be relabeled as stable
+    // natal prose, so migration keeps the extracted timeline but requires one
+    // explicit natal regeneration.
+    expect(entry?.status).toBe('idle');
+    expect(entry?.interpretation).toBeUndefined();
+    expect(entry?.inputProvenance).toBeUndefined();
+    expect(entry?.timeline).toMatchObject({
+      status: 'complete',
+      content: TIMELINE,
+      updatedAt: '2026-07-02T00:00:00Z',
+      inputProvenance: { predictiveRequestKey: 'legacy-day-key' },
+    });
+  });
+
+  it('heals an extracted saved timeline to complete when the legacy regeneration had failed', () => {
+    const legacy = makeInterpretation('Retained legacy reading.');
+    legacy.upcoming_periods = [...TIMELINE.upcoming_periods];
+    legacy.current_sky = [...TIMELINE.current_sky];
+    const migrated = migrateInterpretationPersistedState(
+      {
+        byChart: {
+          c1: {
+            status: 'error',
+            error: 'newer regeneration failed',
+            sections: { upcoming_periods: true, current_sky: true },
+            interpretation: legacy,
+          },
+        },
+      },
+      5,
+    );
+
+    expect(migrated.byChart.c1?.timeline).toMatchObject({
+      status: 'complete',
+      content: TIMELINE,
+    });
+    expect(migrated.byChart.c1?.status).toBe('idle');
+    expect(migrated.byChart.c1?.interpretation).toBeUndefined();
+  });
+
+  it('invalidates a legacy reading whose only timing leak is current_period_guidance', () => {
+    const legacy = makeInterpretation('Legacy timing-contaminated reading.');
+    legacy.current_period_guidance = {
+      current_period: 'Saturn now',
+      period_summary: 'A dated chapter.',
+      key_themes: ['timing'],
+      guidance: 'Act during this period.',
+    };
+
+    const migrated = migrateInterpretationPersistedState(
+      {
+        byChart: {
+          c1: {
+            status: 'complete',
+            sections: { core: true, guidance2: true },
+            interpretation: legacy,
+          },
+        },
+      },
+      5,
+    );
+
+    expect(migrated.byChart.c1).toMatchObject({ status: 'idle', sections: {} });
+    expect(migrated.byChart.c1?.interpretation).toBeUndefined();
+    expect(migrated.byChart.c1?.timeline).toBeUndefined();
+  });
+
+  it('invalidates contaminated natal prose without replacing an existing independent timeline', () => {
+    const legacy = makeInterpretation('Legacy timing-contaminated reading.');
+    legacy.current_period_guidance = {
+      current_period: 'Saturn now',
+      period_summary: 'A dated chapter.',
+      key_themes: ['timing'],
+      guidance: 'Act during this period.',
+    };
+    const savedTimeline = {
+      status: 'complete' as const,
+      content: TIMELINE,
+      sections: { upcoming_periods: true, current_sky: true },
+      updatedAt: '2026-07-04T00:00:00Z',
+    };
+
+    const migrated = migrateInterpretationPersistedState(
+      {
+        byChart: {
+          c1: {
+            status: 'complete',
+            sections: { core: true },
+            interpretation: legacy,
+            timeline: savedTimeline,
+          },
+        },
+      },
+      5,
+    );
+
+    expect(migrated.byChart.c1?.status).toBe('idle');
+    expect(migrated.byChart.c1?.interpretation).toBeUndefined();
+    expect(migrated.byChart.c1?.timeline).toEqual(savedTimeline);
+  });
+});
+
+describe('persist v6 migration (independent current timeline)', () => {
+  it('the persist version is bumped to 6', () => {
+    expect(INTERPRETATION_PERSIST_VERSION).toBe(6);
   });
 
   it('a v2 entry (no provenance) hydrates unchanged and still renders', () => {
@@ -509,10 +741,16 @@ describe('interpretationStore — upcoming_periods section compatibility', () =>
     expect(entry?.interpretation?.upcoming_periods).toBeUndefined();
   });
 
-  it('round-trips a reading WITH the upcoming_periods section', () => {
+  it('strips timing fields at the natal store boundary', () => {
     const store = newStore();
     const withRoadAhead: VedicInterpretation = {
       ...makeInterpretation(),
+      current_period_guidance: {
+        current_period: 'Saturn now',
+        period_summary: 'A current period summary.',
+        key_themes: ['timing'],
+        guidance: 'Wait for the current period.',
+      },
       upcoming_periods: [
         {
           title: 'Sun antardasha — 2027-01 to 2028-01',
@@ -523,10 +761,9 @@ describe('interpretationStore — upcoming_periods section compatibility', () =>
     };
     store.getState().setInterpretation('c1', withRoadAhead, '2026-06-11T00:00:00.000Z');
     const entry = store.getState().getEntry('c1');
-    expect(entry?.interpretation?.upcoming_periods).toHaveLength(1);
-    expect(entry?.interpretation?.upcoming_periods?.[0]?.title).toBe(
-      'Sun antardasha — 2027-01 to 2028-01',
-    );
+    expect(entry?.interpretation?.upcoming_periods).toBeUndefined();
+    expect(entry?.interpretation?.current_sky).toBeUndefined();
+    expect(entry?.interpretation).not.toHaveProperty('current_period_guidance');
   });
 });
 
@@ -618,8 +855,8 @@ describe('evidence annotations (optional, purely additive)', () => {
     general_guidance: ['Sleep well.'],
   };
 
-  it('stays at persist version 5 — an optional field needs no migration', () => {
-    expect(INTERPRETATION_PERSIST_VERSION).toBe(5);
+  it('keeps annotations additive while the independent-timeline migration uses v6', () => {
+    expect(INTERPRETATION_PERSIST_VERSION).toBe(6);
   });
 
   it('rehydrates an entry stored BEFORE the field existed, unchanged', () => {

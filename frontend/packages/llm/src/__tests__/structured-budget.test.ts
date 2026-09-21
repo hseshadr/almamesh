@@ -106,12 +106,16 @@ describe("buildSectionMessages — compact chart JSON (Spec 062 delta 6)", () =>
 describe("buildSectionMessages — per-section slimming over the budget", () => {
   const chart = oversizedChart();
 
-  it("slims remedial + upcoming_periods to planets + dashas + yogas", () => {
+  it("slims remedial + upcoming_periods while keeping timing only in Road Ahead", () => {
     for (const section of ["remedial", "upcoming_periods"] as const) {
       const content = userContent(section, chart);
       expect(content).toContain('"planets"');
       expect(content).toContain('"yogas"');
-      expect(content).toContain('"dashas"');
+      if (section === "upcoming_periods") {
+        expect(content).toContain('"dashas"');
+      } else {
+        expect(content).not.toContain('"dashas"');
+      }
       expect(content).not.toContain('"houses"');
       expect(content).not.toContain('"ayanamsa_value"');
       // The slimmed prompt actually fits meaningfully under the oversized one.
@@ -127,7 +131,7 @@ describe("buildSectionMessages — per-section slimming over the budget", () => 
     }
   });
 
-  it("still rides the delimited predictive block on slimmed sections", () => {
+  it("rides predictive facts only on the slimmed timeline section", () => {
     const withPredictive: SanitizedChart = {
       ...chart,
       predictive: {
@@ -139,8 +143,11 @@ describe("buildSectionMessages — per-section slimming over the budget", () => 
         },
       },
     };
-    const content = userContent("remedial", withPredictive);
-    expect(content).toContain("ENGINE PREDICTIVE CONTEXT");
-    expect(content).toContain("337");
+    const remedial = userContent("remedial", withPredictive);
+    const upcoming = userContent("upcoming_periods", withPredictive);
+    expect(remedial).not.toContain("ENGINE PREDICTIVE CONTEXT");
+    expect(remedial).not.toContain("337");
+    expect(upcoming).toContain("ENGINE PREDICTIVE CONTEXT");
+    expect(upcoming).toContain("337");
   });
 });

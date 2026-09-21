@@ -17,8 +17,12 @@
 import { create, type StateCreator } from 'zustand';
 import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware';
 
-import type { RawEvidenceAnnotationPayload, ReadingProvenance } from '@almamesh/llm';
-import type { VedicInterpretation } from '@almamesh/shared-types';
+import type {
+  NatalInterpretation,
+  RawEvidenceAnnotationPayload,
+  ReadingProvenance,
+} from '@almamesh/llm';
+import type { TitledPersona, VedicInterpretation } from '@almamesh/shared-types';
 import { deletionAwareIdbStorage } from './deletionTombstones';
 
 /** Lifecycle of a chart's interpretation generation. */
@@ -62,11 +66,30 @@ export interface InterpretationInputProvenance {
   readonly predictiveRequestKey: string | null;
 }
 
+/** The time-sensitive prose generated separately from the stable natal reading. */
+export interface CurrentTimelineContent {
+  readonly upcoming_periods: readonly TitledPersona[] | null;
+  readonly current_sky: readonly TitledPersona[] | null;
+}
+
+/** Independent lifecycle for the explicitly refreshed, date-sensitive timeline. */
+export interface CurrentTimelineEntry {
+  readonly status: InterpretationStatus;
+  readonly content?: CurrentTimelineContent;
+  readonly error?: string;
+  readonly errorKind?: InterpretationErrorKind;
+  readonly sections: Readonly<Record<string, boolean>>;
+  readonly failedSections?: Readonly<Record<string, boolean>>;
+  readonly updatedAt?: string;
+  readonly provenance?: ReadingProvenance;
+  readonly inputProvenance?: InterpretationInputProvenance;
+}
+
 /** The persisted record for a single chart's interpretation. */
 export interface ChartInterpretationEntry {
   readonly status: InterpretationStatus;
   /** The finished structured reading; present once `status === 'complete'`. */
-  readonly interpretation?: VedicInterpretation;
+  readonly interpretation?: NatalInterpretation;
   /** Failure message; present once `status === 'error'`. */
   readonly error?: string;
   /**
@@ -115,6 +138,8 @@ export interface ChartInterpretationEntry {
    * empty interpretation cell — which loses nothing deterministic.
    */
   readonly evidenceAnnotations?: RawEvidenceAnnotationPayload;
+  /** Explicitly refreshed timing prose; independent from the stable natal reading. */
+  readonly timeline?: CurrentTimelineEntry;
 }
 
 /** Ephemeral identity for one generation attempt; never persisted. */
@@ -181,6 +206,32 @@ export interface InterpretationStore {
     kind?: InterpretationErrorKind,
     runToken?: InterpretationRunToken,
   ) => void;
+  /** Begin an explicit current-timeline refresh without touching natal state. */
+  startCurrentTimeline: (chartId: string, profileId?: string) => InterpretationRunToken;
+  markCurrentTimelineSectionComplete: (
+    chartId: string,
+    section: string,
+    runToken?: InterpretationRunToken,
+  ) => void;
+  markCurrentTimelineSectionFailed: (
+    chartId: string,
+    section: string,
+    runToken?: InterpretationRunToken,
+  ) => void;
+  setCurrentTimeline: (
+    chartId: string,
+    content: CurrentTimelineContent,
+    updatedAt: string,
+    provenance?: ReadingProvenance,
+    inputProvenance?: InterpretationInputProvenance,
+    runToken?: InterpretationRunToken,
+  ) => Promise<void>;
+  setCurrentTimelineError: (
+    chartId: string,
+    error: string,
+    kind?: InterpretationErrorKind,
+    runToken?: InterpretationRunToken,
+  ) => void;
   /** Read one chart's entry, or `undefined` if none exists. */
   getEntry: (chartId: string) => ChartInterpretationEntry | undefined;
   /** Drop one chart's entry entirely. */
@@ -212,13 +263,17 @@ export const INTERPRETATION_PERSIST_NAME = 'almamesh-interpretations';
  * v5: entries may carry `profileId` ownership. Legacy ownerless readings are
  * preserved; deletion removes them only when chart/thread ownership proves
  * they belong to the deleted profile.
+ * v6: date-sensitive `upcoming_periods` + `current_sky` move out of the natal
+ * interpretation into an independent timeline lifecycle. Existing combined
+ * readings are split losslessly on hydration; the natal record becomes stable
+ * and the saved timeline remains visible until the user explicitly refreshes it.
  *
  * NOT a version: `evidenceAnnotations` is OPTIONAL and additive, so an entry
  * written before it existed hydrates byte-identical and renders a keyless
  * evidence table. A bump here would force a needless migration pass for a field
  * whose absence is already a valid, fully-supported state.
  */
-export const INTERPRETATION_PERSIST_VERSION = 5;
+export const INTERPRETATION_PERSIST_VERSION = 6;
 
 /** The slice of the store that `partialize` actually persists. */
 export interface PersistedInterpretationState {
@@ -249,12 +304,82 @@ export function migrateInterpretationPersistedState(
   }
   const normalized: Record<string, ChartInterpretationEntry> = {};
   for (const [chartId, entry] of Object.entries(byChart)) {
-    const healed = healInterruptedEntry(normalizeEntrySummary(entry));
+    const healed = healInterruptedEntry(splitLegacyTimeline(normalizeEntrySummary(entry)));
     if (healed) {
       normalized[chartId] = healed;
     }
   }
   return { byChart: normalized };
+}
+
+/** Losslessly split the pre-v6 combined reading into stable natal + timeline. */
+function splitLegacyTimeline(entry: ChartInterpretationEntry): ChartInterpretationEntry {
+  if (!isPlainRecord(entry) || !entry.interpretation) {
+    return entry;
+  }
+  // Persisted pre-v6 entries may contain any of the legacy timing fields even
+  // though the current in-memory contract is natal-only.
+  const legacyInterpretation = entry.interpretation as VedicInterpretation;
+  const { upcoming_periods, current_sky, current_period_guidance } = legacyInterpretation;
+  if (
+    upcoming_periods === undefined &&
+    current_sky === undefined &&
+    current_period_guidance === undefined
+  ) {
+    return entry;
+  }
+  const timelineSections = Object.fromEntries(
+    Object.entries(entry.sections).filter(([key]) =>
+      key === 'upcoming_periods' || key === 'current_sky'),
+  );
+  const timelineFailedSections = Object.fromEntries(
+    Object.entries(entry.failedSections ?? {}).filter(([key]) =>
+      key === 'upcoming_periods' || key === 'current_sky'),
+  );
+  // Every pre-v6 combined artifact is potentially timing-contaminated: even
+  // entries with missing or explicit-null provenance came from prompts that
+  // asked natal guidance sections to discuss the current dasha.
+  const invalidatedNatal: ChartInterpretationEntry = {
+    ...entry,
+    status: 'idle',
+    interpretation: undefined,
+    sections: {},
+    failedSections: undefined,
+    inputProvenance: undefined,
+    error: undefined,
+    errorKind: undefined,
+  };
+  // A v6 entry may already have a newer independently generated timeline.
+  // Preserve it exactly while removing any legacy timing-contaminated natal prose.
+  if (entry.timeline) {
+    return invalidatedNatal;
+  }
+  // `current_period_guidance` has no lossless mapping to the two current timeline
+  // sections. Invalidate the natal reading but do not manufacture an empty timeline.
+  if (upcoming_periods === undefined && current_sky === undefined) {
+    return invalidatedNatal;
+  }
+  return {
+    ...invalidatedNatal,
+    timeline: {
+      // Extracted content is a previously completed artifact even when a newer
+      // combined regeneration was interrupted or failed.
+      status: 'complete',
+      content: {
+        upcoming_periods: upcoming_periods ?? null,
+        current_sky: current_sky ?? null,
+      },
+      sections: timelineSections,
+      ...(Object.keys(timelineFailedSections).length > 0
+        ? { failedSections: timelineFailedSections }
+        : {}),
+      ...(entry.updatedAt !== undefined ? { updatedAt: entry.updatedAt } : {}),
+      ...(entry.provenance !== undefined ? { provenance: entry.provenance } : {}),
+      ...(entry.inputProvenance !== undefined
+        ? { inputProvenance: entry.inputProvenance }
+        : {}),
+    },
+  };
 }
 
 /**
@@ -268,12 +393,29 @@ export function migrateInterpretationPersistedState(
 function healInterruptedEntry(
   entry: ChartInterpretationEntry,
 ): ChartInterpretationEntry | undefined {
-  if (!isPlainRecord(entry) || entry.status !== 'generating') {
+  if (!isPlainRecord(entry)) {
     return entry;
   }
-  if (entry.interpretation) {
+  let healed = entry;
+  if (entry.timeline?.status === 'generating') {
+    healed = {
+      ...healed,
+      timeline: entry.timeline.content
+        ? { ...entry.timeline, status: 'complete', error: undefined, errorKind: undefined }
+        : undefined,
+    };
+  }
+  if (healed.status !== 'generating') {
+    return healed;
+  }
+  if (healed.interpretation) {
     const { error: _staleError, errorKind: _staleKind, ...kept } = entry;
-    return { ...kept, status: 'complete' };
+    return { ...kept, timeline: healed.timeline, status: 'complete' };
+  }
+  // A chart with only an independently saved timeline remains useful even when
+  // an interrupted first natal run left no reading behind.
+  if (healed.timeline?.content) {
+    return { ...healed, status: 'idle', sections: {}, error: undefined, errorKind: undefined };
   }
   return undefined;
 }
@@ -371,10 +513,13 @@ function withEntry(
 
 export const interpretationStoreCreator: StateCreator<InterpretationStore> = (set, get) => {
   const activeRuns = new Map<string, InterpretationRunToken>();
+  const activeTimelineRuns = new Map<string, InterpretationRunToken>();
   let nextRunToken = 0;
 
   const acceptsRun = (chartId: string, runToken?: InterpretationRunToken): boolean =>
     runToken === undefined || activeRuns.get(chartId) === runToken;
+  const acceptsTimelineRun = (chartId: string, runToken?: InterpretationRunToken): boolean =>
+    runToken === undefined || activeTimelineRuns.get(chartId) === runToken;
 
   return {
     byChart: {},
@@ -403,8 +548,11 @@ export const interpretationStoreCreator: StateCreator<InterpretationStore> = (se
                 ...(current.evidenceAnnotations !== undefined
                   ? { evidenceAnnotations: current.evidenceAnnotations }
                   : {}),
+                ...(current.timeline !== undefined ? { timeline: current.timeline } : {}),
               }
-            : {};
+            : current.timeline !== undefined
+              ? { timeline: current.timeline }
+              : {};
         const owner = profileId ?? current.profileId;
         return {
           byChart: withEntry(state.byChart, chartId, {
@@ -448,6 +596,20 @@ export const interpretationStoreCreator: StateCreator<InterpretationStore> = (se
       inputProvenance,
       runToken,
     ) => {
+      // Enforce the stable-natal boundary at runtime too. Structural typing can
+      // still let a legacy VedicInterpretation variable carry optional timing
+      // fields through a narrower TypeScript signature.
+      const natalInterpretation: NatalInterpretation =
+        interpretation.upcoming_periods === undefined &&
+        interpretation.current_sky === undefined &&
+        interpretation.current_period_guidance === undefined
+          ? interpretation
+          : (({
+              upcoming_periods: _legacyPeriods,
+              current_sky: _legacySky,
+              current_period_guidance: _legacyPeriodGuidance,
+              ...stableNatal
+            }) => stableNatal)(interpretation);
       set((state) => {
         if (!acceptsRun(chartId, runToken)) {
           return state;
@@ -461,7 +623,7 @@ export const interpretationStoreCreator: StateCreator<InterpretationStore> = (se
         const entry: ChartInterpretationEntry = {
           ...current,
           status: 'complete',
-          interpretation,
+          interpretation: natalInterpretation,
           error: undefined,
           updatedAt,
           provenance,
@@ -503,10 +665,126 @@ export const interpretationStoreCreator: StateCreator<InterpretationStore> = (se
       });
     },
 
+    startCurrentTimeline: (chartId, profileId) => {
+      nextRunToken += 1;
+      const runToken = nextRunToken;
+      activeTimelineRuns.set(chartId, runToken);
+      set((state) => {
+        const current = entryOf(state.byChart, chartId);
+        const previous = current.timeline;
+        const kept = previous?.content
+          ? {
+              content: previous.content,
+              ...(previous.updatedAt !== undefined ? { updatedAt: previous.updatedAt } : {}),
+              ...(previous.provenance !== undefined ? { provenance: previous.provenance } : {}),
+              ...(previous.inputProvenance !== undefined
+                ? { inputProvenance: previous.inputProvenance }
+                : {}),
+            }
+          : {};
+        return {
+          byChart: withEntry(state.byChart, chartId, {
+            ...current,
+            ...(profileId !== undefined && current.profileId === undefined
+              ? { profileId }
+              : {}),
+            timeline: { status: 'generating', sections: {}, ...kept },
+          }),
+        };
+      });
+      return runToken;
+    },
+
+    markCurrentTimelineSectionComplete: (chartId, section, runToken) => {
+      set((state) => {
+        if (!acceptsTimelineRun(chartId, runToken)) return state;
+        const current = entryOf(state.byChart, chartId);
+        const timeline = current.timeline ?? { status: 'idle' as const, sections: {} };
+        return {
+          byChart: withEntry(state.byChart, chartId, {
+            ...current,
+            timeline: {
+              ...timeline,
+              sections: { ...timeline.sections, [section]: true },
+            },
+          }),
+        };
+      });
+    },
+
+    markCurrentTimelineSectionFailed: (chartId, section, runToken) => {
+      set((state) => {
+        if (!acceptsTimelineRun(chartId, runToken)) return state;
+        const current = entryOf(state.byChart, chartId);
+        const timeline = current.timeline ?? { status: 'idle' as const, sections: {} };
+        return {
+          byChart: withEntry(state.byChart, chartId, {
+            ...current,
+            timeline: {
+              ...timeline,
+              failedSections: { ...timeline.failedSections, [section]: true },
+            },
+          }),
+        };
+      });
+    },
+
+    setCurrentTimeline: async (
+      chartId,
+      content,
+      updatedAt,
+      provenance,
+      inputProvenance,
+      runToken,
+    ) => {
+      set((state) => {
+        if (!acceptsTimelineRun(chartId, runToken)) return state;
+        const current = entryOf(state.byChart, chartId);
+        const previous = current.timeline;
+        return {
+          byChart: withEntry(state.byChart, chartId, {
+            ...current,
+            timeline: {
+              status: 'complete',
+              content,
+              sections: previous?.sections ?? {},
+              ...(previous?.failedSections !== undefined
+                ? { failedSections: previous.failedSections }
+                : {}),
+              updatedAt,
+              provenance,
+              inputProvenance,
+            },
+          }),
+        };
+      });
+      await persistInterpretationSnapshot(get());
+    },
+
+    setCurrentTimelineError: (chartId, error, kind, runToken) => {
+      set((state) => {
+        if (!acceptsTimelineRun(chartId, runToken)) return state;
+        const current = entryOf(state.byChart, chartId);
+        const timeline = current.timeline ?? { status: 'idle' as const, sections: {} };
+        return {
+          byChart: withEntry(state.byChart, chartId, {
+            ...current,
+            timeline: {
+              ...timeline,
+              status: 'error',
+              error,
+              ...(kind !== undefined ? { errorKind: kind } : {}),
+            },
+          }),
+        };
+      });
+    },
+
     getEntry: (chartId) => get().byChart[chartId],
 
     reset: (chartId) => {
       activeRuns.delete(chartId);
+      activeTimelineRuns.delete(chartId);
       set((state) => {
         const byChart = { ...state.byChart };
         delete byChart[chartId];
@@ -521,12 +799,14 @@ export const interpretationStoreCreator: StateCreator<InterpretationStore> = (se
         for (const [chartId, entry] of Object.entries(state.byChart)) {
           if (targetIds.has(chartId) || entry.profileId === profileId) {
             activeRuns.delete(chartId);
+            activeTimelineRuns.delete(chartId);
           } else {
             byChart[chartId] = entry;
           }
         }
         for (const chartId of targetIds) {
           activeRuns.delete(chartId);
+          activeTimelineRuns.delete(chartId);
         }
         return { byChart };
       });
@@ -550,6 +830,7 @@ export const interpretationStoreCreator: StateCreator<InterpretationStore> = (se
 
     clearAll: () => {
       activeRuns.clear();
+      activeTimelineRuns.clear();
       set({ byChart: {} });
     },
   };

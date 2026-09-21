@@ -16,6 +16,8 @@ export {
   MemoryCacheStore,
   OpfsCacheStore,
   syncIndex,
+  WorkerCrashError,
+  WorkerTimeoutError,
 } from "@edgeproc/browser";
 export type {
   CacheStore,

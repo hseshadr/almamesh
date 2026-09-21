@@ -65,8 +65,9 @@ const READING_BLOCK_LABEL = 'Your chart reading (already generated';
 // request WITHOUT a recognized marker as THE CHAT TURN, so a missing key makes
 // that section's request (sent with the DEEP interpretation model — correct)
 // masquerade as the chat request and fail the fast-model assertion. That is
-// exactly how adding the sixth `upcoming_periods` section broke this gate — and
-// how the seventh `current_sky` section (Spec 065) broke it again.
+// exactly how adding the old combined timeline sections broke this gate. Keep
+// recognizing them for the explicit timeline action, while this natal-flow test
+// asserts that neither is called by Generate Reading.
 type SectionKey =
   | 'core'
   | 'yoga'
@@ -182,15 +183,15 @@ test('[contract/stubbed] chat reuses the reading + sends the fast chat model on 
   // Capture every outbound chat-completions request body so we can split the
   // interpretation requests (SECTION marker) from the chat turn (no marker).
   const chatRequestBodies: string[] = [];
-  const interpRequestCount = { n: 0 };
+  const interpSections: SectionKey[] = [];
 
   await page.route('**/chat/completions', async (route) => {
     const body = route.request().postData();
     const section = sectionFor(body);
     if (section) {
-      // An interpretation section: answer with the canned JSON so the 7-section
-      // reading actually completes (non-streaming chatCompletionJson path).
-      interpRequestCount.n += 1;
+      // An interpretation section: answer with the canned JSON so the explicit
+      // natal or timeline action can complete (non-streaming JSON path).
+      interpSections.push(section);
       const content = JSON.stringify(SECTION_JSON[section]);
       return route.fulfill({
         status: 200,
@@ -228,7 +229,7 @@ test('[contract/stubbed] chat reuses the reading + sends the fast chat model on 
   await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
   await page.getByTestId('generate-reading').click();
 
-  // 1) Wait for the seven-section reading to COMPLETE. interpretationText is only
+  // 1) Wait for the five-section stable natal reading to COMPLETE. interpretationText is only
   //    reused when the stored entry's status === 'complete' (Dashboard.tsx), so
   //    this wait is load-bearing for change (c). Completion signal mirrors
   //    interpretation.spec.ts: the core summary renders AND the progress
@@ -236,10 +237,9 @@ test('[contract/stubbed] chat reuses the reading + sends the fast chat model on 
   const summary = page.getByText(STUB_SUMMARY).and(page.locator('p'));
   await expect(summary).toBeVisible({ timeout: 120_000 });
   await expect(page.getByTestId('interpretation-progress')).toHaveCount(0);
-  expect(
-    interpRequestCount.n,
-    'all 7 interpretation sections (incl. current_sky) should have been requested',
-  ).toBeGreaterThanOrEqual(7);
+  expect(interpSections.sort()).toEqual(
+    ['core', 'guidance1', 'guidance2', 'remedial', 'yoga'].sort(),
+  );
 
   // 2) Open the chat panel and send a question (selectors from chat.rag.real.spec.ts).
   await page.getByTestId('floating-chat-button').click({ timeout: 60_000 });
@@ -300,17 +300,14 @@ test('[contract/stubbed] chat reuses the reading + sends the fast chat model on 
     `the reused-reading block must carry stubbed interpretation content ` +
       `("${STUB_SUMMARY}"); its absence means an EMPTY reading block was injected.`,
   ).toContain(STUB_SUMMARY);
-  // The sixth section rides into chat too: serializeInterpretationForChat
-  // appends the "Upcoming periods" group with the engine-dated stub window.
+  // The reused reading is stable natal prose only. Independently generated,
+  // dated timeline prose must not be flattened into this block; deterministic
+  // engine timing facts above remain the authoritative chat context.
   expect(
     promptText,
-    'the reused reading must include the serialized "Upcoming periods" group',
-  ).toContain('Upcoming periods:');
-  expect(
-    promptText,
-    `the upcoming-periods group must carry the stubbed dated window ` +
-      `("${STUB_PERIOD_TITLE}") from the sixth interpretation section.`,
-  ).toContain(STUB_PERIOD_TITLE);
+    `the natal reading must not carry the stubbed timeline window ` +
+      `("${STUB_PERIOD_TITLE}") without an explicit timeline action.`,
+  ).not.toContain(STUB_PERIOD_TITLE);
 
   await page.screenshot({
     path: 'test-results/chat-grounding.png',

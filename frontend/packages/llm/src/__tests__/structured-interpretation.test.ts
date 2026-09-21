@@ -474,10 +474,16 @@ describe("streamStructuredInterpretation — engine predictive context", () => {
     return bodies;
   }
 
-  it("injects the delimited predictive block into every section prompt", async () => {
+  it("injects the delimited predictive block only into timeline section prompts", async () => {
     const bodies = await captureBodies(predictiveChart);
     expect(bodies).toHaveLength(7);
-    for (const body of bodies) {
+    const timelineBodies = bodies.filter(
+      (body) => body.includes("SECTION:upcoming_periods") || body.includes("SECTION:current_sky"),
+    );
+    const natalBodies = bodies.filter((body) => !timelineBodies.includes(body));
+    expect(timelineBodies).toHaveLength(2);
+    expect(natalBodies).toHaveLength(5);
+    for (const body of timelineBodies) {
       expect(body).toContain("ENGINE PREDICTIVE CONTEXT");
       // Sade Sati + a month-precision window + a strength figure all reach the LLM.
       expect(body).toMatch(/sade sati/i);
@@ -485,6 +491,12 @@ describe("streamStructuredInterpretation — engine predictive context", () => {
       expect(body).toContain("337");
       // Still no day-level or ISO dates anywhere in the outbound request.
       expect(body).not.toMatch(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/);
+    }
+    for (const body of natalBodies) {
+      expect(body).not.toContain("ENGINE PREDICTIVE CONTEXT");
+      expect(body).not.toContain('"dashas"');
+      expect(body).not.toContain("months_remaining");
+      expect(body).not.toContain("start_month");
     }
   });
 
@@ -497,12 +509,19 @@ describe("streamStructuredInterpretation — engine predictive context", () => {
       return messages.find((m) => m.role === "system")?.content ?? "";
     };
 
-    // With predictive: the REQUIRED directive is present.
-    expect(systemOf(withCtx[0]!)).toMatch(/ENGINE PREDICTIVE CONTEXT — USE IT \(REQUIRED\)/);
-    // Without predictive: the natal-only honesty fence is present instead, and
+    // Stable natal sections keep the natal-only fence even when a compatibility
+    // caller supplies predictive context; only timeline sections require it.
+    const natalWithCtx = withCtx.find((body) => body.includes("SECTION:core"));
+    const timelineWithCtx = withCtx.find((body) => body.includes("SECTION:current_sky"));
+    expect(systemOf(natalWithCtx!)).toMatch(/STABLE NATAL ONLY/);
+    expect(systemOf(natalWithCtx!)).not.toMatch(/ENGINE PREDICTIVE CONTEXT — USE IT/);
+    expect(systemOf(timelineWithCtx!)).toMatch(
+      /ENGINE PREDICTIVE CONTEXT — USE IT \(REQUIRED\)/,
+    );
+    // Without predictive: the stable-natal fence is present instead, and
     // the required directive is absent.
     expect(systemOf(withoutCtx[0]!)).not.toMatch(/ENGINE PREDICTIVE CONTEXT — USE IT/);
-    expect(systemOf(withoutCtx[0]!)).toMatch(/NATAL-ONLY HONESTY/);
+    expect(systemOf(withoutCtx[0]!)).toMatch(/STABLE NATAL ONLY/);
   });
 
   it("does not duplicate the contexts as raw JSON in the chart payload", async () => {
@@ -620,12 +639,16 @@ describe("streamStructuredInterpretation — The Road Ahead (upcoming_periods pr
     expect(upcoming).toMatch(/never invent/i);
   });
 
-  it("instructs the life-phase section to cite the dated maha/antar/pratyantar stack", async () => {
+  it("keeps life evolution timeless and assigns dated windows to Road Ahead", async () => {
     for (const config of [CLOUD_CFG, LOCAL_CFG]) {
       const bodies = await bodiesFor(config);
       const guidance2 = bodies.find((b) => b.includes("SECTION:guidance2"));
+      const upcoming = bodies.find((b) => b.includes("SECTION:upcoming_periods"));
       expect(guidance2).toBeDefined();
-      expect(guidance2).toMatch(/dated month windows/);
+      expect(upcoming).toBeDefined();
+      expect(guidance2).not.toMatch(/dated month windows/);
+      expect(guidance2).not.toContain('"dashas"');
+      expect(upcoming).toMatch(/dated windows|month precision/i);
     }
   });
 });

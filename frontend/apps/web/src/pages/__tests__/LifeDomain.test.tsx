@@ -194,7 +194,7 @@ describe('LifeDomainPage', () => {
     );
   });
 
-  it('does not show a legacy or stale interpretation beside current predictive facts', () => {
+  it('keeps the stable natal interpretation visible beside current predictive facts', () => {
     seedReady();
     useInterpretationStore.setState({
       byChart: {
@@ -204,7 +204,7 @@ describe('LifeDomainPage', () => {
 
     renderAt('/life/career');
 
-    expect(screen.getByTestId('life-domain-ai').textContent).not.toContain(
+    expect(screen.getByTestId('life-domain-ai').textContent).toContain(
       'Steady, structured careers suit you.',
     );
   });

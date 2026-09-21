@@ -2,7 +2,7 @@
  * Tests for useStreamingInterpretation hook — local-first, structured in-browser.
  *
  * The hook now drives @almamesh/llm's structured generator
- * (`streamStructuredInterpretation`) and mirrors its event stream into the
+ * (`streamNatalInterpretation` / `streamCurrentTimeline`) and mirrors their event streams into the
  * persisted `useInterpretationStore`. These tests assert the store-backed state
  * machine (idle -> generating -> complete/error), per-section progress, the
  * finished interpretation, the friendly fallback when no model is reachable, and
@@ -22,7 +22,8 @@ vi.mock('@almamesh/llm', async () => {
   const actual = await vi.importActual<typeof import('@almamesh/llm')>('@almamesh/llm');
   return {
     ...actual,
-    streamStructuredInterpretation: vi.fn(),
+    streamNatalInterpretation: vi.fn(),
+    streamCurrentTimeline: vi.fn(),
     requestEvidenceAnnotations: vi.fn(),
   };
 });
@@ -40,13 +41,15 @@ vi.mock('@almamesh/store', async () => {
 
 import {
   configProvenance,
-  streamStructuredInterpretation,
+  streamCurrentTimeline,
+  streamNatalInterpretation,
   requestEvidenceAnnotations,
   openRouterPreset,
   LLM_SETTINGS_KEY,
   PrivacyViolationError,
   LlmRequestError,
-  type InterpretationEvent,
+  type CurrentTimelineEvent,
+  type NatalInterpretationEvent,
 } from '@almamesh/llm';
 import {
   predictiveRequestKey,
@@ -58,7 +61,8 @@ import {
 import type { VedicInterpretation } from '@almamesh/shared-types';
 import i18n from '../../i18n/config';
 
-const mockedStream = vi.mocked(streamStructuredInterpretation);
+const mockedStream = vi.mocked(streamNatalInterpretation);
+const mockedTimelineStream = vi.mocked(streamCurrentTimeline);
 const mockedAnnotate = vi.mocked(requestEvidenceAnnotations);
 
 // A chart that carries the raw engine output the sanitizer needs.
@@ -146,7 +150,7 @@ const SAMPLE_INTERPRETATION: VedicInterpretation = {
   remedial_measures: null,
 };
 
-function eventStream(events: InterpretationEvent[]): () => AsyncGenerator<InterpretationEvent> {
+function eventStream(events: NatalInterpretationEvent[]): () => AsyncGenerator<NatalInterpretationEvent> {
   return async function* () {
     for (const e of events) yield e;
   };
@@ -155,10 +159,18 @@ function eventStream(events: InterpretationEvent[]): () => AsyncGenerator<Interp
 // A stream that throws a fatal error before any event. The empty-array loop
 // keeps a real `yield` in the generator body (the streaming contract) while
 // guaranteeing the error is thrown before any event reaches the hook.
-function failingStream(error: Error): () => AsyncGenerator<InterpretationEvent> {
+function failingStream(error: Error): () => AsyncGenerator<NatalInterpretationEvent> {
   return async function* () {
-    for (const e of [] as InterpretationEvent[]) yield e;
+    for (const e of [] as NatalInterpretationEvent[]) yield e;
     throw error;
+  };
+}
+
+function timelineEventStream(
+  events: CurrentTimelineEvent[],
+): () => AsyncGenerator<CurrentTimelineEvent> {
+  return async function* () {
+    for (const event of events) yield event;
   };
 }
 
@@ -188,7 +200,8 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
     expect(result.current.interpretation).toBeUndefined();
     expect(result.current.error).toBeNull();
     expect(result.current.isStreaming).toBe(false);
-    expect(result.current.sections).toHaveLength(6);
+    expect(result.current.sections).toHaveLength(5);
+    expect(result.current.timelineSections).toHaveLength(2);
   });
 
   it('refuses a provider stream when explicit user intent is absent at runtime', async () => {
@@ -619,7 +632,7 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
     );
   });
 
-  it('records the exact predictive request key when predictive facts were narrated', async () => {
+  it('keeps natal generation date-stable even when current predictive facts are ready', async () => {
     usePredictiveStore.setState({
       status: 'ready',
       profileKey: 'profile-123',
@@ -641,13 +654,9 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
     });
 
     const entry = useInterpretationStore.getState().getEntry('chart-123');
-    expect(entry?.inputProvenance).toEqual({
-      predictiveRequestKey: CURRENT_PREDICTIVE_KEY,
-    });
-    // `predictiveAware` is derived from the identity-keyed input provenance: a
-    // matching non-null request key means the full predictive superset was
-    // composed into THIS reading (the enrich-when-ready gate's signal).
-    expect(entry?.provenance?.predictiveAware).toBe(true);
+    expect(entry?.inputProvenance).toEqual({ predictiveRequestKey: null });
+    expect(entry?.provenance?.predictiveAware).toBe(false);
+    expect(mockedStream.mock.calls[0]?.[0].chart).not.toHaveProperty('transit_context');
   });
 
   it('records explicit natal-only provenance when no matching predictive facts were narrated', async () => {
@@ -665,7 +674,7 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
     });
   });
 
-  it('never exposes a predictive reading after its request key changes', () => {
+  it('keeps a legacy combined reading visible after its old predictive key changes', () => {
     useInterpretationStore.getState().setInterpretation(
       'chart-123',
       SAMPLE_INTERPRETATION,
@@ -676,11 +685,11 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
 
     const { result } = renderHook(() => useStreamingInterpretation('chart-123'));
 
-    expect(result.current.status).toBe('idle');
-    expect(result.current.interpretation).toBeUndefined();
+    expect(result.current.status).toBe('complete');
+    expect(result.current.interpretation).toEqual(SAMPLE_INTERPRETATION);
   });
 
-  it('never exposes a legacy reading whose predictive input is unknown', () => {
+  it('keeps a legacy reading visible when its old predictive input is unknown', () => {
     useInterpretationStore
       .getState()
       .setInterpretation(
@@ -692,8 +701,8 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
 
     const { result } = renderHook(() => useStreamingInterpretation('chart-123'));
 
-    expect(result.current.status).toBe('idle');
-    expect(result.current.interpretation).toBeUndefined();
+    expect(result.current.status).toBe('complete');
+    expect(result.current.interpretation).toEqual(SAMPLE_INTERPRETATION);
   });
 
   it('keeps an explicitly natal-only reading reusable across predictive day changes', () => {
@@ -709,6 +718,71 @@ describe('useStreamingInterpretation (structured, store-backed)', () => {
 
     expect(result.current.status).toBe('complete');
     expect(result.current.interpretation).toEqual(SAMPLE_INTERPRETATION);
+  });
+
+  it('streams the current timeline independently without replacing the natal reading', async () => {
+    usePredictiveStore.setState({
+      status: 'ready',
+      profileKey: 'profile-123',
+      requestKey: CURRENT_PREDICTIVE_KEY,
+      rawContexts: {
+        transit_context: { instant: '2026-07-12T00:00:00Z' },
+        varga_context_full: { charts: {} },
+        strength_context: {},
+        domains_context: { forecasts: {} },
+      },
+    } as never);
+    await useInterpretationStore.getState().setInterpretation(
+      'chart-123',
+      SAMPLE_INTERPRETATION,
+      '2026-07-11T00:00:00Z',
+      undefined,
+      { predictiveRequestKey: null },
+    );
+    mockedTimelineStream.mockImplementation(
+      timelineEventStream([
+        { type: 'section_complete', section: 'upcoming_periods' },
+        { type: 'section_complete', section: 'current_sky' },
+        {
+          type: 'complete',
+          timeline: {
+            upcoming_periods: [],
+            current_sky: [
+              { title: 'Active now', layman: 'Build steadily.', technical: 'Saturn is active.' },
+            ],
+          },
+        },
+      ]),
+    );
+
+    const { result } = renderHook(() => useStreamingInterpretation('chart-123'));
+    await act(async () => {
+      await result.current.streamCurrentTimeline('chart-123', {
+        intent: 'user-request',
+        view_mode: 'layman',
+      });
+    });
+
+    expect(mockedStream).not.toHaveBeenCalled();
+    expect(result.current.interpretation).toEqual(SAMPLE_INTERPRETATION);
+    expect(result.current.currentTimeline?.current_sky?.[0]?.title).toBe('Active now');
+    expect(result.current.timelineStatus).toBe('complete');
+    expect(result.current.timelineSections.every((section) => section.complete)).toBe(true);
+  });
+
+  it('does not spend timeline calls before exact-day predictive facts are ready', async () => {
+    const { result } = renderHook(() => useStreamingInterpretation('chart-123'));
+
+    await act(async () => {
+      await result.current.streamCurrentTimeline('chart-123', {
+        intent: 'user-request',
+        view_mode: 'layman',
+      });
+    });
+
+    expect(mockedTimelineStream).not.toHaveBeenCalled();
+    expect(result.current.timelineStatus).toBe('error');
+    expect(result.current.timelineError).toMatch(/timing facts/i);
   });
 
   it('keeps the previously completed reading when a regeneration fails', async () => {

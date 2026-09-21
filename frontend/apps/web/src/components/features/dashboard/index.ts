@@ -10,5 +10,5 @@
 export { IdentityStrip } from './IdentityStrip';
 export { LifeAtlas } from './LifeAtlas';
 export { ChartVisualization } from './ChartVisualization';
-export { DashboardInterpretation } from './DashboardInterpretation';
+export { DashboardCurrentTimeline, DashboardInterpretation } from './DashboardInterpretation';
 export { ReadingGrounding } from './ReadingGrounding';

@@ -2,14 +2,13 @@
 // client-side against any OpenAI-compatible endpoint (no backend).
 //
 // This is the in-browser port of the predecessor's multi-call orchestrator
-// (vedic_core/llm/orchestrator.py) + its Jinja section prompts. It fans out SIX
-// independent JSON chat completions in parallel — core, yoga, guidance1,
-// guidance2, remedial, upcoming_periods (The Road Ahead) — each requesting
-// STRICT JSON matching its slice of the `VedicInterpretation` shared-type, then
-// merges them into one interpretation (mirroring `_merge_results`). Any single
+// (vedic_core/llm/orchestrator.py) + its Jinja section prompts. The explicit APIs
+// split five stable natal sections from two time-sensitive timeline sections;
+// the compatibility API still fans out all seven JSON completions. Each response
+// must match its slice of the `VedicInterpretation` shared type. Any single
 // section that fails degrades to its safe default (empty), emitting an `error`
-// event, while the whole interpretation still completes — one bad section never
-// sinks the reading.
+// event, while the requested interpretation still completes — one bad section
+// never sinks the reading.
 //
 // The chart is sanitized via `sanitizeChartForLlm` BEFORE any prompt is built,
 // so the privacy boundary cannot be skipped. Every call also runs the fail-closed
@@ -52,11 +51,43 @@ export type InterpretationSectionKey =
   | "upcoming_periods"
   | "current_sky";
 
+export type NatalInterpretationSectionKey = Exclude<
+  InterpretationSectionKey,
+  "upcoming_periods" | "current_sky"
+>;
+
+export type CurrentTimelineSectionKey = Extract<
+  InterpretationSectionKey,
+  "upcoming_periods" | "current_sky"
+>;
+
+export type NatalInterpretation = Omit<
+  VedicInterpretation,
+  "upcoming_periods" | "current_sky" | "current_period_guidance"
+>;
+
+export interface CurrentTimelineContent {
+  readonly upcoming_periods: TitledPersona[];
+  readonly current_sky: TitledPersona[];
+}
+
 export type InterpretationEvent =
   | { type: "section_start"; section: InterpretationSectionKey }
   | { type: "section_complete"; section: InterpretationSectionKey }
   | { type: "complete"; interpretation: VedicInterpretation }
   | { type: "error"; section?: InterpretationSectionKey; message: string };
+
+export type NatalInterpretationEvent =
+  | { type: "section_start"; section: NatalInterpretationSectionKey }
+  | { type: "section_complete"; section: NatalInterpretationSectionKey }
+  | { type: "complete"; interpretation: NatalInterpretation }
+  | { type: "error"; section: NatalInterpretationSectionKey; message: string };
+
+export type CurrentTimelineEvent =
+  | { type: "section_start"; section: CurrentTimelineSectionKey }
+  | { type: "section_complete"; section: CurrentTimelineSectionKey }
+  | { type: "complete"; timeline: CurrentTimelineContent }
+  | { type: "error"; section: CurrentTimelineSectionKey; message: string };
 
 export interface StructuredInterpretationParams {
   /** The engine chart (same type `streamChartInterpretation` takes). */
@@ -73,14 +104,25 @@ export interface StructuredInterpretationParams {
   readonly fetchImpl?: typeof fetch;
 }
 
-export const ALL_SECTIONS: readonly InterpretationSectionKey[] = [
+export type NatalInterpretationParams = StructuredInterpretationParams;
+export type CurrentTimelineParams = StructuredInterpretationParams;
+
+export const NATAL_SECTIONS = [
   "core",
   "yoga",
   "guidance1",
   "guidance2",
   "remedial",
+] as const satisfies readonly NatalInterpretationSectionKey[];
+
+export const CURRENT_TIMELINE_SECTIONS = [
   "upcoming_periods",
   "current_sky",
+] as const satisfies readonly CurrentTimelineSectionKey[];
+
+export const ALL_SECTIONS: readonly InterpretationSectionKey[] = [
+  ...NATAL_SECTIONS,
+  ...CURRENT_TIMELINE_SECTIONS,
 ];
 
 // =============================================================================
@@ -143,15 +185,10 @@ const SYSTEM_PROMPT = [
   "  you may assert between two planets is CONJUNCTION — and only when they share the",
   "  same `house` value. State nothing about any other inter-planetary relationship.",
   "",
-  "DASHA HONESTY (ABSOLUTE): there is NO birth date and NO age in this chart. NEVER",
-  "  compute ages, 'Saturn returns', or age milestones, and NEVER",
-  "  extrapolate a date the data does not state. Timing comes ONLY from the dasha",
-  "  fields: the lords and ORDER of the sequence, each period's status, the current",
-  "  period's `months_remaining`, and — when present — the engine-dated month windows",
-  "  (`start_month`/`end_month`, the current maha's `antar_sequence`, and the",
-  "  `pratyantar_sequence`). You MAY cite those dated month windows VERBATIM (e.g.",
-  "  'the Venus sub-period, 2023-12 to 2027-01'); a period carrying no dated window",
-  "  stays relative ('the current chapter ruled by X', 'an upcoming period of Y').",
+  "TIMING OWNERSHIP (ABSOLUTE): stable natal sections never discuss the current or next",
+  "  dasha, months remaining, dated windows, transits, or 'this period'. Those belong",
+  "  only to the separate Road Ahead / Current Sky timeline sections. Never infer age,",
+  "  dates, Saturn returns, or present-day timing from natal placements.",
   "",
   "YOGA CONSTRAINT (ZERO TOLERANCE — THE MOST IMPORTANT RULE):",
   "  You may ONLY discuss yogas that appear EXPLICITLY in the chart's yoga list.",
@@ -213,10 +250,9 @@ const SYSTEM_PROMPT_LITE = [
   "  - ASPECTS: this chart has NO aspect/drishti data. NEVER say a planet 'aspects',",
   "    'sees', or 'casts a glance on' another. The only relation you may state is",
   "    CONJUNCTION, and only when two planets share the same `house` value.",
-  "  - TIMING: there is NO birth date and NO age. NEVER give ages or 'Saturn",
-  "    returns', and NEVER invent a date. You MAY cite the dasha fields' own dated month",
-  "    windows (start_month/end_month, antar_sequence, pratyantar_sequence) VERBATIM",
-  "    when present; otherwise speak of chapters via the dasha order and `months_remaining`.",
+  "  - TIMING OWNERSHIP: stable natal sections never discuss current/next periods,",
+  "    dates, ages, or transits. Only Road Ahead / Current Sky may use timing fields,",
+  "    and they must use only values explicitly present in their input.",
   "  - YOGAS (ZERO TOLERANCE): discuss ONLY yogas that appear in the chart's yoga list.",
   "    If a yoga is not listed it DOES NOT EXIST here — never invent or name one.",
   "",
@@ -287,9 +323,8 @@ const YOGA_TASK = [
   "DEBILITY HONESTY: if a yoga involves a debilitated, combust, or retrograde planet,",
   "  state the modification explicitly — the yoga's gift is earned through struggle, not",
   "  given freely. Do NOT claim any 'Neechabhanga / cancellation' (not in this data).",
-  "TIMING (relative only): place the journey using dasha ORDERING from the data — which",
-  "  lord rules the CURRENT chapter, which periods are upcoming vs past, and the current",
-  "  period's months_remaining. NEVER state ages, years, dates, or Saturn returns.",
+  "TIME-INDEPENDENT: describe the journey from the listed yoga formations and natal",
+  "  placements only. Do not mention current/next periods, dates, ages, or transits.",
   "ZERO TOLERANCE: never mention any yoga that is not in the provided list; reach depth",
   "  by analyzing the listed yogas more deeply, never by adding new ones.",
 ].join("\n");
@@ -310,14 +345,12 @@ const GUIDANCE1_TASK = [
   "  debilitated/combust, be honest that the area asks for more effort before it flowers.",
   "DISTINCT VOCABULARY PER AREA: Health = body-mind, vitality, stress response, rest.",
   "  Education = learning style, curiosity, which subjects flow vs. need effort.",
-  "  Career = work environment, navigating authority, when the dasha order favors a move",
-  "  (relative, never an age). Relationships = attachment, what makes them feel secure,",
+  "  Career = work environment and navigating authority. Relationships = attachment,",
+  "  what makes them feel secure,",
   "  communication in partnership. Do NOT bleed one area's framing into another.",
   "DEBILITY HONESTY throughout; describe what success AND struggle FEEL like, not just",
   "  outcomes. Only reference yogas in the provided list.",
-  "When the ENGINE PREDICTIVE CONTEXT block is present, ground this in the domain's",
-  "  current emphasis (active daśā significator, Sade Sati, transit severity) and its",
-  "  next month-precision windows; otherwise speak to the natal placements only.",
+  "Speak only to stable natal placements. Current timing belongs to the separate timeline.",
 ].join("\n");
 
 const GUIDANCE2_TASK = [
@@ -333,22 +366,13 @@ const GUIDANCE2_TASK = [
   "SPIRITUAL: trace the 9th- and 12th-house lord chains; read Ketu's `house`/`sign` as",
   "  the area of natural detachment and inward pull. Name the practices that resonate",
   "  from these placements. Do NOT invent transits or 'phases of life' from dates.",
-  "LIFE EVOLUTION = dasha-SEQUENCE phases (this REPLACES ages / Saturn returns entirely):",
-  "  using the maha-dasha ordering and statuses, name which lord governs the CURRENT",
-  "  chapter and what it is teaching, then which lord governs the NEXT (status 'future')",
-  "  chapter and the shift it brings; cite the current period's months_remaining as the",
-  "  sense of 'how far into this chapter'. When the dashas data carries dated month",
-  "  windows (start_month/end_month and the current maha's antar_sequence), CITE the",
-  "  current dated stack EXPLICITLY — maha, antar, and pratyantar each with its lord",
-  "  and window (e.g. 'the Saturn chapter, 2017-02 to 2036-02, now in its Venus",
-  "  sub-period, 2023-12 to 2027-01') — months verbatim; with no dated windows, stay",
-  "  relative and never invent a date. Speak of chapters, never ages.",
+  "LIFE EVOLUTION: describe the enduring developmental arc from the ascendant lord,",
+  "  lunar nodes, and 9th/12th-house lord chains. Keep it time-independent: never name",
+  "  a current/next period, dated window, age, transit, or months remaining.",
   "  Every challenge mentioned MUST end with a BRIDGE to a NAMED strength or yoga.",
   "DEBILITY HONESTY throughout; give each section a distinct voice. Convey how money",
   "  anxiety/abundance and inner seeking FEEL. Only reference yogas in the provided list.",
-  "When the ENGINE PREDICTIVE CONTEXT block is present, ground this in the domain's",
-  "  current emphasis (active daśā significator, Sade Sati, transit severity) and its",
-  "  next month-precision windows; otherwise speak to the natal placements only.",
+  "Speak only to stable natal placements. Current timing belongs to the separate timeline.",
 ].join("\n");
 
 const REMEDIAL_TASK = [
@@ -371,9 +395,7 @@ const REMEDIAL_TASK = [
   "  or that is `is_combust`, or a yoga whose `grade` is weak. Name that placement as",
   "  the thing the remedy supports. NEVER invent an affliction, aspect, or dosha that",
   "  is not visible in the chart JSON.",
-  "When the ENGINE PREDICTIVE CONTEXT block is present, ground this in the domain's",
-  "  current emphasis (active daśā significator, Sade Sati, transit severity) and its",
-  "  next month-precision windows; otherwise speak to the natal placements only.",
+  "Ground each measure only in stable natal facts; never prescribe by a current period.",
 ].join("\n");
 
 const UPCOMING_PERIODS_TASK = [
@@ -498,11 +520,10 @@ const GUIDANCE2_TASK_LITE = [
   '}',
   "  Every field MUST be non-empty. Keep each layman and technical to 1-2 short sentences.",
   "  - layman: plain, encouraging guidance for money themes, inner life, and life phases.",
-  "  - technical: cite ONE relevant placement (Finances = 2nd/11th house lord or a wealth",
-  "    planet; Spiritual = 9th/12th house or Ketu; Life Evolution = the CURRENT dasha lord",
-  "    and what the NEXT period brings). Speak of dasha as chapters — never ages. Cite the",
-  "    dasha fields' dated month windows (start_month/end_month) VERBATIM when present;",
-  "    never invent a date.",
+  "  - technical: cite ONE relevant stable placement (Finances = 2nd/11th house lord or",
+  "    a wealth planet; Spiritual = 9th/12th house or Ketu; Life Evolution = ascendant",
+  "    lord, lunar nodes, or 9th/12th-house lord chain). Never mention current/next",
+  "    periods, dated windows, ages, or transits.",
 ].join("\n");
 
 const REMEDIAL_TASK_LITE = [
@@ -563,19 +584,24 @@ function modeHint(mode: ViewMode, lite: boolean): string {
  * chart JSON, and the system+user roles — only the INSTRUCTION TEXT changes — and
  * `chatCompletionJson` still requests `response_format: json_object`.
  */
-// Appended to BOTH system prompts when the chart carries NO engine predictive
-// block, so the prompt stays honest that this is a natal-only reading — never
-// inventing a transit, age, or date the chart does not carry.
-const NATAL_ONLY_HONESTY = [
+// Stable sections always receive the natal-only fence, regardless of what a
+// compatibility caller placed on the chart. Timeline sections receive the
+// timing fence below (and the stronger predictive fence when available).
+const STABLE_NATAL_HONESTY = [
   "",
-  "NATAL-ONLY HONESTY: this chart carries the natal blueprint only — NO current",
-  "transit, age, or timing data. Do NOT invent transits, ages, or dates; speak to",
-  "the natal placements and the daśā sequence dates already in the chart.",
+  "STABLE NATAL ONLY: this section carries no current timeline. Ignore any timing",
+  "snapshot and do not discuss current/next periods, transits, ages, or dates. Speak",
+  "only to enduring natal placements and listed yoga formations.",
+].join("\n");
+
+const TIMELINE_INPUT_HONESTY = [
+  "",
+  "TIMELINE HONESTY: use only timing values explicitly present in the chart. Never",
+  "invent an age, period, transit, or date; preserve the engine's month precision.",
 ].join("\n");
 
 // Appended to BOTH system prompts ONLY when the chart carries the engine
-// predictive block — so natal-only prompts stay byte-identical (see
-// NATAL_ONLY_HONESTY above), and prompts WITH the block REQUIRE grounding in
+// predictive block, and timeline prompts WITH the block REQUIRE grounding in
 // the engine's own current sky + timing rather than merely permitting it.
 const PREDICTIVE_CONTEXT_EXCEPTION = [
   "",
@@ -594,9 +620,8 @@ const PREDICTIVE_CONTEXT_EXCEPTION = [
 
 // --- Chart-JSON budget (Spec 062, LLM delta 6) ------------------------------
 //
-// The six parallel section calls used to each carry the FULL chart pretty-
-// printed — 6× the bytes of the chart on every generation. Now every section
-// embeds COMPACT JSON, and when even the compact full chart exceeds the token
+// The parallel section calls used to each carry the FULL chart pretty-printed.
+// Now every section embeds COMPACT JSON, and when even the compact full chart exceeds the token
 // budget below (estimateTokens guard, chars/4), the two sections whose tasks
 // only read planet/dasha/yoga facts — remedial + upcoming_periods — get just
 // those slices. The narrative sections (core/yoga/guidance) always keep the
@@ -639,16 +664,25 @@ export function buildSectionMessages(
   lite = false,
   language: PromptLanguage = "en",
 ): ChatMessage[] {
-  // The predictive contexts ride as a compact DELIMITED TEXT block with their
-  // own narrate-only guard — excluded from the chart JSON dump (no duplication).
-  const { predictive, ...chartForJson } = chart;
+  const timelineSection = section === "upcoming_periods" || section === "current_sky";
+  // Timing is a hard section boundary, not merely a prompt instruction. Stable
+  // natal sections never receive dasha or predictive fields, even through the
+  // legacy combined API or a direct compatibility call.
+  const { predictive, ...chartWithoutPredictive } = chart;
+  const chartForJson = timelineSection
+    ? chartWithoutPredictive
+    : (({ dashas: _dashas, ...natalChart }) => natalChart)(chartWithoutPredictive);
   const chartJson = chartJsonForSection(section, chartForJson);
-  const predictiveBlock = buildPredictiveFactsBlock(predictive);
+  const predictiveBlock = timelineSection ? buildPredictiveFactsBlock(predictive) : "";
   const userContent = lite
     ? liteUserContent(section, chartJson, mode, predictiveBlock)
     : fullUserContent(section, chartJson, mode, predictiveBlock);
   const basePrompt = lite ? SYSTEM_PROMPT_LITE : SYSTEM_PROMPT;
-  const exception = predictiveBlock === "" ? NATAL_ONLY_HONESTY : PREDICTIVE_CONTEXT_EXCEPTION;
+  const exception = timelineSection
+    ? predictiveBlock === ""
+      ? TIMELINE_INPUT_HONESTY
+      : PREDICTIVE_CONTEXT_EXCEPTION
+    : STABLE_NATAL_HONESTY;
   const systemPrompt = withLanguage(basePrompt + exception, language);
 
   return [
@@ -933,14 +967,46 @@ function mergeResults(results: SectionResults): VedicInterpretation {
   };
 }
 
+/** Build the stable natal reading without either time-sensitive section. */
+function mergeNatalResults(results: SectionResults): NatalInterpretation {
+  return {
+    summary: results.core.summary,
+    strengths: results.core.strengths,
+    challenges: results.core.challenges,
+    life_themes: results.core.life_themes,
+    integrated_yoga_narrative: results.yoga,
+    health_guidance: results.guidance1.health_guidance,
+    education_guidance: results.guidance1.education_guidance,
+    career_guidance: results.guidance1.career_guidance,
+    relationship_guidance: results.guidance1.relationship_guidance,
+    finances_guidance: results.guidance2.finances_guidance,
+    spiritual_guidance: results.guidance2.spiritual_guidance,
+    life_evolution_guidance: results.guidance2.life_evolution_guidance,
+    remedial_measures: results.remedial,
+  };
+}
+
+/** Build the narrow time-sensitive payload owned by the timeline generator. */
+function mergeTimelineResults(results: SectionResults): CurrentTimelineContent {
+  return {
+    upcoming_periods: results.upcoming_periods,
+    current_sky: results.current_sky,
+  };
+}
+
 // =============================================================================
 // Orchestration: 7 parallel JSON calls -> stream of events -> merged complete
 // =============================================================================
 
 /** Internal per-section outcome reported back to the event loop. */
-type SectionOutcome =
-  | { section: InterpretationSectionKey; ok: true; raw: string }
-  | { section: InterpretationSectionKey; ok: false; error: unknown };
+type SectionOutcome<Section extends InterpretationSectionKey = InterpretationSectionKey> =
+  | { section: Section; ok: true; raw: string }
+  | { section: Section; ok: false; error: unknown };
+
+type SectionLifecycleEvent<Section extends InterpretationSectionKey> =
+  | { type: "section_start"; section: Section }
+  | { type: "section_complete"; section: Section }
+  | { type: "error"; section: Section; message: string };
 
 /**
  * The LITE-prompt gate: a local OpenAI-compatible endpoint (Ollama et al.) means
@@ -950,11 +1016,11 @@ export function usesLitePrompt(config: ProviderConfig): boolean {
   return isLocalEndpoint(config.baseUrl);
 }
 
-function runOneSection(
-  section: InterpretationSectionKey,
+function runOneSection<Section extends InterpretationSectionKey>(
+  section: Section,
   chart: SanitizedChart,
   params: StructuredInterpretationParams,
-): Promise<SectionOutcome> {
+): Promise<SectionOutcome<Section>> {
   const lite = usesLitePrompt(params.config);
   const messages = buildSectionMessages(
     section,
@@ -969,11 +1035,11 @@ function runOneSection(
     ...(params.signal ? { signal: params.signal } : {}),
     ...(params.fetchImpl ? { fetchImpl: params.fetchImpl } : {}),
   })
-    .then((raw): SectionOutcome => ({ section, ok: true, raw }))
+    .then((raw): SectionOutcome<Section> => ({ section, ok: true, raw }))
     // Keep the ORIGINAL error (not just its message) so the aggregation can
     // preserve the HTTP status/body of a representative failure — the caller
     // classifies a total failure by status, not by parsing prose.
-    .catch((err: unknown): SectionOutcome => ({ section, ok: false, error: err }));
+    .catch((err: unknown): SectionOutcome<Section> => ({ section, ok: false, error: err }));
 }
 
 /** The message text a section failure contributes to the aggregate summary. */
@@ -996,18 +1062,10 @@ function summarizeFailures(messages: readonly string[]): string {
   return unique.join(" / ");
 }
 
-/**
- * Sanitize a chart and stream a structured seven-section Vedic interpretation.
- *
- * Emits `section_start` for every section up front, runs every section's JSON
- * call in PARALLEL, emits `section_complete` per successful section and `error`
- * per failed one (failed sections degrade to empty), then a single `complete`
- * event with the merged `VedicInterpretation`. Honors `params.signal` (aborts
- * before any call and during the in-flight calls via the underlying fetch).
- */
-export async function* streamStructuredInterpretation(
+async function* streamSections<Section extends InterpretationSectionKey>(
   params: StructuredInterpretationParams,
-): AsyncGenerator<InterpretationEvent> {
+  sections: readonly Section[],
+): AsyncGenerator<SectionLifecycleEvent<Section>, SectionResults> {
   if (params.signal?.aborted) {
     throw abortError();
   }
@@ -1020,28 +1078,23 @@ export async function* streamStructuredInterpretation(
 
   const chart = sanitizeChartForLlm(params.chart, params.now ?? new Date());
 
-  // Announce all sections up front so the UI can render its pending slots.
-  for (const section of ALL_SECTIONS) {
+  for (const section of sections) {
     yield { type: "section_start", section };
   }
 
-  // Fan out: all section calls in flight at once (mirrors the orchestrator's gather).
-  const inFlight = ALL_SECTIONS.map((section) => runOneSection(section, chart, params));
-  const outcomes = await Promise.all(inFlight);
-
-  if (params.signal?.aborted) {
-    throw abortError();
-  }
-
+  const pending = new Map(
+    sections.map((section) => [section, runOneSection(section, chart, params)] as const),
+  );
   const results = emptyResults();
   let applied = 0;
   const failures: string[] = [];
-  // The first HTTP failure seen — rethrown (with its status/body) if EVERY
-  // section fails, so the caller can classify the total failure structurally
-  // (402 billing / 401 auth / 429 rate-limit / 5xx outage) instead of parsing
-  // prose. A non-HTTP total failure (parse/fetch errors) leaves this undefined.
   let representative: LlmRequestError | undefined;
-  for (const outcome of outcomes) {
+
+  while (pending.size > 0) {
+    const outcome = await Promise.race(pending.values());
+    pending.delete(outcome.section);
+    if (params.signal?.aborted) throw abortError();
+
     if (!outcome.ok) {
       if (representative === undefined && outcome.error instanceof LlmRequestError) {
         representative = outcome.error;
@@ -1055,27 +1108,67 @@ export async function* streamStructuredInterpretation(
       applySection(results, outcome.section, outcome.raw);
       applied += 1;
       yield { type: "section_complete", section: outcome.section };
-    } catch (err) {
-      // A 2xx response that wasn't valid JSON for this section: degrade too.
-      const message = outcomeErrorMessage(err);
+    } catch (error) {
+      const message = outcomeErrorMessage(error);
       failures.push(message);
-      yield {
-        type: "error",
-        section: outcome.section,
-        message,
-      };
+      yield { type: "error", section: outcome.section, message };
     }
   }
 
-  // Partial success still completes — one bad section never sinks the reading.
-  // But ZERO usable sections is a total failure (privacy/auth/network/bad model),
-  // and must be loud so the UI shows an error + Retry instead of going blank.
   if (applied === 0) {
     throw new LlmRequestError(
-      `Interpretation failed: all ${outcomes.length} sections failed. ${summarizeFailures(failures)}`,
+      `Interpretation failed: all ${sections.length} sections failed. ${summarizeFailures(failures)}`,
       representative ? { status: representative.status, body: representative.body } : undefined,
     );
   }
+
+  return results;
+}
+
+/** Stream the stable natal reading without time-sensitive predictive sections. */
+export async function* streamNatalInterpretation(
+  params: NatalInterpretationParams,
+): AsyncGenerator<NatalInterpretationEvent> {
+  // Defense in depth: stable natal calls never receive the reference-date-
+  // derived dasha snapshot, even if a caller passes the full engine chart.
+  const fullChart = params.chart as SiderealChart & {
+    transit_context?: unknown;
+    varga_context_full?: unknown;
+    strength_context?: unknown;
+    domains_context?: unknown;
+  };
+  const {
+    dashas: _timingSnapshot,
+    transit_context: _transits,
+    varga_context_full: _vargas,
+    strength_context: _strength,
+    domains_context: _domains,
+    ...stableChart
+  } = fullChart;
+  const results = yield* streamSections(
+    { ...params, chart: stableChart as SiderealChart },
+    NATAL_SECTIONS,
+  );
+  yield { type: "complete", interpretation: mergeNatalResults(results) };
+}
+
+/** Stream only the Road Ahead and current-sky timeline sections. */
+export async function* streamCurrentTimeline(
+  params: CurrentTimelineParams,
+): AsyncGenerator<CurrentTimelineEvent> {
+  const results = yield* streamSections(params, CURRENT_TIMELINE_SECTIONS);
+  yield { type: "complete", timeline: mergeTimelineResults(results) };
+}
+
+/**
+ * Compatibility API: stream all seven sections into one `VedicInterpretation`.
+ * New callers that persist natal content separately from the current timeline
+ * should use `streamNatalInterpretation` and `streamCurrentTimeline`.
+ */
+export async function* streamStructuredInterpretation(
+  params: StructuredInterpretationParams,
+): AsyncGenerator<InterpretationEvent> {
+  const results = yield* streamSections(params, ALL_SECTIONS);
 
   yield { type: "complete", interpretation: mergeResults(results) };
 }

@@ -39,6 +39,7 @@ import { FeedbackWidget } from "../components/features/feedback/FeedbackWidget";
 import { ProvenanceFooter } from "../components/ProvenanceFooter";
 import {
   ChartVisualization,
+  DashboardCurrentTimeline,
   DashboardInterpretation,
   IdentityStrip,
   LifeAtlas,
@@ -58,7 +59,7 @@ import type { ViewMode } from "../lib/types";
 import {
   READING_MODEL_UNAVAILABLE,
   currentInterpretationForChart,
-  isNarrationInputSettled,
+  currentTimelineInputState,
   useStreamingInterpretation,
   withRawPredictive,
 } from "../hooks/useStreamingInterpretation";
@@ -180,6 +181,14 @@ export default function DashboardPage() {
     error: streamingError,
     errorKind: streamingErrorKind,
     cancel: cancelStreaming,
+    streamCurrentTimeline,
+    currentTimeline,
+    timelineSections,
+    failedTimelineSections,
+    isTimelineStreaming,
+    timelineStatus,
+    timelineError,
+    cancelCurrentTimeline,
   } = useStreamingInterpretation(chartId);
   const predictiveRequestIdentity = usePredictiveStore((s) => s.requestKey);
   const predictiveStatus = usePredictiveStore((s) => s.status);
@@ -206,9 +215,9 @@ export default function DashboardPage() {
   // in the reading section (keep-old-until-success keeps the reading itself).
   // Dismissed locally; a new generation attempt re-arms it.
   const [regenErrorDismissed, setRegenErrorDismissed] = useState(false);
-  // A manual regenerate requested while today's predictive facts are still
-  // computing is queued, never downgraded to natal-only narration.
-  const [regenerationQueued, setRegenerationQueued] = useState(false);
+  // A manual timeline refresh requested while today's predictive facts are
+  // still computing is queued. Natal generation never waits on these facts.
+  const [timelineRegenerationQueued, setTimelineRegenerationQueued] = useState(false);
 
   // Dead/retired/typo'd model → the switch-model prompt. The hook stores the
   // stable sentinel for this case; the raw-message sniff keeps recognizing
@@ -231,6 +240,7 @@ export default function DashboardPage() {
   // Honest, live "time so far" for the generation panel (replaces a fixed,
   // usually-wrong "about 30 seconds" estimate).
   const interpElapsed = useElapsedSeconds(isStreamingInterpretation);
+  const timelineElapsed = useElapsedSeconds(isTimelineStreaming);
 
   // P5 local-first chat Q&A: the floating chat panel asks a grounded question
   // about the chart. We answer ENTIRELY in-browser via @almamesh/llm — the chart
@@ -339,11 +349,6 @@ export default function DashboardPage() {
 
   const handleGenerateSeparatedInterpretation = useCallback(async () => {
     if (!chartId) return;
-    if (!isNarrationInputSettled(chartId)) {
-      setRegenerationQueued(true);
-      return;
-    }
-    setRegenerationQueued(false);
     // A fresh attempt re-arms the regeneration-failure strip (it was for the
     // PREVIOUS failure; a new one must be visible again).
     setRegenErrorDismissed(false);
@@ -377,11 +382,29 @@ export default function DashboardPage() {
     handleGenerateSeparatedInterpretation();
   };
 
-  // Manual "Regenerate" keeps the current reading on screen until — and unless
+  // Manual natal regeneration keeps the current reading on screen until — and unless
   // — the explicitly requested replacement lands (keep-old-until-success).
   const handleRegenerateReading = () => {
     handleGenerateSeparatedInterpretation();
   };
+
+  const handleRegenerateTimeline = useCallback(async () => {
+    if (!chartId) return;
+    if (currentTimelineInputState(chartId) === 'pending') {
+      setTimelineRegenerationQueued(true);
+      return;
+    }
+    setTimelineRegenerationQueued(false);
+    cancelCurrentTimeline();
+    try {
+      await streamCurrentTimeline(chartId, {
+        intent: 'user-request',
+        view_mode: viewMode === 'astrologer' ? 'expert' : 'layman',
+      });
+    } catch (err) {
+      safeError('dashboard.interpretation_failed', err);
+    }
+  }, [cancelCurrentTimeline, chartId, streamCurrentTimeline, viewMode]);
   const astronomicalData = chartDetails || chartData?.chart_data?.astronomical_calculations;
 
   // Check if interpretation has actual content (not just placeholders).
@@ -424,39 +447,29 @@ export default function DashboardPage() {
   // user intent. Resume that one queued request only after the facts settle.
   // Mounts, reloads, service-worker activations, deploys, config changes, and
   // predictive-day changes never enter this effect because they cannot set the
-  // queue; only `handleGenerateSeparatedInterpretation` called by a button can.
+  // queue; only `handleRegenerateTimeline` called by its button can.
   useEffect(() => {
     if (
-      !regenerationQueued ||
+      !timelineRegenerationQueued ||
       !chartId ||
       isLoading ||
       !aiConfigured ||
-      isStreamingInterpretation ||
-      !isNarrationInputSettled(chartId)
+      isTimelineStreaming ||
+      currentTimelineInputState(chartId) === 'pending'
     ) {
       return;
     }
-    handleGenerateSeparatedInterpretation();
+    handleRegenerateTimeline();
   }, [
     aiConfigured,
     chartId,
-    handleGenerateSeparatedInterpretation,
+    handleRegenerateTimeline,
     isLoading,
-    isStreamingInterpretation,
+    isTimelineStreaming,
     predictiveRequestIdentity,
     predictiveStatus,
-    regenerationQueued,
+    timelineRegenerationQueued,
   ]);
-
-  // A predictive/config change may make a stored reading stale, but only a
-  // person can buy its replacement. This flag now labels an explicitly started
-  // upgrade; it never causes one.
-  const readingIsPredictiveAware = interpretationEntry?.provenance?.predictiveAware === true;
-
-  // Quiet affordance: the reading is "deepening" while an upgrade streams over
-  // an already-visible (natal) reading — so the visible refinement reads as
-  // intentional, not a flicker/bug (Spec 065).
-  const deepeningWithTiming = isStreamingInterpretation && hasValidInterpretation && !readingIsPredictiveAware;
 
   // Extract sidereal context data for the identity strip + chart panels.
   const siderealCtx = astronomicalData?.sidereal_ctx;
@@ -495,12 +508,6 @@ export default function DashboardPage() {
   const birthData = chartData?.chart_data?.birth_data ?? null;
   const rectification = birthData ? rectificationDelta(birthData) : null;
 
-  // "This period" — timely guidance attached to the reading (plain strings).
-  const periodGuidance = interpretation?.current_period_guidance ?? null;
-  const periodBody = periodGuidance?.period_summary || periodGuidance?.guidance || null;
-  const hasPeriodGuidance = Boolean(
-    periodGuidance?.current_period || periodBody || (periodGuidance?.key_themes?.length ?? 0) > 0,
-  );
   // The headline reading in the selected voice (jargon-free for "you",
   // placement-naming for "astrologer"). Re-derived on every contentMode change.
   const summaryText = personaText(interpretation?.summary, audience);
@@ -522,6 +529,19 @@ export default function DashboardPage() {
     ? readingModel
       ? t('dashboard:reading.generated_by', { model: readingModel, date: readingDate })
       : t('dashboard:reading.generated_at', { date: readingDate })
+    : null;
+  const timelineDate = interpretationEntry?.timeline?.updatedAt
+    ? new Date(interpretationEntry.timeline.updatedAt).toLocaleDateString(i18n.language, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      })
+    : null;
+  const timelineModel = interpretationEntry?.timeline?.provenance?.model ?? null;
+  const timelineCaption = timelineDate
+    ? timelineModel
+      ? t('dashboard:timeline.generated_by', { model: timelineModel, date: timelineDate })
+      : t('dashboard:timeline.generated_at', { date: timelineDate })
     : null;
 
   // Show loading state while fetching chart data
@@ -614,17 +634,16 @@ export default function DashboardPage() {
                 </svg>
                 {t('dashboard:actions.export_pdf')}
               </button>
-              {/* Regenerate the reading with the currently configured AI. Lives
+              {/* Generate the stable natal reading with the configured AI. Lives
                   in the top actions row (reachable on mobile, unlike the old
                   header slot) and stays present before the first interpretation
                   as well as after an empty result, so recovery has no dead-end.
-                  A click made while predictive facts load is queued once; the
-                  button stays disabled until that current-key narration starts. */}
+                  It never waits for or includes time-sensitive predictive facts. */}
               <button
                 type="button"
                 onClick={handleRegenerateReading}
                 disabled={
-                  isStreamingInterpretation || regenerationQueued || !canRegenerateReading
+                  isStreamingInterpretation || isTimelineStreaming || !canRegenerateReading
                 }
                 data-testid={interpretation ? 'regenerate-reading' : 'generate-reading'}
                 title={
@@ -636,7 +655,7 @@ export default function DashboardPage() {
                 }
                 className="inline-flex min-h-11 min-w-11 items-center gap-1.5 whitespace-nowrap rounded-md border border-ui-border px-3 py-1.5 text-sm text-text-secondary transition-colors hover:border-accent-gold/40 hover:text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-gold disabled:cursor-not-allowed disabled:border-ui-border/60 disabled:text-text-tertiary disabled:hover:border-ui-border/60"
               >
-                {isStreamingInterpretation || regenerationQueued ? (
+                {isStreamingInterpretation ? (
                   <Spinner size="sm" />
                 ) : (
                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -646,6 +665,30 @@ export default function DashboardPage() {
                 {interpretation
                   ? t('dashboard:actions.regenerate')
                   : t('dashboard:actions.generate')}
+              </button>
+              <button
+                type="button"
+                onClick={handleRegenerateTimeline}
+                disabled={
+                  isStreamingInterpretation ||
+                  isTimelineStreaming ||
+                  timelineRegenerationQueued ||
+                  !canRegenerateReading
+                }
+                data-testid={currentTimeline ? 'regenerate-timeline' : 'generate-timeline'}
+                title={t('dashboard:actions.refresh_timeline')}
+                className="inline-flex min-h-11 min-w-11 items-center gap-1.5 whitespace-nowrap rounded-md border border-ui-border px-3 py-1.5 text-sm text-text-secondary transition-colors hover:border-accent-gold/40 hover:text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-gold disabled:cursor-not-allowed disabled:border-ui-border/60 disabled:text-text-tertiary disabled:hover:border-ui-border/60"
+              >
+                {isTimelineStreaming || timelineRegenerationQueued ? (
+                  <Spinner size="sm" />
+                ) : (
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                )}
+                {currentTimeline
+                  ? t('dashboard:actions.refresh_timeline')
+                  : t('dashboard:actions.generate_timeline')}
               </button>
               <FeedbackWidget page="dashboard" />
               <Link
@@ -742,13 +785,15 @@ export default function DashboardPage() {
             while streaming, and the louder failure treatment reserved for a
             real defect — a privacy refusal, an app-state error, an
             unclassifiable failure. */}
-        {aiConfigured && chartId && !hasValidInterpretation &&
+        {aiConfigured && chartId &&
           (isStreamingInterpretation ||
-            (interpretationStatus === 'error' && !readingDegradesGracefully)) && (
+            (!hasValidInterpretation &&
+              interpretationStatus === 'error' &&
+              !readingDegradesGracefully)) && (
           <Card
             title={
               isStreamingInterpretation
-                ? t('dashboard:generation.title_generating')
+                ? t('dashboard:generation.title_generating_natal')
                 : t('dashboard:generation.title_failed')
             }
             actions={isStreamingInterpretation ? <Spinner size="sm" /> : undefined}
@@ -799,6 +844,59 @@ export default function DashboardPage() {
                   </li>
                 ))}
               </ul>
+            )}
+          </Card>
+        )}
+
+        {aiConfigured && chartId &&
+          (isTimelineStreaming || timelineStatus === 'error') && (
+          <Card
+            title={
+              isTimelineStreaming
+                ? t('dashboard:generation.title_generating_timeline')
+                : t('dashboard:generation.title_timeline_failed')
+            }
+            actions={isTimelineStreaming ? <Spinner size="sm" /> : undefined}
+            data-testid="timeline-progress"
+          >
+            {isTimelineStreaming ? (
+              <>
+                <p className="text-sm text-text-secondary" data-testid="timeline-elapsed">
+                  {t('dashboard:generation.timeline_elapsed', {
+                    elapsed: formatElapsed(timelineElapsed),
+                  })}
+                </p>
+                <ul className="mt-4 max-w-sm space-y-1 text-sm text-text-secondary">
+                  {timelineSections.map((section) => (
+                    <li key={section.key} className="flex items-center justify-between">
+                      <span>{t(`dashboard:sections.${section.key}`)}</span>
+                      <span
+                        className={
+                          section.failed
+                            ? 'text-status-error'
+                            : section.complete
+                              ? 'text-status-success'
+                              : 'text-text-tertiary'
+                        }
+                      >
+                        {section.failed ? '✗' : section.complete ? '✓' : '…'}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : (
+              <div className="space-y-3 text-sm text-text-secondary" role="alert">
+                <p>{timelineError}</p>
+                <button
+                  type="button"
+                  onClick={handleRegenerateTimeline}
+                  className="underline hover:no-underline"
+                  data-testid="timeline-retry"
+                >
+                  {t('dashboard:actions.retry')}
+                </button>
+              </div>
             )}
           </Card>
         )}
@@ -887,31 +985,7 @@ export default function DashboardPage() {
             <DashboardInterpretation
               interpretation={interpretation}
               audience={audience}
-              deepeningWithTiming={deepeningWithTiming}
-              predictiveAware={readingIsPredictiveAware}
             />
-            {hasPeriodGuidance && periodGuidance && (
-              <div className="space-y-1.5 border-l-2 border-accent-gold/40 pl-4">
-                <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-text-tertiary">
-                  {t('life:reading.this_period')}
-                </p>
-                {periodGuidance.current_period && (
-                  <p className="text-sm font-medium text-accent-gold">
-                    {periodGuidance.current_period}
-                  </p>
-                )}
-                {periodBody && (
-                  <p className="max-w-prose text-sm leading-[1.75] text-text-secondary">
-                    {periodBody}
-                  </p>
-                )}
-                {(periodGuidance.key_themes?.length ?? 0) > 0 && (
-                  <p className="text-xs text-text-tertiary">
-                    {t('life:reading.themes')}: {periodGuidance.key_themes?.join(' · ')}
-                  </p>
-                )}
-              </div>
-            )}
             {/* Quiet provenance line: which model wrote this reading, when. */}
             {readingCaption && (
               <p
@@ -927,6 +1001,26 @@ export default function DashboardPage() {
                 privacy). Static i18n copy — no astrology, no LLM call. */}
             <ReadingGrounding />
           </section>
+        )}
+
+        {currentTimeline && (
+          <div className="space-y-3">
+            {failedTimelineSections.length > 0 ? (
+              <p className="text-sm text-text-secondary" data-testid="timeline-partial-failure">
+                {t('dashboard:generation.timeline_partial_failure', {
+                  sections: failedTimelineSections
+                    .map((key) => t(`dashboard:sections.${key}`))
+                    .join(', '),
+                })}
+              </p>
+            ) : null}
+            <DashboardCurrentTimeline
+              currentSky={currentTimeline.current_sky ?? []}
+              upcomingPeriods={currentTimeline.upcoming_periods ?? []}
+              audience={audience}
+              caption={timelineCaption}
+            />
+          </div>
         )}
 
         {/* 4 — Life Atlas: the seven-domain centerpiece (engine forecasts,
