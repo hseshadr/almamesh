@@ -24,6 +24,7 @@ import {
   type VectorStore,
 } from '@almamesh/memory';
 import { safeWarn } from '@almamesh/shared-types';
+import { readDeletionTombstones } from '@almamesh/store';
 
 /** The slice of `ChatMemory` the UI depends on — keeps tests honest + injectable. */
 export type ChatMemoryFacade = Pick<
@@ -33,6 +34,7 @@ export type ChatMemoryFacade = Pick<
 
 /** Default top-k for the discoverable search box (a few more than RAG uses). */
 const SEARCH_K = 8;
+const SQLITE_PROOF_INDEX = 'almamesh-chat-memory-browser-proof-v1';
 
 let singleton: ChatMemoryFacade | null = null;
 
@@ -40,28 +42,36 @@ function datasetGeneration(): string {
   return globalThis.localStorage?.getItem('almamesh-restore-epoch') ?? '0';
 }
 
-function acceptsVectorGeneration(ledger: unknown, generation: string | number): boolean {
-  const value = ledger as {
-    activeEpoch?: unknown;
-    restoreEpoch?: unknown;
-    restoreInProgress?: unknown;
-  } | null;
-  const active = typeof value?.activeEpoch === 'number' ? value.activeEpoch : 0;
-  const fence = typeof value?.restoreEpoch === 'number' ? value.restoreEpoch : 0;
-  return value?.restoreInProgress !== true && active === Number(generation) && fence === active;
+async function acceptsVectorWrite(generation: string | number): Promise<boolean> {
+  const ledger = await readDeletionTombstones();
+  return (
+    !ledger.restoreInProgress &&
+    ledger.activeEpoch === Number(generation) &&
+    ledger.restoreEpoch === ledger.activeEpoch
+  );
+}
+
+async function acceptsVectorRead(generation: string | number): Promise<boolean> {
+  const ledger = await readDeletionTombstones();
+  return (
+    !ledger.memoryRebuildPending &&
+    !ledger.restoreInProgress &&
+    ledger.activeEpoch === Number(generation) &&
+    ledger.restoreEpoch === ledger.activeEpoch
+  );
 }
 
 function createGenerationAwareVectorStore(): VectorStore {
   return createVectorStore({
     generation: datasetGeneration,
     ledgerGuard: {
-      key: 'almamesh-deletion-tombstones',
-      accepts: acceptsVectorGeneration,
+      acceptsWrite: acceptsVectorWrite,
+      acceptsRead: acceptsVectorRead,
     },
   });
 }
 
-let vectorStore: VectorStore = createGenerationAwareVectorStore();
+const vectorStore: VectorStore = createGenerationAwareVectorStore();
 
 /**
  * Resolve the process-wide memory singleton, booting the embedder worker on
@@ -89,13 +99,15 @@ export function __setMemoryForTest(fake: ChatMemoryFacade): void {
 /** TEST SEAM: drop the singleton so the next call re-boots a fresh instance. */
 export function __resetMemoryForTest(): void {
   singleton = null;
-  vectorStore = createGenerationAwareVectorStore();
 }
 
-/** Drop stale in-memory vector caches without deleting the active generation. */
+/**
+ * Drop the memory facade after a generation change. Keep the single SQLite
+ * Worker/OPFS owner alive; every query is generation-filtered and stale writes
+ * are fenced by the durable deletion ledger.
+ */
 export function invalidateMemoryRuntime(): void {
   singleton = null;
-  vectorStore = createGenerationAwareVectorStore();
 }
 
 /** Delete every persisted semantic-memory record owned by one profile. */
@@ -179,5 +191,76 @@ export async function searchMemory(
   } catch (error) {
     safeWarn('memory.search_failed', error);
     return [];
+  }
+}
+
+export interface SqliteMemoryProof {
+  readonly firstMessageId: string;
+  readonly reopenedMessageId: string;
+  readonly sqliteVersion: string;
+  readonly vectorVersion: string;
+  readonly vectorBackend: string;
+}
+
+/**
+ * Exit-gate hook: exercise the same production SQLite Worker + OPFS adapter,
+ * then close and reopen it to prove durable retrieval. The isolated proof
+ * index is cleared in a finally path and is never used for real chat data.
+ */
+export async function verifySqliteMemoryPersistence(): Promise<SqliteMemoryProof> {
+  const createProofStore = () =>
+    createVectorStore({
+      name: SQLITE_PROOF_INDEX,
+      dimension: 3,
+      generation: () => 'proof',
+    });
+  const expected = 'sqlite-proof-message';
+  let first = createProofStore();
+  try {
+    await first.clear();
+    await first.upsert([
+      {
+        id: 'nearest',
+        profile_id: 'sqlite-proof-profile',
+        thread_id: 'sqlite-proof-thread',
+        message_id: expected,
+        text: 'SQLite OPFS persistence proof',
+        vector: new Float32Array([1, 0, 0]),
+      },
+      {
+        id: 'farther',
+        profile_id: 'sqlite-proof-profile',
+        thread_id: 'sqlite-proof-thread',
+        message_id: 'farther-message',
+        text: 'A deliberately distant vector',
+        vector: new Float32Array([0, 1, 0]),
+      },
+    ], 'proof');
+    const [firstHit] = await first.search(
+      new Float32Array([1, 0, 0]),
+      'sqlite-proof-profile',
+      1,
+      'proof',
+    );
+    const runtime = await first.runtimeInfo();
+    await first.dispose();
+
+    first = createProofStore();
+    const [reopenedHit] = await first.search(
+      new Float32Array([1, 0, 0]),
+      'sqlite-proof-profile',
+      1,
+      'proof',
+    );
+    return {
+      firstMessageId: firstHit?.record.message_id ?? '',
+      reopenedMessageId: reopenedHit?.record.message_id ?? '',
+      sqliteVersion: runtime.sqliteVersion,
+      vectorVersion: runtime.vectorVersion,
+      vectorBackend: runtime.vectorBackend,
+    };
+  } finally {
+    await first.clear().catch(() => undefined);
+    await first.dispose().catch(() => undefined);
   }
 }

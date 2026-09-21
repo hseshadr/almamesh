@@ -258,11 +258,9 @@ function pwaPlugin(): Plugin[] {
       importScripts: TRUST_KEY_CONFIG === null
         ? []
         : [TRUST_KEY_CONFIG, 'engine-trust-install.js'],
-      // `wasm` covers ONLY the small hashed yoga-layout asset under /assets/
-      // (yogaWasmAssetPlugin, ~90 KB) so offline PDF export keeps working — it
-      // used to ride inside the precached react-pdf JS chunk as base64. The
-      // giant engine wasms stay out via the directory globIgnores below
-      // (pyodide/**, models/**).
+      // `wasm` covers the small hashed yoga-layout asset and the SQLite runtime
+      // used by local semantic memory. The giant engine/model wasms stay out
+      // via the directory globIgnores below (pyodide/**, models/**).
       globPatterns: ['**/*.{js,css,html,woff,woff2,ttf,otf,wasm}'],
       globIgnores: [
         'pyodide/**',

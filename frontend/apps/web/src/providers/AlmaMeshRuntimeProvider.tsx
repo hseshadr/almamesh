@@ -116,6 +116,8 @@ if (typeof window !== 'undefined' && EXIT_GATE_HOOKS) {
       __EDGEPROC_FORCE_INDEXEDDB_CACHE__?: boolean
     }
   ).__EDGEPROC_FORCE_INDEXEDDB_CACHE__ = forceIndexedDb
+  window.__almameshVerifySqliteMemory = async () =>
+    (await import('../lib/chatMemory')).verifySqliteMemoryPersistence()
 }
 
 /**

@@ -8,6 +8,11 @@ OPFS is the fast path; IndexedDB is the persistent fallback when a browser
 exposes OPFS but cannot open it. The network carries
 delivery metadata and the explicitly disclosed city-search/optional-AI flows;
 birth details and computed charts are not sent by the engine or geocoder.
+Optional chat memory is also derived entirely on-device: a self-hosted MiniLM
+Worker produces embeddings, then the shared `@edgeproc/browser/vector/sqlite`
+Worker performs exact cosine search with profile and generation filters. Its
+SQLite database persists in OPFS; no in-memory JavaScript similarity loop or
+IndexedDB vector copy participates in live retrieval.
 
 This page is the orientation map. The deep, always-current reference is
 [CLAUDE.md](../CLAUDE.md) (tech stack, package table, data contract, quality
@@ -51,6 +56,27 @@ house diagram format).*
    backend suite; their Pyodide parity is not yet browser-gated.)
 4. **UI** — React reshapes `SiderealChart → ChartData` and renders. TypeScript
    never computes astrology (house rule #2).
+
+## Local semantic-memory flow
+
+When optional chat is used, `@almamesh/memory` chunks messages and asks the
+self-hosted MiniLM Worker for 384-dimensional embeddings. A thin AlmaMesh
+adapter hands those vectors and flat profile/thread/message metadata to the
+shared SQLite Worker. `sqlite-vector` ranks matches inside that Worker and the
+database persists in OPFS. Generation-prefixed physical IDs plus durable
+deletion-ledger checks prevent a delayed pre-restore write from becoming
+visible; profile/thread erasure and full reset are atomic SQLite deletes. Chat
+history in IndexedDB remains authoritative, so derived vectors can be rebuilt
+after restore or recovery.
+
+Semantic retrieval requires a working Origin Private File System. If a browser
+does not provide it—or exposes `getDirectory()` but refuses to open it—the
+adapter fails closed before spawning SQLite. Chat still works from its
+authoritative IndexedDB history; only optional RAG memory is unavailable. There
+is deliberately no JavaScript cosine, in-memory, or IndexedDB-vector fallback.
+The browser gate proves the positive OPFS reopen path in Chromium and the clean
+no-Worker refusal path in Playwright WebKit, whose current headless engine
+throws `UnknownError` from `navigator.storage.getDirectory()`.
 
 ## Where things live
 

@@ -216,9 +216,11 @@ Browser (the product) ─ installable PWA, offline after first load
 │                                (no names leave the device)
 ├─ frontend/packages/shared-types      UI-facing TypeScript contracts
 ├─ frontend/packages/constants         single design-token source
-├─ frontend/packages/memory            local semantic chat memory
+├─ frontend/packages/memory            local semantic chat memory:
+│    ├─ MiniLM Web Worker              self-hosted, on-device embeddings
+│    └─ SQLite vector Worker           sqlite-vector exact search; OPFS persistence
 
-External Lego: @edgeproc/browser       signed-bundle sync and verification
+External Lego: @edgeproc/browser       signed-bundle sync plus SQLite/vector browser substrate
 
 Build-time (Python, no server)
 │

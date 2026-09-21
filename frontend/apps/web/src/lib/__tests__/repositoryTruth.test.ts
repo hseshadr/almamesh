@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, '../../../../../..');
-const EDGEPROC_BROWSER_SHA = 'f1ae371c8dfe441c6a3dd845e92c3d67adf654bd';
+const EDGEPROC_BROWSER_SHA = 'a94e7f2a0237a7144658351c07cb296fcb0540fb';
 const readRoot = (path: string): string => readFileSync(resolve(root, path), 'utf8');
 const readSection = (document: string, heading: string): string => {
   const start = document.indexOf(heading);
@@ -171,10 +171,16 @@ describe('repository truth', () => {
     const browserPackage = JSON.parse(readRoot('frontend/packages/browser/package.json')) as {
       dependencies: Record<string, string>;
     };
+    const memoryPackage = JSON.parse(readRoot('frontend/packages/memory/package.json')) as {
+      dependencies: Record<string, string>;
+    };
     const frontendPackage = JSON.parse(readRoot('frontend/package.json')) as {
       trustedDependencies?: string[];
     };
     expect(browserPackage.dependencies['@edgeproc/browser']).toBe(
+      `github:hseshadr/edgeproc-browser#${EDGEPROC_BROWSER_SHA}`,
+    );
+    expect(memoryPackage.dependencies['@edgeproc/browser']).toBe(
       `github:hseshadr/edgeproc-browser#${EDGEPROC_BROWSER_SHA}`,
     );
     expect(frontendPackage.trustedDependencies ?? []).not.toContain('@edgeproc/browser');
@@ -185,6 +191,37 @@ describe('repository truth', () => {
     );
     expect(readRoot('dagger/src/index.ts')).toContain(
       `const EDGEPROC_BROWSER_SHA = "${EDGEPROC_BROWSER_SHA}"`,
+    );
+  });
+
+  it('keeps live semantic search entirely on SQLite + sqlite-vector in an OPFS Worker', () => {
+    const store = readRoot('frontend/packages/memory/src/vectorStore.ts');
+    const memoryIndex = readRoot('frontend/packages/memory/src/index.ts');
+    const memoryPackage = readRoot('frontend/packages/memory/package.json');
+    const appFactory = readRoot('frontend/apps/web/src/lib/chatMemory.ts');
+
+    expect(store).toContain('createSqliteVectorIndex');
+    expect(store).toContain('persistence: "opfs"');
+    expect(store).toContain('.deleteWhere({ profile_id: profileId })');
+    expect(store).toContain('.deleteWhere({ thread_id: threadId })');
+    expect(store).not.toContain('new Map');
+    expect(store).not.toContain('cosineSimilarity');
+    expect(memoryIndex).not.toContain('./cosine');
+    expect(memoryPackage).not.toContain('idb-keyval');
+    expect(existsSync(resolve(root, 'frontend/packages/memory/src/cosine.ts'))).toBe(false);
+    expect(appFactory).toContain('readDeletionTombstones');
+    expect(appFactory).not.toContain('createGenerationAwareVectorStore();\n}');
+    const browserProof = readRoot('frontend/apps/web/scripts/verify-sqlite-memory.mjs');
+    expect(browserProof).toContain('window.__almameshVerifySqliteMemory()');
+    expect(browserProof).toContain('twoWorkerLifecycles');
+    expect(browserProof).toContain('oneEmittedWorkerAsset');
+    expect(browserProof).toContain('zeroThirdPartyEgress');
+    expect(browserProof).toContain('chromium, webkit');
+    expect(readRoot('dagger/src/index.ts')).toContain(
+      'node scripts/verify-sqlite-memory.mjs http://127.0.0.1:4199 --browser=chromium',
+    );
+    expect(readRoot('dagger/src/index.ts')).toContain(
+      'node scripts/verify-sqlite-memory.mjs http://127.0.0.1:4200 --browser=webkit',
     );
   });
 

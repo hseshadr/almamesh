@@ -1,10 +1,10 @@
-import { clear } from "idb-keyval";
-import { beforeEach, describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   createMemory,
   createVectorStore,
   type Embedder,
+  type SqliteVectorIndexLike,
   type VectorStore,
 } from "./index";
 
@@ -41,13 +41,112 @@ const stubEmbedder: Embedder = {
   },
 };
 
-describe("createMemory", () => {
-  beforeEach(async () => {
-    await clear();
-  });
+function testVectorStore(): VectorStore {
+  const records = new Map<
+    string,
+    {
+      readonly id: string;
+      readonly vector: Float32Array;
+      readonly metadata: Readonly<Record<string, string | number | boolean | null>>;
+    }
+  >();
+  const index: SqliteVectorIndexLike = {
+    name: "memory-test",
+    dimension: 26,
+    capabilities: {
+      metrics: ["cosine"],
+      exact: true,
+      persistent: true,
+      metadataFiltering: true,
+      scopedDelete: true,
+    },
+    async insert(items) {
+      for (const item of items) records.set(item.id, item);
+    },
+    async read(id) {
+      return records.get(id);
+    },
+    async search(query, limit, filters) {
+      return [...records.values()]
+        .filter((item) =>
+          Object.entries(filters ?? {}).every(
+            ([key, value]) => item.metadata[key] === value,
+          ),
+        )
+        .map((item) => {
+          let similarity = 0;
+          for (let index = 0; index < query.length; index += 1) {
+            similarity += query[index] * item.vector[index];
+          }
+          return {
+            id: item.id,
+            distance: 1 - similarity,
+            metadata: item.metadata,
+          };
+        })
+        .sort((left, right) => left.distance - right.distance)
+        .slice(0, limit);
+    },
+    async delete(ids, filters) {
+      let deleted = 0;
+      for (const id of ids) {
+        const item = records.get(id);
+        if (
+          item !== undefined &&
+          Object.entries(filters ?? {}).every(
+            ([key, value]) => item.metadata[key] === value,
+          )
+        ) {
+          records.delete(id);
+          deleted += 1;
+        }
+      }
+      return deleted;
+    },
+    async deleteWhere(filters) {
+      let deleted = 0;
+      for (const [id, item] of records) {
+        if (Object.entries(filters).every(([key, value]) => item.metadata[key] === value)) {
+          records.delete(id);
+          deleted += 1;
+        }
+      }
+      return deleted;
+    },
+    async clear() {
+      const deleted = records.size;
+      records.clear();
+      return deleted;
+    },
+    async stats() {
+      return {
+        name: "memory-test",
+        dimension: 26,
+        vectorCount: records.size,
+        vectorBytes: records.size * 26 * Float32Array.BYTES_PER_ELEMENT,
+      };
+    },
+    async runtimeInfo() {
+      return {
+        sqliteVersion: "test",
+        vectorVersion: "test",
+        vectorBackend: "test",
+        bundledExtensions: [],
+      };
+    },
+    dispose: vi.fn(async () => undefined),
+  };
+  return createVectorStore({ dimension: 26, indexFactory: async () => index });
+}
 
+async function storedIds(store: VectorStore, profileId: string): Promise<readonly string[]> {
+  const hits = await store.search(new Float32Array(26), profileId, 100, 0);
+  return hits.map((hit) => hit.record.id);
+}
+
+describe("createMemory", () => {
   it("indexes messages then retrieves the most-similar chunk first", async () => {
-    const memory = createMemory({ embedder: stubEmbedder });
+    const memory = createMemory({ embedder: stubEmbedder, store: testVectorStore() });
     await memory.indexMessage({
       id: "m1",
       thread_id: "t1",
@@ -70,7 +169,7 @@ describe("createMemory", () => {
   });
 
   it("returns RetrievedChunk shape with text, message_id, thread_id, score", async () => {
-    const memory = createMemory({ embedder: stubEmbedder });
+    const memory = createMemory({ embedder: stubEmbedder, store: testVectorStore() });
     await memory.indexMessage({
       id: "m1",
       thread_id: "t9",
@@ -88,7 +187,7 @@ describe("createMemory", () => {
   });
 
   it("never returns profile A's chunks when retrieving for profile B", async () => {
-    const memory = createMemory({ embedder: stubEmbedder });
+    const memory = createMemory({ embedder: stubEmbedder, store: testVectorStore() });
     await memory.indexMessage({
       id: "a1",
       thread_id: "ta",
@@ -110,7 +209,7 @@ describe("createMemory", () => {
   });
 
   it("respects the k argument and defaults sensibly when omitted", async () => {
-    const memory = createMemory({ embedder: stubEmbedder });
+    const memory = createMemory({ embedder: stubEmbedder, store: testVectorStore() });
     await memory.indexMessage({
       id: "m1",
       thread_id: "t1",
@@ -123,7 +222,7 @@ describe("createMemory", () => {
   });
 
   it("indexing empty / whitespace content is a no-op (nothing retrievable)", async () => {
-    const memory = createMemory({ embedder: stubEmbedder });
+    const memory = createMemory({ embedder: stubEmbedder, store: testVectorStore() });
     await memory.indexMessage({
       id: "blank",
       thread_id: "t1",
@@ -148,7 +247,7 @@ describe("createMemory", () => {
         return texts.map(charHistogram);
       },
     };
-    const store = createVectorStore();
+    const store = testVectorStore();
     const memory = createMemory({ embedder: delayedEmbedder, store });
     const indexing = memory.indexMessage({
       id: "late",
@@ -168,7 +267,7 @@ describe("createMemory", () => {
       content: "must stay deleted",
     });
 
-    expect(await store.allForProfile("target")).toEqual([]);
+    expect(await storedIds(store, "target")).toEqual([]);
   });
 
   it("drains target-profile indexes before deletion while preserving another profile", async () => {
@@ -186,7 +285,7 @@ describe("createMemory", () => {
         return texts.map(charHistogram);
       },
     };
-    const store = createVectorStore();
+    const store = testVectorStore();
     const memory = createMemory({ embedder: delayedEmbedder, store });
     await memory.indexMessage({
       id: "keep",
@@ -206,10 +305,8 @@ describe("createMemory", () => {
     releaseTarget();
     await Promise.all([targetIndex, deletion]);
 
-    expect(await store.allForProfile("target")).toEqual([]);
-    expect((await store.allForProfile("survivor")).map((record) => record.id)).toEqual([
-      "keep#0",
-    ]);
+    expect(await storedIds(store, "target")).toEqual([]);
+    expect(await storedIds(store, "survivor")).toEqual(["keep#0"]);
   });
 
   it("drops an in-flight embedding when another realm advances the dataset generation", async () => {
@@ -223,7 +320,7 @@ describe("createMemory", () => {
         return texts.map(charHistogram);
       },
     };
-    const store = createVectorStore();
+    const store = testVectorStore();
     const memory = createMemory({
       embedder: delayedEmbedder,
       store,
@@ -241,11 +338,11 @@ describe("createMemory", () => {
     releaseEmbed.resolve();
     await pending;
 
-    expect(await store.allForProfile("old-profile")).toEqual([]);
+    expect(await storedIds(store, "old-profile")).toEqual([]);
   });
 
   it("hands the starting generation to a pausable vector upsert so it cannot land stale", async () => {
-    const base = createVectorStore();
+    const base = testVectorStore();
     const upsertStarted = Promise.withResolvers<void>();
     const releaseUpsert = Promise.withResolvers<void>();
     let generation = 5;
@@ -276,7 +373,7 @@ describe("createMemory", () => {
     releaseUpsert.resolve();
     await pending;
 
-    expect(await base.allForProfile("old-profile")).toEqual([]);
+    expect(await storedIds(base, "old-profile")).toEqual([]);
   });
 
   it("returns no retrieval when Replace advances during query embedding", async () => {
@@ -290,7 +387,7 @@ describe("createMemory", () => {
         return texts.map(charHistogram);
       },
     };
-    const store = createVectorStore();
+    const store = testVectorStore();
     await store.upsert([
       {
         id: "old#0",

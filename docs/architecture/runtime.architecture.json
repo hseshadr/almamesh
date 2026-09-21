@@ -7,9 +7,9 @@
     "quality_profile": "showcase",
     "repository": {
       "url": "https://github.com/hseshadr/almamesh",
-      "revision": "6ccaefe9676241adead8edffa55b916f15ab9448"
+      "revision": "fd661d5ffec5de9e3bb35068ae69f06e2e810436"
     },
-    "viewBox": [1390, 700],
+    "viewBox": [1390, 800],
     "views": [
       {
         "id": "chart-path",
@@ -32,8 +32,14 @@
       {
         "id": "durable-device-state",
         "label": "Durable device state",
-        "focus": ["runtime", "app_data", "sync_worker", "bundle_cache"],
-        "note": "Personal data and authenticated engine bytes use separate on-device storage contracts."
+        "focus": ["runtime", "app_data", "sync_worker", "bundle_cache", "sqlite_vector_worker", "semantic_memory"],
+        "note": "Personal records, authenticated engine bytes, and derived semantic vectors use separate on-device storage contracts."
+      },
+      {
+        "id": "semantic-memory",
+        "label": "Local semantic memory",
+        "focus": ["react_ui", "embedding_worker", "sqlite_vector_worker", "semantic_memory"],
+        "note": "Chat text is embedded locally; sqlite-vector ranks generation-filtered matches in a Worker. Without working OPFS, retrieval fails closed."
       }
     ]
   },
@@ -121,10 +127,38 @@
       "id": "app_data",
       "type": "database",
       "label": "Personal App Data",
-      "sublabel": "IndexedDB + preferences",
+      "sublabel": "IndexedDB · preferences",
       "pos": [355, 535],
       "size": [145, 66],
       "sources": [{ "path": "frontend/packages/store/src/index.ts", "line": 1, "end_line": 17, "label": "Storage ownership" }]
+    },
+    {
+      "id": "embedding_worker",
+      "type": "backend",
+      "label": "Embedding Worker",
+      "sublabel": "Self-hosted MiniLM",
+      "pos": [530, 660],
+      "size": [145, 66],
+      "sources": [{ "path": "frontend/packages/memory/src/embedder.worker.ts", "line": 1, "end_line": 24, "label": "Local embeddings" }]
+    },
+    {
+      "id": "sqlite_vector_worker",
+      "type": "backend",
+      "label": "SQLite Vector Worker",
+      "sublabel": "SQLite + sqlite-vector",
+      "tag": "exact cosine",
+      "pos": [705, 660],
+      "size": [145, 66],
+      "sources": [{ "path": "frontend/packages/memory/src/vectorStore.ts", "line": 1, "end_line": 24, "label": "Shared vector adapter" }]
+    },
+    {
+      "id": "semantic_memory",
+      "type": "database",
+      "label": "Semantic Memory",
+      "sublabel": "OPFS SQLite · derived",
+      "pos": [880, 660],
+      "size": [145, 66],
+      "sources": [{ "path": "frontend/apps/web/src/lib/chatMemory.ts", "line": 35, "end_line": 65, "label": "Generation fence" }]
     },
     {
       "id": "geocoder",
@@ -155,7 +189,7 @@
     }
   ],
   "connections": [
-    { "id": "person_enters", "from": "person", "to": "react_ui", "label": "birth inputs", "variant": "emphasis", "labelAt": [168, 415] },
+    { "id": "person_enters", "from": "person", "to": "react_ui", "label": "birth inputs", "variant": "emphasis", "labelAt": [168, 300] },
     { "id": "ui_generates", "from": "react_ui", "to": "runtime", "label": "generate", "variant": "emphasis", "labelAt": [340, 415] },
     { "id": "runtime_boots", "from": "runtime", "to": "sync_worker", "label": "bootstrap", "variant": "emphasis", "labelAt": [515, 415] },
     { "id": "sync_promotes", "from": "sync_worker", "to": "bundle_cache", "label": "verified chunks", "variant": "security", "labelAt": [690, 415] },
@@ -163,6 +197,9 @@
     { "id": "worker_calls", "from": "pyodide_worker", "to": "python_engine", "label": "Python calls", "variant": "emphasis", "labelAt": [1040, 415] },
     { "id": "origin_delivers", "from": "static_origin", "to": "sync_worker", "label": "signed CAS bytes", "fromSide": "bottom", "toSide": "top", "labelAt": [602, 235] },
     { "id": "runtime_persists", "from": "runtime", "to": "app_data", "label": "local state", "fromSide": "bottom", "toSide": "top", "labelAt": [427, 475] },
+    { "id": "ui_embeds", "from": "react_ui", "to": "embedding_worker", "label": "chat chunks", "variant": "emphasis", "fromSide": "left", "toSide": "left", "via": [[165, 353], [165, 693]], "labelAt": [340, 683] },
+    { "id": "embedding_indexes", "from": "embedding_worker", "to": "sqlite_vector_worker", "label": "FLOAT32 vectors", "variant": "emphasis", "labelAt": [690, 640] },
+    { "id": "vector_persists", "from": "sqlite_vector_worker", "to": "semantic_memory", "label": "filtered SQL", "variant": "emphasis", "labelAt": [865, 640] },
     { "id": "ui_geocodes", "from": "react_ui", "to": "geocoder", "label": "typed city only", "variant": "dashed", "fromSide": "bottom", "toSide": "top", "labelAt": [257, 475] },
     { "id": "engine_sanitizes", "from": "python_engine", "to": "privacy_gate", "label": "optional chart facts", "variant": "security", "fromSide": "top", "toSide": "bottom", "labelAt": [1130, 235] },
     { "id": "privacy_calls", "from": "privacy_gate", "to": "ai_endpoint", "label": "redacted prompt", "variant": "dashed", "labelAt": [1220, 205] }
@@ -171,7 +208,7 @@
     {
       "dot": "emerald",
       "title": "Computation stays local",
-      "items": ["The chart path has no application server", "The same Python wheel runs under Pyodide off the UI thread"]
+      "items": ["The chart path has no application server", "Pyodide, MiniLM, and sqlite-vector run in Workers; OPFS stores derived vectors"]
     },
     {
       "dot": "rose",

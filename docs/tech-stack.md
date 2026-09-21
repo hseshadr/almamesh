@@ -2,7 +2,7 @@
 
 **Last Updated**: 2026-08-12
 
-**TL;DR — AlmaMesh is a static, local-first PWA. There is no server, no
+**TL;DR — AlmaMesh is a static, local-first PWA. There is no server-side
 database, no accounts.** The chart engine is the unchanged Python `almamesh`
 package running in the browser under Pyodide (WebAssembly) in a Web Worker,
 **byte-identical to CPython**. The network delivers the app and syncs a
@@ -26,7 +26,7 @@ result can be reproduced bit-for-bit from the open engine.
 | Frontend | React ^19 + Vite ^6 + TypeScript ~5.7 + Tailwind ^3.4 | Bun-workspace monorepo; installable PWA (vite-plugin-pwa + service worker), offline after first load |
 | State | Zustand ^5 | Persisted stores + pure adapters in `@almamesh/store` — reshape only, **no astrology in TypeScript** |
 | AI (optional) | Client-side, BYO endpoint (`@almamesh/llm`) | **Default: none** — the chart is pure calculation. Opt-in **cloud/BYO**: a one-click OpenRouter preset (stronger) or any OpenAI-compatible endpoint (incl. a local Ollama). Saving runs a real connectivity test so a bad key/model is reported immediately. Prompts are PII-redacted; `local_only` fail-closes against cloud hosts. Never required to draw a chart |
-| Chat memory | `@almamesh/memory` | Zero-egress RAG over chat history: on-device embeddings (Transformers.js, self-hosted weights, in a Worker) + IndexedDB vector store + cosine retrieval |
+| Chat memory | `@almamesh/memory` + `@edgeproc/browser/vector/sqlite` | Zero-egress RAG: on-device MiniLM embeddings in one Worker; exact cosine search and metadata filtering in a SQLite + sqlite-vector Worker; derived vectors persist in OPFS. Browsers without working OPFS keep chat but fail closed to no semantic retrieval—there is no weaker vector fallback. |
 | i18n | react-i18next | en / es / pt, offline bundled catalogs (zero egress); AI narrates in-language; en authoritative, es/pt machine-translated |
 | Tests | Vitest (unit) + Playwright (live-browser exit gate) | Plus the `test:parity` gate asserting Pyodide == CPython byte-identical charts |
 | Deploy | Cloudflare Pages (static) | CI runs `wrangler pages deploy dist`; the origin is plain static files + the signed bundle — any static host would do |

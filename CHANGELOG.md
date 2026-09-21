@@ -116,6 +116,15 @@ All notable changes to AlmaMesh are documented here. Format follows
   gate that certified the gap as intended.
 
 ### Changed
+- **Semantic chat memory now uses the shared SQLite + sqlite-vector browser
+  Lego end to end.** MiniLM still embeds locally in its own Worker, while exact
+  cosine ranking, profile/generation filters, scoped deletion, and durable
+  storage move from an IndexedDB-backed JavaScript `Map` into the shared
+  `@edgeproc/browser/vector/sqlite` Worker with OPFS persistence. A real
+  Chromium gate proves write, query, close, reopen, and query again. Browsers
+  without working OPFS keep chat but fail closed to no semantic retrieval; the
+  WebKit gate proves that refusal spawns no fallback Worker.
+
 - **Browser signed-bundle infrastructure is one shared Lego, not an AlmaMesh
   fork.** The generic sync, verification, OPFS/IndexedDB persistence, locking,
   Worker protocol, and vector implementation now come from the public
