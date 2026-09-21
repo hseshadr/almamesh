@@ -285,6 +285,12 @@ async function main() {
       realWorkers.length > 0,
       `workers=${realWorkers.length} serviceWorkers=${workerUrls.size - realWorkers.length}`,
     )
+    const syncWorkerAssets = realWorkers.filter((url) => /\/edgeproc\.worker-[^/]+\.js(?:\?|$)/.test(url))
+    record(
+      'CHECK 2b — Chromium loads exactly one consumer-owned edgeproc Worker asset',
+      syncWorkerAssets.length === 1,
+      `edgeprocWorkers=${JSON.stringify(syncWorkerAssets)}`,
+    )
 
     const generate = async (iso, referenceDate) => {
       const { latitude, longitude } = FIXTURE_COORDS[iso]

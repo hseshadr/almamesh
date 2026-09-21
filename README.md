@@ -80,22 +80,23 @@ use a loopback endpoint or OpenRouter.
 
 ## Building from source — prerequisites
 
-**TL;DR: this repo is self-contained — a single `git clone` builds everything.**
-The Python side resolves every dependency from PyPI, including
-[`edge-proc`](https://pypi.org/project/edge-proc/) — the signed local-data engine.
-One dependency is still vendored in-repo, with provenance, license, and re-vendor
-policy documented in a `VENDORED.md` next to the code:
+**TL;DR: one clone and the locked package installs build everything.** The
+Python side resolves [`edge-proc`](https://pypi.org/project/edge-proc/) from
+PyPI. The browser consumes the public
+[`@edgeproc/browser`](https://github.com/hseshadr/edgeproc-browser) Lego at an
+exact Git commit recorded in `frontend/packages/browser/package.json` and
+`frontend/bun.lock`; no copied sync/storage implementation remains here. See
+[`docs/edgeproc-browser.md`](docs/edgeproc-browser.md) for provenance and the
+consumer boundary.
 
-- `frontend/packages/edgeproc-browser` — `@edgeproc/browser`, the in-browser
-  bundle-sync tier (a regular Bun workspace package)
-
-No sibling checkouts, no private access, no tokens: `git clone`, then
-`uv sync` + `bun install`, then run. CI builds from this same single checkout.
+No sibling checkout, private access, or token is required: `git clone`, then
+`uv sync` + `bun install`, then run. CI uses the same frozen locks.
 
 ## Quickstart — generate a chart in your browser, offline
 
 Requires [Bun](https://bun.sh/), [`uv`](https://docs.astral.sh/uv/), and
-Python 3.13. Nothing else — every dependency ships in this repo.
+Python 3.13. Everything else resolves from public sources through committed
+locks and exact pins.
 
 ```bash
 git clone https://github.com/hseshadr/almamesh.git && cd almamesh
@@ -216,7 +217,8 @@ Browser (the product) ─ installable PWA, offline after first load
 ├─ frontend/packages/shared-types      UI-facing TypeScript contracts
 ├─ frontend/packages/constants         single design-token source
 ├─ frontend/packages/memory            local semantic chat memory
-└─ frontend/packages/edgeproc-browser  signed-bundle sync and verification
+
+External Lego: @edgeproc/browser       signed-bundle sync and verification
 
 Build-time (Python, no server)
 │

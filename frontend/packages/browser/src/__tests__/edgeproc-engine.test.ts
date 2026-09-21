@@ -1,13 +1,18 @@
 import { describe, expect, it } from "vitest";
 
-import { EngineClient, MemoryCacheStore, syncIndex } from "@edgeproc/browser/engine";
+import {
+  classifyEngineError,
+  EngineClient,
+  MemoryCacheStore,
+  syncIndex,
+} from "@edgeproc/browser";
 
-// Proves the @edgeproc/browser/engine path dependency (the reused edge-reco sync
-// tier) resolves and runs from inside @almamesh/browser — the foundation P2.3+
-// build the Pyodide chart compute on top of.
-describe("@edgeproc/browser/engine path dependency", () => {
-  it("exposes the worker-backed sync client and the sync state machine", () => {
-    expect(typeof EngineClient.spawn).toBe("function");
+// Proves the pinned standalone browser Lego resolves through its supported root
+// API. Worker construction stays consumer-owned so Vite emits one Worker asset.
+describe("@edgeproc/browser dependency", () => {
+  it("exposes the injected-worker client and the sync state machine", () => {
+    expect(typeof EngineClient).toBe("function");
+    expect("spawn" in EngineClient).toBe(false);
     expect(typeof syncIndex).toBe("function");
   });
 
@@ -15,5 +20,12 @@ describe("@edgeproc/browser/engine path dependency", () => {
     const store = new MemoryCacheStore();
 
     expect(await store.readActive()).toBeNull();
+  });
+
+  it("preserves lock contention as its own stable worker error code", () => {
+    expect(classifyEngineError(new Error("timed out acquiring OPFS mutation lock"))).toEqual({
+      code: "lock",
+      message: "timed out acquiring OPFS mutation lock",
+    });
   });
 });
