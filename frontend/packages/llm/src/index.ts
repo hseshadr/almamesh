@@ -148,10 +148,26 @@ export type {
 export { chatCompletionJson } from "./client";
 export type { ChatCompletionJsonOptions } from "./client";
 
-export { streamStructuredInterpretation, usesLitePrompt } from "./structured-interpretation";
+export {
+  ALL_SECTIONS,
+  CURRENT_TIMELINE_SECTIONS,
+  NATAL_SECTIONS,
+  streamCurrentTimeline,
+  streamNatalInterpretation,
+  streamStructuredInterpretation,
+  usesLitePrompt,
+} from "./structured-interpretation";
 export type {
-  InterpretationSectionKey,
+  CurrentTimelineContent,
+  CurrentTimelineEvent,
+  CurrentTimelineParams,
+  CurrentTimelineSectionKey,
   InterpretationEvent,
+  InterpretationSectionKey,
+  NatalInterpretation,
+  NatalInterpretationEvent,
+  NatalInterpretationParams,
+  NatalInterpretationSectionKey,
   StructuredInterpretationParams,
 } from "./structured-interpretation";
 

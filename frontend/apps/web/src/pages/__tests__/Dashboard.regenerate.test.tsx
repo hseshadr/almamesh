@@ -32,7 +32,8 @@ vi.mock('@almamesh/llm', async () => {
   const actual = await vi.importActual<typeof import('@almamesh/llm')>('@almamesh/llm');
   return {
     ...actual,
-    streamStructuredInterpretation: vi.fn(),
+    streamNatalInterpretation: vi.fn(),
+    streamCurrentTimeline: vi.fn(),
   };
 });
 
@@ -62,6 +63,7 @@ vi.mock('../../components/features/dashboard', () => ({
   ),
   LifeAtlas: () => null,
   DashboardInterpretation: () => null,
+  DashboardCurrentTimeline: () => <div data-testid="current-timeline-section" />,
   ReadingGrounding: () => null,
 }));
 
@@ -69,16 +71,19 @@ import {
   configProvenance,
   LlmRequestError,
   openRouterPreset,
-  streamStructuredInterpretation,
+  streamCurrentTimeline,
+  streamNatalInterpretation,
   writeLlmSettings,
-  type InterpretationEvent,
+  type CurrentTimelineEvent,
+  type NatalInterpretationEvent,
   type ReadingProvenance,
 } from '@almamesh/llm';
 import { readLocalPrimaryChart } from '../../lib/localChartRead';
 import { resolveInterpretationConfig } from '../../hooks/useStreamingInterpretation';
 import DashboardPage from '../Dashboard';
 
-const mockedStream = vi.mocked(streamStructuredInterpretation);
+const mockedStream = vi.mocked(streamNatalInterpretation);
+const mockedTimelineStream = vi.mocked(streamCurrentTimeline);
 
 const LAYMAN_SUMMARY = 'You bring quiet persistence to whatever you commit to.';
 
@@ -151,44 +156,34 @@ function primaryChartResponse(): BirthChartGenerationResponse {
 }
 
 /** A generator that never finishes — pins the hook in the generating state. */
-function pendingStream(): () => AsyncGenerator<InterpretationEvent> {
+function pendingStream(): () => AsyncGenerator<NatalInterpretationEvent> {
   return async function* () {
     await new Promise<never>(() => {});
-    yield* [] as InterpretationEvent[];
+    yield* [] as NatalInterpretationEvent[];
   };
 }
 
 /** A generator that completes immediately with the given interpretation. */
 function completingStream(
   interpretation: VedicInterpretation,
-): () => AsyncGenerator<InterpretationEvent> {
+): () => AsyncGenerator<NatalInterpretationEvent> {
   return async function* () {
-    yield { type: 'complete', interpretation } as InterpretationEvent;
-  };
-}
-
-function deferredCompletion(interpretation: VedicInterpretation): {
-  readonly stream: () => AsyncGenerator<InterpretationEvent>;
-  readonly release: () => void;
-} {
-  let release = () => {};
-  const gate = new Promise<void>((resolve) => {
-    release = resolve;
-  });
-  return {
-    release,
-    stream: async function* () {
-      await gate;
-      yield { type: 'complete', interpretation } as InterpretationEvent;
-    },
+    yield { type: 'complete', interpretation } as NatalInterpretationEvent;
   };
 }
 
 /** A generator that fails outright before yielding any event. */
-function failingStream(error: Error): () => AsyncGenerator<InterpretationEvent> {
+function failingStream(error: Error): () => AsyncGenerator<NatalInterpretationEvent> {
   return async function* () {
-    for (const e of [] as InterpretationEvent[]) yield e;
+    for (const e of [] as NatalInterpretationEvent[]) yield e;
     throw error;
+  };
+}
+
+function pendingTimelineStream(): () => AsyncGenerator<CurrentTimelineEvent> {
+  return async function* () {
+    await new Promise<never>(() => {});
+    yield* [] as CurrentTimelineEvent[];
   };
 }
 
@@ -261,7 +256,7 @@ describe('Dashboard — regenerate reading', () => {
     vi.useRealTimers();
   });
 
-  it('shows an enabled "Regenerate reading" button in the top actions row when AI is configured', async () => {
+  it('shows an enabled "Regenerate natal reading" button in the top actions row when AI is configured', async () => {
     configureCloudAi();
     seedCompleteReading(currentProvenance());
     renderDashboard();
@@ -270,14 +265,14 @@ describe('Dashboard — regenerate reading', () => {
     expect(button.disabled).toBe(false);
     // Scoped label: the READING regenerates — the chart is deterministic and
     // never needs to.
-    expect(button.textContent ?? '').toContain('Regenerate reading');
+    expect(button.textContent ?? '').toContain('Regenerate natal reading');
   });
 
   it('keeps a touch-sized Regenerate button visible before the first reading exists', async () => {
     renderDashboard();
 
     const button = await screen.findByRole<HTMLButtonElement>('button', {
-      name: 'Regenerate reading',
+      name: 'Regenerate natal reading',
     });
     expect(button.disabled).toBe(true);
     expect(button.className).toContain('min-h-11');
@@ -366,9 +361,90 @@ describe('Dashboard — regenerate reading', () => {
     // run is in flight, and the button cannot double-fire.
     const reading = screen.getByTestId('reading-section');
     expect(reading.textContent ?? '').toContain(LAYMAN_SUMMARY);
+    // REGRESSION: keep-old-until-success must not hide the generation feedback.
+    // The previous reading remains useful, while a distinct live progress panel
+    // makes the paid request and its state unmistakable.
+    expect(await screen.findByTestId('interpretation-progress')).toBeTruthy();
+    expect(screen.getByTestId('interpretation-elapsed').textContent ?? '').toMatch(/elapsed/i);
     await waitFor(() =>
       expect(screen.getByTestId<HTMLButtonElement>('regenerate-reading').disabled).toBe(true),
     );
+  });
+
+  it('regenerates only the natal reading and never sends current predictive contexts', async () => {
+    configureCloudAi();
+    seedCompleteReading(currentProvenance());
+    usePredictiveStore.setState({
+      status: 'ready',
+      profileKey: 'profile-1',
+      requestKey: predictiveRequestKey({
+        profileKey: 'profile-1',
+        datetimeUtc: '1990-03-30T06:30:00Z',
+        latitude: 12.97,
+        longitude: 77.59,
+        referenceInstant: '2026-07-12T00:00:00Z',
+      }),
+      rawContexts: {
+        transit_context: { instant: '2026-07-12T00:00:00Z' },
+        varga_context_full: { charts: {} },
+        strength_context: {},
+        domains_context: { forecasts: {} },
+      } as never,
+    });
+    mockedStream.mockImplementation(pendingStream());
+    renderDashboard();
+
+    fireEvent.click(await screen.findByTestId('regenerate-reading'));
+
+    await waitFor(() => expect(mockedStream).toHaveBeenCalledTimes(1));
+    expect(mockedStream.mock.calls[0]?.[0].chart).not.toHaveProperty('transit_context');
+    expect(mockedStream.mock.calls[0]?.[0].chart).not.toHaveProperty('domains_context');
+    expect(mockedTimelineStream).not.toHaveBeenCalled();
+  });
+
+  it('shows independent timeline progress and never replaces the retained natal reading', async () => {
+    configureCloudAi();
+    seedCompleteReading(currentProvenance());
+    const today = new Date().toISOString().slice(0, 10);
+    usePredictiveStore.setState({
+      status: 'ready',
+      profileKey: 'profile-1',
+      requestKey: predictiveRequestKey({
+        profileKey: 'profile-1',
+        datetimeUtc: '1990-03-30T06:30:00Z',
+        latitude: 12.97,
+        longitude: 77.59,
+        referenceInstant: `${today}T00:00:00Z`,
+      }),
+      rawContexts: {
+        transit_context: { instant: `${today}T00:00:00Z` },
+        varga_context_full: { charts: {} },
+        strength_context: {},
+        domains_context: { forecasts: {} },
+      } as never,
+    });
+    mockedTimelineStream.mockImplementation(pendingTimelineStream());
+    renderDashboard();
+
+    fireEvent.click(await screen.findByTestId('generate-timeline'));
+
+    await waitFor(() => expect(mockedTimelineStream).toHaveBeenCalledTimes(1));
+    expect(await screen.findByTestId('timeline-progress')).toBeTruthy();
+    expect(screen.getByTestId('reading-section').textContent ?? '').toContain(LAYMAN_SUMMARY);
+    expect(mockedStream).not.toHaveBeenCalled();
+  });
+
+  it('queues an explicit timeline click without spending until current facts are ready', async () => {
+    configureCloudAi();
+    seedCompleteReading(currentProvenance());
+    mockedTimelineStream.mockImplementation(pendingTimelineStream());
+    renderDashboard();
+
+    fireEvent.click(await screen.findByTestId('generate-timeline'));
+    await settle();
+
+    expect(mockedTimelineStream).not.toHaveBeenCalled();
+    expect(screen.getByTestId<HTMLButtonElement>('generate-timeline').disabled).toBe(true);
   });
 
   it('does not regenerate on mount when provenance matches', async () => {
@@ -379,6 +455,7 @@ describe('Dashboard — regenerate reading', () => {
     await screen.findByTestId('reading-section');
     await settle();
     expect(mockedStream).not.toHaveBeenCalled();
+    expect(mockedTimelineStream).not.toHaveBeenCalled();
   });
 
   it('does not spend a provider request when a saved reading reopens after a deploy changes config', async () => {
@@ -444,6 +521,18 @@ describe('Dashboard — regenerate reading', () => {
       requestKey: requestKey('2026-07-12'),
       rawContexts,
     });
+    void useInterpretationStore.getState().setCurrentTimeline(
+      'chart-1',
+      {
+        upcoming_periods: [],
+        current_sky: [
+          { title: 'Yesterday', layman: 'Saved timing.', technical: 'Saved timing.' },
+        ],
+      },
+      '2026-07-12T12:00:00Z',
+      currentProvenance(),
+      { predictiveRequestKey: requestKey('2026-07-12') },
+    );
     const { queryClient, view } = renderDashboard();
     await screen.findByTestId('reading-section');
     await settle();
@@ -461,9 +550,11 @@ describe('Dashboard — regenerate reading', () => {
     view.rerender(dashboardUi(queryClient, 'after-deploy-rerender'));
     await settle();
     expect(mockedStream).not.toHaveBeenCalled();
+    expect(mockedTimelineStream).not.toHaveBeenCalled();
+    expect(screen.getByTestId('current-timeline-section')).toBeTruthy();
   });
 
-  it('queues a manual regenerate during current-key loading and replaces retained natal-only prose once ready', async () => {
+  it('queues only the explicit timeline refresh while current predictive facts are loading', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     vi.setSystemTime(new Date('2026-07-13T12:00:00Z'));
     configureCloudAi();
@@ -488,11 +579,10 @@ describe('Dashboard — regenerate reading', () => {
       requestKey: requestKey('2026-07-12'),
       rawContexts: currentRawContexts,
     });
-    const currentNarration = deferredCompletion(INTERPRETATION);
-    mockedStream.mockImplementation(currentNarration.stream);
+    mockedTimelineStream.mockImplementation(pendingTimelineStream());
     renderDashboard();
 
-    await screen.findByTestId('regenerate-reading');
+    await screen.findByTestId('generate-timeline');
     act(() => {
       usePredictiveStore.setState({
         status: 'loading',
@@ -502,9 +592,10 @@ describe('Dashboard — regenerate reading', () => {
       });
     });
     await settle();
-    fireEvent.click(screen.getByTestId('regenerate-reading'));
+    fireEvent.click(screen.getByTestId('generate-timeline'));
 
     await settle();
+    expect(mockedTimelineStream).not.toHaveBeenCalled();
     expect(mockedStream).not.toHaveBeenCalled();
 
     act(() => {
@@ -516,21 +607,13 @@ describe('Dashboard — regenerate reading', () => {
       });
     });
 
-    await waitFor(() => expect(mockedStream).toHaveBeenCalledTimes(1));
-    expect(mockedStream.mock.calls[0]?.[0].chart).toMatchObject({
+    await waitFor(() => expect(mockedTimelineStream).toHaveBeenCalledTimes(1));
+    expect(mockedTimelineStream.mock.calls[0]?.[0].chart).toMatchObject({
       transit_context: { instant: '2026-07-13T00:00:00Z' },
     });
-    // Natal-only prose is still honest to display while the richer,
-    // current-predictive replacement runs.
+    // The independent natal artifact remains untouched while timing refreshes.
     expect(screen.getByTestId('reading-section').textContent ?? '').toContain(LAYMAN_SUMMARY);
-    act(() => currentNarration.release());
-    await waitFor(() =>
-      expect(useInterpretationStore.getState().getEntry('chart-1')?.inputProvenance).toEqual({
-        predictiveRequestKey: requestKey('2026-07-13'),
-      }),
-    );
-    await settle();
-    expect(mockedStream).toHaveBeenCalledTimes(1);
+    expect(mockedStream).not.toHaveBeenCalled();
   });
 
 

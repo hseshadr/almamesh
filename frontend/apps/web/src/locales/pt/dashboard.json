@@ -12,8 +12,10 @@
     "create_chart": "Adicionar dados de nascimento",
     "manage_people": "Gerenciar pessoas",
     "retry": "Tentar novamente",
-    "generate": "Gerar leitura",
-    "regenerate": "Regenerar leitura",
+    "generate": "Gerar leitura natal",
+    "regenerate": "Regenerar leitura natal",
+    "generate_timeline": "Gerar linha do tempo atual",
+    "refresh_timeline": "Atualizar linha do tempo atual",
     "connect_ai": "Conectar um modelo de IA",
     "switch_recommended": "Mudar para o recomendado (DeepSeek V4)",
     "ai_settings": "Configurações de IA",
@@ -48,9 +50,14 @@
   },
   "generation": {
     "title_generating": "Gerando sua interpretação personalizada",
+    "title_generating_natal": "Gerando sua leitura natal",
+    "title_generating_timeline": "Gerando sua linha do tempo atual",
+    "title_timeline_failed": "Não foi possível gerar a linha do tempo atual",
     "title_failed": "Não foi possível gerar a interpretação",
     "elapsed": "Gerando a partir do seu modelo — {{elapsed}} decorridos. Uma leitura completa pode levar de 1 a 3 minutos em um modelo na nuvem.",
+    "timeline_elapsed": "Gerando o momento atual a partir do seu modelo — {{elapsed}} decorridos.",
     "partial_failure": "Algumas seções não puderam ser geradas desta vez: {{sections}}. O restante da leitura está completo — gere novamente para preencher a lacuna.",
+    "timeline_partial_failure": "Algumas seções da linha do tempo não puderam ser geradas: {{sections}}. Sua leitura natal salva não foi alterada.",
     "regen_failed": "Não foi possível regenerar a leitura ({{error}}). Sua leitura anterior está mantida abaixo."
   },
   "reading": {
@@ -59,6 +66,12 @@
     "regen_no_ai": "Conecte um modelo de IA para regenerar esta leitura.",
     "deepening": "Aprofundando com seu momento astral atual…",
     "enriched_caption": "Enriquecida com seu momento astral atual"
+  },
+  "timeline": {
+    "heading": "Sua linha do tempo atual",
+    "description": "Uma leitura temporal separada que só muda quando você escolhe atualizá-la.",
+    "generated_by": "Linha do tempo gerada por {{model}} · {{date}}",
+    "generated_at": "Linha do tempo gerada em {{date}}"
   },
   "grounding": {
     "summary": "Como esta leitura é feita",
@@ -95,6 +108,7 @@
     "guidance1": "Saúde, educação, carreira, relacionamentos",
     "guidance2": "Finanças, caminho espiritual, evolução de vida",
     "remedial": "Medidas corretivas e autocuidado",
+    "upcoming_periods": "O caminho adiante",
     "current_sky": "O que está ativo agora e a seguir"
   },
   "chat": {

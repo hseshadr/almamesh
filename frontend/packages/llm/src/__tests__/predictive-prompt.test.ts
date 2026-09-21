@@ -53,4 +53,15 @@ describe("predictive salience in the interpretation prompt", () => {
     expect(sys).toMatch(/natal/i);
     expect(sys).not.toMatch(/ENGINE PREDICTIVE CONTEXT/i);
   });
+
+  it("keeps timing data out of a stable natal section even when a compatibility caller supplies it", () => {
+    const msgs = buildSectionMessages("core", WITH_PREDICTIVE, "layman");
+    const wireText = msgs.map((message) => message.content).join("\n");
+
+    expect(wireText).toMatch(/STABLE NATAL ONLY/);
+    expect(wireText).not.toMatch(/ENGINE PREDICTIVE CONTEXT/);
+    expect(wireText).not.toContain('"dashas"');
+    expect(wireText).not.toContain("months_remaining");
+    expect(wireText).not.toContain("start_month");
+  });
 });

@@ -12,8 +12,10 @@
     "create_chart": "Añadir datos de nacimiento",
     "manage_people": "Gestionar personas",
     "retry": "Reintentar",
-    "generate": "Generar lectura",
-    "regenerate": "Regenerar lectura",
+    "generate": "Generar lectura natal",
+    "regenerate": "Regenerar lectura natal",
+    "generate_timeline": "Generar cronología actual",
+    "refresh_timeline": "Actualizar cronología actual",
     "connect_ai": "Conectar un modelo de IA",
     "switch_recommended": "Cambiar al recomendado (DeepSeek V4)",
     "ai_settings": "Configuración de IA",
@@ -48,9 +50,14 @@
   },
   "generation": {
     "title_generating": "Generando tu interpretación personalizada",
+    "title_generating_natal": "Generando tu lectura natal",
+    "title_generating_timeline": "Generando tu cronología actual",
+    "title_timeline_failed": "No se pudo generar la cronología actual",
     "title_failed": "No se pudo generar la interpretación",
     "elapsed": "Generando desde tu modelo: {{elapsed}} transcurridos. Una lectura completa puede tardar entre 1 y 3 minutos en un modelo en la nube.",
+    "timeline_elapsed": "Generando el momento actual desde tu modelo: {{elapsed}} transcurridos.",
     "partial_failure": "Algunas secciones no se pudieron generar esta vez: {{sections}}. El resto de la lectura está completa — regenérala para completar lo que falta.",
+    "timeline_partial_failure": "No se pudieron generar algunas secciones de la cronología: {{sections}}. Tu lectura natal guardada no ha cambiado.",
     "regen_failed": "No se pudo regenerar la lectura ({{error}}). Tu lectura anterior se conserva abajo."
   },
   "reading": {
@@ -59,6 +66,12 @@
     "regen_no_ai": "Conecta un modelo de IA para regenerar esta lectura.",
     "deepening": "Profundizando con tu momento astral actual…",
     "enriched_caption": "Enriquecida con tu momento astral actual"
+  },
+  "timeline": {
+    "heading": "Tu cronología actual",
+    "description": "Una lectura temporal separada que solo cambia cuando eliges actualizarla.",
+    "generated_by": "Cronología generada por {{model}} · {{date}}",
+    "generated_at": "Cronología generada el {{date}}"
   },
   "grounding": {
     "summary": "Cómo se elabora esta lectura",
@@ -95,6 +108,7 @@
     "guidance1": "Salud, educación, carrera, relaciones",
     "guidance2": "Finanzas, camino espiritual, evolución de vida",
     "remedial": "Medidas correctivas y autocuidado",
+    "upcoming_periods": "El camino por delante",
     "current_sky": "Lo que está activo ahora y a continuación"
   },
   "chat": {

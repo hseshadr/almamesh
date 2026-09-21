@@ -1,11 +1,19 @@
 # Spec 065: Predictive-Superset Interpretation & Chat
 
-**Status:** Draft
+**Status:** Superseded by the manual natal/timeline split (2026-09-21)
 **Created:** 2026-07-09
 **Priority:** P1 HIGH
 **Dependencies:** Spec 062 (robust rectifier + grounded LLM), the predictive pipeline (transits/vargas/strength/domains), Spec 063 (AI tiers)
 
 ## Goal
+
+> Historical design note: this draft proposed automatic paid enrichment when
+> predictive facts became ready. The shipped contract deliberately supersedes
+> that behavior. Natal interpretation and the date-sensitive current timeline
+> are independent persisted artifacts, each generated only by its own explicit
+> user action. Dashboard mount, reload, deployment, and day rollover make zero
+> LLM requests. The timeline waits for exact-day deterministic facts; an engine
+> failure never falls through to a paid natal-only timeline request.
 
 Make the AI **life-chart interpretation** (and chat) genuinely predictive and differentiated by feeding the LLM the **full predictive superset** the engine already computes — current transits/Gochara, three-level dasha timing, Sade Sati, dasha-transit fusion, Shadbala/Ashtakavarga strength, and per-life-domain dated forecast windows — and making those aspects **salient** in the prompt and on screen. Today the reading reads generic because the predictive data is never present when the reading is generated. This is real user feedback ("too generic, not predictive; chat is a little better").
 

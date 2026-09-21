@@ -125,36 +125,14 @@ function CollapsibleSection({
 interface DashboardInterpretationProps {
   readonly interpretation: VedicInterpretation;
   readonly audience: ReportAudience;
-  /**
-   * True while an enrich-when-ready upgrade (Spec 065) is streaming a
-   * predictive-aware reading over this already-visible one. Surfaced as a
-   * quiet affordance so the later refinement reads as intentional, not a
-   * flicker/bug — never invents content itself.
-   */
-  readonly deepeningWithTiming?: boolean;
-  /**
-   * True when THIS reading's provenance shows the full predictive superset
-   * was composed at generation time (Spec 065). Drives the "Enriched with
-   * your current timing" caption; purely a display flag, never a claim about
-   * what `current_sky` contains.
-   */
-  readonly predictiveAware?: boolean;
 }
 
 /** The full reading on the dashboard: core narrative + collapsible depth. */
 export function DashboardInterpretation({
   interpretation,
   audience,
-  deepeningWithTiming = false,
-  predictiveAware = false,
 }: DashboardInterpretationProps): ReactElement | null {
   const { t } = useTranslation('dashboard');
-
-  // "What's active now & next" (Spec 065): the predictive differentiator.
-  // Degrades gracefully — absent/empty on a natal-only reading (honesty
-  // fence: never invent timing) — so it is simply not rendered.
-  const currentSky = resolveTitledItems(interpretation.current_sky ?? [], audience);
-  const hasCurrentSky = currentSky.length > 0;
 
   const strengths = resolveTitledItems(interpretation.strengths, audience);
   const challenges = resolveTitledItems(interpretation.challenges, audience);
@@ -162,11 +140,10 @@ export function DashboardInterpretation({
 
   const yogaText = personaText(interpretation.integrated_yoga_narrative, audience);
   const guidance = buildGuidanceSections(interpretation, audience);
-  const roadAhead = resolveTitledItems(interpretation.upcoming_periods ?? [], audience);
 
   const hasCore = strengths.length > 0 || challenges.length > 0 || themes.length > 0;
-  const hasDepth = Boolean(yogaText) || guidance.length > 0 || roadAhead.length > 0;
-  if (!hasCore && !hasDepth && !hasCurrentSky && !deepeningWithTiming) {
+  const hasDepth = Boolean(yogaText) || guidance.length > 0;
+  if (!hasCore && !hasDepth) {
     return null;
   }
 
@@ -175,35 +152,6 @@ export function DashboardInterpretation({
     // collapsibles share a measure so the section reads as a single article,
     // never a narrow prose column beside edge-to-edge bars.
     <div className="max-w-2xl space-y-8" data-testid="dashboard-interpretation">
-      {deepeningWithTiming ? (
-        <p
-          className="animate-pulse text-[11px] uppercase tracking-[0.18em] text-accent-gold/80"
-          data-testid="dashboard-deepening-notice"
-        >
-          {t('reading.deepening')}
-        </p>
-      ) : null}
-
-      {/* Prominent, ALWAYS-VISIBLE (never collapsed) — the predictive
-          differentiator leads the reading when present. */}
-      {hasCurrentSky ? (
-        <div>
-          <CoreGroup
-            title={t('interpretation.current_sky')}
-            items={currentSky}
-            testid="dashboard-current-sky"
-          />
-          {predictiveAware ? (
-            <p
-              className="mt-2 text-[11px] uppercase tracking-[0.18em] text-text-tertiary"
-              data-testid="dashboard-enriched-caption"
-            >
-              {t('reading.enriched_caption')}
-            </p>
-          ) : null}
-        </div>
-      ) : null}
-
       {hasCore ? (
         <div className="space-y-8">
           <CoreGroup
@@ -252,16 +200,60 @@ export function DashboardInterpretation({
             </CollapsibleSection>
           ))}
 
-          {roadAhead.length > 0 ? (
-            <CollapsibleSection
-              title={t('interpretation.road_ahead')}
-              testid="dashboard-road-ahead"
-            >
-              <TitledItems items={roadAhead} fill />
-            </CollapsibleSection>
-          ) : null}
         </div>
       ) : null}
     </div>
+  );
+}
+
+interface DashboardCurrentTimelineProps {
+  readonly currentSky: readonly TitledPersona[];
+  readonly upcomingPeriods: readonly TitledPersona[];
+  readonly audience: ReportAudience;
+  readonly caption?: string | null;
+}
+
+/** The independently generated, explicitly refreshed current-timing artifact. */
+export function DashboardCurrentTimeline({
+  currentSky,
+  upcomingPeriods,
+  audience,
+  caption,
+}: DashboardCurrentTimelineProps): ReactElement | null {
+  const { t } = useTranslation('dashboard');
+  const resolvedSky = resolveTitledItems(currentSky, audience);
+  const resolvedPeriods = resolveTitledItems(upcomingPeriods, audience);
+  if (resolvedSky.length === 0 && resolvedPeriods.length === 0) return null;
+
+  return (
+    <section className="max-w-2xl space-y-5" data-testid="current-timeline-section">
+      <header>
+        <h2 className="font-display text-xl text-text-primary">
+          {t('timeline.heading')}
+        </h2>
+        <p className="mt-1 text-sm text-text-secondary">{t('timeline.description')}</p>
+      </header>
+      <CoreGroup
+        title={t('interpretation.current_sky')}
+        items={resolvedSky}
+        testid="dashboard-current-sky"
+      />
+      {resolvedPeriods.length > 0 ? (
+        <CollapsibleSection
+          title={t('interpretation.road_ahead')}
+          testid="dashboard-road-ahead"
+        >
+          <TitledItems items={resolvedPeriods} fill />
+        </CollapsibleSection>
+      ) : null}
+      {caption ? (
+        <p
+          className="text-[11px] uppercase tracking-[0.18em] text-text-tertiary"
+          data-testid="timeline-provenance"
+        >
+          {caption}
+        </p>
+      ) : null}
+    </section>
   );
 }

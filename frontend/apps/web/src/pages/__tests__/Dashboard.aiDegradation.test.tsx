@@ -35,7 +35,11 @@ import '../../i18n/config';
 
 vi.mock('@almamesh/llm', async () => {
   const actual = await vi.importActual<typeof import('@almamesh/llm')>('@almamesh/llm');
-  return { ...actual, streamStructuredInterpretation: vi.fn() };
+  return {
+    ...actual,
+    streamNatalInterpretation: vi.fn(),
+    streamCurrentTimeline: vi.fn(),
+  };
 });
 
 vi.mock('../../lib/localChartRead', () => ({ readLocalPrimaryChart: vi.fn() }));
@@ -59,14 +63,14 @@ vi.mock('../../components/features/dashboard', () => ({
 import {
   LlmRequestError,
   openRouterPreset,
-  streamStructuredInterpretation,
+  streamNatalInterpretation,
   writeLlmSettings,
-  type InterpretationEvent,
+  type NatalInterpretationEvent,
 } from '@almamesh/llm';
 import { readLocalPrimaryChart } from '../../lib/localChartRead';
 import DashboardPage from '../Dashboard';
 
-const mockedStream = vi.mocked(streamStructuredInterpretation);
+const mockedStream = vi.mocked(streamNatalInterpretation);
 
 function storedChart(): StoredChart {
   return {
@@ -119,9 +123,9 @@ function primaryChartResponse(): BirthChartGenerationResponse {
   };
 }
 
-function failingStream(error: Error): () => AsyncGenerator<InterpretationEvent> {
+function failingStream(error: Error): () => AsyncGenerator<NatalInterpretationEvent> {
   return async function* () {
-    for (const e of [] as InterpretationEvent[]) yield e;
+    for (const e of [] as NatalInterpretationEvent[]) yield e;
     throw error;
   };
 }
