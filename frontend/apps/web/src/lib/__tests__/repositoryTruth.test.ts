@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, '../../../../../..');
-const EDGEPROC_BROWSER_SHA = '51bd097295fe504703d55dbf176148bd21cd3b72';
+const EDGEPROC_BROWSER_SHA = 'f1ae371c8dfe441c6a3dd845e92c3d67adf654bd';
 const readRoot = (path: string): string => readFileSync(resolve(root, path), 'utf8');
 const readSection = (document: string, heading: string): string => {
   const start = document.indexOf(heading);

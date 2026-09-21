@@ -11,7 +11,7 @@ and exit-gate observability.
 |---|---|
 | Repository | `https://github.com/hseshadr/edgeproc-browser` |
 | Package | `@edgeproc/browser` |
-| Commit | `51bd097295fe504703d55dbf176148bd21cd3b72` |
+| Commit | `f1ae371c8dfe441c6a3dd845e92c3d67adf654bd` |
 | License | MIT |
 | Consumer manifest | `frontend/packages/browser/package.json` |
 | Reproducible lock | `frontend/bun.lock` |
