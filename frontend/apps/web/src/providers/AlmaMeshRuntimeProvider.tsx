@@ -19,7 +19,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { AlmaMeshRuntime } from '@almamesh/browser'
+import { AlmaMeshRuntime, WorkerCrashError, WorkerTimeoutError } from '@almamesh/browser'
 import type { BootStage, BundleMeta, ChartEngine, OnStage, RuntimeConfig } from '@almamesh/browser'
 import { ChartEngineContext } from './chartEngineContext'
 import { hasLocalChart } from '../lib/localChart'
@@ -134,7 +134,11 @@ const TRANSIENT_BOOT_FAILURE = /network unreachable|failed to fetch|load failed|
 const REPORTED_ONLINE_RETRY_DELAYS_MS = [250, 1_000, 5_000, 15_000] as const
 
 function isTransientBootFailure(error: Error): boolean {
-  return TRANSIENT_BOOT_FAILURE.test(error.message)
+  return isTransientLocalWorkerFailure(error) || TRANSIENT_BOOT_FAILURE.test(error.message)
+}
+
+function isTransientLocalWorkerFailure(error: Error): boolean {
+  return error instanceof WorkerCrashError || error instanceof WorkerTimeoutError
 }
 
 interface ProviderProps {
@@ -164,6 +168,7 @@ export function AlmaMeshRuntimeProvider({ children, runtime }: ProviderProps) {
   const startedRef = useRef(false)
   const bootstrapFailedRef = useRef(false)
   const retryableFailureRef = useRef(false)
+  const retryWithoutConnectivityRef = useRef(false)
   const consumedOnlineEpochRef = useRef(0)
   const reportedOnlineRetryCountRef = useRef(0)
 
@@ -188,6 +193,7 @@ export function AlmaMeshRuntimeProvider({ children, runtime }: ProviderProps) {
     }
     bootstrapFailedRef.current = false
     retryableFailureRef.current = false
+    retryWithoutConnectivityRef.current = false
     let promise: Promise<ChartEngine>
     promise = runtimeInstance
       .bootstrap(readRuntimeConfig(), onStage)
@@ -196,6 +202,8 @@ export function AlmaMeshRuntimeProvider({ children, runtime }: ProviderProps) {
           return ready
         }
         bootstrapFailedRef.current = false
+        retryableFailureRef.current = false
+        retryWithoutConnectivityRef.current = false
         reportedOnlineRetryCountRef.current = 0
         setEngine(ready)
         setMeta(ready.meta())
@@ -219,6 +227,7 @@ export function AlmaMeshRuntimeProvider({ children, runtime }: ProviderProps) {
           startedRef.current = false
           bootstrapFailedRef.current = true
           retryableFailureRef.current = isTransientBootFailure(e)
+          retryWithoutConnectivityRef.current = isTransientLocalWorkerFailure(e)
           setError(e)
           if (EXIT_GATE_HOOKS) {
             clearRuntimeGenerator()
@@ -247,7 +256,13 @@ export function AlmaMeshRuntimeProvider({ children, runtime }: ProviderProps) {
 
   // Await the current in-flight bootstrap; if none is tracked yet, start one.
   const whenReady = useCallback((): Promise<ChartEngine> => {
-    return inFlightRef.current ?? runBootstrap()
+    if (inFlightRef.current !== null) {
+      return inFlightRef.current
+    }
+    // Keep the scheduled-retry guard coherent when a consumer initiates the
+    // recovery first. Otherwise the timer can launch a concurrent worker boot.
+    startedRef.current = true
+    return runBootstrap()
   }, [runBootstrap])
 
   // Reset to a clean pre-boot state and run a FRESH bootstrap.
@@ -259,6 +274,7 @@ export function AlmaMeshRuntimeProvider({ children, runtime }: ProviderProps) {
     setError(null)
     setStage(null)
     reportedOnlineRetryCountRef.current = 0
+    retryWithoutConnectivityRef.current = false
     // Drop the stale verify key / update pointer first: a CacheFirst-pinned dev
     // key is the classic cause of a fail-closed "signature verification failed",
     // and a plain reboot would just re-read the same stale key. Best-effort.
@@ -302,7 +318,10 @@ export function AlmaMeshRuntimeProvider({ children, runtime }: ProviderProps) {
       return
     }
     const retryIndex = reportedOnlineRetryCountRef.current
-    if (!navigator.onLine || retryIndex >= REPORTED_ONLINE_RETRY_DELAYS_MS.length) return
+    if (
+      (!navigator.onLine && !retryWithoutConnectivityRef.current) ||
+      retryIndex >= REPORTED_ONLINE_RETRY_DELAYS_MS.length
+    ) return
     reportedOnlineRetryCountRef.current += 1
     const timer = window.setTimeout(startBootstrap, REPORTED_ONLINE_RETRY_DELAYS_MS[retryIndex])
     return () => window.clearTimeout(timer)
@@ -314,6 +333,7 @@ export function AlmaMeshRuntimeProvider({ children, runtime }: ProviderProps) {
     startedRef.current = false
     bootstrapFailedRef.current = false
     retryableFailureRef.current = false
+    retryWithoutConnectivityRef.current = false
     consumedOnlineEpochRef.current = 0
     reportedOnlineRetryCountRef.current = 0
     inFlightRef.current = null

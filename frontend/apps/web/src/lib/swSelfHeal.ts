@@ -99,11 +99,29 @@ async function hasHealthyPrecache(): Promise<boolean> {
   });
 }
 
-/** Require absence across two browser tasks before destructive recovery. */
+// WebKit can expose an empty CacheStorage view for more than one browser task
+// while a newly controlling service worker settles. Destructive recovery must
+// therefore survive a short, bounded observation window rather than two
+// back-to-back reads.
+const PRECACHE_RECHECK_DELAYS_MS = [0, 100, 500] as const;
+
+/** Require sustained absence before destructive recovery. */
 async function isPrecacheStablyMissing(): Promise<boolean> {
   if (await hasHealthyPrecache()) return false;
-  await new Promise<void>((resolve) => setTimeout(resolve, 0));
-  return !(await hasHealthyPrecache());
+  for (const delay of PRECACHE_RECHECK_DELAYS_MS) {
+    await new Promise<void>((resolve) => setTimeout(resolve, delay));
+    if (await hasHealthyPrecache()) return false;
+  }
+  return true;
+}
+
+/**
+ * A controller can briefly outlive the registration view in WebKit. Healing in
+ * that window would turn a transient browser state into a real offline outage.
+ */
+async function hasVisibleActiveRegistration(): Promise<boolean> {
+  const registration = await navigator.serviceWorker.getRegistration();
+  return registration?.active?.state === 'activated';
 }
 
 /**
@@ -112,7 +130,7 @@ async function isPrecacheStablyMissing(): Promise<boolean> {
  * Loop-guarded to reload at most once per session; if still broken afterward the
  * user reaches the visible ErrorBoundary recovery card. Never throws.
  */
-export async function healStrandedServiceWorker(): Promise<void> {
+async function performServiceWorkerHeal(): Promise<void> {
   try {
     if (!('serviceWorker' in navigator) || typeof caches === 'undefined') {
       return;
@@ -127,10 +145,13 @@ export async function healStrandedServiceWorker(): Promise<void> {
     if (!navigator.serviceWorker.controller) {
       return;
     }
+    if (healAlreadyAttempted(HEAL_KEY)) {
+      return;
+    }
     if (!(await isPrecacheStablyMissing())) {
       return;
     }
-    if (healAlreadyAttempted(HEAL_KEY)) {
+    if (!(await hasVisibleActiveRegistration())) {
       return;
     }
     markHealAttempted(HEAL_KEY);
@@ -143,6 +164,18 @@ export async function healStrandedServiceWorker(): Promise<void> {
     // a regressed heal is visible in the console instead of silently swallowed.
     safeWarn('sw.heal_failed', err);
   }
+}
+
+let serviceWorkerHealInFlight: Promise<void> | null = null;
+
+export function healStrandedServiceWorker(): Promise<void> {
+  if (serviceWorkerHealInFlight !== null) {
+    return serviceWorkerHealInFlight;
+  }
+  serviceWorkerHealInFlight = performServiceWorkerHeal().finally(() => {
+    serviceWorkerHealInFlight = null;
+  });
+  return serviceWorkerHealInFlight;
 }
 
 /**

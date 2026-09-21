@@ -2,7 +2,13 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import { useEffect, useState } from 'react';
 
-import type { BootStage, ChartEngine, OnStage, RuntimeConfig } from '@almamesh/browser';
+import {
+  WorkerCrashError,
+  type BootStage,
+  type ChartEngine,
+  type OnStage,
+  type RuntimeConfig,
+} from '@almamesh/browser';
 import { AlmaMeshRuntimeProvider } from '../AlmaMeshRuntimeProvider';
 import { useChartEngine } from '../chartEngineContext';
 import { clearRuntimeGenerator } from '../../lib/runtimeObservability';
@@ -280,6 +286,69 @@ describe('AlmaMeshRuntimeProvider — retryable bootstrap', () => {
     });
     expect(runtime.bootstrapCalls).toBe(2);
     online.mockRestore();
+  });
+
+  it('retries a transient local worker crash while the browser remains offline', async () => {
+    const online = vi.spyOn(window.navigator, 'onLine', 'get').mockReturnValue(false);
+    const recovered = makeFakeEngine('offline-worker-recovery');
+    const runtime = makeFakeRuntime([
+      () => Promise.reject(new WorkerCrashError('engine worker crashed: undefined')),
+      () => Promise.resolve(recovered),
+    ]);
+
+    try {
+      render(
+        <AlmaMeshRuntimeProvider runtime={runtime}>
+          <Probe capture={() => {}} />
+        </AlmaMeshRuntimeProvider>,
+      );
+
+      await waitFor(() => expect(screen.getByTestId('engine').textContent).toBe('engine-ready'), {
+        timeout: 2_000,
+      });
+      expect(screen.getByTestId('error').textContent).toBe('no-error');
+      expect(runtime.bootstrapCalls).toBe(2);
+    } finally {
+      online.mockRestore();
+    }
+  });
+
+  it('does not overlap a scheduled worker retry with whenReady recovery', async () => {
+    vi.useFakeTimers();
+    let resolveRecovery!: (engine: ChartEngine) => void;
+    const recovered = makeFakeEngine('single-flight-worker-recovery');
+    const runtime = makeFakeRuntime([
+      () => Promise.reject(new WorkerCrashError('engine worker crashed: undefined')),
+      () => new Promise<ChartEngine>((resolve) => {
+        resolveRecovery = resolve;
+      }),
+    ]);
+    let captured: ReturnType<typeof useChartEngine> | null = null;
+
+    try {
+      render(
+        <AlmaMeshRuntimeProvider runtime={runtime}>
+          <Probe capture={(value) => {
+            captured = value;
+          }} />
+        </AlmaMeshRuntimeProvider>,
+      );
+      await act(async () => Promise.resolve());
+      expect(runtime.bootstrapCalls).toBe(1);
+
+      const recovery = captured!.whenReady();
+      expect(runtime.bootstrapCalls).toBe(2);
+      await act(async () => vi.advanceTimersByTimeAsync(250));
+      expect(runtime.bootstrapCalls).toBe(2);
+
+      await act(async () => {
+        resolveRecovery(recovered);
+        await recovery;
+      });
+      expect(screen.getByTestId('engine').textContent).toBe('engine-ready');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('does not miss connectivity returning while the failing bootstrap is still in flight', async () => {
