@@ -225,16 +225,15 @@ describe('repository truth', () => {
     );
   });
 
-  it('arms the destructive reset navigation before confirmation and waits only for DOM readiness', () => {
+  it('proves destructive reset through durable storage and landing-page postconditions', () => {
     const proof = readRoot('frontend/apps/web/scripts/verify-privacy-reset.mjs');
-    const navigation = "const resetNavigation = page.waitForURL(`${baseUrl}/`, {";
-    const confirm = "page.getByTestId('reset-confirm').click()";
-
-    expect(proof).toContain(navigation);
-    expect(proof).toContain("waitUntil: 'domcontentloaded'");
-    expect(proof).toContain('timeout: 30_000');
-    expect(proof.indexOf(navigation)).toBeLessThan(proof.indexOf(confirm));
-    expect(proof).toContain('await resetNavigation;');
+    expect(proof).toContain("localStorage.setItem('almamesh-chart', '1')");
+    expect(proof).toContain("putIdbValue('almamesh-chart-library'");
+    expect(proof).toContain("getByTestId('landing-nav-cta')");
+    expect(proof).toContain("localStorage.getItem('almamesh-chart') === null");
+    expect(proof).toContain("getIdbValue('almamesh-chart-library')");
+    expect(proof).not.toContain('waitForURL');
+    expect(proof).toContain('Reset postcondition failed');
   });
 
   it('keeps ordinary builds keyless while production and engine gates fail closed on trust assets', () => {
