@@ -1,5 +1,5 @@
-import { test, expect, type Page } from '@playwright/test';
-import { bootEngine, DELHI_BIRTH, LLM_SETTINGS_KEY } from './interpretation.helpers';
+import { test, expect } from '@playwright/test';
+import { bootEngine, seedChart, LLM_SETTINGS_KEY } from './interpretation.helpers';
 
 /**
  * Dashboard LIVE validation against REAL OpenRouter — three headline changes:
@@ -26,158 +26,6 @@ import { bootEngine, DELHI_BIRTH, LLM_SETTINGS_KEY } from './interpretation.help
 
 /** Strings that signal a non-real / placeholder chat answer. */
 const PLACEHOLDERS = ['pending', 'please retry', 'loading', 'no answer available'];
-
-/**
- * Seed a REAL Delhi chart via the engine and persist it into the chart-library
- * IndexedDB envelope the dashboard reads from. Unlike the interpretation helper
- * (which hardcodes `dasha_ctx: undefined`), this builds a REAL `dasha_ctx` from
- * the engine's own `chart.dashas`, mirroring the production `@almamesh/store`
- * adapter (`current_maha` → `maha_dasha`, etc.) so the Life Phase card has the
- * engine's true dasha to render. Returns the engine's lagna and active maha lord
- * so the test can confirm that the real chart was loaded.
- */
-async function seedChartWithDasha(page: Page) {
-  return page.evaluate(
-    async (birth) => {
-      interface DashaPeriod {
-        lord: string;
-        start_date: string;
-        end_date: string;
-        duration_years: number;
-      }
-      interface EngineChart {
-        lagna?: { sign?: string };
-        planets: Record<
-          string,
-          { name?: string; sign?: string; house?: number }
-        >;
-        yogas?: unknown[];
-        ayanamsa_value?: number;
-        dashas?: {
-          maha_dasha_sequence?: DashaPeriod[];
-          current_maha?: DashaPeriod | null;
-          current_antar?: DashaPeriod | null;
-          current_pratyantar?: DashaPeriod | null;
-        };
-      }
-      const w = window as unknown as {
-        __almameshGenerate: (b: unknown) => Promise<EngineChart>;
-      };
-      const chart = await w.__almameshGenerate(birth);
-
-      // --- Build dasha_ctx from engine truth (mirrors the store adapter) ------
-      const toLeg = (
-        p: DashaPeriod | null | undefined,
-        level: 'maha' | 'antar' | 'pratyantar',
-      ) =>
-        p
-          ? {
-              lord: p.lord,
-              start_date: p.start_date,
-              end_date: p.end_date,
-              level,
-              duration_years: p.duration_years,
-            }
-          : undefined;
-
-      const seq = chart.dashas?.maha_dasha_sequence ?? [];
-      // The engine emits a non-null current_maha for this chart at the pinned
-      // referenceDate; fall back to the sequence exactly as the adapter does.
-      const activeMaha =
-        chart.dashas?.current_maha ??
-        seq.find((d) => Date.parse(d.start_date) <= Date.parse('2025-01-01')) ??
-        seq[0] ??
-        null;
-
-      const mahaLeg = toLeg(activeMaha, 'maha');
-      const dashaCtx = mahaLeg
-        ? {
-            maha_dasha: mahaLeg,
-            antar_dasha: toLeg(chart.dashas?.current_antar, 'antar'),
-            pratyantar_dasha: toLeg(chart.dashas?.current_pratyantar, 'pratyantar'),
-            full_sequence: seq.map((p) => ({
-              lord: p.lord,
-              start_date: p.start_date,
-              end_date: p.end_date,
-              level: 'maha' as const,
-              duration_years: p.duration_years,
-            })),
-          }
-        : undefined;
-
-      const chartId = 'agentic-delhi-1990';
-      const stored = {
-        chart_id: chartId,
-        person_name: birth.name,
-        is_primary: true,
-        birth_data: {
-          name: birth.name,
-          birth_datetime_utc: birth.datetimeUtc,
-          birth_datetime_local: '1990-01-15T17:30:00',
-          birth_location_details: {
-            city: 'Delhi',
-            latitude: birth.latitude,
-            longitude: birth.longitude,
-            timezone: 'Asia/Kolkata',
-            location_name: 'Delhi, India',
-          },
-        },
-        astronomical_calculations: {
-          sidereal_ctx: {
-            ayanamsa_value: chart.ayanamsa_value ?? 0,
-            ayanamsa_type: 'lahiri',
-            house_system: 'whole_sign',
-            julian_day: 0,
-            sidereal_time: 0,
-            lagna: chart.lagna,
-            planets: chart.planets,
-          },
-          varga_ctx: undefined,
-          dasha_ctx: dashaCtx,
-          yoga_ctx: chart.yogas ?? [],
-          calculation_timestamp: '2025-01-01T00:00:00+00:00',
-          software_version: 'almamesh-browser-engine',
-        },
-        interpretation: undefined,
-        // The chat + kundli render from the RAW SiderealChart.
-        sidereal_chart: chart,
-      };
-
-      const envelope = JSON.stringify({
-        state: { charts: { [chartId]: stored } },
-        version: 0,
-      });
-      const { set: idbSet } = await import(
-        '/node_modules/.vite/deps/idb-keyval.js'
-      ).catch(() => ({
-        set: null as null | ((k: string, v: string) => Promise<void>),
-      }));
-      if (idbSet) {
-        await idbSet('almamesh-chart-library', envelope);
-      } else {
-        await new Promise((resolve, reject) => {
-          const open = indexedDB.open('keyval-store');
-          open.onupgradeneeded = () => open.result.createObjectStore('keyval');
-          open.onerror = () => reject(open.error);
-          open.onsuccess = () => {
-            const db = open.result;
-            const tx = db.transaction('keyval', 'readwrite');
-            tx.objectStore('keyval').put(envelope, 'almamesh-chart-library');
-            tx.oncomplete = () => resolve(true);
-            tx.onerror = () => reject(tx.error);
-          };
-        });
-      }
-      localStorage.setItem('almamesh-chart', '1');
-
-      return {
-        lagna: chart.lagna?.sign ?? null,
-        mahaLord: activeMaha?.lord ?? null,
-      };
-    },
-    DELHI_BIRTH,
-  );
-}
 
 test('[real] dashboard: timer + life phase + local-time agentic chat', async ({
   page,
@@ -232,7 +80,9 @@ test('[real] dashboard: timer + life phase + local-time agentic chat', async ({
   );
 
   await bootEngine(page);
-  const seeded = await seedChartWithDasha(page);
+  // Restore the real engine chart through the same backup-import boundary a
+  // user exercises, so canonical OPFS SQLite owns the dashboard state.
+  const seeded = await seedChart(page);
   expect(String(seeded.lagna).toLowerCase()).toBe('gemini');
 
   console.log(
@@ -244,6 +94,7 @@ test('[real] dashboard: timer + life phase + local-time agentic chat', async ({
   // ---------------------------------------------------------------------------
   // A) Honest interpretation timer — capture WHILE generation runs.
   // ---------------------------------------------------------------------------
+  await page.getByRole('button', { name: 'Generate natal reading' }).click();
   const elapsed = page.getByTestId('interpretation-elapsed');
   await expect(elapsed).toBeVisible({ timeout: 120_000 });
   const timerText = (await elapsed.textContent()) ?? '';
@@ -282,7 +133,7 @@ test('[real] dashboard: timer + life phase + local-time agentic chat', async ({
   await expect(agentMode).toHaveAttribute('aria-checked', 'true');
 
   await chatInput.fill(
-    'Use the available local date/time tool, not training data, to tell me the current date and time in my chart timezone. Include the timezone and UTC offset.',
+    'Use the available local date/time tool with scope="chart", not training data, to tell me the current date and time in my chart timezone. Include the timezone and UTC offset.',
   );
   await page.getByTestId('chat-send-button').click();
 

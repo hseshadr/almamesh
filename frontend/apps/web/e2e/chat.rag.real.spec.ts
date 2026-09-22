@@ -1,5 +1,5 @@
-import { test, expect, type Page, type Request } from '@playwright/test';
-import { bootEngine, DELHI_BIRTH, LLM_SETTINGS_KEY } from './interpretation.helpers';
+import { test, expect, type Request } from '@playwright/test';
+import { bootEngine, LLM_SETTINGS_KEY, seedChart } from './interpretation.helpers';
 
 /**
  * LIVE end-to-end validation of the overhauled "Ask About Your Chart" chat.
@@ -17,138 +17,6 @@ import { bootEngine, DELHI_BIRTH, LLM_SETTINGS_KEY } from './interpretation.help
  */
 
 const SHOT = '/tmp/almamesh-verify/chat';
-
-/** Seed a REAL Delhi chart w/ dasha; copied from dashboard.agentic.real.spec.ts. */
-async function seedChartWithDasha(page: Page) {
-  return page.evaluate(async (birth) => {
-    interface DashaPeriod {
-      lord: string;
-      start_date: string;
-      end_date: string;
-      duration_years: number;
-    }
-    // The engine's generateChart returns the raw SiderealChart directly (no
-    // `.full` wrapper): { ayanamsa_value, lagna, planets, houses, dashas, yogas,
-    // navamsa }. `sidereal_chart` therefore stores the WHOLE chart object.
-    interface EngineChart {
-      lagna?: { sign?: string | null };
-      planets: Record<string, { name?: string; sign?: string | null; house?: number | null }>;
-      yogas?: unknown[];
-      ayanamsa_value?: number;
-      dashas?: {
-        maha_dasha_sequence?: DashaPeriod[];
-        current_maha?: DashaPeriod | null;
-        current_antar?: DashaPeriod | null;
-        current_pratyantar?: DashaPeriod | null;
-      };
-    }
-    const w = window as unknown as {
-      __almameshGenerate: (b: unknown) => Promise<EngineChart>;
-    };
-    const chart = await w.__almameshGenerate(birth);
-
-    const toLeg = (
-      p: DashaPeriod | null | undefined,
-      level: 'maha' | 'antar' | 'pratyantar',
-    ) =>
-      p
-        ? {
-            lord: p.lord,
-            start_date: p.start_date,
-            end_date: p.end_date,
-            level,
-            duration_years: p.duration_years,
-          }
-        : undefined;
-
-    const seq = chart.dashas?.maha_dasha_sequence ?? [];
-    const activeMaha =
-      chart.dashas?.current_maha ??
-      seq.find((d) => Date.parse(d.start_date) <= Date.parse('2025-01-01')) ??
-      seq[0] ??
-      null;
-
-    const dasha_ctx = {
-      maha_dasha: toLeg(activeMaha, 'maha'),
-      antar_dasha: toLeg(chart.dashas?.current_antar, 'antar'),
-      pratyantar_dasha: toLeg(chart.dashas?.current_pratyantar, 'pratyantar'),
-      maha_dasha_sequence: seq.map((p) => toLeg(p, 'maha')),
-    };
-
-    const chartId = 'verify-chat-delhi-1990';
-    // Mirror the proven seedChart envelope: the dashboard's readLocalPrimaryChart
-    // reads astronomical_calculations.calculation_timestamp + sidereal_ctx, and
-    // throws (→ "Unable to Load Chart") if astronomical_calculations is missing.
-    const stored = {
-      chart_id: chartId,
-      person_name: birth.name,
-      is_primary: true,
-      birth_data: {
-        name: birth.name,
-        birth_datetime_utc: birth.datetimeUtc,
-        birth_datetime_local: '1990-01-15T17:30:00',
-        birth_location_details: {
-          city: 'Delhi',
-          latitude: birth.latitude,
-          longitude: birth.longitude,
-          timezone: 'Asia/Kolkata',
-          location_name: 'Delhi, India',
-        },
-      },
-      astronomical_calculations: {
-        sidereal_ctx: {
-          ayanamsa_value: chart.ayanamsa_value ?? 0,
-          ayanamsa_type: 'lahiri',
-          house_system: 'whole_sign',
-          julian_day: 0,
-          sidereal_time: 0,
-          lagna: chart.lagna,
-          planets: chart.planets,
-        },
-        varga_ctx: undefined,
-        dasha_ctx,
-        yoga_ctx: chart.yogas ?? [],
-        calculation_timestamp: '2025-01-01T00:00:00+00:00',
-        software_version: 'almamesh-browser-engine',
-      },
-      interpretation: undefined,
-      // The whole SiderealChart — the chat (streamChartChat) + interpretation
-      // pipeline + 2D/3D viz all read this raw chart from the store.
-      sidereal_chart: chart,
-    };
-    const { set: idbSet } = await import('/node_modules/.vite/deps/idb-keyval.js').catch(
-      () => ({ set: null as null | ((k: string, v: string) => Promise<void>) }),
-    );
-    const envelope = JSON.stringify({ state: { charts: { [chartId]: stored } }, version: 0 });
-    if (idbSet) {
-      await idbSet('almamesh-chart-library', envelope);
-    } else {
-      await new Promise<boolean>((resolve, reject) => {
-        const open = indexedDB.open('keyval-store');
-        open.onupgradeneeded = () => open.result.createObjectStore('keyval');
-        open.onerror = () => reject(open.error);
-        open.onsuccess = () => {
-          const db = open.result;
-          const tx = db.transaction('keyval', 'readwrite');
-          tx.objectStore('keyval').put(envelope, 'almamesh-chart-library');
-          tx.oncomplete = () => resolve(true);
-          tx.onerror = () => reject(tx.error);
-        };
-      });
-    }
-    localStorage.setItem('almamesh-chart', '1');
-
-    const marsEntry = Object.entries(chart.planets).find(
-      ([k, v]) => k.toLowerCase() === 'mars' || (v.name ?? '').toLowerCase() === 'mars',
-    );
-    const mars = marsEntry?.[1];
-    return {
-      lagna: chart.lagna?.sign ?? null,
-      marsSign: mars?.sign ?? null,
-      marsHouse: mars?.house ?? null,
-    };
-  }, DELHI_BIRTH);
-}
 
 test('[real] chat: single-pass streaming + self-hosted RAG + persistence + search', async ({
   page,
@@ -213,8 +81,10 @@ test('[real] chat: single-pass streaming + self-hosted RAG + persistence + searc
   // A) Seed a chart, open the dashboard, open the chat.
   // ===========================================================================
   await bootEngine(page);
-  const seeded = await seedChartWithDasha(page);
-  console.log(`[evidence] engine lagna=${seeded.lagna} marsSign=${seeded.marsSign} marsHouse=${seeded.marsHouse}`);
+  const seeded = await seedChart(page);
+  console.log(
+    `[evidence] engine lagna=${seeded.lagna} mahaLord=${seeded.mahaLord} antarLord=${seeded.antarLord}`,
+  );
 
   await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
   await page.getByTestId('floating-chat-button').click({ timeout: 60_000 });
@@ -357,8 +227,9 @@ test('[real] chat: single-pass streaming + self-hosted RAG + persistence + searc
   // D) Reload; reopen chat → prior conversation STILL THERE (persistence).
   // ===========================================================================
   await page.reload({ waitUntil: 'domcontentloaded' });
-  // Re-boot engine hooks not needed for chat read, but the dashboard mounts the
-  // chat from persisted IndexedDB. Open the chat again.
+  // Re-boot engine hooks are not needed for chat reads. Opening the chat after
+  // a full document reload exercises the shipped portable SQLite hydration
+  // path rather than inspecting a retired browser store.
   await page.getByTestId('floating-chat-button').click({ timeout: 60_000 });
   await expect(page.getByTestId('chat-input')).toBeVisible({ timeout: 30_000 });
   const afterReload = page.getByTestId('chat-panel');
@@ -412,59 +283,6 @@ test('[real] chat: single-pass streaming + self-hosted RAG + persistence + searc
     .toBe(true);
   console.log(`[evidence] followAnswer_tail=${followAnswer.replace(/\s+/g, ' ').trim().slice(-500)}`);
 
-  // Dump the persisted chat messages so we can PROVE the follow-up produced a
-  // real assistant answer (not an error bubble). The assistant turn is written
-  // to IndexedDB AFTER the stream loop fully completes, which can lag the DOM,
-  // so we POLL the chat-store envelope until both turns have flushed.
-  const readPersisted = () =>
-    page.evaluate(async () => {
-      const raw = await new Promise<string | null>((resolve) => {
-        const open = indexedDB.open('keyval-store');
-        open.onerror = () => resolve(null);
-        open.onsuccess = () => {
-          const db = open.result;
-          if (!db.objectStoreNames.contains('keyval')) return resolve(null);
-          const req = db
-            .transaction('keyval', 'readonly')
-            .objectStore('keyval')
-            .get('almamesh-chat-history');
-          req.onsuccess = () => resolve(typeof req.result === 'string' ? req.result : null);
-          req.onerror = () => resolve(null);
-        };
-      });
-      if (!raw) return { assistantCount: 0, lastAssistant: '', anyError: false };
-      try {
-        const parsed = JSON.parse(raw);
-        const byThread = parsed?.state?.messages ?? {};
-        const all = Object.values(byThread).flat() as { role: string; content: string }[];
-        const assistants = all.filter((m) => m.role === 'assistant');
-        return {
-          assistantCount: assistants.length,
-          lastAssistant: assistants.at(-1)?.content?.slice(0, 200) ?? '',
-          anyError: assistants.some((m) =>
-            /Error: QA_001|technical difficulties|couldn't process/.test(m.content),
-          ),
-        };
-      } catch {
-        return { assistantCount: 0, lastAssistant: '', anyError: false };
-      }
-    });
-
-  let persistedMsgs = await readPersisted();
-  await expect
-    .poll(
-      async () => {
-        persistedMsgs = await readPersisted();
-        return persistedMsgs.assistantCount;
-      },
-      { timeout: 30_000, intervals: [1_000] },
-    )
-    .toBeGreaterThanOrEqual(2);
-  console.log(
-    `[evidence] persisted_assistant_count=${persistedMsgs.assistantCount} any_error_bubble=${persistedMsgs.anyError}`,
-  );
-  console.log(`[evidence] last_assistant=${persistedMsgs.lastAssistant.replace(/\s+/g, ' ')}`);
-
   // The follow-up references the prior career discussion (RAG/history working):
   // a house, a planet, or a sign placement appears in the new answer body.
   const followLower = followAnswer.toLowerCase();
@@ -472,9 +290,33 @@ test('[real] chat: single-pass streaming + self-hosted RAG + persistence + searc
     /house|career|planet|mars|sun|saturn|jupiter|venus|mercury|lagna/.test(followLower),
     'follow-up answer reflects the prior conversation context',
   ).toBe(true);
-  // BOTH chat turns must be real assistant answers — no QA_001 error bubble.
-  expect(persistedMsgs.anyError, 'no QA_001 error bubble persisted in the chat').toBe(false);
   await page.screenshot({ path: `${SHOT}/E-followup.png`, fullPage: true });
+
+  // Hard-reload a second time and prove BOTH completed turns rehydrate through
+  // the actual UI. This is deliberately black-box: it fails if portable SQLite
+  // did not persist either turn, and cannot pass on stale keyval-store data.
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.getByTestId('floating-chat-button').click({ timeout: 60_000 });
+  await expect(page.getByTestId('chat-input')).toBeVisible({ timeout: 30_000 });
+  const persistedPanel = page.getByTestId('chat-panel');
+  const persistedAssistants = page.getByTestId('chat-message-assistant');
+  await expect(persistedAssistants).toHaveCount(2, { timeout: 30_000 });
+  await expect(persistedPanel).toContainText('What does my chart say about my career?');
+  await expect(persistedPanel).toContainText(
+    'Earlier you discussed my career. Which planet and house drives it?',
+  );
+  const persistedAssistantText = await persistedAssistants.allTextContents();
+  const persistedError = persistedAssistantText.some((content) =>
+    /Error: QA_001|technical difficulties|couldn't process/i.test(content),
+  );
+  expect(persistedError, 'both rehydrated assistant turns must be real answers').toBe(false);
+  console.log(
+    `[evidence] portable_sqlite_reload_assistant_count=${persistedAssistantText.length} any_error_bubble=${persistedError}`,
+  );
+  console.log(
+    `[evidence] last_assistant=${(persistedAssistantText.at(-1) ?? '').replace(/\s+/g, ' ').slice(0, 200)}`,
+  );
+  await page.screenshot({ path: `${SHOT}/E-after-second-reload.png`, fullPage: true });
 
   // ===========================================================================
   // F) SEARCH box — type a word from an earlier message; click a hit → scroll.
