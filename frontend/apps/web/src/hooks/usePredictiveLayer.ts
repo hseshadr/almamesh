@@ -77,23 +77,34 @@ function cancelKickoff(handle: ScheduledKickoff): void {
   clearTimeout(handle.id);
 }
 
-/** Milliseconds until the next UTC day boundary. */
-function untilNextUtcDay(now: number): number {
-  const next = new Date(now);
-  next.setUTCHours(24, 0, 0, 0);
-  return next.getTime() - now;
+/** Milliseconds until the chart timezone's calendar day changes. */
+function untilNextReferenceDay(now: number, timeZone: string): number {
+  const current = predictiveReferenceInstant(new Date(now), timeZone);
+  let low = now;
+  let high = now + 30 * 60 * 60 * 1_000;
+  while (high - low > 1_000) {
+    const middle = Math.floor((low + high) / 2);
+    if (predictiveReferenceInstant(new Date(middle), timeZone) === current) low = middle;
+    else high = middle;
+  }
+  return high - now;
 }
 
-/** A UTC-midnight reference that updates even when the page otherwise stays idle. */
-function useDailyReferenceInstant(): string {
-  const [reference, setReference] = useState(() => predictiveReferenceInstant());
+/** A chart-local daily reference that updates even when the page stays idle. */
+function useDailyReferenceInstant(timeZone: string): string {
+  const [reference, setReference] = useState(() => predictiveReferenceInstant(new Date(), timeZone));
   useEffect(() => {
+    const currentReference = predictiveReferenceInstant(new Date(), timeZone);
+    if (reference !== currentReference) {
+      setReference(currentReference);
+      return;
+    }
     const timer = setTimeout(
-      () => setReference(predictiveReferenceInstant()),
-      untilNextUtcDay(Date.now()) + 1,
+      () => setReference(predictiveReferenceInstant(new Date(), timeZone)),
+      untilNextReferenceDay(Date.now(), timeZone) + 1,
     );
     return () => clearTimeout(timer);
-  }, [reference]);
+  }, [reference, timeZone]);
   return reference;
 }
 
@@ -153,10 +164,11 @@ export function usePredictiveLayer({ auto = false }: UsePredictiveLayerOptions =
   const storedChart = selectPrimaryStoredChart(charts, activeProfileId);
   const birth = storedChart?.birth_data as ProcessedBirthData | undefined;
   const profileKey = activeProfileId ?? storedChart?.chart_id ?? 'primary';
+  const chartTimeZone = birth?.birth_location_details.timezone ?? 'UTC';
 
   // The reference instant is pinned per day (UTC midnight) so the store's
   // idempotency key stays stable across re-renders and navigations.
-  const referenceInstant = useDailyReferenceInstant();
+  const referenceInstant = useDailyReferenceInstant(chartTimeZone);
   const input = useMemo(
     () => buildEnsurePredictiveInput(profileKey, birth, referenceInstant),
     [profileKey, birth, referenceInstant],

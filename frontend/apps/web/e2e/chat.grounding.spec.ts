@@ -26,10 +26,7 @@ import { bootEngine, seedChart, LLM_SETTINGS_KEY } from './interpretation.helper
  * page.route on the chat/completions endpoint. The route distinguishes the two
  * request shapes by the `SECTION:<key>` marker the structured generator embeds:
  *   - a request WITH a marker  → an interpretation section (answer with canned JSON)
- *   - a request WITHOUT a marker → the chat turn (capture body + reply with SSE)
- *
- * The chat path streams (`streamChatCompletion`, `stream: true`), so the stubbed
- * chat reply is a valid SSE stream (one delta + `[DONE]`) the panel can render.
+ *   - a request WITH tools → the always-on bounded agent turn
  *
  * Run:  bun run test:e2e:chat:grounding   (from apps/web)
  */
@@ -152,19 +149,13 @@ function sectionFor(body: string | null): SectionKey | null {
 // The evidence-annotation call (`fetchEvidenceAnnotations`, fired once the
 // reading completes, on the DEEP interpretation config — not the chat one) is
 // a THIRD request shape: no `SECTION:<key>` marker, so without this check it
-// falls through to "no marker → chat turn" below and its deep-model body
-// becomes `chatRequestBodies[0]`, failing the fast-model assertion on a request
+// falls through to the agent route below and its deep-model body
+// becomes the first captured body, failing the fast-model assertion on a request
 // that was never the user's chat turn. `general_guidance` is a JSON key unique
 // to this call's output schema (evidence-annotation.ts) — it never appears in
 // a SECTION_JSON reading nor in a real chat prompt.
 function isEvidenceAnnotationRequest(body: string | null): boolean {
   return (body ?? '').includes('general_guidance');
-}
-
-/** A minimal but valid OpenAI SSE chat stream: one content delta + [DONE]. */
-function chatSseStream(text: string): string {
-  const delta = JSON.stringify({ choices: [{ delta: { content: text } }] });
-  return `data: ${delta}\n\n` + 'data: [DONE]\n\n';
 }
 
 test('[contract/stubbed] chat reuses the reading + sends the fast chat model on the wire', async ({
@@ -187,7 +178,7 @@ test('[contract/stubbed] chat reuses the reading + sends the fast chat model on 
 
   // Capture every outbound chat-completions request body so we can split the
   // interpretation requests (SECTION marker) from the chat turn (no marker).
-  const chatRequestBodies: string[] = [];
+  const initialAgentRequestBodies: Array<Record<string, unknown>> = [];
   const agentRequestBodies: Array<Record<string, unknown>> = [];
   const interpSections: SectionKey[] = [];
 
@@ -224,7 +215,20 @@ test('[contract/stubbed] chat reuses the reading + sends the fast chat model on 
     if (Array.isArray(parsed.tools)) {
       agentRequestBodies.push(parsed as Record<string, unknown>);
       const toolResult = parsed.messages?.find((message) => message.role === 'tool');
+      const isClockQuestion = JSON.stringify(parsed.messages).includes(
+        'What time is it in my chart timezone?',
+      );
       if (!toolResult) {
+        if (!isClockQuestion) {
+          initialAgentRequestBodies.push(parsed as Record<string, unknown>);
+          return route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({
+              choices: [{ message: { content: 'Your strengths shine through this chart.' } }],
+            }),
+          });
+        }
         return route.fulfill({
           status: 200,
           contentType: 'application/json',
@@ -266,15 +270,7 @@ test('[contract/stubbed] chat reuses the reading + sends the fast chat model on 
         }),
       });
     }
-    // No SECTION marker → this is the CHAT turn. Capture the body for the
-    // assertions, then stream back a minimal valid SSE reply so the panel
-    // renders an answer (chat uses streamChatCompletion, stream: true).
-    chatRequestBodies.push(body ?? '');
-    return route.fulfill({
-      status: 200,
-      contentType: 'text/event-stream',
-      body: chatSseStream('Your strengths shine through this chart.'),
-    });
+    throw new Error('Dashboard chat must use the bounded agent contract.');
   });
 
   // Boot the REAL engine + restore a REAL Delhi chart through the production
@@ -313,7 +309,7 @@ test('[contract/stubbed] chat reuses the reading + sends the fast chat model on 
   const chatInput = page.getByTestId('chat-input');
   await expect(chatInput).toBeVisible({ timeout: 30_000 });
 
-  await chatInput.fill('What are my strengths?');
+  await chatInput.fill('What planetary influences matter for me today?');
   await page.getByTestId('chat-send-button').click();
 
   // 3) Wait for the chat answer to render (the stubbed SSE token appears in the panel).
@@ -322,20 +318,15 @@ test('[contract/stubbed] chat reuses the reading + sends the fast chat model on 
     chatPanel.getByText('Your strengths shine through this chart.', { exact: false }),
   ).toBeVisible({ timeout: 60_000 });
 
-  // 4) Wait until exactly one chat request (no SECTION marker) was captured.
+  // 4) Wait until the always-on agent request was captured.
   await expect
-    .poll(() => chatRequestBodies.length, { timeout: 30_000, intervals: [250] })
+    .poll(() => initialAgentRequestBodies.length, { timeout: 30_000, intervals: [250] })
     .toBeGreaterThanOrEqual(1);
 
-  // The chat request must be DISTINCT from the interpretation section requests:
-  // none of the captured chat bodies carry a SECTION marker.
-  for (const raw of chatRequestBodies) {
-    expect(sectionFor(raw), 'a chat request must NOT carry a SECTION marker').toBeNull();
-  }
-
-  const chatBody = JSON.parse(chatRequestBodies[0]) as {
+  const chatBody = initialAgentRequestBodies[0] as {
     model: string;
     stream?: boolean;
+    tool_choice?: string;
     messages: { role: string; content: string }[];
   };
 
@@ -351,8 +342,8 @@ test('[contract/stubbed] chat reuses the reading + sends the fast chat model on 
   expect(chatBody.model, 'chat model must not still be the deep interpretation model').not.toBe(
     LLM_CONFIG.model,
   );
-  // The chat path streams.
-  expect(chatBody.stream, 'chat request streams (stream: true)').toBe(true);
+  expect(chatBody.stream, 'agent decision request is bounded and non-streaming').toBe(false);
+  expect(chatBody.tool_choice).toBe('auto');
 
   // ---- ASSERTION (c): the chat prompt reused the already-generated reading ----
   const promptText = chatBody.messages.map((m) => m.content).join('\n');
@@ -375,15 +366,16 @@ test('[contract/stubbed] chat reuses the reading + sends the fast chat model on 
     `the natal reading must not carry the stubbed timeline window ` +
       `("${STUB_PERIOD_TITLE}") without an explicit timeline action.`,
   ).not.toContain(STUB_PERIOD_TITLE);
+  expect(promptText).toContain('ENGINE PREDICTIVE CONTEXT');
+  expect(promptText).toContain('Current transits (Gochara)');
 
-  // 5) Turn on the explicit bounded agent mode and prove the complete browser
-  //    tool protocol: advertised allowlist -> local execution -> role:tool
+  // Isolate the second turn's complete tool protocol below.
+  agentRequestBodies.length = 0;
+
+  // 5) Every turn uses the bounded agent loop. Prove the complete browser tool
+  //    protocol: advertised allowlist -> local execution -> role:tool
   //    result -> grounded answer. No live provider or wall-clock assertion is
   //    involved, so this remains deterministic in CI.
-  const agentMode = page.getByTestId('chat-agent-mode');
-  await agentMode.click();
-  await expect(agentMode).toHaveAttribute('aria-checked', 'true');
-
   await chatInput.fill('What time is it in my chart timezone?');
   await page.getByTestId('chat-send-button').click();
   await expect(page.getByTestId('chat-agent-status')).toContainText(

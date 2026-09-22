@@ -1,5 +1,10 @@
 import type { SiderealChart } from '@almamesh/browser/types';
-import { sanitizeChartForLlm, type AgentJsonObject, type AgentTool } from '@almamesh/llm';
+import {
+  sanitizeChartForLlm,
+  type AgentJsonObject,
+  type AgentTool,
+  type AgentToolContext,
+} from '@almamesh/llm';
 
 export interface ZonedDateTime {
   readonly isoUtc: string;
@@ -53,6 +58,17 @@ export function currentDateTimeForZone(now: Date, timeZone: string): ZonedDateTi
 export interface CreateChatAgentToolsInput {
   readonly chart: SiderealChart;
   readonly chartTimeZone: string;
+  /** Resolve exact-day engine facts; the caller owns cache/profile identity checks. */
+  readonly loadCurrentChart?: (context: AgentToolContext) => Promise<SiderealChart>;
+}
+
+const CURRENT_CONTEXT_PATTERN =
+  /\b(?:today|now|currently|current|this\s+(?:week|month|year)|transits?|timing|hoy|ahora|actual(?:mente)?|esta\s+semana|este\s+(?:mes|ano)|transitos?|hoje|agora|atual(?:mente)?|esta\s+semana|este\s+(?:mes|ano)|transitos?)\b/i;
+
+/** Conservative, multilingual routing for questions that require exact-day facts. */
+export function requiresCurrentPlanetaryContext(question: string): boolean {
+  const normalized = question.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  return CURRENT_CONTEXT_PATTERN.test(normalized);
 }
 
 function enumArgument(args: AgentJsonObject, key: string, allowed: readonly string[]): string {
@@ -125,21 +141,25 @@ export function createChatAgentTools(input: CreateChatAgentToolsInput): readonly
     {
       name: 'get_current_timing',
       description:
-        'Read cached deterministic timing data already calculated on this device. Never starts a calculation or network request.',
-      statusLabel: 'Reading current timing',
+        'Calculate or read the exact-day deterministic planetary timing data on this device. Use this for today, now, current timing, or transits. It never makes a network request.',
+      statusLabel: 'Calculating current planetary context',
+      timeoutMs: 60_000,
       parameters: {
         type: 'object',
         properties: { section: { type: 'string', enum: timingSections } },
         required: ['section'],
         additionalProperties: false,
       },
-      execute: (args, context) => {
+      execute: async (args, context) => {
         const section = enumArgument(
           args,
           'section',
           timingSections,
         ) as (typeof timingSections)[number];
-        const chart = sanitizeChartForLlm(input.chart, context.now);
+        const sourceChart = input.loadCurrentChart
+          ? await input.loadCurrentChart(context)
+          : input.chart;
+        const chart = sanitizeChartForLlm(sourceChart, context.now);
         if (section === 'dashas') return chart.dashas ?? { available: false };
         const predictive = chart.predictive;
         if (!predictive) return { available: false };

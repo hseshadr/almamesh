@@ -7,8 +7,8 @@
  * the relationship CURATION rule (marriage tables only for spouse/partner),
  * verbatim engine numbers, honest pending/error states, and the integrity foot.
  */
-import { describe, it, expect, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
@@ -21,10 +21,26 @@ import {
   type StoredChart,
 } from '@almamesh/store';
 import type { MeshEdgeCtx } from '@almamesh/shared-types';
+import { openRouterPreset, writeLlmSettings } from '@almamesh/llm';
 
 import '../../i18n/config';
 import MeshEdgePage from '../MeshEdge';
 import { MESH_EDGE_FRIEND, MESH_EDGE_SPOUSE } from '../../test/meshFixtures';
+import { __resetMemoryForTest, __setMemoryForTest } from '../../lib/chatMemory';
+
+const llmMocks = vi.hoisted(() => ({
+  streamAgentChat: vi.fn(),
+  streamChartChat: vi.fn(),
+}));
+
+vi.mock('@almamesh/llm', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@almamesh/llm')>();
+  return {
+    ...actual,
+    streamAgentChat: llmMocks.streamAgentChat,
+    streamChartChat: llmMocks.streamChartChat,
+  };
+});
 
 const ANCHOR: Profile = {
   id: 'p-anchor',
@@ -70,6 +86,13 @@ function chartFor(profileId: string): StoredChart {
     },
     astronomical_calculations: {
       sidereal_ctx: { lagna: { sign: 'Aquarius', longitude: 328.84 } },
+    },
+    sidereal_chart: {
+      ayanamsa_value: 23.86,
+      lagna: { sign: 'Aquarius', sign_degrees: 28.84 },
+      planets: {},
+      houses: {},
+      yogas: [],
     },
   } as unknown as StoredChart;
 }
@@ -117,10 +140,18 @@ function renderAt(path: string): ReturnType<typeof render> {
 
 describe('MeshEdgePage', () => {
   beforeEach(() => {
+    localStorage.clear();
+    llmMocks.streamAgentChat.mockReset();
+    llmMocks.streamChartChat.mockReset();
     useLanguageStore.setState({ language: 'en' });
     useProfilesStore.setState({ profiles: {}, activeProfileId: null, hydrated: true });
     useChartLibraryStore.setState({ charts: {}, hydrated: true });
     useMeshStore.getState().reset();
+  });
+
+  afterEach(() => {
+    __resetMemoryForTest();
+    localStorage.clear();
   });
 
   it('redirects an unknown or relationship-less member back to the mesh', () => {
@@ -257,5 +288,50 @@ describe('MeshEdgePage', () => {
     expect(screen.getByTestId('mesh-window-2y').getAttribute('aria-pressed')).toBe('true');
     fireEvent.click(screen.getByTestId('mesh-window-5y'));
     expect(screen.getByTestId('mesh-window-5y').getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('keeps relationship chat inside the bounded agent loop with sanitized mesh grounding', async () => {
+    writeLlmSettings(openRouterPreset('sk-or-v1-0000-synthetic-test-key', 'test-org/test-model'));
+    __setMemoryForTest({
+      indexMessage: vi.fn().mockResolvedValue(undefined),
+      retrieve: vi.fn().mockResolvedValue([]),
+      deleteForProfile: vi.fn().mockResolvedValue(undefined),
+      deleteForThread: vi.fn().mockResolvedValue(undefined),
+      clear: vi.fn().mockResolvedValue(undefined),
+    });
+    llmMocks.streamAgentChat.mockImplementation(async function* (options) {
+      options.onStatus?.({ phase: 'deciding', round: 1 });
+      options.onStatus?.({ phase: 'answering' });
+      yield 'The relationship timing is grounded in both charts.';
+      options.onStatus?.({ phase: 'complete' });
+    });
+
+    seedPeople(SPOUSE);
+    seedCharts(SPOUSE);
+    seedEdge(SPOUSE, MESH_EDGE_SPOUSE);
+    renderAt('/mesh/p-spouse');
+
+    fireEvent.click(screen.getByTestId('mesh-discuss-chat'));
+    fireEvent.change(await screen.findByTestId('chat-input'), {
+      target: { value: 'How are our charts working together?' },
+    });
+    fireEvent.click(screen.getByTestId('chat-send-button'));
+
+    await waitFor(() => expect(llmMocks.streamAgentChat).toHaveBeenCalledTimes(1));
+    expect(llmMocks.streamChartChat).not.toHaveBeenCalled();
+    const options = llmMocks.streamAgentChat.mock.calls[0][0];
+    expect(options.tools.map((tool: { name: string }) => tool.name)).toEqual([
+      'get_current_datetime',
+      'get_chart_facts',
+      'get_current_timing',
+    ]);
+    expect(JSON.stringify(options.messages)).toContain('ENGINE RELATIONSHIP CONTEXT');
+    expect(JSON.stringify(options.messages)).not.toContain(ANCHOR.name);
+    expect(JSON.stringify(options.messages)).not.toContain(SPOUSE.name);
+    await waitFor(() =>
+      expect(screen.getByTestId('chat-panel').textContent).toContain(
+        'relationship timing is grounded',
+      ),
+    );
   });
 });

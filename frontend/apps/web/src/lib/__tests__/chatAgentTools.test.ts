@@ -1,6 +1,10 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
-import { createChatAgentTools, currentDateTimeForZone } from '../chatAgentTools';
+import {
+  createChatAgentTools,
+  currentDateTimeForZone,
+  requiresCurrentPlanetaryContext,
+} from '../chatAgentTools';
 import type { SiderealChart } from '@almamesh/browser/types';
 
 describe('currentDateTimeForZone', () => {
@@ -95,5 +99,53 @@ describe('createChatAgentTools', () => {
     );
     expect(JSON.stringify(overview)).not.toContain('Private Name');
     expect(JSON.stringify(overview)).not.toContain('Secret City');
+  });
+
+  it('calculates current timing on demand from the pinned turn clock', async () => {
+    const currentChart = {
+      ...chart,
+      strength_context: {
+        ashtakavarga: { sarva: { total: 337 } },
+        shadbala: { planets: {} },
+      },
+    } as unknown as SiderealChart;
+    const loadCurrentChart = vi.fn(async () => currentChart);
+    const tools = createChatAgentTools({
+      chart,
+      chartTimeZone: 'Asia/Kolkata',
+      loadCurrentChart,
+    });
+
+    await expect(
+      tools[2].execute(
+        { section: 'strength' },
+        { now: new Date('2026-03-08T09:30:00.000Z'), signal: new AbortController().signal },
+      ),
+    ).resolves.toMatchObject({ sav_total: 337 });
+    expect(loadCurrentChart).toHaveBeenCalledWith({
+      now: new Date('2026-03-08T09:30:00.000Z'),
+      signal: expect.any(AbortSignal),
+    });
+    expect(tools[2].timeoutMs).toBeGreaterThan(30_000);
+  });
+});
+
+describe('requiresCurrentPlanetaryContext', () => {
+  it.each([
+    'What should I pay attention to today?',
+    'What are my current transits?',
+    'How does this week look?',
+    '¿Qué importa hoy?',
+    'Como estão meus trânsitos agora?',
+  ])('routes relative-time question through deterministic current context: %s', (question) => {
+    expect(requiresCurrentPlanetaryContext(question)).toBe(true);
+  });
+
+  it.each([
+    'Where is my natal Mars?',
+    'Explain my ascendant.',
+    'What does this yoga mean?',
+  ])('does not force current computation for natal-only question: %s', (question) => {
+    expect(requiresCurrentPlanetaryContext(question)).toBe(false);
   });
 });

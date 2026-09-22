@@ -290,7 +290,7 @@ describe('usePredictiveLayer({ auto: true })', () => {
     expect(result.current.transitCtx).toBeUndefined();
   });
 
-  it('recomputes after the UTC reference day rolls over', () => {
+  it('recomputes after the chart-local reference day rolls over', () => {
     vi.setSystemTime(new Date('2026-07-12T23:59:58Z'));
     const ensure = readyingEnsure();
     usePredictiveStore.setState({

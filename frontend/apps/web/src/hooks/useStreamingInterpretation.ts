@@ -185,10 +185,11 @@ function predictiveProfileKey(chartId: string | null): string {
 /** Build today's deterministic predictive identity for one stored chart. */
 function expectedPredictiveKey(chartId: string | null): string | null {
   const stored = chartId ? useChartLibraryStore.getState().getChart(chartId) : undefined;
+  const timeZone = stored?.birth_data?.birth_location_details.timezone ?? 'UTC';
   const input = buildEnsurePredictiveInput(
     predictiveProfileKey(chartId),
     stored?.birth_data as ProcessedBirthData | undefined,
-    predictiveReferenceInstant(),
+    predictiveReferenceInstant(new Date(), timeZone),
   );
   return input ? predictiveRequestKey(input) : null;
 }

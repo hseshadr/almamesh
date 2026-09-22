@@ -28,6 +28,14 @@ describe('predictiveReferenceInstant', () => {
       '2026-06-09T00:00:00Z',
     );
   });
+
+  it('uses the chart-local calendar day when a timezone is supplied', () => {
+    const now = new Date('2026-06-09T20:00:00Z');
+    expect(predictiveReferenceInstant(now, 'Asia/Kolkata')).toBe('2026-06-10T00:00:00Z');
+    expect(predictiveReferenceInstant(now, 'America/Los_Angeles')).toBe(
+      '2026-06-09T00:00:00Z',
+    );
+  });
 });
 
 describe('buildEnsurePredictiveInput', () => {

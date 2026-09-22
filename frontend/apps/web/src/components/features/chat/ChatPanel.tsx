@@ -11,8 +11,8 @@
  * - "For You" (layman) mode: bubble-style MessageBubble components
  * - "Astrologer" (technical) mode: document-style ReferenceEntry components
  *
- * Honest streaming UX: the typing dots show only until the FIRST token lands,
- * then yield to the live-streaming answer text (a single fast streaming pass).
+ * Honest progress UX: local-agent activity is visible before the answer, and
+ * the typing dots yield as soon as the first answer chunk arrives.
  */
 
 import { useState, useRef, useCallback, useEffect } from 'react';
@@ -39,7 +39,7 @@ interface ChatPanelProps {
   chartId: string | null;
   /** Current view mode - determines response style (plain English vs technical) */
   viewMode: ViewMode;
-  /** Streaming question handler — wires `streamChartChat` with RAG context. */
+  /** Streaming question handler — wires bounded tool orchestration with RAG context. */
   onAskQuestionStream: (
     question: string,
     onToken: (token: string) => void,
@@ -47,7 +47,6 @@ interface ChatPanelProps {
     viewMode?: ViewMode,
     history?: readonly ChatTurn[],
     retrievedContext?: readonly string[],
-    agentMode?: boolean,
     onAgentStatus?: (label: string | null) => void,
   ) => Promise<{
     answer: string;
@@ -56,8 +55,6 @@ interface ChatPanelProps {
   }>;
   /** Hide header when used inside FloatingChatPanel which has its own header */
   hideHeader?: boolean;
-  /** Expose the bounded, read-only browser agent mode for this chat surface. */
-  agentModeAvailable?: boolean;
 }
 
 export function ChatPanel({
@@ -67,7 +64,6 @@ export function ChatPanel({
   viewMode,
   onAskQuestionStream,
   hideHeader = false,
-  agentModeAvailable = false,
 }: ChatPanelProps) {
   const { t } = useTranslation('chat');
   const navigate = useNavigate();
@@ -82,7 +78,6 @@ export function ChatPanel({
   // failure bubble. LIVE (useLlmStatus): turning AI off in Settings disables the
   // input immediately, so a "disconnected" chat can never keep sending.
   const aiConfigured = useLlmStatus().configured;
-  const [agentMode, setAgentMode] = useState(false);
   const [agentActivity, setAgentActivity] = useState<string | null>(null);
   const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
   const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -99,13 +94,12 @@ export function ChatPanel({
           input,
           onAskQuestionStream,
           viewMode,
-          agentMode,
           setAgentActivity,
           t('agent.preparing'),
         ),
       );
     },
-    [agentMode, aiConfigured, isStreaming, submit, onAskQuestionStream, t, viewMode],
+    [aiConfigured, isStreaming, submit, onAskQuestionStream, t, viewMode],
   );
 
   const handleSuggestedQuestion = (question: string) => {
@@ -174,35 +168,7 @@ export function ChatPanel({
       {/* Semantic search over this profile's past conversations (discoverable). */}
       {profileId && <ChatSearch profileId={profileId} onOpenResult={handleOpenResult} />}
 
-      {agentModeAvailable && (
-        <div className="flex items-center justify-between gap-3 px-4 pt-3">
-          <div>
-            <p className="text-xs font-semibold text-text-primary">{t('agent.label')}</p>
-            <p className="text-[11px] text-text-muted">{t('agent.hint')}</p>
-          </div>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={agentMode}
-            onClick={() => setAgentMode((enabled) => !enabled)}
-            className={`relative h-6 w-11 rounded-full border transition-colors ${
-              agentMode
-                ? 'border-accent-gold bg-accent-gold/30'
-                : 'border-ui-border bg-background-primary'
-            }`}
-            data-testid="chat-agent-mode"
-          >
-            <span
-              className={`absolute top-0.5 h-4 w-4 rounded-full bg-text-primary transition-transform ${
-                agentMode ? 'translate-x-5' : 'translate-x-1'
-              }`}
-            />
-            <span className="sr-only">{t('agent.label')}</span>
-          </button>
-        </div>
-      )}
-
-      {isStreaming && agentMode && agentActivity && (
+      {isStreaming && agentActivity && (
         <div className="mx-4 mt-3 rounded-lg border border-accent-gold/30 bg-accent-gold/5 px-3 py-2 text-xs text-text-secondary" data-testid="chat-agent-status" role="status">
           {agentActivity}
         </div>
@@ -373,11 +339,10 @@ async function streamAnswer(
   input: ChatStreamInput,
   onAskQuestionStream: ChatPanelProps['onAskQuestionStream'],
   viewMode: ViewMode,
-  agentMode: boolean,
   onAgentStatus: (label: string | null) => void,
   preparingLabel: string,
 ): Promise<string> {
-  onAgentStatus(agentMode ? preparingLabel : null);
+  onAgentStatus(preparingLabel);
   try {
     const response = await onAskQuestionStream(
       input.question,
@@ -388,7 +353,6 @@ async function streamAnswer(
       viewMode,
       input.history,
       input.retrievedContext,
-      agentMode,
       onAgentStatus,
     );
     return response.answer;
