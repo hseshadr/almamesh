@@ -145,6 +145,138 @@ describe('ChatPanel — typing indicator vs streamed text', () => {
     // Send button is disabled only because the input is empty (not by setup).
     expect((screen.getByTestId('chat-send-button') as HTMLButtonElement).disabled).toBe(true);
   });
+
+  it('keeps agent mode explicit and forwards the opt-in to the streaming boundary', async () => {
+    const onAskQuestionStream = vi.fn().mockResolvedValue({ answer: 'It is 1:30 AM.' });
+    render(
+      <MemoryRouter>
+        <ChatPanel
+          personName="Test"
+          profileId="profile-1"
+          chartId="chart-1"
+          viewMode="layman"
+          agentModeAvailable
+          onAskQuestionStream={onAskQuestionStream as never}
+        />
+      </MemoryRouter>,
+    );
+
+    const toggle = screen.getByTestId('chat-agent-mode');
+    expect(screen.getByText(/selected tool results are sent to your configured AI provider/i)).toBeTruthy();
+    expect(toggle.getAttribute('aria-checked')).toBe('false');
+    fireEvent.click(toggle);
+    expect(toggle.getAttribute('aria-checked')).toBe('true');
+
+    fireEvent.change(screen.getByTestId('chat-input'), { target: { value: 'What time is it?' } });
+    fireEvent.click(screen.getByTestId('chat-send-button'));
+
+    await waitFor(() => expect(onAskQuestionStream).toHaveBeenCalledTimes(1));
+    expect(onAskQuestionStream.mock.calls[0][6]).toBe(true);
+    expect(typeof onAskQuestionStream.mock.calls[0][7]).toBe('function');
+  });
+
+  it('opens an older conversation when a semantic-search result belongs to that thread', async () => {
+    useChatStore.setState({
+      threads: {
+        old: {
+          id: 'old',
+          profile_id: 'profile-1',
+          chart_id: 'chart-1',
+          title: 'Earlier timing question',
+          created_at: '2026-09-01T00:00:00.000Z',
+          updated_at: '2026-09-01T00:00:00.000Z',
+          archived_at: null,
+          message_count: 2,
+        },
+        new: {
+          id: 'new',
+          profile_id: 'profile-1',
+          chart_id: 'chart-1',
+          title: 'Newest conversation',
+          created_at: '2026-09-02T00:00:00.000Z',
+          updated_at: '2026-09-02T00:00:00.000Z',
+          archived_at: null,
+          message_count: 2,
+        },
+      },
+      messages: {
+        old: [
+          {
+            id: 'old-question',
+            thread_id: 'old',
+            role: 'user',
+            content: 'What did we say about Saturn?',
+            created_at: '2026-09-01T00:00:00.000Z',
+          },
+          {
+            id: 'old-answer',
+            thread_id: 'old',
+            role: 'assistant',
+            content: 'OLDER THREAD SENTINEL: build patiently.',
+            created_at: '2026-09-01T00:00:01.000Z',
+          },
+        ],
+        new: [
+          {
+            id: 'new-question',
+            thread_id: 'new',
+            role: 'user',
+            content: 'What is newest?',
+            created_at: '2026-09-02T00:00:00.000Z',
+          },
+          {
+            id: 'new-answer',
+            thread_id: 'new',
+            role: 'assistant',
+            content: 'NEWEST THREAD SENTINEL',
+            created_at: '2026-09-02T00:00:01.000Z',
+          },
+        ],
+      },
+      summaries: {},
+    });
+    __setMemoryForTest({
+      indexMessage: vi.fn().mockResolvedValue(undefined),
+      retrieve: vi.fn().mockResolvedValue([
+        {
+          text: 'OLDER THREAD SENTINEL: build patiently.',
+          message_id: 'old-answer',
+          thread_id: 'old',
+          score: 0.92,
+        },
+      ]),
+      deleteForProfile: vi.fn().mockResolvedValue(undefined),
+      deleteForThread: vi.fn().mockResolvedValue(undefined),
+      clear: vi.fn().mockResolvedValue(undefined),
+    });
+
+    render(
+      <MemoryRouter>
+        <ChatPanel
+          personName="Test"
+          profileId="profile-1"
+          chartId="chart-1"
+          viewMode="layman"
+          onAskQuestionStream={vi.fn() as never}
+        />
+      </MemoryRouter>,
+    );
+    expect(screen.getByTestId('chat-panel').textContent).toContain('NEWEST THREAD SENTINEL');
+
+    fireEvent.change(screen.getByTestId('chat-search-input'), {
+      target: { value: 'Saturn' },
+    });
+    fireEvent.click(await screen.findByTestId('chat-search-result-old-answer'));
+
+    await waitFor(() =>
+      expect(screen.getByTestId('chat-panel').textContent).toContain(
+        'OLDER THREAD SENTINEL: build patiently.',
+      ),
+    );
+    expect(screen.getByTestId('chat-panel').textContent).not.toContain(
+      'NEWEST THREAD SENTINEL',
+    );
+  });
 });
 
 describe('ChatPanel — no-AI-configured gate (never invite a doomed question)', () => {

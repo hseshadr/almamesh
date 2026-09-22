@@ -14,9 +14,9 @@
  *
  * CHECK 1 — "Mesh" nav entry reachable on first load; /mesh renders the
  *           invitation; its CTA routes to Settings → People.
- * CHECK 2 — seed three REAL engine charts (Delhi anchor, Mumbai spouse,
- *           Bengaluru friend) into the chart library + the profiles envelope
- *           (anchor 'self' + 'spouse' + 'friend').
+ * CHECK 2 — restore three REAL engine charts (Delhi anchor, Mumbai spouse,
+ *           Bengaluru friend) through Settings into canonical SQLite with the
+ *           profiles envelope (anchor 'self' + 'spouse' + 'friend').
  * CHECK 3 — /mesh renders the constellation: anchor centred, member node with
  *           name/relationship/rising sign, hairline thread.
  * CHECK 4 — clicking the member node opens /mesh/:id, the edge computes LIVE
@@ -28,6 +28,7 @@
  *           leads instead, and the integrity note still renders.
  */
 import { chromium } from '@playwright/test'
+import { Buffer } from 'node:buffer'
 
 const BASE_URL = process.argv[2] ?? 'http://localhost:4173'
 const SHOT_DIR = 'test-results/mesh-live'
@@ -102,8 +103,34 @@ async function waitForEngineReady() {
       if (w.__ALMAMESH_ERROR__) throw new Error(`engine boot error: ${w.__ALMAMESH_ERROR__}`)
       return w.__ALMAMESH_STAGE__ === 'ready' && typeof w.__almameshGenerate === 'function'
     },
+    undefined,
     { timeout: 180_000, polling: 500 },
   )
+}
+
+async function restoreBackup(backup) {
+  await page.addInitScript(() => {
+    Reflect.deleteProperty(window, 'showOpenFilePicker')
+    Reflect.deleteProperty(window, 'showSaveFilePicker')
+  })
+  await page.goto(`${BASE_URL}/settings/data`, { waitUntil: 'domcontentloaded' })
+  const [chooser] = await Promise.all([
+    page.waitForEvent('filechooser'),
+    page.getByTestId('backup-import-button').click(),
+  ])
+  await chooser.setFiles({
+    name: 'verify-mesh.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(backup, 'utf8'),
+  })
+  const confirm = page.getByTestId('backup-confirm-import')
+  await confirm.waitFor({ state: 'visible' })
+  const [safetyDownload] = await Promise.all([
+    page.waitForEvent('download'),
+    page.waitForEvent('domcontentloaded'),
+    confirm.click(),
+  ])
+  await safetyDownload.cancel()
 }
 
 try {
@@ -123,13 +150,13 @@ try {
   ok('CHECK 1c: invitation CTA routes to Settings → People')
 
   // -------------------------------------------------------------------------
-  // CHECK 2 — REAL engine boot + seed two real charts and the profiles store.
+  // CHECK 2 — REAL engine boot + restore real charts and profiles via Settings.
   // -------------------------------------------------------------------------
-  await page.goto(`${BASE_URL}/`, { waitUntil: 'domcontentloaded' })
+  await page.goto(`${BASE_URL}/onboarding`, { waitUntil: 'domcontentloaded' })
   await waitForEngineReady()
   ok('CHECK 2a: in-browser engine booted (stage=ready, generate hook present)')
 
-  const seeded = await page.evaluate(
+  const fixture = await page.evaluate(
     async ({ anchor, member, friend }) => {
       const generate = window.__almameshGenerate
 
@@ -181,70 +208,57 @@ try {
       const memberStored = await storedFor(member)
       const friendStored = await storedFor(friend)
 
-      /** Write one zustand-persist envelope into the idb keyval store. */
-      function idbPut(key, value) {
-        return new Promise((resolve, reject) => {
-          const open = indexedDB.open('keyval-store')
-          open.onupgradeneeded = () => open.result.createObjectStore('keyval')
-          open.onerror = () => reject(open.error)
-          open.onsuccess = () => {
-            const tx = open.result.transaction('keyval', 'readwrite')
-            tx.objectStore('keyval').put(value, key)
-            tx.oncomplete = () => resolve(true)
-            tx.onerror = () => reject(tx.error)
-          }
-        })
-      }
-
-      await idbPut(
-        'almamesh-chart-library',
-        JSON.stringify({
-          state: {
-            charts: {
-              [anchor.chartId]: anchorStored,
-              [member.chartId]: memberStored,
-              [friend.chartId]: friendStored,
-            },
-          },
-          version: 0,
-        }),
-      )
-      await idbPut(
-        'almamesh-profiles',
-        JSON.stringify({
-          state: {
-            profiles: {
-              [anchor.profileId]: {
-                id: anchor.profileId,
-                name: anchor.name,
-                createdAt: '2026-01-01T00:00:00Z',
-                avatarTint: '#C9A24B',
-                relationship: 'self',
-              },
-              [member.profileId]: {
-                id: member.profileId,
-                name: member.name,
-                createdAt: '2026-01-02T00:00:00Z',
-                avatarTint: '#3A4FB0',
-                relationship: 'spouse',
-                relatedTo: anchor.profileId,
-              },
-              [friend.profileId]: {
-                id: friend.profileId,
-                name: friend.name,
-                createdAt: '2026-01-03T00:00:00Z',
-                avatarTint: '#6B4FB0',
-                relationship: 'friend',
-                relatedTo: anchor.profileId,
-              },
-            },
-            activeProfileId: anchor.profileId,
-          },
-          version: 1,
-        }),
-      )
-      localStorage.setItem('almamesh-chart', '1')
       return {
+        backup: JSON.stringify({
+          format: 'almamesh-backup',
+          formatVersion: 1,
+          app: { version: 'verify-mesh' },
+          exportedAt: '2026-01-01T00:00:00.000Z',
+          encryption: 'none',
+          stores: {
+            'almamesh-chart-library': {
+              version: 1,
+              state: {
+                charts: {
+                  [anchor.chartId]: anchorStored,
+                  [member.chartId]: memberStored,
+                  [friend.chartId]: friendStored,
+                },
+              },
+            },
+            'almamesh-profiles': {
+              version: 1,
+              state: {
+                profiles: {
+                  [anchor.profileId]: {
+                    id: anchor.profileId,
+                    name: anchor.name,
+                    createdAt: '2026-01-01T00:00:00Z',
+                    avatarTint: '#C9A24B',
+                    relationship: 'self',
+                  },
+                  [member.profileId]: {
+                    id: member.profileId,
+                    name: member.name,
+                    createdAt: '2026-01-02T00:00:00Z',
+                    avatarTint: '#3A4FB0',
+                    relationship: 'spouse',
+                    relatedTo: anchor.profileId,
+                  },
+                  [friend.profileId]: {
+                    id: friend.profileId,
+                    name: friend.name,
+                    createdAt: '2026-01-03T00:00:00Z',
+                    avatarTint: '#6B4FB0',
+                    relationship: 'friend',
+                    relatedTo: anchor.profileId,
+                  },
+                },
+                activeProfileId: anchor.profileId,
+              },
+            },
+          },
+        }),
         anchorLagna: anchorStored.astronomical_calculations.sidereal_ctx.lagna?.sign ?? null,
         memberLagna: memberStored.astronomical_calculations.sidereal_ctx.lagna?.sign ?? null,
         friendLagna: friendStored.astronomical_calculations.sidereal_ctx.lagna?.sign ?? null,
@@ -252,8 +266,9 @@ try {
     },
     { anchor: ANCHOR_BIRTH, member: MEMBER_BIRTH, friend: FRIEND_BIRTH },
   )
+  await restoreBackup(fixture.backup)
   ok(
-    `CHECK 2b: three REAL charts generated + seeded (anchor lagna=${seeded.anchorLagna}, spouse lagna=${seeded.memberLagna}, friend lagna=${seeded.friendLagna})`,
+    `CHECK 2b: three REAL charts generated + restored (anchor lagna=${fixture.anchorLagna}, spouse lagna=${fixture.memberLagna}, friend lagna=${fixture.friendLagna})`,
   )
 
   // -------------------------------------------------------------------------

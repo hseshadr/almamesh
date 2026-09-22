@@ -170,6 +170,11 @@ function chatSseStream(text: string): string {
 test('[contract/stubbed] chat reuses the reading + sends the fast chat model on the wire', async ({
   page,
 }) => {
+  const browserErrors: string[] = [];
+  page.on('pageerror', (error) => browserErrors.push(`pageerror: ${error.message}`));
+  page.on('console', (message) => {
+    if (message.type() === 'error') browserErrors.push(`console: ${message.text()}`);
+  });
   // Install the OpenRouter preset BEFORE any app code runs so (1) the dashboard
   // reports "configured" for the explicit Generate action and (2) the chat path's
   // applyChatModelPreference override fires on first render.
@@ -183,6 +188,7 @@ test('[contract/stubbed] chat reuses the reading + sends the fast chat model on 
   // Capture every outbound chat-completions request body so we can split the
   // interpretation requests (SECTION marker) from the chat turn (no marker).
   const chatRequestBodies: string[] = [];
+  const agentRequestBodies: Array<Record<string, unknown>> = [];
   const interpSections: SectionKey[] = [];
 
   await page.route('**/chat/completions', async (route) => {
@@ -210,6 +216,56 @@ test('[contract/stubbed] chat reuses the reading + sends the fast chat model on 
         body: JSON.stringify({ choices: [{ message: { content } }] }),
       });
     }
+    const parsed = JSON.parse(body ?? '{}') as {
+      messages?: Array<Record<string, unknown>>;
+      tools?: unknown[];
+      tool_choice?: string;
+    };
+    if (Array.isArray(parsed.tools)) {
+      agentRequestBodies.push(parsed as Record<string, unknown>);
+      const toolResult = parsed.messages?.find((message) => message.role === 'tool');
+      if (!toolResult) {
+        return route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            choices: [
+              {
+                message: {
+                  content: null,
+                  tool_calls: [
+                    {
+                      id: 'time-in-chart-zone',
+                      type: 'function',
+                      function: {
+                        name: 'get_current_datetime',
+                        arguments: JSON.stringify({ scope: 'chart' }),
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          }),
+        });
+      }
+      // Keep the local-tool activity visible long enough to assert the actual
+      // user-facing progress path, then answer from the returned tool result.
+      await new Promise((resolve) => setTimeout(resolve, 350));
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          choices: [
+            {
+              message: {
+                content: 'Your chart timezone is Asia/Kolkata (UTC+05:30).',
+              },
+            },
+          ],
+        }),
+      });
+    }
     // No SECTION marker → this is the CHAT turn. Capture the body for the
     // assertions, then stream back a minimal valid SSE reply so the panel
     // renders an answer (chat uses streamChatCompletion, stream: true).
@@ -221,13 +277,21 @@ test('[contract/stubbed] chat reuses the reading + sends the fast chat model on 
     });
   });
 
-  // Boot the REAL engine + seed a REAL Delhi chart into IndexedDB.
+  // Boot the REAL engine + restore a REAL Delhi chart through the production
+  // backup boundary into canonical OPFS SQLite.
   await bootEngine(page);
   const seeded = await seedChart(page);
   expect(String(seeded.lagna).toLowerCase()).toBe('gemini');
 
   await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
   await page.getByTestId('generate-reading').click();
+
+  await expect
+    .poll(() => interpSections.length, {
+      timeout: 30_000,
+      message: `all five structured-reading requests should be issued; browser errors: ${browserErrors.join(' | ')}`,
+    })
+    .toBe(5);
 
   // 1) Wait for the five-section stable natal reading to COMPLETE. interpretationText is only
   //    reused when the stored entry's status === 'complete' (Dashboard.tsx), so
@@ -237,6 +301,9 @@ test('[contract/stubbed] chat reuses the reading + sends the fast chat model on 
   const summary = page.getByText(STUB_SUMMARY).and(page.locator('p'));
   await expect(summary).toBeVisible({ timeout: 120_000 });
   await expect(page.getByTestId('interpretation-progress')).toHaveCount(0);
+  expect(browserErrors, 'the complete dashboard + SQLite flow must not emit browser errors').toEqual(
+    [],
+  );
   expect(interpSections.sort()).toEqual(
     ['core', 'guidance1', 'guidance2', 'remedial', 'yoga'].sort(),
   );
@@ -308,6 +375,49 @@ test('[contract/stubbed] chat reuses the reading + sends the fast chat model on 
     `the natal reading must not carry the stubbed timeline window ` +
       `("${STUB_PERIOD_TITLE}") without an explicit timeline action.`,
   ).not.toContain(STUB_PERIOD_TITLE);
+
+  // 5) Turn on the explicit bounded agent mode and prove the complete browser
+  //    tool protocol: advertised allowlist -> local execution -> role:tool
+  //    result -> grounded answer. No live provider or wall-clock assertion is
+  //    involved, so this remains deterministic in CI.
+  const agentMode = page.getByTestId('chat-agent-mode');
+  await agentMode.click();
+  await expect(agentMode).toHaveAttribute('aria-checked', 'true');
+
+  await chatInput.fill('What time is it in my chart timezone?');
+  await page.getByTestId('chat-send-button').click();
+  await expect(page.getByTestId('chat-agent-status')).toContainText(
+    'Checking the current time',
+  );
+  await expect(
+    chatPanel.getByText('Your chart timezone is Asia/Kolkata (UTC+05:30).', {
+      exact: false,
+    }),
+  ).toBeVisible({ timeout: 60_000 });
+
+  expect(agentRequestBodies).toHaveLength(2);
+  const firstAgentRequest = agentRequestBodies[0] as {
+    stream: boolean;
+    tool_choice: string;
+    tools: Array<{ function: { name: string } }>;
+  };
+  expect(firstAgentRequest.stream).toBe(false);
+  expect(firstAgentRequest.tool_choice).toBe('auto');
+  expect(firstAgentRequest.tools.map((tool) => tool.function.name)).toEqual([
+    'get_current_datetime',
+    'get_chart_facts',
+    'get_current_timing',
+  ]);
+
+  const secondAgentRequest = agentRequestBodies[1] as {
+    messages: Array<{ role: string; name?: string; content?: string }>;
+  };
+  const returnedToolResult = secondAgentRequest.messages.find(
+    (message) => message.role === 'tool',
+  );
+  expect(returnedToolResult?.name).toBe('get_current_datetime');
+  expect(returnedToolResult?.content).toContain('"timeZone":"Asia/Kolkata"');
+  expect(returnedToolResult?.content).toContain('"utcOffset":"+05:30"');
 
   await page.screenshot({
     path: 'test-results/chat-grounding.png',

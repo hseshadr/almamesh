@@ -60,7 +60,9 @@ export default defineConfig({
   webServer: {
     command: `VITE_API_URL= VITE_EXIT_GATE_HOOKS=1 bun run build && VITE_API_URL= bun run preview --port ${PORT} --strictPort`,
     url: BASE_URL,
-    reuseExistingServer: !process.env.CI,
+    // This suite is a release gate for the production bundle. Reusing a local
+    // preview can silently exercise stale assets after source changes.
+    reuseExistingServer: false,
     timeout: 240_000,
     cwd: __dirname,
   },

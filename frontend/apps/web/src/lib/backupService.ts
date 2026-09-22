@@ -5,11 +5,10 @@
  * service, which composes the already-built pieces from `@almamesh/store` into
  * the three operations a Settings screen needs:
  *
- *   - {@link buildBackupExport} — collect every persisted store, optionally
- *     passphrase-encrypt it, and hand back a filename + JSON text to save.
- *   - {@link stageBackupImport} — parse a picked file, validate it is an
- *     AlmaMesh backup of a version we understand, decrypt if needed, and return
- *     the plaintext envelope ready to preview/confirm (nothing written yet).
+ *   - {@link buildBackupExport} — export canonical state as standard SQLite, or
+ *     retain encrypted JSON when the user supplies a passphrase.
+ *   - {@link stageBackupImport} — validate SQLite or legacy JSON, decrypt when
+ *     needed, and return a preview ready for confirmation (nothing written yet).
  *   - {@link commitBackupImport} — write a staged envelope into the stores.
  *
  * This module is PURE orchestration plus the browser-deps edge. It does NO file
@@ -31,8 +30,14 @@ import {
   createBrowserTiers,
   decodeEnvelope,
   encodeEnvelope,
+  exportPortableBrowserState,
   finalizeBackupRestore,
+  importPortableBrowserState,
+  PORTABLE_STATE_KEYS,
+  readDeletionTombstones,
+  readPortableStateDatabase,
   type BackupDeps,
+  type PortableStateSnapshot,
   type StorageTier,
 } from '@almamesh/store';
 import { safeWarn } from '@almamesh/shared-types';
@@ -84,6 +89,10 @@ export interface BackupDepsOverride {
     readonly phase: 'begin' | 'complete' | 'abort';
     readonly presentStoreKeys: readonly string[];
   }) => void;
+  exportPortableState?: () => Promise<Uint8Array>;
+  readPortableState?: (bytes: Uint8Array) => Promise<PortableStateSnapshot>;
+  importPortableState?: (bytes: Uint8Array) => Promise<void>;
+  readActiveEpoch?: () => Promise<number>;
 }
 
 interface RestoreIds {
@@ -155,41 +164,93 @@ function resolveDeps(override?: BackupDepsOverride, datasetEpoch?: number): Back
   };
 }
 
-/** A ready-to-save backup: the suggested filename plus the JSON text. */
+export type BackupContent = string | Uint8Array;
+
+/** A ready-to-save backup. Plain production exports are standard SQLite bytes. */
 export interface BackupExport {
   filename: string;
-  text: string;
+  content: BackupContent;
 }
 
 /**
- * Collect every persisted store into an envelope, optionally passphrase-encrypt
- * it, and return a filename (dated by the export timestamp) plus pretty JSON
- * text. Passing no passphrase yields a plaintext backup.
+ * Passing no passphrase in the browser yields the real canonical SQLite file.
+ * Passphrase exports and dependency-injected pure-tier tests retain the legacy
+ * JSON envelope so existing encrypted and test-only paths stay compatible.
  */
 export async function buildBackupExport(
   passphrase?: string,
   override?: BackupDepsOverride,
 ): Promise<BackupExport> {
   const deps = resolveDeps(override);
+  if (passphrase === undefined && override?.tiers === undefined) {
+    const content = await (override?.exportPortableState ?? exportPortableBrowserState)();
+    return {
+      filename: `almamesh-backup-${deps.now.slice(0, 10)}.sqlite3`,
+      content,
+    };
+  }
   const plain = await collectBackup(deps);
   const encoded = await encodeEnvelope(plain, passphrase);
   const filename = `almamesh-backup-${deps.now.slice(0, 10)}.json`;
-  return { filename, text: JSON.stringify(encoded, null, 2) };
+  return { filename, content: JSON.stringify(encoded, null, 2) };
 }
 
 /** A parsed, validated (and decrypted) backup awaiting the user's confirmation. */
-export interface StagedImport {
-  envelope: BackupEnvelopePlain;
-  wasEncrypted: boolean;
+export type StagedImport =
+  | {
+      readonly kind: 'json';
+      readonly envelope: BackupEnvelopePlain;
+      readonly wasEncrypted: boolean;
+    }
+  | {
+      readonly kind: 'sqlite';
+      readonly envelope: BackupEnvelopePlain;
+      readonly wasEncrypted: false;
+      readonly bytes: Uint8Array;
+    };
+
+const SQLITE_HEADER = new Uint8Array([
+  0x53, 0x51, 0x4c, 0x69, 0x74, 0x65, 0x20, 0x66,
+  0x6f, 0x72, 0x6d, 0x61, 0x74, 0x20, 0x33, 0x00,
+]);
+const PORTABLE_PREVIEW_KEYS = new Set<string>(PORTABLE_STATE_KEYS);
+
+function hasSqliteHeader(bytes: Uint8Array): boolean {
+  return SQLITE_HEADER.every((value, index) => bytes[index] === value);
+}
+
+function envelopeFromPortableSnapshot(snapshot: PortableStateSnapshot): BackupEnvelopePlain {
+  const stores: BackupEnvelopePlain['stores'] = {};
+  for (const [key, value] of snapshot.values) {
+    if (!PORTABLE_PREVIEW_KEYS.has(key)) continue;
+    try {
+      const parsed = JSON.parse(value) as { state?: unknown; version?: unknown };
+      if (typeof parsed.version === 'number' && 'state' in parsed) {
+        stores[key] = { state: parsed.state, version: parsed.version };
+      }
+    } catch {
+      // The store validator already checked all canonical rows. This guard keeps
+      // preview construction total if a future metadata row is non-JSON.
+    }
+  }
+  return {
+    format: 'almamesh-backup',
+    formatVersion: 1,
+    app: { version: 'portable-sqlite' },
+    exportedAt: new Date().toISOString(),
+    encryption: 'none',
+    stores,
+  };
 }
 
 /**
- * Parse and validate picked file text, then decrypt it if it is encrypted.
+ * Detect and validate picked SQLite bytes or legacy JSON text, then decrypt
+ * encrypted JSON when needed.
  * Nothing is written — the caller previews {@link StagedImport.envelope} and
  * only then calls {@link commitBackupImport}.
  *
  * Failure modes are typed so the UI can message the exact reason:
- *  - not JSON, not an AlmaMesh backup, or a below-range `formatVersion` (< 1)
+ *  - invalid SQLite/JSON, not an AlmaMesh backup, or a below-range version
  *    ⇒ {@link BackupError} `bad_format`
  *  - made by a newer app (`formatVersion > 1`) ⇒ {@link BackupError} `too_new`
  *  - encrypted but no passphrase given ⇒ {@link BackupCryptoError}
@@ -197,12 +258,30 @@ export interface StagedImport {
  *    surfaces the same error from `decodeEnvelope`.
  */
 export async function stageBackupImport(
-  fileText: string,
+  content: BackupContent,
   passphrase?: string,
+  override?: Pick<BackupDepsOverride, 'readPortableState'>,
 ): Promise<StagedImport> {
+  if (content instanceof Uint8Array) {
+    if (!hasSqliteHeader(content)) {
+      throw new BackupError('bad_format', 'This file is not an AlmaMesh backup.');
+    }
+    const bytes = content.slice();
+    try {
+      const snapshot = await (override?.readPortableState ?? readPortableStateDatabase)(bytes);
+      return {
+        kind: 'sqlite',
+        envelope: envelopeFromPortableSnapshot(snapshot),
+        wasEncrypted: false,
+        bytes,
+      };
+    } catch {
+      throw new BackupError('bad_format', 'This SQLite file is not a valid AlmaMesh backup.');
+    }
+  }
   let parsed: unknown;
   try {
-    parsed = JSON.parse(fileText);
+    parsed = JSON.parse(content);
   } catch {
     throw new BackupError('bad_format', 'This file is not valid JSON, so it is not an AlmaMesh backup.');
   }
@@ -235,7 +314,7 @@ export async function stageBackupImport(
   }
 
   const envelope = await decodeEnvelope(parsed as BackupEnvelope, passphrase);
-  return { envelope, wasEncrypted };
+  return { kind: 'json', envelope, wasEncrypted };
 }
 
 /**
@@ -246,9 +325,14 @@ export async function stageBackupImport(
  * both.
  */
 export async function commitBackupImport(
-  plain: BackupEnvelopePlain,
+  stagedOrPlain: StagedImport | BackupEnvelopePlain,
   override?: BackupDepsOverride,
 ): Promise<void> {
+  const staged: StagedImport =
+    'kind' in stagedOrPlain
+      ? stagedOrPlain
+      : { kind: 'json', envelope: stagedOrPlain, wasEncrypted: false };
+  const plain = staged.envelope;
   const browserEffects = override?.tiers === undefined;
   const beginRestore =
     override?.beginBackupRestore ?? (browserEffects ? beginBackupRestore : async () => 0);
@@ -263,6 +347,27 @@ export async function commitBackupImport(
   const abortRestore =
     override?.abortBackupRestore ?? (browserEffects ? abortBackupRestore : async () => undefined);
   const deps = resolveDeps(override);
+  if (staged.kind === 'sqlite') {
+    const presentStoreKeys = Object.keys(plain.stores);
+    publish({ kind: 'dataset', operation: 'replace', phase: 'begin', presentStoreKeys });
+    try {
+      await (override?.importPortableState ?? importPortableBrowserState)(staged.bytes);
+    } catch (error) {
+      publish({ kind: 'dataset', operation: 'replace', phase: 'abort', presentStoreKeys });
+      throw error;
+    }
+    try {
+      await withinMemoryRebuildSla(rebuild(restoredChatMessages(plain)));
+      const epoch = await (override?.readActiveEpoch ?? (async () =>
+        (await readDeletionTombstones()).activeEpoch))();
+      await (override?.completeMemoryRebuild ??
+        (browserEffects ? clearMemoryRebuildPending : async () => undefined))(epoch);
+    } catch {
+      safeWarn('backup.memory_rebuild_deferred');
+    }
+    publish({ kind: 'dataset', operation: 'replace', phase: 'complete', presentStoreKeys });
+    return;
+  }
   const epoch = await beginRestore(restoredIds(plain));
   let rollback: BackupEnvelopePlain;
   try {

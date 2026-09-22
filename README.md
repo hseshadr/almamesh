@@ -39,6 +39,10 @@ chart, so the same inputs produce the same bytes on CPython and in the browser.
   byte-for-byte identical. Long life histories become dated,
   categorized table rows with bounded text and controlled page breaks.
 - English, Spanish, and Portuguese, bundled for offline use.
+- One portable, on-device SQLite database for canonical profiles, charts, life
+  events, chat, interpretations, and language. Settings can export the real
+  database file and restore it on another device; provider API keys and
+  rebuildable caches are deliberately excluded.
 - Optional AI interpretation and chat. AI is off by default. If you enable it,
   requests go directly from your browser to the endpoint you configure. Asking
   AI to organize free-form life events sends that narrative as written only
@@ -207,6 +211,8 @@ Browser (the product) ─ installable PWA, offline after first load
 │    ├─ buildChartGeometry(SiderealChart)   (N/S kundli geometry)
 │    ├─ buildEnergyFrame(SiderealChart, t)  (3D force-field frame)
 │    ├─ profiles + members                  (named, password-less people; typed relationships)
+│    ├─ portable SQLite state               canonical user data in one OPFS database;
+│    │                                           legacy IndexedDB migrates once, API keys stay out
 │    └─ mesh                                (MeshEdgeContext per pair → the /mesh edge view)
 ├─ frontend/packages/llm         optional interpretation + chat, NO AI by default;
 │                                opt-in, BYO OpenAI-compatible endpoint (one-click

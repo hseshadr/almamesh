@@ -5,8 +5,9 @@ import { type Page } from '@playwright/test';
  *
  * These boot the REAL in-browser Pyodide engine (the same engine the exit-gate
  * harness proves charts generate in), generate a REAL Delhi sidereal chart
- * in-tab, and persist it into the chart-library IndexedDB store so /dashboard
- * reads it. They are LLM-agnostic: the unit/contract suite
+ * in-tab, and restore it through the real Backup & Restore UI so the canonical
+ * OPFS SQLite store sees exactly the same production write path as a user
+ * import. They are LLM-agnostic: the unit/contract suite
  * (interpretation.spec.ts) stubs the LLM via page.route, while the real
  * integration suite (interpretation.real.spec.ts) lets a real endpoint answer.
  *
@@ -99,8 +100,9 @@ export async function bootEngine(page: Page) {
 /**
  * Generate a chart in-tab via the real engine (Delhi by default; pass `birth`
  * to seed any case, e.g. the rectification suite's Aquarius/Pisces-cusp birth),
- * then persist it into the chart-library IndexedDB zustand-persist envelope so
- * the dashboard reads it. Mirrors CHECK 4 of scripts/verify-exit-gate.mjs.
+ * then restore it through Settings → Data as a legacy JSON backup so the
+ * dashboard reads it from canonical SQLite. This deliberately avoids writing
+ * the retired IndexedDB source after the one-time migration has already run.
  * `yogaOverride`, when given, replaces the engine yogas in the stored
  * `yoga_ctx` (used to drive KeyFocusCard deterministically in the dedup test).
  *
@@ -147,6 +149,7 @@ export async function seedChart(
       });
 
       const chartId = birth.chartId;
+      const profileId = `${chartId}-profile`;
       const yogaCtx = yogaOverride ?? chart.yogas ?? [];
       const sidereal = yogaOverride
         ? { ...chart, yogas: yogaOverride }
@@ -181,6 +184,7 @@ export async function seedChart(
 
       const stored = {
         chart_id: chartId,
+        profile_id: profileId,
         person_name: birth.name,
         is_primary: true,
         birth_data: {
@@ -219,39 +223,74 @@ export async function seedChart(
         sidereal_chart: sidereal,
       };
 
-      // Persist into the same IndexedDB key zustand-persist uses, in the
-      // zustand-persist envelope ({ state: { charts }, version }).
-      const { set: idbSet } = await import('/node_modules/.vite/deps/idb-keyval.js').catch(
-        () => ({ set: null as null | ((k: string, v: string) => Promise<void>) }),
-      );
-      const envelope = JSON.stringify({
-        state: { charts: { [chartId]: stored } },
-        version: 0,
+      const backup = JSON.stringify({
+        format: 'almamesh-backup',
+        formatVersion: 1,
+        app: { version: 'playwright-fixture' },
+        exportedAt: '2025-01-01T00:00:00.000Z',
+        encryption: 'none',
+        stores: {
+          'almamesh-profiles': {
+            version: 1,
+            state: {
+              profiles: {
+                [profileId]: {
+                  id: profileId,
+                  name: birth.name,
+                  createdAt: '2025-01-01T00:00:00.000Z',
+                  avatarTint: '#3A4FB0',
+                  relationship: 'self',
+                },
+              },
+              activeProfileId: profileId,
+            },
+          },
+          'almamesh-chart-library': {
+            version: 0,
+            state: { charts: { [chartId]: stored } },
+          },
+        },
       });
-      if (idbSet) {
-        await idbSet('almamesh-chart-library', envelope);
-      } else {
-        await new Promise((resolve, reject) => {
-          const open = indexedDB.open('keyval-store');
-          open.onupgradeneeded = () => open.result.createObjectStore('keyval');
-          open.onerror = () => reject(open.error);
-          open.onsuccess = () => {
-            const db = open.result;
-            const tx = db.transaction('keyval', 'readwrite');
-            tx.objectStore('keyval').put(envelope, 'almamesh-chart-library');
-            tx.oncomplete = () => resolve(true);
-            tx.onerror = () => reject(tx.error);
-          };
-        });
-      }
-      localStorage.setItem('almamesh-chart', '1');
       return {
         lagna: (chart.lagna as { sign?: string })?.sign ?? null,
         mahaLord: rawDashas.current_maha?.lord ?? null,
         antarLord: rawDashas.current_antar?.lord ?? null,
+        backup,
       };
     },
     { birth: opts.birth ?? DELHI_SEED, yogaOverride: opts.yogaOverride ?? null },
   );
-  return result;
+
+  // Exercise the shipped restore boundary instead of reaching around it with
+  // a test-only persistence API. The fallback paths are still real browser UI:
+  // an HTML file input for the chosen backup and a normal download for the
+  // mandatory pre-import safety net.
+  await page.addInitScript(() => {
+    Reflect.deleteProperty(window, 'showOpenFilePicker');
+    Reflect.deleteProperty(window, 'showSaveFilePicker');
+  });
+  await page.goto('/settings/data', { waitUntil: 'domcontentloaded' });
+  const [chooser] = await Promise.all([
+    page.waitForEvent('filechooser'),
+    page.getByTestId('backup-import-button').click(),
+  ]);
+  await chooser.setFiles({
+    name: `${opts.birth?.chartId ?? DELHI_SEED.chartId}.json`,
+    mimeType: 'application/json',
+    buffer: Buffer.from(result.backup, 'utf8'),
+  });
+  const confirm = page.getByTestId('backup-confirm-import');
+  await confirm.waitFor({ state: 'visible' });
+  const [safetyDownload] = await Promise.all([
+    page.waitForEvent('download'),
+    page.waitForEvent('domcontentloaded'),
+    confirm.click(),
+  ]);
+  await safetyDownload.cancel();
+
+  return {
+    lagna: result.lagna,
+    mahaLord: result.mahaLord,
+    antarLord: result.antarLord,
+  };
 }

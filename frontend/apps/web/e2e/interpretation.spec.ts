@@ -151,110 +151,23 @@ async function stubLlm(page: Page): Promise<StubLlmControl> {
   };
 }
 
-const SEEDED_CHART_ID = 'interp-delhi-1990';
-const PERSISTED_KEYS = [
-  'almamesh-chart-library',
-  'almamesh-interpretations',
-  'almamesh-predictive',
-  'almamesh-profiles',
-] as const;
-
 /**
- * Redacted persistence + UI evidence around the hard-navigation boundary.
- * Never reads LLM settings/localStorage, so provider credentials cannot enter
- * Playwright logs or attachments.
+ * Redacted user-visible evidence around the hard-navigation boundary. Reading
+ * retired IndexedDB rows would no longer prove anything now that canonical
+ * state lives in OPFS SQLite; the page after a hard navigation is the consumer
+ * proof that the persisted reading rehydrated successfully.
  */
 async function interpretationLifecycleSnapshot(page: Page) {
-  return page.evaluate(async ({ chartId, keys }) => {
-    const raw = await new Promise<Record<string, unknown>>((resolve, reject) => {
-      const open = indexedDB.open('keyval-store');
-      open.onerror = () => reject(open.error);
-      open.onsuccess = () => {
-        const transaction = open.result.transaction('keyval', 'readonly');
-        const store = transaction.objectStore('keyval');
-        const values: Record<string, unknown> = {};
-        for (const key of keys) {
-          const request = store.get(key);
-          request.onsuccess = () => {
-            const value = request.result;
-            if (typeof value !== 'string') {
-              values[key] = null;
-              return;
-            }
-            try {
-              values[key] = JSON.parse(value) as unknown;
-            } catch {
-              values[key] = { malformed: true };
-            }
-          };
-        }
-        transaction.oncomplete = () => resolve(values);
-        transaction.onerror = () => reject(transaction.error);
-      };
-    });
-    const state = (key: string): Record<string, unknown> => {
-      const envelope = raw[key];
-      if (envelope === null || typeof envelope !== 'object') return {};
-      const candidate = (envelope as { state?: unknown }).state;
-      return candidate !== null && typeof candidate === 'object'
-        ? candidate as Record<string, unknown>
-        : {};
-    };
-    const charts = state('almamesh-chart-library').charts as Record<string, {
-      chart_id?: string;
-      profile_id?: string;
-      is_primary?: boolean;
-    }> | undefined;
-    const interpretations = state('almamesh-interpretations').byChart as Record<string, {
-      status?: string;
-      inputProvenance?: { predictiveRequestKey?: string | null };
-      provenance?: {
-        engine?: string;
-        model?: string;
-        endpoint?: string;
-        predictiveAware?: boolean;
-      };
-      interpretation?: {
-        summary?: { layman?: string };
-        career_guidance?: { layman?: string };
-      };
-    }> | undefined;
-    const predictive = state('almamesh-predictive');
-    const profiles = state('almamesh-profiles');
-    const chart = charts?.[chartId];
-    const entry = interpretations?.[chartId];
+  return page.evaluate(() => {
+    const text = (testId: string) =>
+      document.querySelector(`[data-testid="${testId}"]`)?.textContent ?? null;
     return {
       path: location.pathname,
-      chartIds: Object.keys(charts ?? {}),
-      chart: chart ? {
-        id: chart.chart_id ?? null,
-        profileId: chart.profile_id ?? null,
-        primary: chart.is_primary ?? false,
-      } : null,
-      activeProfileId: profiles.activeProfileId ?? null,
-      interpretationIds: Object.keys(interpretations ?? {}),
-      interpretation: entry ? {
-        status: entry.status ?? null,
-        provenance: entry.provenance ? {
-          engine: entry.provenance.engine ?? null,
-          model: entry.provenance.model ?? null,
-          endpoint: entry.provenance.endpoint ?? null,
-          predictiveAware: entry.provenance.predictiveAware ?? false,
-        } : null,
-        hasInputProvenance: entry.inputProvenance !== undefined,
-        predictiveRequestKey: entry.inputProvenance?.predictiveRequestKey ?? null,
-        summary: entry.interpretation?.summary?.layman ?? null,
-        career: entry.interpretation?.career_guidance?.layman ?? null,
-      } : null,
-      predictive: {
-        status: predictive.status ?? null,
-        profileKey: predictive.profileKey ?? null,
-        requestKey: predictive.requestKey ?? null,
-        hasRawContexts: predictive.rawContexts != null,
-      },
-      selectedUi: document.querySelector('[data-testid="life-domain-ai"]')?.textContent ?? null,
+      identity: text('identity-strip'),
+      reading: text('reading-section'),
+      selectedUi: text('life-domain-ai'),
     };
-  }, { chartId: SEEDED_CHART_ID, keys: PERSISTED_KEYS });
+  });
 }
 
 async function attachLifecycleSnapshot(
@@ -377,29 +290,22 @@ test('[contract/stubbed] interpretation populates from the stubbed LLM on the da
     testInfo,
     'interpretation-before-hard-navigation',
   );
-  expect(beforeNavigation.interpretation).toMatchObject({
-    status: 'complete',
-    summary: 'STUB SUMMARY about this chart.',
-    career: 'Lead teams.',
-  });
+  expect(beforeNavigation.identity).toContain('Delhi Interp Test');
+  expect(beforeNavigation.reading).toContain('STUB SUMMARY about this chart.');
 
   // Per-domain detail: /life/career carries the matching AI reading section,
   // and the global content-mode toggle flips its depth (layman → technical).
   await page.goto('/life/career', { waitUntil: 'domcontentloaded' });
+  await expect(page.getByTestId('life-domain-ai')).toContainText('Lead teams.', {
+    timeout: 30_000,
+  });
   const afterNavigation = await attachLifecycleSnapshot(
     page,
     testInfo,
     'interpretation-after-hard-navigation',
   );
-  expect(afterNavigation.chart?.id).toBe(SEEDED_CHART_ID);
-  expect(afterNavigation.interpretation).toMatchObject({
-    status: 'complete',
-    summary: 'STUB SUMMARY about this chart.',
-    career: 'Lead teams.',
-  });
-  await expect(page.getByTestId('life-domain-ai')).toContainText('Lead teams.', {
-    timeout: 30_000,
-  });
+  expect(afterNavigation.path).toBe('/life/career');
+  expect(afterNavigation.selectedUi).toContain('Lead teams.');
   await page.getByTestId('astrologer-tab').click();
   await expect(page.getByTestId('life-domain-ai')).toContainText('10th lord strong.');
 
@@ -462,8 +368,12 @@ test('a failing endpoint degrades calmly with Retry, never a blank dashboard', a
   );
   // Every section call fails with a 500 — simulates a wrong key / bad model /
   // upstream outage. The old code swallowed these and completed empty.
+  let providerCalls = 0;
+  let providerResponses = 0;
   await page.route('**/chat/completions', async (route) => {
+    providerCalls += 1;
     await route.fulfill({ status: 500, contentType: 'text/plain', body: 'upstream boom' });
+    providerResponses += 1;
   });
 
   await bootEngine(page);
@@ -472,6 +382,11 @@ test('a failing endpoint degrades calmly with Retry, never a blank dashboard', a
 
   await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
   await page.getByTestId('generate-reading').click();
+
+  // All five independent sections must reach the provider. This also proves an
+  // immediate click cannot disappear behind asynchronous SQLite hydration.
+  await expect.poll(() => providerCalls, { timeout: 30_000 }).toBe(5);
+  await expect.poll(() => providerResponses, { timeout: 30_000 }).toBe(5);
 
   // The unavailability panel is shown (status === 'error'), NOT hidden (which is
   // what a silent empty 'complete' produced — the blank-dashboard bug).

@@ -10,9 +10,9 @@
  * project Playwright Chromium. It boots the in-browser Pyodide engine, generates
  * the real Delhi chart (so the dasha sequence — incl. the Venus balance float —
  * is the engine's own), then seeds a COMPLETE interpretation with LONG
- * multi-paragraph strengths / challenges / guidance into the persisted
- * `almamesh-interpretations` localStorage store. It then opens /report, emulates
- * print media, and writes an A4 PDF + per-page PNGs.
+ * multi-paragraph strengths / challenges / guidance, then restores the fixture
+ * through Settings' shipped backup boundary into canonical SQLite. It opens
+ * /report, emulates print media, and writes an A4 PDF + per-page PNGs.
  *
  * Requires: `pdftoppm` from poppler-utils, on PATH. The per-page PNGs ARE the
  * verification — a run that cannot rasterize has verified nothing — so a missing
@@ -29,6 +29,7 @@
  */
 
 import { chromium } from '@playwright/test';
+import { Buffer } from 'node:buffer';
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, existsSync, readdirSync, unlinkSync } from 'node:fs';
 
@@ -103,13 +104,14 @@ const INTERPRETATION = {
 };
 
 async function boot(page) {
-  await page.goto(BASE_URL + '/', { waitUntil: 'domcontentloaded' });
+  await page.goto(BASE_URL + '/onboarding', { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(
     () => {
       const w = window;
       if (w.__ALMAMESH_ERROR__) throw new Error('engine boot error: ' + w.__ALMAMESH_ERROR__);
       return w.__ALMAMESH_STAGE__ === 'ready' && typeof w.__almameshGenerate === 'function';
     },
+    undefined,
     { timeout: 180_000, polling: 500 },
   );
 }
@@ -119,9 +121,11 @@ async function seed(page) {
     async ({ birth, chartId, interpretation }) => {
       const w = window;
       const chart = await w.__almameshGenerate(birth);
+      const profileId = `${chartId}-profile`;
 
       const stored = {
         chart_id: chartId,
+        profile_id: profileId,
         person_name: birth.name,
         is_primary: true,
         birth_data: {
@@ -158,56 +162,59 @@ async function seed(page) {
         sidereal_chart: chart,
       };
 
-      const chartEnvelope = JSON.stringify({
-        state: { charts: { [chartId]: stored } },
-        version: 0,
-      });
-      const { set: idbSet } = await import('/node_modules/.vite/deps/idb-keyval.js').catch(
-        () => ({ set: null }),
-      );
-      if (idbSet) {
-        await idbSet('almamesh-chart-library', chartEnvelope);
-      } else {
-        await new Promise((resolve, reject) => {
-          const open = indexedDB.open('keyval-store');
-          open.onupgradeneeded = () => open.result.createObjectStore('keyval');
-          open.onerror = () => reject(open.error);
-          open.onsuccess = () => {
-            const db = open.result;
-            const tx = db.transaction('keyval', 'readwrite');
-            tx.objectStore('keyval').put(chartEnvelope, 'almamesh-chart-library');
-            tx.oncomplete = () => resolve(true);
-            tx.onerror = () => reject(tx.error);
-          };
-        });
-      }
-      localStorage.setItem('almamesh-chart', '1');
-
-      // Seed a COMPLETE interpretation into the persisted interpretation store.
-      const interpEnvelope = JSON.stringify({
-        state: {
-          byChart: {
-            [chartId]: {
-              status: 'complete',
-              interpretation,
-              sections: {
-                core: true,
-                yoga: true,
-                guidance1: true,
-                guidance2: true,
-                remedial: true,
+      const backup = JSON.stringify({
+        format: 'almamesh-backup',
+        formatVersion: 1,
+        app: { version: 'verify-report-pdf' },
+        exportedAt: '2025-01-01T00:00:00.000Z',
+        encryption: 'none',
+        stores: {
+          'almamesh-profiles': {
+            version: 1,
+            state: {
+              profiles: {
+                [profileId]: {
+                  id: profileId,
+                  name: birth.name,
+                  createdAt: '2025-01-01T00:00:00.000Z',
+                  avatarTint: '#3A4FB0',
+                  relationship: 'self',
+                },
               },
-              updatedAt: Date.now(),
+              activeProfileId: profileId,
+            },
+          },
+          'almamesh-chart-library': {
+            version: 1,
+            state: { charts: { [chartId]: stored } },
+          },
+          'almamesh-interpretations': {
+            version: 6,
+            state: {
+              byChart: {
+                [chartId]: {
+                  profileId,
+                  status: 'complete',
+                  interpretation,
+                  sections: {
+                    core: true,
+                    yoga: true,
+                    guidance1: true,
+                    guidance2: true,
+                    remedial: true,
+                  },
+                  updatedAt: Date.now(),
+                },
+              },
             },
           },
         },
-        version: 0,
       });
-      localStorage.setItem('almamesh-interpretations', interpEnvelope);
 
       // Report the raw Venus balance duration so the harness can assert the fix.
       const seq = chart?.dashas?.maha_dasha_sequence ?? [];
       return {
+        backup,
         lagna: chart?.lagna?.sign ?? null,
         firstDuration: seq.length ? seq[0].duration_years : null,
         firstLord: seq.length ? seq[0].lord : null,
@@ -216,6 +223,31 @@ async function seed(page) {
     },
     { birth: DELHI_BIRTH, chartId: CHART_ID, interpretation: INTERPRETATION },
   );
+}
+
+async function restoreBackup(page, backup) {
+  await page.addInitScript(() => {
+    Reflect.deleteProperty(window, 'showOpenFilePicker');
+    Reflect.deleteProperty(window, 'showSaveFilePicker');
+  });
+  await page.goto(BASE_URL + '/settings/data', { waitUntil: 'domcontentloaded' });
+  const [chooser] = await Promise.all([
+    page.waitForEvent('filechooser'),
+    page.getByTestId('backup-import-button').click(),
+  ]);
+  await chooser.setFiles({
+    name: 'verify-report-pdf.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(backup, 'utf8'),
+  });
+  const confirm = page.getByTestId('backup-confirm-import');
+  await confirm.waitFor({ state: 'visible' });
+  const [safetyDownload] = await Promise.all([
+    page.waitForEvent('download'),
+    page.waitForEvent('domcontentloaded'),
+    confirm.click(),
+  ]);
+  await safetyDownload.cancel();
 }
 
 /**
@@ -275,9 +307,18 @@ async function main() {
 
   console.log('Booting engine at ' + BASE_URL + ' ...');
   await boot(page);
-  console.log('Engine ready. Seeding chart + interpretation ...');
+  console.log('Engine ready. Generating chart + interpretation fixture ...');
   const seeded = await seed(page);
-  console.log('Seeded:', JSON.stringify(seeded));
+  await restoreBackup(page, seeded.backup);
+  console.log(
+    'Restored to canonical SQLite:',
+    JSON.stringify({
+      lagna: seeded.lagna,
+      firstDuration: seeded.firstDuration,
+      firstLord: seeded.firstLord,
+      seqLen: seeded.seqLen,
+    }),
+  );
 
   // Open the astrologer report; wait for the rendered document (not the empty state).
   await page.goto(BASE_URL + '/report?mode=astrologer', { waitUntil: 'domcontentloaded' });

@@ -4,8 +4,9 @@
  * size, generates a real chart, then reloads while every /bundle request is
  * blocked. The second boot can only succeed from the durable local cache.
  *
- * The static server intentionally omits production CSP: this gate isolates the
- * WebKit storage/runtime boundary. CSP and deployed headers have separate gates.
+ * Vite preview applies the production CSP and COOP/COEP headers. The gate checks
+ * cross-origin isolation before both the online boot and offline reload so the
+ * service-worker path cannot silently lose SharedArrayBuffer-backed OPFS.
  */
 
 import { createServer, request as httpRequest } from 'node:http'
@@ -28,6 +29,19 @@ const BIRTH = {
 
 function invariant(condition, message) {
   if (!condition) throw new Error(message)
+}
+
+async function assertBrowserIsolation(page, label) {
+  const evidence = await page.evaluate(() => ({
+    isolated: globalThis.crossOriginIsolated,
+    sharedArrayBuffer: typeof globalThis.SharedArrayBuffer === 'function',
+    waitAsync: typeof Atomics.waitAsync === 'function',
+  }))
+  invariant(
+    evidence.isolated && evidence.sharedArrayBuffer && evidence.waitAsync,
+    `${label} lacks the cross-origin-isolated SQLite runtime: ${JSON.stringify(evidence)}`,
+  )
+  return evidence
 }
 
 async function bounded(promise, milliseconds, label) {
@@ -291,6 +305,7 @@ async function verifyFirstSessionOffline() {
       60_000,
       'first-session navigation',
     )
+    const coldIsolation = await assertBrowserIsolation(page, 'WebKit first-session navigation')
     const uncontrolled = await page.evaluate(() => navigator.serviceWorker.controller === null)
     invariant(uncontrolled, 'first-session proof was vacuous: the initial document was already controlled')
     await waitForActiveServiceWorker(page)
@@ -342,6 +357,7 @@ async function verifyFirstSessionOffline() {
     })
     const secondTimeOrigin = await page.evaluate(() => performance.timeOrigin)
     invariant(secondTimeOrigin !== firstTimeOrigin, 'offline reload did not create a new document')
+    const offlineIsolation = await assertBrowserIsolation(page, 'WebKit service-worker offline reload')
     const controlled = await page.evaluate(() => navigator.serviceWorker.controller !== null)
     invariant(controlled, 'offline reload was not controlled by the installed service worker')
     if (TRANSIENT_CACHE_VISIBILITY) {
@@ -399,6 +415,8 @@ async function verifyFirstSessionOffline() {
       keyRequestsBeforeRotation,
       keyRequestsAfterRotation,
       syncWorkerAssets,
+      coldIsolation,
+      offlineIsolation,
     }
     console.log(JSON.stringify({ firstSessionOffline: evidence }, null, 2))
     return evidence
@@ -427,6 +445,7 @@ async function main() {
     const forcedFallbackUrl = new URL(BASE_URL)
     forcedFallbackUrl.searchParams.set(FALLBACK_PARAMETER, '1')
     await page.goto(forcedFallbackUrl.href, { waitUntil: 'domcontentloaded' })
+    const coldIsolation = await assertBrowserIsolation(page, 'WebKit forced-fallback navigation')
     await openEngineRoute(page)
     const cold = await waitForEngine(page)
     invariant(cold.stage === 'ready' && cold.hasGenerator, `WebKit cold boot failed: ${JSON.stringify(cold)}`)
@@ -503,6 +522,7 @@ async function main() {
           blockedBundleRequests: blocked.length,
           blockedPublicKeyRequests: blockedKeys.length,
           syncWorkerAssets,
+          coldIsolation,
         },
         null,
         2,

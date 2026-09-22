@@ -913,39 +913,6 @@ function sha256Hex(bytes: Uint8Array): string {
 }
 
 /**
- * The `calculation_timestamp` the app actually persisted for the primary chart —
- * read straight out of its IndexedDB store rather than inferred from the test's
- * own clock. This is the value the PDF cover date is now derived from, so the
- * assertion that checks the cover has to read the same source the app did.
- *
- * Raw IndexedDB, not idb-keyval: this config builds WITHOUT the exit-gate hooks,
- * so there is no dev module graph to import from.
- */
-async function storedChartCalculationTimestamp(page: Page): Promise<string | null> {
-  return page.evaluate(async () => {
-    const raw = await new Promise<string | undefined>((resolve, reject) => {
-      const open = indexedDB.open('keyval-store');
-      open.onerror = () => reject(open.error);
-      open.onsuccess = () => {
-        const request = open.result
-          .transaction('keyval', 'readonly')
-          .objectStore('keyval')
-          .get('almamesh-chart-library');
-        request.onsuccess = () => resolve(request.result as string | undefined);
-        request.onerror = () => reject(request.error);
-      };
-    });
-    if (!raw) return null;
-    const charts = Object.values(
-      (JSON.parse(raw) as { state: { charts: Record<string, unknown> } }).state.charts,
-    ) as ReadonlyArray<{
-      astronomical_calculations?: { calculation_timestamp?: string };
-    }>;
-    return charts[0]?.astronomical_calculations?.calculation_timestamp ?? null;
-  });
-}
-
-/**
  * The offset of the first byte two exports disagree on, or `null` when they are
  * byte-identical. A shorter file that is a strict prefix of the longer one
  * "differs" at its own length — the offset where it stopped.
@@ -993,15 +960,32 @@ test('REAL onboarding -> rectify -> offline reload -> predictive PDF is correct'
   });
 
   // ---- 0. Production-fidelity guard: the preview server must serve the REAL
-  // Cloudflare CSP (previewProdCspPlugin in vite.config.ts). Without it this
+  // Cloudflare browser headers (previewProdBrowserHeadersPlugin in vite.config.ts).
+  // Without the CSP this
   // suite cannot catch CSP-blocked fetches — the yoga-layout data:-URI wasm
   // fetch shipped console errors to production exactly that way while the
   // clean-console gate below stayed vacuously green.
   const bootResponse = await page.goto('/onboarding', { waitUntil: 'domcontentloaded' });
   expect(
     bootResponse?.headers()['content-security-policy'] ?? '',
-    'vite preview must serve the production Content-Security-Policy (previewProdCspPlugin)',
+    'vite preview must serve the production Content-Security-Policy',
   ).toContain("connect-src 'self'");
+  expect(bootResponse?.headers()['cross-origin-opener-policy']).toBe('same-origin');
+  expect(bootResponse?.headers()['cross-origin-embedder-policy']).toBe('require-corp');
+  expect(
+    await page.evaluate(() => ({
+      isolated: globalThis.crossOriginIsolated,
+      sharedArrayBuffer: typeof globalThis.SharedArrayBuffer === 'function',
+      waitAsync: typeof Atomics.waitAsync === 'function',
+    })),
+  ).toEqual({ isolated: true, sharedArrayBuffer: true, waitAsync: true });
+
+  // Bracket the real on-device chart work with wall-clock dates. The exported
+  // cover is user-visible proof of the persisted calculation instant; reaching
+  // into a retired persistence implementation would test storage internals, not
+  // the product contract. Keep both bounds because CI can cross midnight while
+  // onboarding and rectification run.
+  const chartGenerationStartedAt = new Date();
 
   // ---- 1. REAL onboarding through the live engine bootstrap to /dashboard ----
   await driveRealOnboarding(page);
@@ -1103,6 +1087,7 @@ test('REAL onboarding -> rectify -> offline reload -> predictive PDF is correct'
   const lagnaAfterRectify = await readDashboardLagna(page);
   console.log('[report-pdf] dashboard lagna @06:14 =', JSON.stringify(lagnaAfterRectify));
   expect(lagnaAfterRectify, 'after rectifying the lagna must no longer be Leo').not.toContain('leo');
+  const chartGenerationCompletedAt = new Date();
 
   // ---- 3. RELOAD and prove the rectified time PERSISTED ----
   await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
@@ -1279,35 +1264,41 @@ test('REAL onboarding -> rectify -> offline reload -> predictive PDF is correct'
   //
   // The cover date is now the chart's OWN `calculation_timestamp` — a value
   // stored once, with the chart — so the assertion flips: the printed date must
-  // be the day this chart was COMPUTED, and must NOT follow the clock at export.
+  // be the real day this chart was COMPUTED, and must NOT follow the clock at
+  // export. Validate that contract through the exported PDF itself, allowing
+  // either wall-clock day only when the end-to-end journey crossed midnight.
   // The epoch guard below is unchanged and still load-bearing: a chart with no
   // usable instant now prints no date at all, and must never print 1969/1970.
-  const computedAtIso = await storedChartCalculationTimestamp(page);
-  expect(computedAtIso, 'the stored chart must carry a calculation timestamp').not.toBeNull();
-  const computedAtLong = new Date(computedAtIso as string).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
+  const longEnglishDate = (date: Date) =>
+    date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  const chartGenerationDates = [
+    ...new Set([
+      longEnglishDate(chartGenerationStartedAt),
+      longEnglishDate(chartGenerationCompletedAt),
+    ]),
+  ];
   const exportClockLong = generatedOn.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
   });
+  expect(
+    chartGenerationDates,
+    'the real chart-generation day must differ from the deliberately frozen export clock',
+  ).not.toContain(exportClockLong);
+  const computedAtLong = chartGenerationDates.find((date) => pdfText.includes(date));
+  expect(
+    computedAtLong,
+    `the PDF cover must carry the real chart-generation date (${chartGenerationDates.join(' or ')})`,
+  ).toBeDefined();
   const dateLine = (
-    pdfText.split('\n').find((line) => line.includes(computedAtLong)) ?? ''
+    pdfText.split('\n').find((line) => computedAtLong !== undefined && line.includes(computedAtLong)) ?? ''
   ).trim();
   expect(
     pdfText,
-    `the PDF cover must carry the chart's own computation date ("${computedAtLong}")`,
-  ).toContain(computedAtLong);
-  if (computedAtLong !== exportClockLong) {
-    expect(
-      pdfText,
-      `the PDF cover must NOT carry the export-time clock ("${exportClockLong}") — ` +
-        'the export must not read the clock at all',
-    ).not.toContain(exportClockLong);
-  }
+    `the PDF cover must NOT carry the export-time clock ("${exportClockLong}") — ` +
+      'the export must not read the clock at all',
+  ).not.toContain(exportClockLong);
   expect(pdfText, 'the PDF must NOT show the Unix-epoch year 1969').not.toMatch(/\b1969\b/);
   expect(pdfText, 'the PDF must NOT show the Unix-epoch year 1970').not.toMatch(/\b1970\b/);
 

@@ -248,7 +248,7 @@
     "subtitle": "Mova todos os seus dados — perfis, mapas, chat e configurações — para outro navegador. Nada é enviado; você salva um único arquivo e o leva com você.",
     "export_heading": "Exportar",
     "export_button": "Exportar meus dados",
-    "export_hint": "Baixa um único arquivo com seus perfis, mapas e histórico de chat.",
+    "export_hint": "Baixa um arquivo SQLite portátil com seus perfis, mapas e histórico de chat. Ao adicionar uma senha, exporta JSON criptografado por compatibilidade.",
     "passphrase_label": "Proteger com uma senha (opcional)",
     "passphrase_placeholder": "Deixe em branco para não criptografar",
     "sensitivity_note": "Este arquivo contém seus dados de nascimento e histórico de chat — mantenha-o privado.",

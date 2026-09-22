@@ -2,13 +2,13 @@
  * Tests for the pure browser file-I/O helper behind Backup & Restore (Spec 061).
  *
  * This module owns NO astrology, NO store, and NO crypto — it only:
- *  - saves a text string to a file the user chooses (File System Access API)
+ *  - saves JSON text or SQLite bytes to a file the user chooses
  *    with a graceful `<a download>` fallback for Firefox/Safari, and
- *  - reads a text string back from a picked file, with an `<input type=file>`
+ *  - reads JSON text or SQLite bytes back, with an `<input type=file>`
  *    fallback.
  *
  * happy-dom provides DOMException, URL.createObjectURL/revokeObjectURL, Blob and
- * File.text(), and exposes `window === globalThis` — so `vi.stubGlobal` (the
+ * File.arrayBuffer(), and exposes `window === globalThis` — so `vi.stubGlobal` (the
  * project convention, see submitFeedback.test.ts) makes `window.showSaveFilePicker`
  * / `window.showOpenFilePicker` present, and deleting the stub restores the
  * fallback path. All fixtures are synthetic.
@@ -57,7 +57,7 @@ function makeFakeFileInput(config: {
 }
 
 describe('saveBackupFile', () => {
-  it('writes the text through the File System Access picker and closes it', async () => {
+  it('writes text through the File System Access picker and closes it', async () => {
     const write = vi.fn().mockResolvedValue(undefined);
     const close = vi.fn().mockResolvedValue(undefined);
     const createWritable = vi.fn().mockResolvedValue({ write, close });
@@ -72,6 +72,25 @@ describe('saveBackupFile', () => {
     );
     expect(write).toHaveBeenCalledWith('PAYLOAD');
     expect(close).toHaveBeenCalledTimes(1);
+  });
+
+  it('writes SQLite bytes without text or base64 conversion', async () => {
+    const write = vi.fn().mockResolvedValue(undefined);
+    const close = vi.fn().mockResolvedValue(undefined);
+    const showSaveFilePicker = vi.fn().mockResolvedValue({
+      createWritable: vi.fn().mockResolvedValue({ write, close }),
+    });
+    vi.stubGlobal('showSaveFilePicker', showSaveFilePicker);
+    const bytes = new Uint8Array([...new TextEncoder().encode('SQLite format 3\0'), 0xff]);
+
+    await expect(saveBackupFile('almamesh.sqlite3', bytes)).resolves.toBe('saved');
+
+    expect(write).toHaveBeenCalledWith(bytes);
+    expect(showSaveFilePicker).toHaveBeenCalledWith(
+      expect.objectContaining({
+        types: [expect.objectContaining({ accept: { 'application/vnd.sqlite3': expect.any(Array) } })],
+      }),
+    );
   });
 
   it('returns "cancelled" (no throw) when the picker is aborted', async () => {
@@ -115,6 +134,27 @@ describe('saveBackupFile', () => {
     expect(clickSpy).toHaveBeenCalledTimes(1);
     expect(revokeObjectURL).toHaveBeenCalledWith('blob:mock-url');
   });
+
+  it('preserves SQLite bytes and MIME type in the download fallback', async () => {
+    let captured: Blob | undefined;
+    vi.spyOn(URL, 'createObjectURL').mockImplementation((blob) => {
+      captured = blob as Blob;
+      return 'blob:sqlite';
+    });
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+    const realCreateElement = document.createElement.bind(document);
+    vi.spyOn(document, 'createElement').mockImplementation(((tag: string) => {
+      const element = realCreateElement(tag);
+      if (tag === 'a') (element as HTMLAnchorElement).click = vi.fn();
+      return element;
+    }) as unknown as typeof document.createElement);
+    const bytes = new Uint8Array([...new TextEncoder().encode('SQLite format 3\0'), 0xff]);
+
+    await saveBackupFile('backup.sqlite3', bytes);
+
+    expect(captured?.type).toBe('application/vnd.sqlite3');
+    expect([...new Uint8Array(await captured!.arrayBuffer())]).toEqual([...bytes]);
+  });
 });
 
 describe('pickBackupFile', () => {
@@ -128,6 +168,33 @@ describe('pickBackupFile', () => {
     expect(showOpenFilePicker).toHaveBeenCalledWith(
       expect.objectContaining({ multiple: false }),
     );
+  });
+
+  it('returns SQLite bytes byte-for-byte via the File System Access API', async () => {
+    const bytes = new Uint8Array([...new TextEncoder().encode('SQLite format 3\0'), 0x00, 0xff]);
+    const file = new File([bytes], 'backup.sqlite3', { type: 'application/vnd.sqlite3' });
+    const showOpenFilePicker = vi.fn().mockResolvedValue([
+      { getFile: vi.fn().mockResolvedValue(file) },
+    ]);
+    vi.stubGlobal('showOpenFilePicker', showOpenFilePicker);
+
+    const picked = await pickBackupFile();
+
+    expect(picked).toBeInstanceOf(Uint8Array);
+    expect([...(picked as Uint8Array)]).toEqual([...bytes]);
+  });
+
+  it('keeps unknown binary as bytes instead of decoding it as JSON', async () => {
+    const bytes = new Uint8Array([0xff, 0x00, 0x41]);
+    const file = new File([bytes], 'not-a-backup.bin');
+    const showOpenFilePicker = vi.fn().mockResolvedValue([
+      { getFile: vi.fn().mockResolvedValue(file) },
+    ]);
+    vi.stubGlobal('showOpenFilePicker', showOpenFilePicker);
+
+    const picked = await pickBackupFile();
+    expect(picked).toBeInstanceOf(Uint8Array);
+    expect([...(picked as Uint8Array)]).toEqual([...bytes]);
   });
 
   it('returns null when the open picker is aborted', async () => {

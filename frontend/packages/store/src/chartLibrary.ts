@@ -1,7 +1,7 @@
 /**
  * Chart library store — the on-device, local-first replacement for the backend
  * chart storage. Holds the adapted `ChartData` the UI renders, keyed by
- * `chart_id`, persisted to IndexedDB via `idb-keyval`.
+ * `chart_id`, persisted in the canonical OPFS SQLite database.
  *
  * No backend, no account: charts the in-browser engine computes are saved here
  * and survive reloads. Routing's "has a chart?" check reads this store (mirrored
@@ -37,7 +37,7 @@ export interface StoredChart extends ChartData {
   readonly sidereal_chart?: SiderealChart;
 }
 
-/** A single IndexedDB key holding the whole library, persisted by zustand. */
+/** One canonical SQLite row holding the whole library, persisted by Zustand. */
 const PERSIST_NAME = 'almamesh-chart-library';
 
 /** Bump when the persisted chart shape changes; always pair with `migrate`. */
@@ -71,7 +71,7 @@ export function migrateChartLibraryPersistedState(
 }
 
 /**
- * The localStorage flag routing reads synchronously. IndexedDB is async, so we
+ * The localStorage flag routing reads synchronously. Portable SQLite is async, so we
  * mirror "a chart exists" into localStorage on every mutation; lib/localChart.ts
  * reads this key. Kept in sync here so the two never disagree.
  */
@@ -83,7 +83,7 @@ function setLibraryFlag(hasAny: boolean): void {
   }
   // Node/Bun SSR can expose a partial localStorage global without the complete
   // browser Storage API. The flag is only a synchronous routing optimization;
-  // never let that optional mirror break prerender or the authoritative IDB store.
+  // never let that optional mirror break prerender or the authoritative SQLite store.
   const storage: Partial<Storage> = localStorage;
   if (hasAny) {
     storage.setItem?.(CHART_LIBRARY_FLAG_KEY, '1');
@@ -126,7 +126,7 @@ function chartInScope(chart: StoredChart, scope: string | null): boolean {
 export interface ChartLibraryStore {
   /** All stored charts, keyed by `chart_id`. */
   readonly charts: Readonly<Record<string, StoredChart>>;
-  /** True once zustand has rehydrated from IndexedDB. */
+  /** True once Zustand has rehydrated from portable storage. */
   readonly hydrated: boolean;
 
   saveChart: (chart: StoredChart) => void;
@@ -246,9 +246,9 @@ export const useChartLibraryStore = create<ChartLibraryStore>()(
 );
 
 /**
- * Resolve once the chart library has finished rehydrating from IndexedDB.
+ * Resolve once the chart library has finished rehydrating from portable storage.
  *
- * IndexedDB is async, so on a fresh document load (PWA reopen, hard refresh)
+ * Portable storage is async, so on a fresh document load (PWA reopen, hard refresh)
  * the store is created empty and `persist` rehydrates it on a later microtask.
  * Reading `getPrimaryChart()` before that completes returns a false miss. Any
  * caller that needs the persisted truth must `await` this first.

@@ -81,7 +81,8 @@ function getMemory(): ChatMemoryFacade {
   if (singleton === null) {
     // Boot the shared @almamesh/memory worker embedder: it enables local,
     // same-origin model loading (`env.allowLocalModels = true`) and forces
-    // single-threaded ORT for non-cross-origin-isolated hosts.
+    // single-threaded ORT to keep embedding memory predictable even though the
+    // deployed app is cross-origin isolated for shared SQLite.
     singleton = createMemory({
       embedder: createWorkerEmbedder(),
       store: vectorStore,

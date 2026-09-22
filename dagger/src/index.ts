@@ -28,7 +28,7 @@ const KEYS = "/run/almamesh-keys"
 const BUN_INSTALLER = "/opt/almamesh/install-bun.sh"
 const LIVE_ORIGIN = "https://almamesh.com"
 const REPOSITORY = "hseshadr/almamesh"
-const EDGEPROC_BROWSER_SHA = "a94e7f2a0237a7144658351c07cb296fcb0540fb"
+const EDGEPROC_BROWSER_SHA = "333cbafd82856f4b662da2758f47b7afcf241969"
 const CONTRACT_SHA = "1111111111111111111111111111111111111111"
 const CENTRAL_MODULE_SHA = "cd2858547b301c3c21ddcf24a538aebdb5cfbc52"
 const BUN_IMAGE =
@@ -247,7 +247,7 @@ export class AlmameshCi {
     return [
       "sh",
       "-c",
-      `grep -F ${JSON.stringify(pin)} packages/browser/package.json >/dev/null && grep -F ${JSON.stringify(pin)} packages/memory/package.json >/dev/null && grep -F ${JSON.stringify(EDGEPROC_BROWSER_SHA)} bun.lock >/dev/null`,
+      `grep -F ${JSON.stringify(pin)} packages/browser/package.json >/dev/null && grep -F ${JSON.stringify(pin)} packages/memory/package.json >/dev/null && grep -F ${JSON.stringify(pin)} packages/store/package.json >/dev/null && grep -F ${JSON.stringify(EDGEPROC_BROWSER_SHA)} bun.lock >/dev/null`,
     ]
   }
 
@@ -301,16 +301,19 @@ export class AlmameshCi {
     let checked = this.builtBrowser("dist-verify", true)
       .withExec(["node", "scripts/verify-precache-redirect.mjs", "dist-verify"])
     checked = this.localPreview(checked, "dist-verify", [
+      "node scripts/verify-cross-origin-isolation.mjs http://127.0.0.1:4199 --browser=chromium",
       "node scripts/verify-sqlite-memory.mjs http://127.0.0.1:4199 --browser=chromium",
+      "PORTABLE_SQLITE_E2E_BASE_URL=http://127.0.0.1:4199 bun run test:e2e:portable-sqlite",
       "node scripts/verify-exit-gate.mjs http://127.0.0.1:4199",
       "node scripts/verify-i18n.mjs http://127.0.0.1:4199",
       "node scripts/verify-browser-parity.mjs http://127.0.0.1:4199 --reference-date=2025-01-01T00:00:00+00:00",
     ])
     checked = this.localServer(
       checked,
-      "python3 -m http.server 4200 --directory dist-verify --bind 127.0.0.1",
+      "./node_modules/.bin/vite preview --outDir dist-verify --host 127.0.0.1 --port 4200 --strictPort",
       4200,
       [
+        "node scripts/verify-cross-origin-isolation.mjs http://127.0.0.1:4200 --browser=webkit",
         "node scripts/verify-sqlite-memory.mjs http://127.0.0.1:4200 --browser=webkit",
         "node scripts/verify-webkit-engine.mjs http://127.0.0.1:4200",
         "node scripts/verify-webkit-engine.mjs http://127.0.0.1:4200 --first-session --transient-cache-visibility",
@@ -342,10 +345,11 @@ export class AlmameshCi {
   @func()
   privacy(): Container {
     const built = this.builtBrowser("dist-privacy", false, ["chromium"])
-    return built
-      .withServiceBinding("privacy", this.preview(built, "dist-privacy", 4173, "privacy"))
-      .withEnvVariable("ALMAMESH_PRIVACY_CONTRACT", "backup-reset-v4")
-      .withExec(["node", "scripts/verify-privacy-reset.mjs", "http://privacy:4173"])
+    return this.localPreview(
+      built.withEnvVariable("ALMAMESH_PRIVACY_CONTRACT", "backup-reset-v4"),
+      "dist-privacy",
+      ["node scripts/verify-privacy-reset.mjs http://127.0.0.1:4199"],
+    )
   }
   @func()
   async ci(commitSha: string): Promise<string> {

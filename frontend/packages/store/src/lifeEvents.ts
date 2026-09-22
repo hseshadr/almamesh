@@ -9,8 +9,8 @@
  * birth time by hand in Settings they have their own reference points to weigh
  * against the live Ascendant.
  *
- * Fully local-first: no account, no server. Persisted to IndexedDB via
- * `idb-keyval` under its own key, mirroring the chartLibrary / profiles pattern,
+ * Fully local-first: no account, no server. Persisted as one canonical SQLite
+ * row, mirroring the chartLibrary / profiles pattern,
  * keyed by the owning profile id so each person keeps their own notes.
  */
 
@@ -84,7 +84,7 @@ export interface LifeEventInput {
   readonly summary?: string;
 }
 
-/** A single IndexedDB key holding all profiles' life events, persisted by zustand. */
+/** One canonical SQLite row holding all profiles' life events, persisted by Zustand. */
 const PERSIST_NAME = 'almamesh-life-events';
 
 /** Bump when the persisted `LifeEvent` shape changes; always pair with `migrate`. */
@@ -237,7 +237,7 @@ export function isStructuredLifeEvent(e: LifeEvent): boolean {
 export interface LifeEventsStore {
   /** All life-event notes, keyed by owning profile id. */
   readonly eventsByProfile: Readonly<Record<string, readonly LifeEvent[]>>;
-  /** True once zustand has rehydrated from IndexedDB. */
+  /** True once Zustand has rehydrated from portable storage. */
   readonly hydrated: boolean;
 
   /** Replace a profile's notes with a fresh set (blank descriptions dropped). */
@@ -354,7 +354,7 @@ export const useLifeEventsStore = create<LifeEventsStore>()(
 );
 
 /**
- * Resolve once the life-events store has finished rehydrating from IndexedDB.
+ * Resolve once the life-events store has finished rehydrating from portable storage.
  * Mirrors `whenChartLibraryHydrated` — await before any read that must reflect
  * the persisted truth (avoids the async-rehydrate false-empty race).
  */

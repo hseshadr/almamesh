@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createStore } from 'zustand/vanilla';
 
+import type { ChatThreadSummary } from '@almamesh/shared-types';
+
 import {
   chatStoreCreator,
   migrateChatPersistedState,
@@ -21,12 +23,17 @@ describe('migrateChatPersistedState (defensive hydration)', () => {
     const out = migrateChatPersistedState(blob, 0);
     expect(out.threads).toEqual({ t1: { id: 't1' } });
     expect(out.messages).toEqual({ t1: [] });
+    expect(out.summaries).toEqual({});
   });
 
   it('does NOT throw on a malformed / corrupt blob, returns clean empty maps', () => {
     for (const corrupt of [null, undefined, 'oops', 42, [], { threads: 'x' }, { messages: 7 }]) {
       expect(() => migrateChatPersistedState(corrupt, 0)).not.toThrow();
-      expect(migrateChatPersistedState(corrupt, 0)).toEqual({ threads: {}, messages: {} });
+      expect(migrateChatPersistedState(corrupt, 0)).toEqual({
+        threads: {},
+        messages: {},
+        summaries: {},
+      });
     }
   });
 
@@ -34,6 +41,128 @@ describe('migrateChatPersistedState (defensive hydration)', () => {
     expect(migrateChatPersistedState({ threads: { t1: { id: 't1' } } }, 0)).toEqual({
       threads: { t1: { id: 't1' } },
       messages: {},
+      summaries: {},
+    });
+  });
+
+  describe('rolling summaries', () => {
+    async function validSummary(store: ReturnType<typeof newStore>): Promise<ChatThreadSummary> {
+      const threadId = store.getState().ensureThread('p1');
+      const user = store.getState().appendMessage(threadId, 'user', 'question');
+      const assistant = store.getState().appendMessage(threadId, 'assistant', 'answer');
+      const { chatSummarySourceHash } = await import('@almamesh/llm');
+      return {
+        thread_id: threadId,
+        profile_id: 'p1',
+        items: [{ text: 'The grounded exchange.', source_message_ids: [user.id, assistant.id] }],
+        open_questions: [],
+        source_message_ids: [user.id, assistant.id],
+        source_hash: await chatSummarySourceHash([user, assistant]),
+        source_message_count: 2,
+        through_message_id: assistant.id,
+        generated_at: '2026-01-01T00:00:00.000Z',
+        generator: { kind: 'llm', model: 'test-model', prompt_schema_version: 1 },
+      };
+    }
+
+    it('commits a valid summary without deleting raw messages', async () => {
+      const store = newStore();
+      const summary = await validSummary(store);
+
+      await expect(store.getState().commitSummary(summary)).resolves.toBe(true);
+      expect(store.getState().getSummary(summary.thread_id)).toEqual(summary);
+      expect(store.getState().getMessages(summary.thread_id)).toHaveLength(2);
+    });
+
+    it('rejects a stale summary hash as a no-op', async () => {
+      const store = newStore();
+      const summary = await validSummary(store);
+
+      await expect(
+        store.getState().commitSummary({ ...summary, source_hash: '0'.repeat(64) }),
+      ).resolves.toBe(false);
+      expect(store.getState().getSummary(summary.thread_id)).toBeNull();
+      expect(store.getState().getMessages(summary.thread_id)).toHaveLength(2);
+    });
+
+    it('never lets a late candidate regress the committed source prefix', async () => {
+      const store = newStore();
+      const threadId = store.getState().ensureThread('p1');
+      const first = store.getState().appendMessage(threadId, 'user', 'q1');
+      const second = store.getState().appendMessage(threadId, 'assistant', 'a1');
+      const third = store.getState().appendMessage(threadId, 'user', 'q2');
+      const fourth = store.getState().appendMessage(threadId, 'assistant', 'a2');
+      const { chatSummarySourceHash } = await import('@almamesh/llm');
+      const make = async (source: (typeof first)[]) => ({
+        thread_id: threadId,
+        profile_id: 'p1',
+        items: [{ text: 'Grounded.', source_message_ids: [source[0].id] }],
+        open_questions: [],
+        source_message_ids: source.map((message) => message.id),
+        source_hash: await chatSummarySourceHash(source),
+        source_message_count: source.length,
+        through_message_id: source.at(-1)?.id ?? '',
+        generated_at: '2026-01-01T00:00:00.000Z',
+        generator: { kind: 'llm' as const, model: 'test-model', prompt_schema_version: 1 },
+      });
+      const newer = await make([first, second, third, fourth]);
+      const lateOlder = await make([first, second]);
+
+      await expect(store.getState().commitSummary(newer)).resolves.toBe(true);
+      await expect(store.getState().commitSummary(lateOlder)).resolves.toBe(false);
+      expect(store.getState().getSummary(threadId)?.through_message_id).toBe(fourth.id);
+    });
+
+    it('filters malformed summary bytes during persisted-state migration', () => {
+      const out = migrateChatPersistedState(
+        {
+          threads: { t1: { id: 't1', profile_id: 'p1' } },
+          messages: { t1: [] },
+          summaries: {
+            t1: {
+              thread_id: 't1',
+              profile_id: 'p1',
+              items: [{ text: '', source_message_ids: ['m1'] }],
+              open_questions: [],
+              source_message_ids: ['m1'],
+              source_hash: '0'.repeat(64),
+              source_message_count: 1,
+              through_message_id: 'm1',
+              generated_at: 'not-a-date',
+              generator: { kind: 'llm', prompt_schema_version: 999 },
+            },
+          },
+        },
+        2,
+      );
+      expect(out.summaries).toEqual({});
+    });
+
+    it('removes summaries with their thread/profile and on clearAll', async () => {
+      for (const operation of ['thread', 'profile', 'all'] as const) {
+        const store = newStore();
+        const summary = await validSummary(store);
+        await store.getState().commitSummary(summary);
+
+        if (operation === 'thread') store.getState().deleteThread(summary.thread_id);
+        else if (operation === 'profile') store.getState().deleteThreadsForProfile('p1');
+        else store.getState().clearAll();
+
+        expect(store.getState().getSummary(summary.thread_id)).toBeNull();
+      }
+    });
+
+    it('persists a committed summary across a store reconstruction', async () => {
+      const before = newStore();
+      const summary = await validSummary(before);
+      await before.getState().commitSummary(summary);
+      const { threads, messages, summaries } = before.getState();
+
+      const after = newStore();
+      after.setState(JSON.parse(JSON.stringify({ threads, messages, summaries })) as Partial<ChatStore>);
+
+      expect(after.getState().getSummary(summary.thread_id)).toEqual(summary);
+      expect(after.getState().getMessages(summary.thread_id)).toHaveLength(2);
     });
   });
 });
@@ -229,8 +358,8 @@ describe('chatStore', () => {
     // hydrate a fresh store from the parsed snapshot. This proves threads +
     // messages survive a store reconstruction (PWA reopen / hard refresh).
     function persistedSnapshot(store: ReturnType<typeof newStore>): string {
-      const { threads, messages } = store.getState();
-      return JSON.stringify({ threads, messages });
+      const { threads, messages, summaries } = store.getState();
+      return JSON.stringify({ threads, messages, summaries });
     }
 
     it('threads and messages survive a serialize → fresh-store round-trip', () => {

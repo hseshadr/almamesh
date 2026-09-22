@@ -8,7 +8,10 @@ import { createHash } from 'crypto'
 import { PUBLIC_ROUTE_PATHS, prerenderOutputFile } from './src/seo/routeHead'
 import { createBuildIdentity } from './src/lib/buildIdentity'
 import { extractYogaWasm, isYogaWasmModuleId } from './src/lib/yogaWasmAsset'
-import { cspFromHeadersFile } from './src/lib/previewHeaders'
+import {
+  browserIsolationHeadersFromHeadersFile,
+  cspForLocalHttpPreview,
+} from './src/lib/previewHeaders'
 import { selectSourcemapArtifacts, sourcemapLeakMessage } from './src/lib/noSourcemaps'
 
 // App version injected into the bundle (see `define` below) so client code can
@@ -187,27 +190,34 @@ function noSourcemapsPlugin(): Plugin {
   }
 }
 
-// Preview fidelity: serve the PRODUCTION Content-Security-Policy on every
-// `vite preview` response. In production Cloudflare Pages parses
-// public/_headers; plain `vite preview` serves NO CSP, so every
+// Preview fidelity: serve the production CSP enforcement directives and
+// browser-isolation headers on
+// every `vite preview` response. In production Cloudflare Pages parses
+// public/_headers; plain `vite preview` serves none of them, so every
 // preview-driven e2e lane ran with a materially looser policy than production
 // — a CSP-blocked fetch (exactly the yoga-layout data:-URI wasm case above)
 // sailed through CI green and only surfaced as console errors on
-// almamesh.com. Applying the real header makes the clean-console e2e gates
-// enforce production behavior. CSP only: the other _headers entries (HSTS,
-// Cache-Control, …) don't change client-side JS behavior, and full Pages
-// merge/detach semantics stay Cloudflare's job. NOT applied to `vite dev` —
-// dev injects inline scripts (react-refresh preamble) the production
-// script-src would block. Parser tested in src/lib/previewHeaders.test.ts.
-function previewProdCspPlugin(): Plugin {
+// almamesh.com. Local HTTP omits only `upgrade-insecure-requests`, because
+// WebKit otherwise rewrites Vite's own subresources to an unavailable HTTPS
+// listener; production is already HTTPS and keeps that directive. Applying the
+// remaining real policy makes the clean-console e2e gates enforce production
+// behavior. COOP/COEP also apply to workers and enable the
+// SharedArrayBuffer required by SQLite's OPFS Web-Locks VFS. The CSP is NOT
+// applied to `vite dev`, whose react-refresh preamble uses inline scripts; the
+// isolation headers are applied there below. Full Pages merge/detach semantics
+// remain Cloudflare's job. Parser tested in src/lib/previewHeaders.test.ts.
+function previewProdBrowserHeadersPlugin(): Plugin {
   return {
-    name: 'almamesh-preview-prod-csp',
+    name: 'almamesh-preview-prod-browser-headers',
     configurePreviewServer(server) {
-      const csp = cspFromHeadersFile(
-        readFileSync(path.resolve(__dirname, 'public/_headers'), 'utf-8'),
-      )
+      const headersFile = readFileSync(path.resolve(__dirname, 'public/_headers'), 'utf-8')
+      const csp = cspForLocalHttpPreview(headersFile)
+      const isolationHeaders = browserIsolationHeadersFromHeadersFile(headersFile)
       server.middlewares.use((_req, res, next) => {
         res.setHeader('Content-Security-Policy', csp)
+        for (const [name, value] of Object.entries(isolationHeaders)) {
+          res.setHeader(name, value)
+        }
         next()
       })
     },
@@ -541,7 +551,7 @@ export default defineConfig({
     trustKeyConfigPlugin(),
     yogaWasmAssetPlugin(),
     noSourcemapsPlugin(),
-    previewProdCspPlugin(),
+    previewProdBrowserHeadersPlugin(),
     ...prerenderPublicRoutesPlugin(),
     flattenPrerenderedRoutesPlugin(),
     previewPublicRoutesMiddleware(),
@@ -587,6 +597,13 @@ export default defineConfig({
   server: {
     port: 3000,
     allowedHosts: ['host.docker.internal', 'localhost', '127.0.0.1'],
+    // Keep local development on the same SharedArrayBuffer/OPFS capability
+    // boundary as production. The production CSP is intentionally preview-only
+    // because Vite's react-refresh preamble uses inline scripts.
+    headers: {
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Cross-Origin-Embedder-Policy': 'require-corp',
+    },
     // Allow serving AlmaMesh workspace packages above apps/web in dev. The
     // standalone sync Worker is an installed dependency. (No effect on the
     // production build / preview.)

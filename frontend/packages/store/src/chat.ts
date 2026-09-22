@@ -1,7 +1,7 @@
 /**
  * Chat history store — the on-device, local-first persistence for the dashboard
  * conversation. Chat used to be ephemeral React-local state (lost on reload);
- * this store keeps threads + messages per profile in IndexedDB so a person's
+ * this store keeps threads + messages per profile in portable SQLite so a person's
  * conversation survives a refresh / PWA reopen, mirroring `chartLibrary`.
  *
  * Shape is normalized: `threads` keyed by thread id, `messages` keyed by
@@ -9,28 +9,30 @@
  * `profile_id` so listing is scoped per person, exactly like charts.
  *
  * No backend, no account. Persistence is a browser-only enhancement — outside a
- * browser (SSR/tests) IndexedDB is absent and the store runs in-memory.
+ * browser (SSR/tests) portable storage is absent and the store runs in-memory.
  */
 
 import { create, type StateCreator } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
-import type { ChatMessage, ChatThread } from '@almamesh/shared-types';
+import type { ChatMessage, ChatThread, ChatThreadSummary } from '@almamesh/shared-types';
+import { hasValidChatSummaryShape, summaryMatchesMessages } from '@almamesh/llm';
 import { deletionAwareIdbStorage } from './deletionTombstones';
 import { whenHydrated } from './hydrationBarrier';
 
 type ChatRole = ChatMessage['role'];
 
-/** A single IndexedDB key holding the whole chat history, persisted by zustand. */
+/** One canonical SQLite row holding the whole chat history, persisted by Zustand. */
 const PERSIST_NAME = 'almamesh-chat-history';
 
 /** Bump when the persisted chat shape changes; always pair with `migrate`. */
-export const CHAT_PERSIST_VERSION = 1;
+export const CHAT_PERSIST_VERSION = 2;
 
 /** The slice of the store that `partialize` actually persists. */
 export interface PersistedChatState {
   readonly threads: Readonly<Record<string, ChatThread>>;
   readonly messages: Readonly<Record<string, readonly ChatMessage[]>>;
+  readonly summaries: Readonly<Record<string, ChatThreadSummary>>;
 }
 
 /** A plain (non-array) object — the only shape `threads`/`messages` may take. */
@@ -40,7 +42,7 @@ function isPlainRecord(value: unknown): value is Record<string, unknown> {
 
 /**
  * Defensive hydration: tolerate ANY old/unknown/corrupt persisted blob and
- * always return valid `{ threads, messages }` maps. A returning visitor whose
+ * always return valid `{ threads, messages, summaries }` maps. A returning visitor whose
  * stored chat history is malformed (a string, an array, one half missing) must
  * never crash the app — each half independently falls back to an empty map.
  */
@@ -49,13 +51,26 @@ export function migrateChatPersistedState(
   _fromVersion: number,
 ): PersistedChatState {
   const source = isPlainRecord(persisted) ? persisted : {};
+  const threads = isPlainRecord(source.threads)
+    ? (source.threads as PersistedChatState['threads'])
+    : {};
+  const messages = isPlainRecord(source.messages)
+    ? (source.messages as PersistedChatState['messages'])
+    : {};
+  const summaries: PersistedChatState['summaries'] = isPlainRecord(source.summaries)
+    ? Object.fromEntries(
+        Object.entries(source.summaries).filter(
+          ([threadId, summary]) =>
+            hasValidChatSummaryShape(summary) &&
+            summary.thread_id === threadId &&
+            threads[threadId]?.profile_id === summary.profile_id,
+        ),
+      ) as Record<string, ChatThreadSummary>
+    : {};
   return {
-    threads: isPlainRecord(source.threads)
-      ? (source.threads as PersistedChatState['threads'])
-      : {},
-    messages: isPlainRecord(source.messages)
-      ? (source.messages as PersistedChatState['messages'])
-      : {},
+    threads,
+    messages,
+    summaries,
   };
 }
 
@@ -100,7 +115,8 @@ export interface ChatStore {
   readonly threads: Readonly<Record<string, ChatThread>>;
   /** Messages keyed by `thread_id` (a flat, ordered list per thread). */
   readonly messages: Readonly<Record<string, readonly ChatMessage[]>>;
-  /** True once zustand has rehydrated from IndexedDB. */
+  readonly summaries: Readonly<Record<string, ChatThreadSummary>>;
+  /** True once Zustand has rehydrated from portable storage. */
   readonly hydrated: boolean;
 
   /**
@@ -119,6 +135,9 @@ export interface ChatStore {
     options?: { readonly error?: true },
   ) => ChatMessage;
   getMessages: (threadId: string) => ChatMessage[];
+  getSummary: (threadId: string) => ChatThreadSummary | null;
+  /** Commit only a source-current summary; invalid/stale candidates are a no-op. */
+  commitSummary: (summary: ChatThreadSummary) => Promise<boolean>;
   /** All threads for a profile, newest-updated first. */
   listThreads: (profileId: string) => ChatThread[];
   /** The profile's most-recently-updated thread, or null when it has none. */
@@ -164,6 +183,7 @@ function deriveTitle(thread: ChatThread, role: ChatRole, content: string): strin
 export const chatStoreCreator: StateCreator<ChatStore> = (set, get) => ({
   threads: {},
   messages: {},
+  summaries: {},
   hydrated: false,
 
   ensureThread: (profileId, chartId) => {
@@ -209,6 +229,44 @@ export const chatStoreCreator: StateCreator<ChatStore> = (set, get) => ({
 
   getMessages: (threadId) => [...(get().messages[threadId] ?? [])],
 
+  getSummary: (threadId) => get().summaries[threadId] ?? null,
+
+  commitSummary: async (summary) => {
+    const initial = get();
+    const thread = initial.threads[summary.thread_id];
+    const initialMessages = initial.messages[summary.thread_id] ?? [];
+    if (
+      thread === undefined ||
+      thread.profile_id !== summary.profile_id ||
+      !(await summaryMatchesMessages(summary, initialMessages)) ||
+      get().messages[summary.thread_id] !== initialMessages
+    ) {
+      return false;
+    }
+    let committed = false;
+    set((state) => {
+      const currentThread = state.threads[summary.thread_id];
+      const currentMessages = state.messages[summary.thread_id] ?? [];
+      const sourceIds = new Set(currentMessages.map((message) => message.id));
+      const previous = state.summaries[summary.thread_id];
+      const extendsPrevious =
+        previous === undefined ||
+        previous.source_message_ids.every(
+          (id, index) => summary.source_message_ids[index] === id,
+        );
+      if (
+        currentThread?.profile_id !== summary.profile_id ||
+        summary.source_message_ids.some((id) => !sourceIds.has(id)) ||
+        !extendsPrevious
+      ) {
+        return state;
+      }
+      committed = true;
+      return { summaries: { ...state.summaries, [summary.thread_id]: summary } };
+    });
+    return committed;
+  },
+
   listThreads: (profileId) =>
     Object.values(get().threads)
       .filter((t) => t.profile_id === profileId)
@@ -233,7 +291,9 @@ export const chatStoreCreator: StateCreator<ChatStore> = (set, get) => ({
       delete threads[threadId];
       const messages = { ...state.messages };
       delete messages[threadId];
-      return { threads, messages };
+      const summaries = { ...state.summaries };
+      delete summaries[threadId];
+      return { threads, messages, summaries };
     });
   },
 
@@ -250,6 +310,9 @@ export const chatStoreCreator: StateCreator<ChatStore> = (set, get) => ({
         ),
         messages: Object.fromEntries(
           Object.entries(state.messages).filter(([threadId]) => !targetIds.has(threadId)),
+        ),
+        summaries: Object.fromEntries(
+          Object.entries(state.summaries).filter(([threadId]) => !targetIds.has(threadId)),
         ),
       };
     });
@@ -273,7 +336,7 @@ export const chatStoreCreator: StateCreator<ChatStore> = (set, get) => ({
   },
 
   clearAll: () => {
-    set({ threads: {}, messages: {} });
+    set({ threads: {}, messages: {}, summaries: {} });
   },
 });
 
@@ -283,7 +346,11 @@ export const useChatStore = create<ChatStore>()(
     version: CHAT_PERSIST_VERSION,
     migrate: migrateChatPersistedState,
     storage: createJSONStorage(() => deletionAwareIdbStorage),
-    partialize: (state) => ({ threads: state.threads, messages: state.messages }),
+    partialize: (state) => ({
+      threads: state.threads,
+      messages: state.messages,
+      summaries: state.summaries,
+    }),
     onRehydrateStorage: () => () => {
       useChatStore.setState({ hydrated: true });
     },
@@ -291,7 +358,7 @@ export const useChatStore = create<ChatStore>()(
 );
 
 /**
- * Resolve once the chat store has finished rehydrating from IndexedDB. Mirrors
+ * Resolve once the chat store has finished rehydrating from portable storage. Mirrors
  * `whenChartLibraryHydrated` / `whenProfilesHydrated` — await before any read
  * that must reflect the persisted truth (avoids the async-rehydrate race).
  */

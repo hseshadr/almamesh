@@ -14,9 +14,9 @@
  * device. v1 held only the chosen candidate's sign/time/band/margin plus
  * opaque event ids; v2 (Spec 062) additionally snapshots the full adapted
  * result and the user's own event summaries so the evidence story survives
- * revisits — all of it stays local-first (IndexedDB), zero egress.
+ * revisits — all of it stays local-first (OPFS SQLite), zero egress.
  *
- * Fully local-first: persisted to IndexedDB via `idb-keyval` under its own key,
+ * Fully local-first: persisted as its own canonical SQLite row,
  * mirroring the `lifeEvents` store, keyed by the owning profile id.
  */
 
@@ -31,7 +31,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import { deletionAwareIdbStorage } from './deletionTombstones';
 import { whenHydrated } from './hydrationBarrier';
 
-/** A single IndexedDB key holding all profiles' rectification records. */
+/** One canonical SQLite row holding all profiles' rectification records. */
 const PERSIST_NAME = 'almamesh-rectification-records';
 
 /**
@@ -138,7 +138,7 @@ export function buildRectificationRecord(args: BuildRectificationRecordArgs): Re
 export interface RectificationRecordsStore {
   /** Latest confirmed rectification per profile, keyed by owning profile id. */
   readonly recordsByProfile: Readonly<Record<string, RectificationRecord>>;
-  /** True once zustand has rehydrated from IndexedDB. */
+  /** True once Zustand has rehydrated from portable storage. */
   readonly hydrated: boolean;
 
   /** Store (or replace) the confirmed rectification record for its profile. */
@@ -200,7 +200,7 @@ export const useRectificationRecordsStore = create<RectificationRecordsStore>()(
 
 /**
  * Resolve once the rectification-records store has finished rehydrating from
- * IndexedDB. Mirrors `whenLifeEventsHydrated` — await before any read that must
+ * portable storage. Mirrors `whenLifeEventsHydrated` — await before any read that must
  * reflect the persisted truth (avoids the async-rehydrate false-empty race).
  */
 export function whenRectificationRecordsHydrated(): Promise<void> {

@@ -102,7 +102,10 @@ export function ChatSearch({ profileId, onOpenResult }: ChatSearchProps) {
                 <li key={hit.message_id}>
                   <button
                     type="button"
-                    onClick={() => onOpenResult(hit.message_id, hit.thread_id)}
+                    onClick={() => {
+                      onOpenResult(hit.message_id, hit.thread_id);
+                      setQuery('');
+                    }}
                     data-testid={`chat-search-result-${hit.message_id}`}
                     className="block w-full rounded-lg border border-ui-border bg-background-tertiary px-3 py-2 text-left transition-colors hover:border-accent-gold hover:bg-background-secondary"
                   >

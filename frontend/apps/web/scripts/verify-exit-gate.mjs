@@ -29,6 +29,7 @@
  */
 
 import { chromium } from '@playwright/test'
+import { Buffer } from 'node:buffer'
 import { isActivePointerName } from './exitGateDurability.mjs'
 
 const BASE_URL = process.argv[2] ?? 'http://localhost:4199'
@@ -174,29 +175,20 @@ async function main() {
   let renderDetail = ''
   if (correct) {
     try {
-      // Reuse the booted engine's chart; persist via the store the app uses.
-      // The adapter + store are app modules; drive them through a tiny inline
-      // import in page context is not possible (bare specifiers), so instead we
-      // complete persistence by re-using the dashboard's own local-first read:
-      // we write the adapted ChartData by invoking the app's store through the
-      // module graph is not exposed. Fallback: drive the UI onboarding? Geocode
-      // is third-party (blocked offline). So we persist by seeding IndexedDB +
-      // the localStorage routing flag directly with an adapter-shaped record.
-      //
-      // The adapter (siderealChartToChartData) is pure; we replicate the minimal
-      // shape the dashboard reads: chart_id, person_name, is_primary, and the
-      // sidereal_ctx the visualization consumes.
-      const persisted = await page.evaluate(async (args) => {
+      // Reuse the booted engine's chart and build a legacy backup at the
+      // transport boundary. Importing it through Settings exercises the shipped
+      // restore path, which validates the envelope and commits it into the
+      // canonical OPFS SQLite database. This deliberately does not reach around
+      // the product with a test-only store hook or a retired IndexedDB write.
+      const backup = await page.evaluate((args) => {
         const { chart, birth } = args
-        // Minimal adapter mirror (sign values already verified above). The
-        // dashboard's readLocalPrimaryChart wraps the StoredChart from the
-        // chart-library store (zustand + idb-keyval, persist name
-        // 'almamesh-chart-library').
         const chartId = 'verify-delhi-1990'
+        const profileId = 'verify-delhi-profile'
         const stored = {
           chart_id: chartId,
           person_name: birth.name,
           is_primary: true,
+          profile_id: profileId,
           birth_data: {
             name: birth.name,
             birth_datetime_utc: birth.datetimeUtc,
@@ -231,32 +223,59 @@ async function main() {
           // Seed it so CHECK 4 exercises the real chart pipeline, not the empty state.
           sidereal_chart: chart.full,
         }
-        // Persist into the same IndexedDB key zustand-persist uses, in the
-        // zustand-persist envelope ({ state: { charts }, version }).
-        const { set: idbSet } = await import('/node_modules/.vite/deps/idb-keyval.js').catch(
-          () => ({ set: null }),
-        )
-        const envelope = JSON.stringify({ state: { charts: { [chartId]: stored } }, version: 0 })
-        if (idbSet) {
-          await idbSet('almamesh-chart-library', envelope)
-        } else {
-          // Fallback: raw IndexedDB write to the idb-keyval default store.
-          await new Promise((resolve, reject) => {
-            const open = indexedDB.open('keyval-store')
-            open.onupgradeneeded = () => open.result.createObjectStore('keyval')
-            open.onerror = () => reject(open.error)
-            open.onsuccess = () => {
-              const db = open.result
-              const tx = db.transaction('keyval', 'readwrite')
-              tx.objectStore('keyval').put(envelope, 'almamesh-chart-library')
-              tx.oncomplete = () => resolve(true)
-              tx.onerror = () => reject(tx.error)
-            }
-          })
-        }
-        localStorage.setItem('almamesh-chart', '1')
-        return true
+        return JSON.stringify({
+          format: 'almamesh-backup',
+          formatVersion: 1,
+          app: { version: 'exit-gate' },
+          exportedAt: '2025-01-01T00:00:00.000Z',
+          encryption: 'none',
+          stores: {
+            'almamesh-profiles': {
+              version: 1,
+              state: {
+                profiles: {
+                  [profileId]: {
+                    id: profileId,
+                    name: birth.name,
+                    createdAt: '2025-01-01T00:00:00.000Z',
+                    avatarTint: '#3A4FB0',
+                    relationship: 'self',
+                  },
+                },
+                activeProfileId: profileId,
+              },
+            },
+            'almamesh-chart-library': {
+              version: 0,
+              state: { charts: { [chartId]: stored } },
+            },
+          },
+        })
       }, { chart, birth: { ...DELHI_BIRTH, name: 'Delhi Test' } })
+
+      await context.addInitScript(() => {
+        Reflect.deleteProperty(window, 'showOpenFilePicker')
+        Reflect.deleteProperty(window, 'showSaveFilePicker')
+      })
+      await page.goto(`${BASE_URL}/settings/data`, { waitUntil: 'domcontentloaded' })
+      const chooserPromise = page.waitForEvent('filechooser')
+      await page.getByTestId('backup-import-button').click()
+      const chooser = await chooserPromise
+      await chooser.setFiles({
+        name: 'verify-delhi-1990.json',
+        mimeType: 'application/json',
+        buffer: Buffer.from(backup, 'utf8'),
+      })
+      const confirm = page.getByTestId('backup-confirm-import')
+      await confirm.waitFor({ state: 'visible' })
+      const safetyDownloadPromise = page.waitForEvent('download')
+      const restoredDocumentPromise = page.waitForEvent('domcontentloaded')
+      await confirm.click()
+      const [safetyDownload] = await Promise.all([
+        safetyDownloadPromise,
+        restoredDocumentPromise,
+      ])
+      await safetyDownload.cancel()
 
       // Navigate to the dashboard. The chart visuals (3D force-field hero +
       // 2D kundli) are a SCREEN feature of the "For Astrologer" (technical)
@@ -292,7 +311,7 @@ async function main() {
         const hasChartUi = !isEmptyState && canvasCount >= 1 && svgCount >= 2
         return { hasError, hasChartUi, isEmptyState, hasPlanetGlyphs, svgCount, canvasCount, bodyLen: text.length }
       })
-      renderPass = persisted && rendered.hasChartUi && !rendered.hasError
+      renderPass = rendered.hasChartUi && !rendered.hasError
       renderDetail = `svgCount=${rendered.svgCount} canvasCount=${rendered.canvasCount} planetGlyphs=${rendered.hasPlanetGlyphs} emptyState=${rendered.isEmptyState} hasError=${rendered.hasError}`
     } catch (e) {
       renderDetail = `error: ${String(e)}`
@@ -383,31 +402,14 @@ async function main() {
       await page.waitForTimeout(500)
     }
 
-    // Saved chart still readable from IndexedDB.
-    const savedChart = await page.evaluate(async () => {
-      const read = () =>
-        new Promise((resolve) => {
-          const open = indexedDB.open('keyval-store')
-          open.onsuccess = () => {
-            const db = open.result
-            if (!db.objectStoreNames.contains('keyval')) return resolve(null)
-            const tx = db.transaction('keyval', 'readonly')
-            const get = tx.objectStore('keyval').get('almamesh-chart-library')
-            get.onsuccess = () => resolve(get.result ?? null)
-            get.onerror = () => resolve(null)
-          }
-          open.onerror = () => resolve(null)
-        })
-      const raw = await read()
-      if (!raw) return null
-      try {
-        const parsed = JSON.parse(raw)
-        const ids = Object.keys(parsed?.state?.charts ?? {})
-        return { count: ids.length, ids }
-      } catch {
-        return { count: 0, ids: [] }
-      }
-    })
+    // The dashboard's identity strip is a user-visible read through the real
+    // chart-library store after it rehydrates from canonical SQLite.
+    await page.waitForSelector('[data-testid="identity-strip"]', { timeout: 20_000 }).catch(() => {})
+    const savedChart = await page.evaluate(() => ({
+      hasIdentity: document.querySelector('[data-testid="identity-strip"]') !== null,
+      hasNoChart: document.querySelector('[data-testid="no-chart-state"]') !== null,
+      hasReadFailure: document.querySelector('[data-testid="chart-read-failed"]') !== null,
+    }))
 
     // Durability probe: the synced engine DATA persists in OPFS across reload —
     // the chunk store + active version pointer are still present offline.
@@ -433,20 +435,21 @@ async function main() {
       }
     }, activePointerNames).catch((e) => ({ error: String(e) }))
 
-    const chartReadable = !!savedChart && savedChart.count > 0
+    const chartReadable =
+      savedChart.hasIdentity && !savedChart.hasNoChart && !savedChart.hasReadFailure
     const opfsDurable = (opfs?.chunkCount ?? 0) > 0 && opfs?.hasActive === true
     const rebootedOffline = offlineStage === 'ready' && !offlineErr
 
     // P6 closed both halves of the exit-gate claim:
     //   (a) engine DATA survives first load (OPFS chunks + active version +
-    //       IndexedDB chart);
+    //       canonical SQLite chart);
     //   (b) the engine RE-BOOTS with zero network — the sync tier now falls back
     //       to the cached active version when /latest is unreachable (and the
     //       app shell is served by the Service Worker). So CHECK 5 now requires
     //       the offline reboot too, not just durability.
     offlinePass = chartReadable && opfsDurable && rebootedOffline
     offlineDetail =
-      `OPFS chunks=${opfs?.chunkCount ?? '?'} active=${opfs?.hasActive}${opfs?.error ? ` error="${opfs.error}"` : ''} | IndexedDB chart readable=${chartReadable} (saved=${savedChart?.count ?? 0}). ` +
+      `OPFS chunks=${opfs?.chunkCount ?? '?'} active=${opfs?.hasActive}${opfs?.error ? ` error="${opfs.error}"` : ''} | canonical SQLite chart readable=${chartReadable} (identity=${savedChart.hasIdentity}, noChart=${savedChart.hasNoChart}, readFailure=${savedChart.hasReadFailure}). ` +
       `OFFLINE-REBOOT: rebooted=${rebootedOffline} offlineStage=${offlineStage}${offlineErr ? ` err="${offlineErr}"` : ''} (sync fell back to the cached active version; bundle/pyodide refetch aborted).`
   } catch (e) {
     offlineDetail = `error: ${String(e)}`
@@ -517,14 +520,15 @@ async function main() {
 
     // The saved chart must render (chart UI present, no error boundary).
     await page.waitForTimeout(1500)
+    await page.waitForSelector('[data-testid="identity-strip"]', { timeout: 20_000 }).catch(() => {})
     const rendered = await page
       .evaluate(() => {
         const text = document.body.innerText || ''
         const hasError = /something went wrong|error boundary/i.test(text)
-        const hasChartUi =
-          document.querySelectorAll('svg').length > 0 ||
-          /lagna|ascendant|capricorn|gemini|leo|planet|house/i.test(text)
-        return { hasError, hasChartUi, svgCount: document.querySelectorAll('svg').length }
+        const hasIdentity = document.querySelector('[data-testid="identity-strip"]') !== null
+        const hasNoChart = document.querySelector('[data-testid="no-chart-state"]') !== null
+        const hasReadFailure = document.querySelector('[data-testid="chart-read-failed"]') !== null
+        return { hasError, hasIdentity, hasNoChart, hasReadFailure }
       })
       .catch((e) => ({ error: String(e) }))
 
@@ -532,13 +536,17 @@ async function main() {
     const latestAttempts = offlineNet.filter((u) => u.includes('/bundle/latest'))
     const shellOk = shellLoaded.hasRoot === true && shellLoaded.isChromeError !== true
     const rebooted = hoStage === 'ready' && !hoErr
-    const chartRendered = rendered.hasChartUi === true && rendered.hasError !== true
+    const chartRendered =
+      rendered.hasIdentity === true &&
+      rendered.hasNoChart !== true &&
+      rendered.hasReadFailure !== true &&
+      rendered.hasError !== true
 
     hardOfflinePass = swReady && shellOk && rebooted && chartRendered
     hardOfflineDetail =
       `swReady=${swReady} shellLoaded(root=${shellLoaded.hasRoot},chromeError=${shellLoaded.isChromeError}) ` +
       `engineReboot=${rebooted}(stage=${hoStage}${hoErr ? ` err="${hoErr}"` : ''}) ` +
-      `chartRendered=${chartRendered}(svg=${rendered.svgCount}) ` +
+      `chartRendered=${chartRendered}(identity=${rendered.hasIdentity},noChart=${rendered.hasNoChart},readFailure=${rendered.hasReadFailure}) ` +
       `/latest offline-attempts(failed)=${latestAttempts.length}` +
       (gotoErr ? ` gotoErr=${gotoErr}` : '')
   } catch (e) {

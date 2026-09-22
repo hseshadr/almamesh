@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, '../../../../../..');
-const EDGEPROC_BROWSER_SHA = 'a94e7f2a0237a7144658351c07cb296fcb0540fb';
+const EDGEPROC_BROWSER_SHA = '333cbafd82856f4b662da2758f47b7afcf241969';
 const readRoot = (path: string): string => readFileSync(resolve(root, path), 'utf8');
 const readSection = (document: string, heading: string): string => {
   const start = document.indexOf(heading);
@@ -136,6 +136,16 @@ describe('repository truth', () => {
     expect(workflow).toContain(
       'node scripts/verify-webkit-engine.mjs http://127.0.0.1:4200 --first-session',
     );
+    expect(workflow).toContain(
+      './node_modules/.bin/vite preview --outDir dist-verify --host 127.0.0.1 --port 4200 --strictPort',
+    );
+    expect(workflow).not.toContain('python3 -m http.server 4200');
+    expect(workflow).toContain(
+      'node scripts/verify-cross-origin-isolation.mjs http://127.0.0.1:4199 --browser=chromium',
+    );
+    expect(workflow).toContain(
+      'node scripts/verify-cross-origin-isolation.mjs http://127.0.0.1:4200 --browser=webkit',
+    );
     expect(gate).toContain('webkit.launch({ headless: true })');
     expect(gate).toContain("u.includes('/bundle/latest')");
     expect(gate).toContain("'edgeproc-browser-cache'");
@@ -227,6 +237,7 @@ describe('repository truth', () => {
 
   it('proves destructive reset through durable storage and landing-page postconditions', () => {
     const proof = readRoot('frontend/apps/web/scripts/verify-privacy-reset.mjs');
+    const dagger = readRoot('dagger/src/index.ts');
     expect(proof).toContain("localStorage.setItem('almamesh-chart', '1')");
     expect(proof).toContain("putIdbValue('almamesh-chart-library'");
     expect(proof).toContain("getByTestId('landing-nav-cta')");
@@ -234,6 +245,10 @@ describe('repository truth', () => {
     expect(proof).toContain("getIdbValue('almamesh-chart-library')");
     expect(proof).not.toContain('waitForURL');
     expect(proof).toContain('Reset postcondition failed');
+    expect(dagger).toContain(
+      'node scripts/verify-privacy-reset.mjs http://127.0.0.1:4199',
+    );
+    expect(dagger).not.toContain('http://privacy:4173');
   });
 
   it('keeps ordinary builds keyless while production and engine gates fail closed on trust assets', () => {

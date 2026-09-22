@@ -12,6 +12,7 @@
  * All fixtures are synthetic.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { del as idbDel } from 'idb-keyval';
 
 import { SemanticMemoryStorageUnavailableError } from '@almamesh/memory';
 import type { VedicInterpretation } from '@almamesh/shared-types';
@@ -33,10 +34,23 @@ import { clearMemory } from './chatMemory';
 import { resetEverything } from './resetEverything';
 
 vi.mock('./chatMemory', () => ({ clearMemory: vi.fn().mockResolvedValue(undefined) }));
+vi.mock('idb-keyval', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('idb-keyval')>();
+  return { ...actual, del: vi.fn().mockResolvedValue(undefined) };
+});
 
 const LANGUAGE_KEY = 'almamesh-language';
 const LLM_SETTINGS_KEY = 'almamesh-llm-settings';
 const INTERPRETATIONS_KEY = 'almamesh-interpretations';
+const LEGACY_IDB_KEYS = [
+  'almamesh-chart-library',
+  'almamesh-profiles',
+  'almamesh-life-events',
+  'almamesh-chat-history',
+  'almamesh-rectification-records',
+  'almamesh-predictive',
+  'almamesh-interpretations',
+] as const;
 
 function deferred(): { promise: Promise<void>; resolve: () => void } {
   let resolve!: () => void;
@@ -99,6 +113,7 @@ beforeEach(() => {
   useRectificationRecordsStore.setState({ recordsByProfile: {} });
   usePredictiveStore.getState().reset();
   vi.mocked(clearMemory).mockClear();
+  vi.mocked(idbDel).mockReset().mockResolvedValue(undefined);
 });
 
 describe('store clearAll actions', () => {
@@ -287,6 +302,26 @@ describe('resetEverything', () => {
     ).rejects.toBe(failure);
   });
 
+  it('propagates a legacy keyval cleanup failure and aborts the fenced reset', async () => {
+    const failure = new Error('Legacy IndexedDB deletion blocked');
+    const abortDatasetReset = vi.fn(async () => undefined);
+    vi.mocked(idbDel).mockImplementation(async (key) => {
+      if (key === 'almamesh-profiles') throw failure;
+    });
+
+    await expect(
+      resetEverything({
+        waitForHydration: () => Promise.resolve(),
+        beginDatasetReset: () => Promise.resolve(11),
+        clearPersisted: () => Promise.resolve(),
+        abortDatasetReset,
+      }),
+    ).rejects.toBe(failure);
+
+    expect(abortDatasetReset).toHaveBeenCalledOnce();
+    expect(abortDatasetReset).toHaveBeenCalledWith(11);
+  });
+
   it('clears every owned store and the chart flag, preserving device prefs', async () => {
     localStorage.setItem(LANGUAGE_KEY, JSON.stringify({ state: { language: 'es' }, version: 0 }));
     localStorage.setItem(LLM_SETTINGS_KEY, JSON.stringify({ endpoint: 'https://example' }));
@@ -318,6 +353,36 @@ describe('resetEverything', () => {
     expect(localStorage.getItem(LLM_SETTINGS_KEY)).toBe(
       JSON.stringify({ endpoint: 'https://example' }),
     );
+  });
+
+  it('removes every legacy keyval row while preserving device prefs and the OPFS engine', async () => {
+    localStorage.setItem(LANGUAGE_KEY, JSON.stringify({ state: { language: 'pt' }, version: 0 }));
+    localStorage.setItem(LLM_SETTINGS_KEY, JSON.stringify({ model: 'local' }));
+    const legacyRows = new Map<string, { stale: boolean }>(
+      LEGACY_IDB_KEYS.map((key) => [key, { stale: true }]),
+    );
+    vi.mocked(idbDel).mockImplementation(async (key) => {
+      legacyRows.delete(String(key));
+    });
+    const getDirectory = vi.fn();
+    Object.defineProperty(navigator, 'storage', {
+      value: { getDirectory },
+      configurable: true,
+    });
+
+    await resetEverything({
+      waitForHydration: () => Promise.resolve(),
+      beginDatasetReset: () => Promise.resolve(7),
+      clearPersisted: () => Promise.resolve(),
+    });
+
+    expect(legacyRows.size).toBe(0);
+    expect(vi.mocked(idbDel).mock.calls.map(([key]) => key)).toEqual(LEGACY_IDB_KEYS);
+    expect(localStorage.getItem(LANGUAGE_KEY)).toBe(
+      JSON.stringify({ state: { language: 'pt' }, version: 0 }),
+    );
+    expect(localStorage.getItem(LLM_SETTINGS_KEY)).toBe(JSON.stringify({ model: 'local' }));
+    expect(getDirectory).not.toHaveBeenCalled();
   });
 
   it('never touches the OPFS engine bundle', async () => {

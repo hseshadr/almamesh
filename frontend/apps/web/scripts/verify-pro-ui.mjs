@@ -29,6 +29,7 @@
  */
 
 import { mkdirSync } from 'node:fs'
+import { Buffer } from 'node:buffer'
 import { chromium } from '@playwright/test'
 
 const BASE_URL = process.argv[2] ?? 'http://localhost:4173'
@@ -49,7 +50,7 @@ const REFERENCE_BIRTH = {
 
 // /report and the dashboard reading section are gated on a complete structured
 // interpretation; the LLM is out of scope for this deterministic journey, so
-// seed a compact complete reading (same envelope verify-wave-d.mjs uses).
+// restore a compact complete reading through the shipped backup boundary.
 const persona = (lead) => ({ layman: lead, technical: `${lead} (technical voice)` })
 const titled = (title, lead) => ({ title, ...persona(lead) })
 const INTERPRETATION = {
@@ -107,6 +108,31 @@ async function shot(page, name, fullPage = false) {
   return path
 }
 
+async function restoreBackup(page, backup) {
+  await page.addInitScript(() => {
+    Reflect.deleteProperty(window, 'showOpenFilePicker')
+    Reflect.deleteProperty(window, 'showSaveFilePicker')
+  })
+  await page.goto(`${BASE_URL}/settings/data`, { waitUntil: 'domcontentloaded' })
+  const [chooser] = await Promise.all([
+    page.waitForEvent('filechooser'),
+    page.getByTestId('backup-import-button').click(),
+  ])
+  await chooser.setFiles({
+    name: 'verify-pro-ui.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(backup, 'utf8'),
+  })
+  const confirm = page.getByTestId('backup-confirm-import')
+  await confirm.waitFor({ state: 'visible' })
+  const [safetyDownload] = await Promise.all([
+    page.waitForEvent('download'),
+    page.waitForEvent('domcontentloaded'),
+    confirm.click(),
+  ])
+  await safetyDownload.cancel()
+}
+
 /** Innermost elements whose entire visible text is exactly "AlmaMesh" — the
  *  brand wordmark; prose mentions (e.g. the provenance footer line) have
  *  longer parent text and do not count. */
@@ -130,7 +156,7 @@ async function main() {
   wireConsole(page, 'main')
 
   // ---- BOOT + GENERATE the founder chart with the REAL engine ----
-  await page.goto(BASE_URL, { waitUntil: 'domcontentloaded' })
+  await page.goto(`${BASE_URL}/onboarding`, { waitUntil: 'domcontentloaded' })
   const t0 = Date.now()
   await bootEngine(page)
   const chart = await page.evaluate(async (birth) => {
@@ -152,10 +178,11 @@ async function main() {
     `boot+gen=${Date.now() - t0}ms lagna=${chart.lagnaSign} ${chart.lagnaDegInSign?.toFixed(2)}deg yogas=${chart.yogaCount} grades=[${chart.yogaGrades.join(',')}] venus(combust=${chart.venus?.is_combust} yogakaraka=${chart.venus?.is_yogakaraka} rules=${JSON.stringify(chart.venus?.houses_ruled)})`,
   )
 
-  // ---- SEED the chart library exactly as the real flow stores it ----
-  await page.evaluate(
-    async ({ chart, birth, interpretation }) => {
+  // ---- RESTORE the fixture through Settings into canonical SQLite ----
+  const backup = await page.evaluate(
+    ({ chart, birth, interpretation }) => {
       const chartId = 'pro-ui-reference-1988'
+      const profileId = `${chartId}-profile`
       // Mirror @almamesh/store toDashaCtx — the library stores the ADAPTER
       // shape (UI VimshottariDashaData), not the raw engine dasha ctx.
       const dashaLeg = (p, level) =>
@@ -184,6 +211,7 @@ async function main() {
         : undefined
       const stored = {
         chart_id: chartId,
+        profile_id: profileId,
         person_name: birth.name,
         is_primary: true,
         birth_data: {
@@ -219,39 +247,58 @@ async function main() {
         interpretation: undefined,
         sidereal_chart: chart,
       }
-      const envelope = JSON.stringify({ state: { charts: { [chartId]: stored } }, version: 0 })
-      await new Promise((resolve, reject) => {
-        const open = indexedDB.open('keyval-store')
-        open.onupgradeneeded = () => open.result.createObjectStore('keyval')
-        open.onerror = () => reject(open.error)
-        open.onsuccess = () => {
-          const db = open.result
-          const tx = db.transaction('keyval', 'readwrite')
-          tx.objectStore('keyval').put(envelope, 'almamesh-chart-library')
-          tx.oncomplete = () => resolve(true)
-          tx.onerror = () => reject(tx.error)
-        }
-      })
-      localStorage.setItem('almamesh-chart', '1')
-      localStorage.setItem(
-        'almamesh-interpretations',
-        JSON.stringify({
-          state: {
-            byChart: {
-              [chartId]: {
-                status: 'complete',
-                interpretation,
-                sections: { core: true, yoga: true, guidance1: true, guidance2: true, remedial: true },
-                updatedAt: Date.now(),
+      return JSON.stringify({
+        format: 'almamesh-backup',
+        formatVersion: 1,
+        app: { version: 'verify-pro-ui' },
+        exportedAt: '2025-01-01T00:00:00.000Z',
+        encryption: 'none',
+        stores: {
+          'almamesh-profiles': {
+            version: 1,
+            state: {
+              profiles: {
+                [profileId]: {
+                  id: profileId,
+                  name: birth.name,
+                  createdAt: '2025-01-01T00:00:00.000Z',
+                  avatarTint: '#3A4FB0',
+                  relationship: 'self',
+                },
+              },
+              activeProfileId: profileId,
+            },
+          },
+          'almamesh-chart-library': {
+            version: 1,
+            state: { charts: { [chartId]: stored } },
+          },
+          'almamesh-interpretations': {
+            version: 6,
+            state: {
+              byChart: {
+                [chartId]: {
+                  profileId,
+                  status: 'complete',
+                  interpretation,
+                  sections: {
+                    core: true,
+                    yoga: true,
+                    guidance1: true,
+                    guidance2: true,
+                    remedial: true,
+                  },
+                  updatedAt: Date.now(),
+                },
               },
             },
           },
-          version: 0,
-        }),
-      )
+        },
+      })
     },
     { chart: chart.full, birth: REFERENCE_BIRTH, interpretation: INTERPRETATION },
   )
+  await restoreBackup(page, backup)
 
   // ============ (a) /dashboard ============
   await page.goto(`${BASE_URL}/dashboard`, { waitUntil: 'domcontentloaded' })

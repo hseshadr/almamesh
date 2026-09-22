@@ -1,7 +1,7 @@
 /**
  * Local-first chart read helper.
  *
- * The on-device chart library (`@almamesh/store` chartLibrary, IndexedDB)
+ * The on-device chart library (`@almamesh/store` chartLibrary, OPFS SQLite)
  * stores the adapted `ChartData`. The legacy UI pages consume the richer
  * `BirthChartGenerationResponse` the backend used to return, so this maps the
  * persisted primary chart into that shape. One place owns the mapping; every
@@ -25,7 +25,7 @@ function emptyPrimaryChart(): BirthChartGenerationResponse {
 /**
  * Read the device's primary chart as a `BirthChartGenerationResponse`.
  *
- * The library store rehydrates from IndexedDB asynchronously, so on a fresh
+ * The library store rehydrates from portable SQLite asynchronously, so on a fresh
  * document load (PWA reopen / hard refresh) it is still empty at first render.
  * We `await whenChartLibraryHydrated()` before reading — otherwise the read
  * returns a false "no chart" miss that strands the dashboard on an infinite

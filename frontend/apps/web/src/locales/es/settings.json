@@ -248,7 +248,7 @@
     "subtitle": "Mueve todos tus datos — perfiles, cartas, chat y ajustes — a otro navegador. No se sube nada; guardas un único archivo y lo llevas contigo.",
     "export_heading": "Exportar",
     "export_button": "Exportar mis datos",
-    "export_hint": "Descarga un único archivo con tus perfiles, cartas e historial de chat.",
+    "export_hint": "Descarga un archivo SQLite portátil con tus perfiles, cartas e historial de chat. Al añadir una contraseña, se exporta JSON cifrado por compatibilidad.",
     "passphrase_label": "Proteger con una contraseña (opcional)",
     "passphrase_placeholder": "Déjalo en blanco para no cifrar",
     "sensitivity_note": "Este archivo contiene tus datos de nacimiento y tu historial de chat — mantenlo privado.",

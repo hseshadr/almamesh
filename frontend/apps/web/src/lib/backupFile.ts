@@ -1,26 +1,14 @@
-/**
- * Pure browser file I/O for Backup & Restore (Spec 061).
- *
- * This module is deliberately tiny and dependency-free: it imports NO store, NO
- * crypto, and NO astrology. It only saves a text string to a file the user
- * chooses and reads a text string back from a file the user picks.
- *
- * Where supported (Chromium/Edge) it uses the File System Access API so the user
- * can save straight into a synced Drive/Dropbox/iCloud folder and re-open it
- * later. Firefox/Safari lack that API, so it falls back to the classic
- * `<a download>` (save) and `<input type=file>` (open) mechanisms. Nothing here
- * touches the network — the only bytes that leave the device are the file the
- * user explicitly saves.
- */
+/** Browser-only file I/O for portable AlmaMesh backups. */
 
-/** A single `accept` entry for the native pickers. */
+export type BackupFileContent = string | Uint8Array;
+
 interface BackupPickerType {
   description: string;
   accept: Record<string, string[]>;
 }
 
 interface BackupWritable {
-  write(data: string): Promise<void>;
+  write(data: BackupFileContent): Promise<void>;
   close(): Promise<void>;
 }
 
@@ -39,44 +27,86 @@ interface OpenFilePickerOptions {
   multiple?: boolean;
 }
 
-/**
- * The subset of the File System Access API this module uses, projected onto
- * `window`. Both methods may be absent (Firefox/Safari), which is why callers
- * feature-detect with the `in` operator before casting to this shape.
- */
 interface FileSystemAccessWindow {
   showSaveFilePicker(options: SaveFilePickerOptions): Promise<BackupFileHandle>;
   showOpenFilePicker(options: OpenFilePickerOptions): Promise<BackupFileHandle[]>;
 }
 
-/** JSON-only filter shared by both pickers. */
-const BACKUP_PICKER_TYPE: BackupPickerType = {
-  description: 'AlmaMesh backup',
+const JSON_PICKER_TYPE: BackupPickerType = {
+  description: 'Encrypted or legacy AlmaMesh backup',
   accept: { 'application/json': ['.json'] },
 };
 
-/** True when the user dismissed a native picker (not an actual failure). */
+const SQLITE_PICKER_TYPE: BackupPickerType = {
+  description: 'Portable AlmaMesh SQLite backup',
+  accept: { 'application/vnd.sqlite3': ['.sqlite3', '.sqlite', '.db'] },
+};
+
+const ALL_BACKUP_PICKER_TYPES = [SQLITE_PICKER_TYPE, JSON_PICKER_TYPE];
+const SQLITE_HEADER = new Uint8Array([
+  0x53, 0x51, 0x4c, 0x69, 0x74, 0x65, 0x20, 0x66,
+  0x6f, 0x72, 0x6d, 0x61, 0x74, 0x20, 0x33, 0x00,
+]);
+
 function isAbortError(error: unknown): boolean {
   return error instanceof DOMException && error.name === 'AbortError';
 }
 
-/**
- * Save `text` to a file named `suggestedName`. Returns `'saved'` when the file
- * is written (or the download is triggered) and `'cancelled'` when the user
- * dismisses the native save dialog. Non-abort errors propagate to the caller.
- */
+function hasSqliteHeader(bytes: Uint8Array): boolean {
+  return SQLITE_HEADER.every((value, index) => bytes[index] === value);
+}
+
+function looksLikeJson(bytes: Uint8Array): boolean {
+  for (const byte of bytes) {
+    if (byte === 0x20 || byte === 0x09 || byte === 0x0a || byte === 0x0d) continue;
+    return byte === 0x7b || byte === 0x5b;
+  }
+  return false;
+}
+
+async function readBackupFile(file: File): Promise<BackupFileContent> {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  if (hasSqliteHeader(bytes)) return bytes;
+  // Only decode bytes with the lexical prefix of JSON. Unknown binary stays
+  // binary so validation can reject it without treating arbitrary bytes as text.
+  if (
+    looksLikeJson(bytes) ||
+    file.type.toLowerCase() === 'application/json' ||
+    file.name.toLowerCase().endsWith('.json')
+  ) {
+    try {
+      return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+    } catch {
+      return bytes;
+    }
+  }
+  return bytes;
+}
+
+function pickerTypeFor(suggestedName: string, content: BackupFileContent): BackupPickerType {
+  return content instanceof Uint8Array || /\.(?:sqlite3?|db)$/i.test(suggestedName)
+    ? SQLITE_PICKER_TYPE
+    : JSON_PICKER_TYPE;
+}
+
+function mimeTypeFor(suggestedName: string, content: BackupFileContent): string {
+  return pickerTypeFor(suggestedName, content) === SQLITE_PICKER_TYPE
+    ? 'application/vnd.sqlite3'
+    : 'application/json';
+}
+
 export async function saveBackupFile(
   suggestedName: string,
-  text: string,
+  content: BackupFileContent,
 ): Promise<'saved' | 'cancelled'> {
   if (typeof window !== 'undefined' && 'showSaveFilePicker' in window) {
     try {
       const handle = await (window as unknown as FileSystemAccessWindow).showSaveFilePicker({
         suggestedName,
-        types: [BACKUP_PICKER_TYPE],
+        types: [pickerTypeFor(suggestedName, content)],
       });
       const writable = await handle.createWritable();
-      await writable.write(text);
+      await writable.write(content);
       await writable.close();
       return 'saved';
     } catch (error) {
@@ -85,13 +115,16 @@ export async function saveBackupFile(
     }
   }
 
-  downloadTextFile(suggestedName, text);
+  downloadFile(suggestedName, content);
   return 'saved';
 }
 
-/** Fallback save: trigger a browser download via a transient `<a download>`. */
-function downloadTextFile(suggestedName: string, text: string): void {
-  const blob = new Blob([text], { type: 'application/json' });
+function downloadFile(suggestedName: string, content: BackupFileContent): void {
+  const part =
+    typeof content === 'string'
+      ? content
+      : Uint8Array.from(content).buffer;
+  const blob = new Blob([part], { type: mimeTypeFor(suggestedName, content) });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
   anchor.href = url;
@@ -102,71 +135,48 @@ function downloadTextFile(suggestedName: string, text: string): void {
   URL.revokeObjectURL(url);
 }
 
-/**
- * Prompt the user to pick a backup file and return its text, or `null` if the
- * user cancels / selects nothing. Non-abort errors propagate to the caller.
- */
-export async function pickBackupFile(): Promise<string | null> {
+export async function pickBackupFile(): Promise<BackupFileContent | null> {
   if (typeof window !== 'undefined' && 'showOpenFilePicker' in window) {
     try {
       const [handle] = await (window as unknown as FileSystemAccessWindow).showOpenFilePicker({
-        types: [BACKUP_PICKER_TYPE],
+        types: ALL_BACKUP_PICKER_TYPES,
         multiple: false,
       });
-      const file = await handle.getFile();
-      return await file.text();
+      if (handle === undefined) return null;
+      return await readBackupFile(await handle.getFile());
     } catch (error) {
       if (isAbortError(error)) return null;
       throw error;
     }
   }
 
-  return pickTextFileViaInput();
+  return pickFileViaInput();
 }
 
-/**
- * Fallback open: read a file chosen through a transient `<input type=file>`.
- *
- * Resolves the file text on `change`, or `null` on cancel. Not every browser
- * fires the `cancel` event, so we ALSO treat the window regaining focus (which
- * happens when the file dialog closes) as a cancel signal — deferred to the next
- * tick so a real `change` gets to win first. A single-settle guard makes the two
- * paths (and a `change` that races the refocus) idempotent, so the promise can
- * never hang or double-resolve.
- */
-function pickTextFileViaInput(): Promise<string | null> {
-  return new Promise<string | null>((resolve, reject) => {
+function pickFileViaInput(): Promise<BackupFileContent | null> {
+  return new Promise<BackupFileContent | null>((resolve, reject) => {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = 'application/json,.json';
+    input.accept = 'application/vnd.sqlite3,application/json,.sqlite3,.sqlite,.db,.json';
 
     let settled = false;
-    const settle = (value: string | null) => {
+    const settle = (value: BackupFileContent | null) => {
       if (settled) return;
       settled = true;
       window.removeEventListener('focus', onFocus);
       resolve(value);
     };
-
     const onChange = () => {
-      const file = input.files && input.files[0];
-      if (!file) {
+      const file = input.files?.[0];
+      if (file === undefined) {
         settle(null);
         return;
       }
-      // A real selection wins — read its text, then settle with it.
-      file.text().then((text) => settle(text), reject);
+      void readBackupFile(file).then(settle, reject);
     };
-
-    // When the file dialog closes, the window refocuses. If `change` never fired
-    // (a browser that doesn't emit `cancel`), resolve null — but on the NEXT tick
-    // so a pending `change`/`file.text()` gets to settle first.
-    const onFocus = () => {
-      setTimeout(() => settle(null), 0);
-    };
+    const onFocus = () => setTimeout(() => settle(null), 0);
 
     input.addEventListener('change', onChange, { once: true });
-    // Chromium fires `cancel` when the dialog is dismissed with no selection.
     input.addEventListener('cancel', () => settle(null), { once: true });
     window.addEventListener('focus', onFocus);
     input.click();

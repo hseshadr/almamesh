@@ -76,33 +76,6 @@ async function spaNav(page: import('@playwright/test').Page, path: string) {
   await page.waitForTimeout(600);
 }
 
-// Read active profile ID from IndexedDB (almamesh-profiles zustand-persist key).
-async function readActiveProfileId(page: import('@playwright/test').Page): Promise<string | null> {
-  return page.evaluate(async (): Promise<string | null> => {
-    return new Promise((resolve) => {
-      const open = indexedDB.open('keyval-store');
-      open.onsuccess = () => {
-        const db = open.result;
-        if (!db.objectStoreNames.contains('keyval')) return resolve(null);
-        const tx = db.transaction('keyval', 'readonly');
-        const req = tx.objectStore('keyval').get('almamesh-profiles');
-        req.onsuccess = () => {
-          try {
-            resolve(
-              (JSON.parse(req.result as string ?? '{}') as { state?: { activeProfileId?: string } })
-                ?.state?.activeProfileId ?? null,
-            );
-          } catch {
-            resolve(null);
-          }
-        };
-        req.onerror = () => resolve(null);
-      };
-      open.onerror = () => resolve(null);
-    });
-  });
-}
-
 test.describe('Phase-2 Rectification Wizard', () => {
   test('full wizard journey: intro → events → fit → results → confirm → dashboard', async ({
     page,
@@ -132,15 +105,7 @@ test.describe('Phase-2 Rectification Wizard', () => {
     await page.screenshot({ path: `${SCRATCHPAD}/01-dashboard-loaded.png`, fullPage: true });
 
     // ── 3. Get active profile ID ───────────────────────────────────────────
-    let profileId = await readActiveProfileId(page);
-    if (!profileId) {
-      // Fallback: extract from IdentityStrip cusp CTA link in the DOM
-      profileId = await page.evaluate((): string | null => {
-        const a = document.querySelector('a[href*="/rectify/"]');
-        return a ? (a.getAttribute('href') ?? '').split('/rectify/')[1] ?? null : null;
-      });
-    }
-    expect(profileId, 'must have an active profile ID to navigate to rectify').toBeTruthy();
+    const profileId = `${BENGALURU_SEED.chartId}-profile`;
     console.log(`[wizard-phase2] profileId=${profileId}`);
 
     // ── 4. Navigate to /rectify/:profileId ───────────────────────────────
@@ -426,7 +391,7 @@ test.describe('Phase-2 Rectification Wizard', () => {
   //
   // Checks (window-mode specific):
   //   1. Engine boot + chart seed with timeConfidence='unknown'
-  //   2. IDB patched to wire profile_id → detectRectificationMode returns 'window'
+  //   2. Canonical SQLite chart/profile state resolves rectification mode as 'window'
   //   3. Wizard reaches /rectify/:profileId, intro step renders
   //   4. ≥3 structured events added, Continue enabled
   //   5. Fit step: FitProgress shows elapsed timer, NO "%"
@@ -442,7 +407,7 @@ test.describe('Phase-2 Rectification Wizard', () => {
   // ---------------------------------------------------------------------------
 
   const WINDOW_NATIVE_ID = 'wizard-phase2-mumbai-unknown-1990';
-  const WINDOW_PROFILE_ID = 'wizard-phase2-mumbai-unknown-profile'; // stable synthetic ID
+  const WINDOW_PROFILE_ID = `${WINDOW_NATIVE_ID}-profile`;
 
   const MUMBAI_UNKNOWN_SEED: SeedBirthSpec = {
     name: 'Unknown Native',
@@ -459,70 +424,6 @@ test.describe('Phase-2 Rectification Wizard', () => {
     locationName: 'Mumbai, Maharashtra, India',
     timeConfidence: 'unknown',
   };
-
-  /**
-   * After seedChart stores the chart in almamesh-chart-library (no profile_id),
-   * patch it to add profile_id + create an almamesh-profiles entry so that
-   * detectRectificationMode(charts, WINDOW_PROFILE_ID) finds the chart and
-   * returns 'window' (birth_time_confidence === 'unknown').
-   */
-  async function setupWindowProfile(
-    pw: import('@playwright/test').Page,
-    profileId: string,
-    chartId: string,
-  ): Promise<void> {
-    await pw.evaluate(
-      async (args: { profileId: string; chartId: string }) => {
-        const { profileId: pId, chartId: cId } = args;
-        const db = await new Promise<IDBDatabase>((resolve, reject) => {
-          const req = indexedDB.open('keyval-store');
-          req.onupgradeneeded = () => req.result.createObjectStore('keyval');
-          req.onsuccess = () => resolve(req.result);
-          req.onerror = () => reject(req.error);
-        });
-
-        const idbGet = (key: string): Promise<string | null> =>
-          new Promise((res, rej) => {
-            const tx = db.transaction('keyval', 'readonly');
-            const r = tx.objectStore('keyval').get(key);
-            r.onsuccess = () => res(r.result as string | null);
-            r.onerror = () => rej(r.error);
-          });
-
-        const idbPut = (key: string, val: string): Promise<void> =>
-          new Promise((res, rej) => {
-            const tx = db.transaction('keyval', 'readwrite');
-            tx.objectStore('keyval').put(val, key);
-            tx.oncomplete = () => res();
-            tx.onerror = () => rej(tx.error);
-          });
-
-        // Patch chart library: add profile_id to the Mumbai chart
-        const libRaw = await idbGet('almamesh-chart-library');
-        if (libRaw) {
-          const lib = JSON.parse(libRaw) as {
-            state: { charts: Record<string, Record<string, unknown>> };
-            version: number;
-          };
-          if (lib.state?.charts?.[cId]) {
-            lib.state.charts[cId]['profile_id'] = pId;
-            await idbPut('almamesh-chart-library', JSON.stringify(lib));
-          }
-        }
-
-        // Create profiles entry — almamesh-profiles key (zustand-persist envelope).
-        const profilesEnv = JSON.stringify({
-          state: {
-            profiles: { [pId]: { id: pId, name: 'Unknown Native' } },
-            activeProfileId: pId,
-          },
-          version: 0,
-        });
-        await idbPut('almamesh-profiles', profilesEnv);
-      },
-      { profileId, chartId },
-    );
-  }
 
   test('window-mode wizard: unknown-time → window sign-fit → sign-caveat → confirm', async ({
     page,
@@ -544,11 +445,7 @@ test.describe('Phase-2 Rectification Wizard', () => {
     console.log(`[wizard-window] seeded lagna=${String(seeded.lagna)}`);
     await page.screenshot({ path: `${SCRATCHPAD}/window-00-engine-seeded.png`, fullPage: true });
 
-    // ── 2. Patch IDB: profile_id → chart + profiles entry ────────────────
-    await setupWindowProfile(page, WINDOW_PROFILE_ID, WINDOW_NATIVE_ID);
-    console.log('[wizard-window] IDB patched — detectRectificationMode will return window');
-
-    // ── 3. Hard navigate to /dashboard (stores re-hydrate from patched IDB) ─
+    // ── 2. Hard navigate to /dashboard (stores re-hydrate from canonical SQLite) ─
     await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
     await waitForEngineReady(page);
     await page.waitForTimeout(1500);
