@@ -9,11 +9,11 @@ import { bootEngine, DELHI_BIRTH, LLM_SETTINGS_KEY } from './interpretation.help
  *      and NEVER the old "about 30 seconds" string.
  *   B) Life Phase card             — renders a real maha phase, not the
  *      "Life phase information not available" fallback.
- *   C) Agentic chat (the headline) — on a `cloud_premium` OpenRouter endpoint
- *      the floating chat calls the grounding tools (get_planet_facts/…) to fetch
- *      EXACT engine facts before answering, so the answer cites the engine's own
- *      Mars sign rather than inventing one. Also proves the typing indicator
- *      (`chat-loading`) shows before the first streamed token.
+ *   C) Agentic chat (the headline) — after the user explicitly enables agent
+ *      mode, a `cloud_premium` OpenRouter model receives exactly the three local,
+ *      read-only tools, calls the date/time tool, and receives its Asia/Kolkata
+ *      result before answering. Also proves the typing indicator (`chat-loading`)
+ *      shows before the first streamed token.
  *
  * This is a REAL integration test: real in-browser Pyodide engine, a real Delhi
  * sidereal chart generated in-tab, and a LIVE OpenRouter round-trip with a
@@ -33,8 +33,8 @@ const PLACEHOLDERS = ['pending', 'please retry', 'loading', 'no answer available
  * (which hardcodes `dasha_ctx: undefined`), this builds a REAL `dasha_ctx` from
  * the engine's own `chart.dashas`, mirroring the production `@almamesh/store`
  * adapter (`current_maha` → `maha_dasha`, etc.) so the Life Phase card has the
- * engine's true dasha to render. Returns the engine's lagna + Mars placement so
- * the test can assert the chat is grounded in those exact engine numbers.
+ * engine's true dasha to render. Returns the engine's lagna and active maha lord
+ * so the test can confirm that the real chart was loaded.
  */
 async function seedChartWithDasha(page: Page) {
   return page.evaluate(
@@ -170,18 +170,8 @@ async function seedChartWithDasha(page: Page) {
       }
       localStorage.setItem('almamesh-chart', '1');
 
-      // The engine's Mars (key may be capitalized in the dict) — engine truth.
-      const marsEntry = Object.entries(chart.planets).find(
-        ([k, v]) =>
-          k.toLowerCase() === 'mars' ||
-          (v.name ?? '').toLowerCase() === 'mars',
-      );
-      const mars = marsEntry?.[1];
-
       return {
         lagna: chart.lagna?.sign ?? null,
-        marsSign: mars?.sign ?? null,
-        marsHouse: mars?.house ?? null,
         mahaLord: activeMaha?.lord ?? null,
       };
     },
@@ -189,7 +179,7 @@ async function seedChartWithDasha(page: Page) {
   );
 }
 
-test('[real] dashboard: timer + life phase + tool-grounded agentic chat', async ({
+test('[real] dashboard: timer + life phase + local-time agentic chat', async ({
   page,
 }) => {
   const KEY = process.env.OPENROUTER_API_KEY;
@@ -202,6 +192,28 @@ test('[real] dashboard: timer + life phase + tool-grounded agentic chat', async 
     if (m.type() === 'error') errors.push(m.text());
   });
   page.on('pageerror', (e) => errors.push(String(e)));
+
+  // Observe (but never intercept) the live provider traffic. Interpretation
+  // requests use the same endpoint, so retain only requests carrying the agent
+  // tool contract. Request bodies contain prompts/tool data, never the API key.
+  const agentRequestBodies: Array<Record<string, unknown>> = [];
+  page.on('request', (request) => {
+    if (request.method() !== 'POST' || !request.url().endsWith('/chat/completions')) return;
+    try {
+      const body = request.postDataJSON() as Record<string, unknown>;
+      const tools = Array.isArray(body.tools) ? body.tools : [];
+      const names = tools.flatMap((tool) => {
+        if (typeof tool !== 'object' || tool === null) return [];
+        const fn = (tool as { function?: unknown }).function;
+        if (typeof fn !== 'object' || fn === null) return [];
+        const name = (fn as { name?: unknown }).name;
+        return typeof name === 'string' ? [name] : [];
+      });
+      if (names.includes('get_current_datetime')) agentRequestBodies.push(body);
+    } catch {
+      // Non-JSON requests cannot be part of the OpenAI-compatible agent loop.
+    }
+  });
 
   // Cloud OpenRouter, tool-capable model, cloud_premium so the agentic loop runs
   // and the fail-closed gate permits the off-device call. Key from env only.
@@ -222,12 +234,9 @@ test('[real] dashboard: timer + life phase + tool-grounded agentic chat', async 
   await bootEngine(page);
   const seeded = await seedChartWithDasha(page);
   expect(String(seeded.lagna).toLowerCase()).toBe('gemini');
-  expect(seeded.marsSign, 'engine must emit a Mars sign').toBeTruthy();
-  const engineMarsSign = String(seeded.marsSign).toLowerCase();
-  const engineMarsHouse = seeded.marsHouse;
-   
+
   console.log(
-    `[engine] lagna=${seeded.lagna} mars sign=${seeded.marsSign} house=${seeded.marsHouse} maha=${seeded.mahaLord}`,
+    `[engine] lagna=${seeded.lagna} maha=${seeded.mahaLord}`,
   );
 
   await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
@@ -261,66 +270,54 @@ test('[real] dashboard: timer + life phase + tool-grounded agentic chat', async 
   expect(identityText).not.toContain('Not available');
 
   // ---------------------------------------------------------------------------
-  // C) Agentic chat (HEADLINE) — open the floating chat, ask about Mars, and
-  //    prove the answer cites the engine's exact Mars sign (tool-grounded).
+  // C) Agentic chat (HEADLINE) — opt in, ask a question whose answer must come
+  //    from the caller-pinned clock, then prove the complete live tool protocol.
   // ---------------------------------------------------------------------------
   await page.getByTestId('floating-chat-button').click();
   const chatInput = page.getByTestId('chat-input');
   await expect(chatInput).toBeVisible({ timeout: 15_000 });
 
-  await chatInput.fill("What's my Mars placement?");
+  const agentMode = page.getByTestId('chat-agent-mode');
+  await agentMode.click();
+  await expect(agentMode).toHaveAttribute('aria-checked', 'true');
+
+  await chatInput.fill(
+    'Use the available local date/time tool, not training data, to tell me the current date and time in my chart timezone. Include the timezone and UTC offset.',
+  );
   await page.getByTestId('chat-send-button').click();
 
   // (i) The typing indicator (chat-loading dots) must show BEFORE any answer
   //     text streams in — this also covers the agentic tool-lookup pause.
   await expect(page.getByTestId('chat-loading')).toBeVisible({ timeout: 60_000 });
   await page.screenshot({
-    path: '/tmp/almamesh-verify/chat-mars.png',
+    path: '/tmp/almamesh-verify/chat-local-time.png',
     fullPage: true,
   });
+
+  // The concrete local capability stays visible while the provider consumes
+  // its result, making the otherwise-fast synchronous tool call perceptible.
+  await expect(page.getByTestId('chat-agent-status')).toContainText(
+    'Checking the current time',
+    { timeout: 180_000 },
+  );
 
   // (ii) An answer then STREAMS into the chat panel. Wait for a substantive
   //      assistant message to appear (the tool loop + first-pass decision can
   //      take a while on a reasoning model).
-  const chatPanel = page.getByTestId('chat-panel');
-  await expect
-    .poll(
-      async () => {
-        const txt = (await chatPanel.textContent()) ?? '';
-        // Strip the input placeholder + headings; look for streamed answer body.
-        return txt.length;
-      },
-      { timeout: 480_000, intervals: [2_000] },
-    )
-    .toBeGreaterThan(0);
-
-  // Wait until the streamed answer actually mentions Mars (the model has fetched
-  // get_planet_facts and is narrating) — poll the panel text for the Mars sign.
-  let answerText = '';
-  await expect
-    .poll(
-      async () => {
-        answerText = (await chatPanel.textContent()) ?? '';
-        const lower = answerText.toLowerCase();
-        // Heuristic: a real, finished answer mentions mars AND the sign/house.
-        const mentionsMars = lower.includes('mars');
-        const mentionsSign = lower.includes(engineMarsSign);
-        const mentionsHouse =
-          engineMarsHouse != null &&
-          new RegExp(`\\b${engineMarsHouse}(st|nd|rd|th)?\\b`).test(lower);
-        return mentionsMars && (mentionsSign || mentionsHouse);
-      },
-      { timeout: 480_000, intervals: [3_000] },
-    )
-    .toBe(true);
+  const assistantMessage = page.getByTestId('chat-message-assistant').last();
+  await expect(assistantMessage).toBeVisible({ timeout: 480_000 });
+  await expect(assistantMessage).toContainText(/Asia\/Kolkata|UTC\+?05:30|India/i, {
+    timeout: 480_000,
+  });
+  const answerText = (await assistantMessage.textContent()) ?? '';
 
   await page.screenshot({
-    path: '/tmp/almamesh-verify/chat-mars.png',
+    path: '/tmp/almamesh-verify/chat-local-time.png',
     fullPage: true,
   });
 
   const lower = answerText.toLowerCase();
-   
+
   console.log(`[chat answer] ${answerText.replace(/\s+/g, ' ').trim().slice(0, 600)}`);
 
   // Not a placeholder / error bubble.
@@ -328,19 +325,47 @@ test('[real] dashboard: timer + life phase + tool-grounded agentic chat', async 
     expect(lower).not.toContain(placeholder);
   }
 
-  // THE GROUNDING ASSERTION: the answer must contain the SAME Mars sign the
-  // engine computed (case-insensitive). House-number match is accepted as an
-  // additional signal, but the sign is REQUIRED — if the sign is absent the chat
-  // either invented a placement or never called the tool, which is a FAIL.
-  const signPresent = lower.includes(engineMarsSign);
-  const housePresent =
-    engineMarsHouse != null &&
-    new RegExp(`\\b${engineMarsHouse}(st|nd|rd|th)?\\b`).test(lower);
-  expect(
-    signPresent,
-    `Tool-grounding FAILED: engine Mars sign "${engineMarsSign}" (house ${engineMarsHouse}) ` +
-      `not found in the chat answer. House present: ${housePresent}. Answer: ${answerText}`,
-  ).toBe(true);
+  // THE TOOL-PROTOCOL ASSERTIONS: the live model first saw the exact fixed
+  // allowlist, then a later provider request carried the locally executed
+  // Asia/Kolkata result. This proves tool use, rather than inferring it from
+  // plausible prose in the answer.
+  await expect
+    .poll(() => agentRequestBodies.length, {
+      timeout: 480_000,
+      intervals: [1_000],
+    })
+    .toBeGreaterThanOrEqual(2);
+
+  const firstAgentRequest = agentRequestBodies[0] as {
+    stream?: unknown;
+    tool_choice?: unknown;
+    tools?: Array<{ function?: { name?: string } }>;
+  };
+  expect(firstAgentRequest.stream).toBe(false);
+  expect(firstAgentRequest.tool_choice).toBe('auto');
+  expect(firstAgentRequest.tools?.map((tool) => tool.function?.name)).toEqual([
+    'get_current_datetime',
+    'get_chart_facts',
+    'get_current_timing',
+  ]);
+
+  const requestWithToolResult = agentRequestBodies.find((body) => {
+    const messages = Array.isArray(body.messages) ? body.messages : [];
+    return messages.some(
+      (message) =>
+        typeof message === 'object' &&
+        message !== null &&
+        (message as { role?: unknown }).role === 'tool',
+    );
+  }) as
+    | { messages?: Array<{ role?: string; name?: string; content?: string }> }
+    | undefined;
+  expect(requestWithToolResult, 'the provider must receive a local tool result').toBeTruthy();
+  const returnedToolResult = requestWithToolResult?.messages?.find(
+    (message) => message.role === 'tool' && message.name === 'get_current_datetime',
+  );
+  expect(returnedToolResult?.content).toContain('"timeZone":"Asia/Kolkata"');
+  expect(returnedToolResult?.content).toContain('"utcOffset":"+05:30"');
 
   // No hard request failures during the flow.
   for (const fragment of ['LlmRequestError', 'CORS', 'Failed to fetch']) {

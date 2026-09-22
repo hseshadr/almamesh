@@ -993,15 +993,25 @@ test('REAL onboarding -> rectify -> offline reload -> predictive PDF is correct'
   });
 
   // ---- 0. Production-fidelity guard: the preview server must serve the REAL
-  // Cloudflare CSP (previewProdCspPlugin in vite.config.ts). Without it this
+  // Cloudflare browser headers (previewProdBrowserHeadersPlugin in vite.config.ts).
+  // Without the CSP this
   // suite cannot catch CSP-blocked fetches — the yoga-layout data:-URI wasm
   // fetch shipped console errors to production exactly that way while the
   // clean-console gate below stayed vacuously green.
   const bootResponse = await page.goto('/onboarding', { waitUntil: 'domcontentloaded' });
   expect(
     bootResponse?.headers()['content-security-policy'] ?? '',
-    'vite preview must serve the production Content-Security-Policy (previewProdCspPlugin)',
+    'vite preview must serve the production Content-Security-Policy',
   ).toContain("connect-src 'self'");
+  expect(bootResponse?.headers()['cross-origin-opener-policy']).toBe('same-origin');
+  expect(bootResponse?.headers()['cross-origin-embedder-policy']).toBe('require-corp');
+  expect(
+    await page.evaluate(() => ({
+      isolated: globalThis.crossOriginIsolated,
+      sharedArrayBuffer: typeof globalThis.SharedArrayBuffer === 'function',
+      waitAsync: typeof Atomics.waitAsync === 'function',
+    })),
+  ).toEqual({ isolated: true, sharedArrayBuffer: true, waitAsync: true });
 
   // ---- 1. REAL onboarding through the live engine bootstrap to /dashboard ----
   await driveRealOnboarding(page);

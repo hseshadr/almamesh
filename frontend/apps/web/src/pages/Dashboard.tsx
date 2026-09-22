@@ -10,8 +10,11 @@ import type {
 import { readLocalPrimaryChart } from "../lib/localChartRead";
 import {
   applyChatSettings,
+  buildChatMessages,
   describeLlmStatus,
   resolveProviderConfig,
+  sanitizeChartForLlm,
+  streamAgentChat,
   streamChartChat,
   serializeInterpretationForChat,
   readLlmSettings,
@@ -19,6 +22,7 @@ import {
   openRouterPreset,
   RECOMMENDED_CLOUD_MODEL,
   type ChatTurn,
+  type AgentStatusEvent,
   type LlmEnv,
 } from "@almamesh/llm";
 import {
@@ -69,6 +73,7 @@ import { useReportPdfExport } from "../hooks/useReportPdfExport";
 import { isPlaceholderContent } from "./exportGate";
 import { personaText, resolveReportAudience } from "../lib/reportSelectors";
 import { rectificationDelta } from "../lib/rectification";
+import { createChatAgentTools } from "../lib/chatAgentTools";
 
 // Resolve the LLM env: build-time Vite env with any browser-local Settings
 // overrides taking precedence — mirrors useStreamingInterpretation so the
@@ -253,8 +258,11 @@ export default function DashboardPage() {
     signal: AbortSignal,
     history: readonly ChatTurn[] = [],
     retrievedContext: readonly string[] = [],
+    agentMode = false,
+    onAgentStatus?: (label: string | null) => void,
   ) => {
-    const chart = chartId ? useChartLibraryStore.getState().getChart(chartId)?.sidereal_chart : undefined;
+    const storedChart = chartId ? useChartLibraryStore.getState().getChart(chartId) : undefined;
+    const chart = storedChart?.sidereal_chart;
     if (!chart) {
       throw new Error(t('errors:needs_regeneration'));
     }
@@ -282,11 +290,59 @@ export default function DashboardPage() {
     const rectificationRecord = activeProfileId
       ? useRectificationRecordsStore.getState().getRecord(activeProfileId)
       : null;
+    const language = useLanguageStore.getState().language;
+    const now = new Date();
+    const chartWithPredictive = withRawPredictive(chart, chartId);
+    const rectification = rectificationRecord
+      ? {
+          band: rectificationRecord.band,
+          originalSign: rectificationRecord.originalSign,
+          rectifiedSign: rectificationRecord.rectifiedSign,
+          mode: rectificationRecord.mode,
+        }
+      : undefined;
+
+    if (agentMode) {
+      const messages = buildChatMessages(
+        sanitizeChartForLlm(chartWithPredictive, now),
+        question,
+        chatMode,
+        history,
+        retrievedContext,
+        interpretationText,
+        language,
+        undefined,
+        rectification,
+      );
+      const chartTimeZone =
+        storedChart?.birth_data?.birth_location_details.timezone ?? 'UTC';
+      let activeToolLabel: string | null = null;
+      return streamAgentChat({
+        config,
+        messages,
+        tools: createChatAgentTools({ chart: chartWithPredictive, chartTimeZone }),
+        now,
+        signal,
+        onStatus: (event) => {
+          if (event.phase === 'using_tool') {
+            activeToolLabel = event.label;
+          } else if (event.phase === 'deciding' && event.round > 1 && activeToolLabel !== null) {
+            // Keep the concrete local activity visible while the provider reads
+            // its result; replacing it immediately with a generic second-round
+            // label makes a synchronous tool call imperceptible to people.
+            return;
+          } else if (event.phase === 'answering' || event.phase === 'complete') {
+            activeToolLabel = null;
+          }
+          onAgentStatus?.(agentStatusLabel(event));
+        },
+      });
+    }
     return streamChartChat({
       // Compose the persisted raw predictive contexts (when ready for this
       // profile) so chat answers can cite the engine's transit/strength/domain
       // facts (Spec 062 delta 1); absent contexts → natal-only, as before.
-      chart: withRawPredictive(chart, chartId),
+      chart: chartWithPredictive,
       question,
       config,
       mode: chatMode,
@@ -295,20 +351,12 @@ export default function DashboardPage() {
       // chat hook (best-effort; empty when memory is unavailable).
       retrievedContext,
       interpretationText,
-      ...(rectificationRecord
-        ? {
-            rectification: {
-              band: rectificationRecord.band,
-              originalSign: rectificationRecord.originalSign,
-              rectifiedSign: rectificationRecord.rectifiedSign,
-              mode: rectificationRecord.mode,
-            },
-          }
-        : {}),
+      ...(rectification ? { rectification } : {}),
       // Answer chat in the user's chosen UI language (interpretation is threaded
       // the same way via useStreamingInterpretation); the engine is untouched.
-      language: useLanguageStore.getState().language,
+      language,
       signal,
+      now,
     });
   };
 
@@ -319,6 +367,8 @@ export default function DashboardPage() {
     questionViewMode?: ViewMode,
     history: readonly ChatTurn[] = [],
     retrievedContext: readonly string[] = [],
+    agentMode = false,
+    onAgentStatus?: (label: string | null) => void,
   ) => {
     const controller = new AbortController();
     let answer = '';
@@ -329,6 +379,8 @@ export default function DashboardPage() {
         controller.signal,
         history,
         retrievedContext,
+        agentMode,
+        onAgentStatus,
       )) {
         answer += delta;
         onToken(delta);
@@ -346,6 +398,19 @@ export default function DashboardPage() {
       remedies: null as string[] | null,
     };
   };
+
+  function agentStatusLabel(event: AgentStatusEvent): string {
+    switch (event.phase) {
+      case 'deciding':
+        return t('chat:agent.deciding');
+      case 'using_tool':
+        return event.label;
+      case 'answering':
+        return t('chat:agent.answering');
+      case 'complete':
+        return t('chat:agent.complete');
+    }
+  }
 
   const handleGenerateSeparatedInterpretation = useCallback(async () => {
     if (!chartId) return;
@@ -1062,6 +1127,7 @@ export default function DashboardPage() {
         chartId={chartId}
         viewMode={viewMode}
         onAskQuestionStream={handleAskQuestionStream}
+        agentModeAvailable
         initialOpen={chatInitiallyOpen}
       />
     </>

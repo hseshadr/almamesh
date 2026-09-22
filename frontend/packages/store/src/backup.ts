@@ -10,17 +10,29 @@
  * blob restored here.
  *
  * Every tier is reached through the injectable {@link StorageTier} facade, so the
- * pure functions are unit-testable with in-memory fakes. The only browser-bound
- * seam is {@link createBrowserTiers}. The caller supplies the timestamp + app
- * version (no `Date.now()` here) so exports stay deterministic in tests.
+ * pure functions are unit-testable with in-memory fakes. In production the
+ * historical `idb` tier name maps to canonical SQLite rows; language does too.
+ * The caller supplies the timestamp + app version (no `Date.now()` here) so
+ * legacy JSON exports stay deterministic in tests.
  */
 
-import { get as idbGet, set as idbSet, del as idbDel } from 'idb-keyval';
 import { safeWarn } from '@almamesh/shared-types';
-import type { BackupEnvelopePlain, BackupStoreSnapshot, BackupStores } from '@almamesh/shared-types';
-import { commitDatasetGeneration } from './deletionTombstones';
+import type {
+  BackupEnvelopePlain,
+  BackupStoreSnapshot,
+  BackupStores,
+} from '@almamesh/shared-types';
+import {
+  abortBackupRestore,
+  beginBackupRestore,
+  commitDatasetGeneration,
+  deletionAwareIdbStorage,
+  portablePreferenceStorage,
+  requirePortableStateRepository,
+} from './deletionTombstones';
+import { PORTABLE_STATE_KEYS, readPortableStateDatabase } from './portableState';
 
-/** The two persistence tiers a backup spans: `localStorage` and idb-keyval. */
+/** Compatibility tier labels retained by the legacy JSON backup envelope. */
 export type BackupTier = 'local' | 'idb';
 
 /**
@@ -131,9 +143,9 @@ interface StagedWrite {
  * The all-or-nothing guarantee is real for VALIDATION and STAGING: an invalid,
  * too-new, or corrupt-to-serialize file is rejected up front, so a bad file never
  * begins a write. The WRITES themselves are NOT transactional — `localStorage`
- * and idb-keyval cannot be rolled back together, so a mid-write storage failure
- * (e.g. an IDB quota error on the third store) can leave a partial replace. That
- * failure is surfaced to the caller (rejected), never swallowed.
+ * and an arbitrary injected compatibility tier cannot be rolled back together,
+ * so a mid-write storage failure can leave a partial replace. Production browser
+ * restores use {@link applyBrowserBackupAtomically} instead.
  *
  * This is a TRUE "Replace all": a known store the envelope OMITS is DELETED, so
  * no stale local data survives an import of a sparse backup. Unknown store keys
@@ -200,7 +212,7 @@ export async function applyBackup(envelope: BackupEnvelopePlain, deps: BackupDep
 }
 
 /**
- * Update the two synchronous browser mirrors after the authoritative IDB
+ * Update the two synchronous browser mirrors after the authoritative SQLite
  * generation commits. They are routing/preferences conveniences, not source
  * data. A quota or privacy-mode failure therefore reports `false` without
  * turning a durable personal-data restore into a false failure.
@@ -221,7 +233,7 @@ export async function applyLocalRestoreMirrors(
   }
 }
 
-/** Production Replace: commit every personal store and generation pointer atomically in IDB. */
+/** Production Replace: commit every canonical store and generation pointer atomically in SQLite. */
 export async function applyBrowserBackupAtomically(
   envelope: BackupEnvelopePlain,
   deps: BackupDeps,
@@ -231,15 +243,17 @@ export async function applyBrowserBackupAtomically(
     await applyBackup(envelope, deps);
     return;
   }
-  const personalStores = BACKUP_STORES.filter((entry) => entry.tier === 'idb');
-  const writes = personalStores.map((entry) => {
+  const writes = BACKUP_STORES.map((entry) => {
     const snapshot = envelope.stores[entry.key];
     return {
       key: entry.key,
       value:
         snapshot === undefined
           ? null
-          : JSON.stringify({ state: snapshot.state, version: snapshot.version }),
+          : JSON.stringify({
+              state: snapshot.state,
+              version: snapshot.version,
+            }),
     };
   });
   await commitDatasetGeneration(epoch, writes, [CHAT_VECTORS_KEY, PREDICTIVE_CACHE_KEY], {
@@ -259,29 +273,104 @@ export async function applyBrowserBackupAtomically(
   }
 }
 
+/** Export the canonical browser dataset as a real, standard SQLite database. */
+export async function exportPortableBrowserState(): Promise<Uint8Array> {
+  return (await requirePortableStateRepository()).exportBytes();
+}
+
 /**
- * Real browser tiers: `local` over `window.localStorage`, `idb` over idb-keyval
- * (the single `keyval-store` DB every persisted idb store already shares). Thin
- * on purpose — all logic lives in the pure functions above. Window access is lazy
- * (inside the methods) so importing this module never touches `window`.
+ * Import a validated SQLite transport through the normal generation commit.
+ * This retags every Zustand envelope to a fresh local epoch, so existing tabs
+ * cannot resurrect the pre-import dataset. Legacy JSON imports remain handled
+ * by applyBrowserBackupAtomically.
+ */
+export async function importPortableBrowserState(bytes: Uint8Array): Promise<void> {
+  const imported = await readPortableStateDatabase(bytes);
+  const restored = restoredIdsFromPortableRows(imported.values);
+  const epoch = await beginBackupRestore(restored);
+  try {
+    await commitDatasetGeneration(
+      epoch,
+      PORTABLE_STATE_KEYS.map((key) => ({
+        key,
+        value: imported.values.get(key) ?? null,
+      })),
+      [CHAT_VECTORS_KEY, PREDICTIVE_CACHE_KEY],
+      { memoryRebuildPending: true },
+    );
+    const language = imported.values.get('almamesh-language') ?? null;
+    const storage = (globalThis as { localStorage?: Partial<Storage> }).localStorage;
+    if (language === null) storage?.removeItem?.('almamesh-language');
+    else storage?.setItem?.('almamesh-language', language);
+  } catch (error) {
+    await abortBackupRestore(epoch);
+    throw error;
+  }
+}
+
+function restoredIdsFromPortableRows(values: ReadonlyMap<string, string>): {
+  readonly profileIds: readonly string[];
+  readonly threadIds: readonly string[];
+  readonly chartIds: readonly string[];
+} {
+  const state = (key: string): Record<string, unknown> => {
+    const value = values.get(key);
+    if (value === undefined) return {};
+    try {
+      const parsed = JSON.parse(value) as { state?: unknown };
+      return parsed.state !== null &&
+        typeof parsed.state === 'object' &&
+        !Array.isArray(parsed.state)
+        ? (parsed.state as Record<string, unknown>)
+        : {};
+    } catch {
+      return {};
+    }
+  };
+  const keys = (value: unknown): readonly string[] =>
+    value !== null && typeof value === 'object' && !Array.isArray(value) ? Object.keys(value) : [];
+  return {
+    profileIds: keys(state('almamesh-profiles').profiles),
+    chartIds: keys(state('almamesh-chart-library').charts),
+    threadIds: keys(state('almamesh-chat-history').threads),
+  };
+}
+
+/**
+ * Real browser tiers. Canonical state resolves through SQLite-backed adapters;
+ * route flags remain disposable localStorage mirrors and derived caches remain
+ * in their rebuildable stores. Window access is lazy so module import is safe.
  */
 export function createBrowserTiers(): Record<BackupTier, StorageTier> {
   return {
     local: {
-      get: (key) => Promise.resolve(window.localStorage.getItem(key)),
-      set: (key, value) => {
+      get: async (key) =>
+        key === 'almamesh-language'
+          ? await portablePreferenceStorage.getItem(key)
+          : window.localStorage.getItem(key),
+      set: async (key, value) => {
+        if (key === 'almamesh-language') {
+          await portablePreferenceStorage.setItem(key, value);
+          return;
+        }
         window.localStorage.setItem(key, value);
-        return Promise.resolve();
       },
-      del: (key) => {
+      del: async (key) => {
+        if (key === 'almamesh-language') {
+          await portablePreferenceStorage.removeItem(key);
+          return;
+        }
         window.localStorage.removeItem(key);
-        return Promise.resolve();
       },
     },
     idb: {
-      get: async (key) => (await idbGet<string>(key)) ?? null,
-      set: (key, value) => idbSet(key, value),
-      del: (key) => idbDel(key),
+      get: async (key) => await deletionAwareIdbStorage.getItem(key),
+      set: async (key, value) => {
+        await deletionAwareIdbStorage.setItem(key, value);
+      },
+      del: async (key) => {
+        await deletionAwareIdbStorage.removeItem(key);
+      },
     },
   };
 }

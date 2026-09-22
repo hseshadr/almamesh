@@ -1,7 +1,7 @@
 /**
  * Language store — the on-device, local-first persistence for the UI + AI
  * language preference. There is no backend and no account: the choice lives in
- * this browser's localStorage and survives a refresh / PWA reopen.
+ * the portable on-device SQLite database and survives a refresh / PWA reopen.
  *
  * Default language is DETECTED from `navigator.language` on first run (es* → es,
  * pt* → pt, everything else → en), then the user's explicit choice (persisted)
@@ -9,17 +9,18 @@
  * `document.documentElement.lang`, and threads `language` into the LLM prompts so
  * readings/chat answer in the chosen language.
  *
- * Persistence is a browser-only enhancement — outside a browser (SSR/tests)
- * `localStorage` is absent and the store runs in-memory with the default.
+ * Persistence is a browser-only enhancement. Node-based SSR/tests use the
+ * explicit fallback seam and the store otherwise runs in memory.
  */
 
 import { create, type StateCreator } from 'zustand';
-import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware';
+import { createJSONStorage, persist } from 'zustand/middleware';
+import { portablePreferenceStorage } from './deletionTombstones';
 
 /** The supported UI + AI languages (kept in lockstep with i18next `supportedLngs`). */
 export type Language = 'en' | 'es' | 'pt';
 
-/** localStorage key for the persisted language choice (mirrors the chat store's named key style). */
+/** Portable SQLite key for the persisted language choice. */
 export const LANGUAGE_PERSIST_NAME = 'almamesh-language';
 
 /** Bump when the persisted language shape changes; always pair with `migrate`. */
@@ -90,37 +91,17 @@ const languageStoreCreator: StateCreator<LanguageStore> = (set) => ({
   setLanguage: (language) => set({ language }),
 });
 
-/** localStorage-backed zustand storage; benign no-op outside browsers (SSR/tests). */
-const localStorageBackend: StateStorage = {
-  getItem: (name) => {
-    const storage = (globalThis as { localStorage?: Partial<Storage> }).localStorage;
-    return typeof storage?.getItem === 'function' ? storage.getItem(name) : null;
-  },
-  setItem: (name, value) => {
-    const storage = (globalThis as { localStorage?: Partial<Storage> }).localStorage;
-    if (typeof storage?.setItem === 'function') {
-      storage.setItem(name, value);
-    }
-  },
-  removeItem: (name) => {
-    const storage = (globalThis as { localStorage?: Partial<Storage> }).localStorage;
-    if (typeof storage?.removeItem === 'function') {
-      storage.removeItem(name);
-    }
-  },
-};
-
 /**
  * Persisted language store. Only the `language` field is written; the actions
- * are recreated on rehydrate. In a non-browser runtime the persist layer no-ops
- * and the store stays in-memory at the detected default.
+ * are recreated on rehydrate. Production uses portable SQLite; localStorage is
+ * retained only as a disposable mirror and as the non-browser test seam.
  */
 export const useLanguageStore = create<LanguageStore>()(
   persist<LanguageStore, [], [], PersistedLanguageState>(languageStoreCreator, {
     name: LANGUAGE_PERSIST_NAME,
     version: LANGUAGE_PERSIST_VERSION,
     migrate: migrateLanguagePersistedState,
-    storage: createJSONStorage(() => localStorageBackend),
+    storage: createJSONStorage(() => portablePreferenceStorage),
     partialize: (state) => ({ language: state.language }),
   }),
 );

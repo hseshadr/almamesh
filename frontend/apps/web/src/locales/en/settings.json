@@ -245,7 +245,7 @@
     "subtitle": "Move all your data — profiles, charts, chat, and settings — to another browser. Nothing is uploaded; you save one file and carry it yourself.",
     "export_heading": "Export",
     "export_button": "Export my data",
-    "export_hint": "Downloads a single file with your profiles, charts, and chat history.",
+    "export_hint": "Downloads one portable SQLite file with your profiles, charts, and chat history. Adding a password exports encrypted JSON for compatibility.",
     "passphrase_label": "Protect with a password (optional)",
     "passphrase_placeholder": "Leave blank for no encryption",
     "sensitivity_note": "This file contains your birth data and chat history — keep it private.",

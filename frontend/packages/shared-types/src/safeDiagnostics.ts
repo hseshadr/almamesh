@@ -9,6 +9,7 @@ export const SAFE_DIAGNOSTIC_CODES = [
   'backup.memory_rebuild_deferred',
   'cache.query_not_found',
   'chat.stream_failed',
+  'chat.summary_failed',
   'dashboard.chart_fetch_failed',
   'dashboard.interpretation_failed',
   'engine.prewarm_failed',

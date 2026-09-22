@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, '../../../../../..');
-const EDGEPROC_BROWSER_SHA = 'a94e7f2a0237a7144658351c07cb296fcb0540fb';
+const EDGEPROC_BROWSER_SHA = '333cbafd82856f4b662da2758f47b7afcf241969';
 const readRoot = (path: string): string => readFileSync(resolve(root, path), 'utf8');
 const readSection = (document: string, heading: string): string => {
   const start = document.indexOf(heading);
@@ -135,6 +135,16 @@ describe('repository truth', () => {
     );
     expect(workflow).toContain(
       'node scripts/verify-webkit-engine.mjs http://127.0.0.1:4200 --first-session',
+    );
+    expect(workflow).toContain(
+      './node_modules/.bin/vite preview --outDir dist-verify --host 127.0.0.1 --port 4200 --strictPort',
+    );
+    expect(workflow).not.toContain('python3 -m http.server 4200');
+    expect(workflow).toContain(
+      'node scripts/verify-cross-origin-isolation.mjs http://127.0.0.1:4199 --browser=chromium',
+    );
+    expect(workflow).toContain(
+      'node scripts/verify-cross-origin-isolation.mjs http://127.0.0.1:4200 --browser=webkit',
     );
     expect(gate).toContain('webkit.launch({ headless: true })');
     expect(gate).toContain("u.includes('/bundle/latest')");

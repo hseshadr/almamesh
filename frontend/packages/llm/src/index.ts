@@ -110,6 +110,16 @@ export type {
 } from "./client";
 export type { ChatMessage, StreamChatOptions } from "./client";
 
+// --- Bounded browser-native tool orchestration (explicit opt-in) ---
+export { AGENT_LIMITS, streamAgentChat } from "./agent";
+export type {
+  AgentJsonObject,
+  AgentStatusEvent,
+  AgentTool,
+  AgentToolContext,
+  StreamAgentChatOptions,
+} from "./agent";
+
 // Reading provenance: which resolved config (engine/model/endpoint — never a
 // secret) produced a stored reading, so the UI can caption it and a config
 // change can trigger a regeneration.
@@ -178,6 +188,25 @@ export type { ChatStreamProvider, LlmEngine } from "./provider";
 
 export { estimateTokens, trimHistoryToBudget } from "./budget";
 export type { ChatTurn } from "./budget";
+
+export {
+  CHAT_SUMMARY_POLICY,
+  CHAT_SUMMARY_PROMPT_SCHEMA_VERSION,
+  ChatSummaryGenerationError,
+  chatSummarySourceHash,
+  finalizeChatSummary,
+  generateChatSummaryDraft,
+  hasValidChatSummaryShape,
+  planChatSummary,
+  summaryMatchesMessages,
+} from "./chat-summary";
+export type {
+  ChatSummaryPlan,
+  ChatSummaryGenerationErrorCode,
+  FinalizeChatSummaryInput,
+  GenerateChatSummaryDraftInput,
+  PlanChatSummaryInput,
+} from "./chat-summary";
 
 export {
   readLlmSettings,

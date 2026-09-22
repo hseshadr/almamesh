@@ -11,15 +11,21 @@
 //     browser really re-fetches them and can notice a new worker;
 //   - `/assets/*` is immutable, exactly as production serves content-hashed
 //     chunks — so a stale client keeps its old chunks unless the SW changes;
-//   - documents carry the REAL production CSP parsed out of `public/_headers`
-//     (plain `vite preview` serves no CSP at all — a known blind spot here).
+//   - documents carry the production CSP enforcement directives (minus the
+//     HTTPS-only upgrade directive on this local HTTP origin), and every
+//     response carries the production COOP/COEP pair, parsed out of
+//     `public/_headers` (plain static servers omit these headers and cannot
+//     exercise SharedArrayBuffer/OPFS).
 
 import { createServer, type Server } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { existsSync, statSync } from 'node:fs';
 import path from 'node:path';
 
-import { cspFromHeadersFile } from '../src/lib/previewHeaders';
+import {
+  browserIsolationHeadersFromHeadersFile,
+  cspForLocalHttpPreview,
+} from '../src/lib/previewHeaders';
 
 const CONTENT_TYPES: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
@@ -83,12 +89,18 @@ export async function startTwoBuildServer(
   port: number,
 ): Promise<TwoBuildServer> {
   let root = initialBuildDir;
-  const csp = cspFromHeadersFile(await readFile(path.join(initialBuildDir, '_headers'), 'utf8'));
+  const headersFile = await readFile(path.join(initialBuildDir, '_headers'), 'utf8');
+  const csp = cspForLocalHttpPreview(headersFile);
+  const isolationHeaders = browserIsolationHeadersFromHeadersFile(headersFile);
+  const baseHeaders = {
+    'cross-origin-opener-policy': isolationHeaders['Cross-Origin-Opener-Policy'],
+    'cross-origin-embedder-policy': isolationHeaders['Cross-Origin-Embedder-Policy'],
+  };
 
   const server: Server = createServer((req, res) => {
     const file = resolveFile(root, (req.url ?? '/').split('?')[0]);
     if (!file) {
-      res.writeHead(404, { 'content-type': 'text/plain' });
+      res.writeHead(404, { ...baseHeaders, 'content-type': 'text/plain' });
       res.end('not found');
       return;
     }
@@ -96,6 +108,7 @@ export async function startTwoBuildServer(
       (body) => {
         const type = CONTENT_TYPES[path.extname(file).toLowerCase()] ?? 'application/octet-stream';
         const headers: Record<string, string> = {
+          ...baseHeaders,
           'content-type': type,
           'cache-control': cacheControl(file),
         };
@@ -106,7 +119,7 @@ export async function startTwoBuildServer(
         res.end(body);
       },
       () => {
-        res.writeHead(500, { 'content-type': 'text/plain' });
+        res.writeHead(500, { ...baseHeaders, 'content-type': 'text/plain' });
         res.end('read error');
       },
     );

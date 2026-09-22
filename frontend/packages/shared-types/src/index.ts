@@ -40,6 +40,10 @@ export * from './mesh';
 export type {
   ChatThread,
   ChatMessage,
+  ChatSummaryDraft,
+  ChatSummaryGenerator,
+  ChatSummaryItem,
+  ChatThreadSummary,
   ChatThreadWithMessages,
   StreamingToken,
   StreamingDone,

@@ -18,6 +18,14 @@
   "status": {
     "analyzing": "Analyzing..."
   },
+  "agent": {
+    "label": "Agent mode",
+    "hint": "Tools run on-device; selected tool results are sent to your configured AI provider.",
+    "preparing": "Preparing local tools…",
+    "deciding": "Choosing the next safe step…",
+    "answering": "Writing the grounded answer…",
+    "complete": "Done"
+  },
   "tooltip": "Ask about your chart",
   "controls": {
     "open": "Open chat",

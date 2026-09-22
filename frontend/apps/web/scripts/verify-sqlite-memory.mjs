@@ -19,6 +19,18 @@ const requestedBrowser = arguments_
 const ORIGIN = new URL(BASE_URL).origin
 const EXPECTED_MESSAGE = 'sqlite-proof-message'
 
+function isDocumentedSqliteProxyWorker(url) {
+  try {
+    const parsed = new URL(url)
+    return (
+      /\/assets\/sqlite3-opfs-async-proxy(?:-[^/]+)?\.js$/.test(parsed.pathname) &&
+      ['opfs', 'opfs-wl'].includes(parsed.searchParams.get('vfs'))
+    )
+  } catch {
+    return false
+  }
+}
+
 async function runBrowser(browserType, browserName) {
   const browser = await browserType.launch({ headless: true })
   try {
@@ -62,7 +74,12 @@ async function runBrowser(browserType, browserName) {
       proofError = String(error)
     }
     const proofWorkers = workers.slice(workerStart)
-    const uniqueWorkerAssets = [...new Set(proofWorkers)]
+    const sqliteProxyWorkers = proofWorkers.filter(isDocumentedSqliteProxyWorker)
+    // The proof invokes only semantic memory. Once SQLite's documented OPFS
+    // proxy Workers are removed, every remaining lifecycle is the app-owned
+    // vector-index Worker regardless of Vite's generated asset basename.
+    const appWorkers = proofWorkers.filter((url) => !isDocumentedSqliteProxyWorker(url))
+    const uniqueAppWorkerAssets = [...new Set(appWorkers)]
     const proofRequests = requests.slice(requestStart)
     const offOrigin = proofRequests.filter((url) => {
       if (url.startsWith('blob:') || url.startsWith('data:')) return false
@@ -75,8 +92,12 @@ async function runBrowser(browserType, browserName) {
           reopenedQuery: proof?.reopenedMessageId === EXPECTED_MESSAGE,
           sqliteRuntime: /^3\./.test(proof?.sqliteVersion ?? ''),
           sqliteVectorRuntime: /^1\./.test(proof?.vectorVersion ?? ''),
-          twoWorkerLifecycles: proofWorkers.length === 2,
-          oneEmittedWorkerAsset: uniqueWorkerAssets.length === 1,
+          // Closing and reopening memory must create exactly two lifecycles of
+          // the one consumer-owned EdgeProc Worker asset. SQLite's documented
+          // OPFS/OPFS-WL proxy Workers are implementation internals and are
+          // inventoried separately rather than miscounted as duplicate app Workers.
+          twoWorkerLifecycles: appWorkers.length === 2,
+          oneEmittedWorkerAsset: uniqueAppWorkerAssets.length === 1,
           zeroThirdPartyEgress: offOrigin.length === 0,
           noPageErrors: pageErrors.length === 0,
         }
@@ -100,12 +121,17 @@ async function runBrowser(browserType, browserName) {
       proofError,
       assertions,
       workers: proofWorkers,
+      appWorkers,
+      sqliteProxyWorkers,
       requests: proofRequests,
       offOrigin,
       pageErrors,
     }
     if (failures.length > 0) {
-      throw new Error(`${browserName} SQLite memory proof failed: ${failures.join(', ')}`)
+      throw new Error(
+        `${browserName} SQLite memory proof failed: ${failures.join(', ')}; ` +
+          `evidence=${JSON.stringify(result)}`,
+      )
     }
     return result
   } finally {

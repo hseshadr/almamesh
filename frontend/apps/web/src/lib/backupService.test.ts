@@ -19,6 +19,7 @@ import {
   BackupError,
   CHART_FLAG_KEY,
   CHAT_VECTORS_KEY,
+  type PortableStateSnapshot,
   type StorageTier,
   useInterpretationStore,
 } from '@almamesh/store';
@@ -92,7 +93,7 @@ describe('buildBackupExport', () => {
 
     expect(result.filename).toBe('almamesh-backup-2026-07-01.json');
 
-    const parsed = JSON.parse(result.text);
+    const parsed = JSON.parse(result.content as string);
     expect(parsed.format).toBe('almamesh-backup');
     expect(parsed.formatVersion).toBe(1);
     expect(parsed.encryption).toBe('none');
@@ -100,6 +101,24 @@ describe('buildBackupExport', () => {
     expect(parsed.exportedAt).toBe(FIXED_NOW);
     expect(parsed.stores['almamesh-profiles']).toEqual({ state: PROFILES_STATE, version: 1 });
     expect(parsed.stores['almamesh-language']).toEqual({ state: LANGUAGE_STATE, version: 0 });
+  });
+
+  it('exports production plaintext as byte-exact standard SQLite', async () => {
+    const bytes = new Uint8Array([
+      ...new TextEncoder().encode('SQLite format 3\0'),
+      0xaa,
+      0xbb,
+    ]);
+
+    const result = await buildBackupExport(undefined, {
+      now: FIXED_NOW,
+      exportPortableState: vi.fn().mockResolvedValue(bytes),
+    });
+
+    expect(result.filename).toBe('almamesh-backup-2026-07-01.sqlite3');
+    expect(result.content).toBe(bytes);
+    expect(result.content).toBeInstanceOf(Uint8Array);
+    expect([...result.content as Uint8Array]).toEqual([...bytes]);
   });
 
   it('exports a completed interpretation immediately after its durability promise resolves', async () => {
@@ -138,7 +157,7 @@ describe('buildBackupExport', () => {
         appVersion: FIXED_VERSION,
       });
 
-      const parsed = JSON.parse(result.text) as BackupEnvelopePlain;
+      const parsed = JSON.parse(result.content as string) as BackupEnvelopePlain;
       expect(
         (parsed.stores['almamesh-interpretations']?.state as { byChart: Record<string, unknown> })
           .byChart['chart-now'],
@@ -146,6 +165,102 @@ describe('buildBackupExport', () => {
     } finally {
       useInterpretationStore.persist.setOptions({ storage: originalStorage });
     }
+  });
+});
+
+describe('portable SQLite import', () => {
+  const sqliteBytes = new Uint8Array([
+    ...new TextEncoder().encode('SQLite format 3\0'),
+    0x01,
+  ]);
+  const chatEnvelope = snapshot(
+    {
+      threads: { t1: { id: 't1', profile_id: 'p1' } },
+      messages: {
+        t1: [{ id: 'm1', content: 'portable message' }],
+      },
+    },
+    3,
+  );
+  const portableSnapshot: PortableStateSnapshot = {
+    epoch: 7,
+    values: new Map([
+      ['almamesh-chat-history', chatEnvelope],
+      ['almamesh-deletion-tombstones', JSON.stringify({ version: 1 })],
+      [
+        'almamesh-llm-settings',
+        snapshot({ apiKey: 'must-never-enter-portable-preview' }, 1),
+      ],
+    ]),
+  };
+
+  it('validates SQLite without decoding it as JSON and keeps an immutable byte copy', async () => {
+    const readPortableState = vi.fn().mockResolvedValue(portableSnapshot);
+
+    const staged = await stageBackupImport(sqliteBytes, undefined, { readPortableState });
+
+    expect(readPortableState).toHaveBeenCalledWith(sqliteBytes);
+    expect(staged.kind).toBe('sqlite');
+    if (staged.kind !== 'sqlite') throw new Error('expected sqlite stage');
+    expect(staged.bytes).not.toBe(sqliteBytes);
+    expect([...staged.bytes]).toEqual([...sqliteBytes]);
+    expect(staged.envelope.stores['almamesh-chat-history']).toMatchObject({ version: 3 });
+    expect(staged.envelope.stores['almamesh-llm-settings']).toBeUndefined();
+  });
+
+  it('rejects unknown binary as bad_format without calling the SQLite reader', async () => {
+    const readPortableState = vi.fn();
+    await expect(
+      stageBackupImport(new Uint8Array([0xff, 0x00, 0x01]), undefined, { readPortableState }),
+    ).rejects.toMatchObject({ code: 'bad_format' });
+    expect(readPortableState).not.toHaveBeenCalled();
+  });
+
+  it('imports SQLite bytes, rebuilds restored chat, clears the marker, and publishes lifecycle notices', async () => {
+    const readPortableState = vi.fn().mockResolvedValue(portableSnapshot);
+    const staged = await stageBackupImport(sqliteBytes, undefined, { readPortableState });
+    const importPortableState = vi.fn().mockResolvedValue(undefined);
+    const rebuildChatMemory = vi.fn().mockResolvedValue(undefined);
+    const completeMemoryRebuild = vi.fn().mockResolvedValue(undefined);
+    const publishDatasetNotice = vi.fn();
+
+    await commitBackupImport(staged, {
+      importPortableState,
+      rebuildChatMemory,
+      completeMemoryRebuild,
+      readActiveEpoch: vi.fn().mockResolvedValue(8),
+      publishDatasetNotice,
+    });
+
+    expect(importPortableState).toHaveBeenCalledWith(staged.kind === 'sqlite' ? staged.bytes : null);
+    expect(rebuildChatMemory).toHaveBeenCalledWith([
+      expect.objectContaining({ id: 'm1', profile_id: 'p1', content: 'portable message' }),
+    ]);
+    expect(completeMemoryRebuild).toHaveBeenCalledWith(8);
+    expect(publishDatasetNotice.mock.calls.map(([notice]) => notice.phase)).toEqual([
+      'begin',
+      'complete',
+    ]);
+  });
+
+  it('publishes abort and never rebuilds when SQLite commit fails', async () => {
+    const staged = await stageBackupImport(sqliteBytes, undefined, {
+      readPortableState: vi.fn().mockResolvedValue(portableSnapshot),
+    });
+    const rebuildChatMemory = vi.fn();
+    const publishDatasetNotice = vi.fn();
+    await expect(
+      commitBackupImport(staged, {
+        importPortableState: vi.fn().mockRejectedValue(new Error('commit refused')),
+        rebuildChatMemory,
+        publishDatasetNotice,
+      }),
+    ).rejects.toThrow('commit refused');
+    expect(rebuildChatMemory).not.toHaveBeenCalled();
+    expect(publishDatasetNotice.mock.calls.map(([notice]) => notice.phase)).toEqual([
+      'begin',
+      'abort',
+    ]);
   });
 });
 
@@ -157,11 +272,11 @@ describe('stageBackupImport (encrypted round-trip)', () => {
 
     const exported = await buildBackupExport('correct horse', override);
     // The file itself must be ciphertext, not plaintext stores.
-    const onDisk = JSON.parse(exported.text);
+    const onDisk = JSON.parse(exported.content as string);
     expect(onDisk.encryption).toBe('aes-gcm');
     expect(onDisk.stores).toBeUndefined();
 
-    const staged = await stageBackupImport(exported.text, 'correct horse');
+    const staged = await stageBackupImport(exported.content, 'correct horse');
 
     expect(staged.wasEncrypted).toBe(true);
     expect(staged.envelope.encryption).toBe('none');
@@ -179,11 +294,11 @@ describe('stageBackupImport (encrypted round-trip)', () => {
     const { override } = seededSource();
     const exported = await buildBackupExport('the right one', override);
 
-    await expect(stageBackupImport(exported.text, 'the wrong one')).rejects.toMatchObject({
+    await expect(stageBackupImport(exported.content, 'the wrong one')).rejects.toMatchObject({
       name: 'BackupCryptoError',
       code: 'bad_passphrase',
     });
-    await expect(stageBackupImport(exported.text, 'the wrong one')).rejects.toBeInstanceOf(
+    await expect(stageBackupImport(exported.content, 'the wrong one')).rejects.toBeInstanceOf(
       BackupCryptoError,
     );
   });
@@ -192,7 +307,7 @@ describe('stageBackupImport (encrypted round-trip)', () => {
     const { override } = seededSource();
     const exported = await buildBackupExport('a passphrase', override);
 
-    await expect(stageBackupImport(exported.text)).rejects.toMatchObject({
+    await expect(stageBackupImport(exported.content)).rejects.toMatchObject({
       name: 'BackupCryptoError',
       code: 'bad_passphrase',
     });
@@ -521,7 +636,7 @@ describe('commitBackupImport (full round-trip)', () => {
     const destLocal = memTier();
     const destTiers = { local: destLocal, idb: destIdb } as Record<'local' | 'idb', StorageTier>;
 
-    const staged = await stageBackupImport(exported.text);
+    const staged = await stageBackupImport(exported.content);
     await commitBackupImport(staged.envelope, { tiers: destTiers });
 
     // Stores landed verbatim in their tiers.

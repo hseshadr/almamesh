@@ -49,6 +49,41 @@ export interface ChatMessage {
   error?: true;
 }
 
+/** One grounded fact retained by a rolling chat summary. */
+export interface ChatSummaryItem {
+  readonly text: string;
+  /** Raw messages that support this item. They remain stored verbatim. */
+  readonly source_message_ids: readonly string[];
+}
+
+/** Generator identity without credentials or other secret configuration. */
+export interface ChatSummaryGenerator {
+  readonly kind: 'llm';
+  readonly model?: string;
+  readonly prompt_schema_version: number;
+}
+
+/** Provider-produced content before source/provenance validation. */
+export interface ChatSummaryDraft {
+  readonly items: readonly ChatSummaryItem[];
+  readonly open_questions: readonly string[];
+}
+
+/**
+ * Durable rolling memory for one thread. Raw messages are authoritative; this
+ * compact view is accepted only while its SHA-256 source hash still matches.
+ */
+export interface ChatThreadSummary extends ChatSummaryDraft {
+  readonly thread_id: string;
+  readonly profile_id: string;
+  readonly source_message_ids: readonly string[];
+  readonly source_hash: string;
+  readonly source_message_count: number;
+  readonly through_message_id: string;
+  readonly generated_at: string;
+  readonly generator: ChatSummaryGenerator;
+}
+
 /**
  * Chat thread with all messages included
  */

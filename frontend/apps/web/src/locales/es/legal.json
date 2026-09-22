@@ -73,7 +73,7 @@
     "s1_sub1_li3_text": "Las preguntas e interpretaciones se guardan en este navegador; al usar IA opcional, la solicitud también se envía al proveedor elegido como se describe abajo",
     "s1_sub2_heading": "Dónde Reside",
     "s1_sub2_li1_label": "Almacenamiento del Navegador",
-    "s1_sub2_li1_text": "Todo lo anterior se conserva en el almacenamiento local de tu navegador (IndexedDB / OPFS) en este dispositivo",
+    "s1_sub2_li1_text": "Todo lo anterior se conserva en una base de datos SQLite portátil dentro del almacenamiento privado del navegador (OPFS) en este dispositivo. Los datos antiguos de IndexedDB se migran localmente y luego se eliminan.",
     "s1_sub2_li2_label": "Sin Copia en Servidor",
     "s1_sub2_li2_text": "AlmaMesh no guarda en servidor copias de cartas, perfiles, datos de nacimiento, eventos vitales, lecturas ni chat. Las solicitudes al proveedor y los comentarios opcionales son las excepciones descritas abajo.",
     "s2_heading": "2. Lo que Toca la Red",

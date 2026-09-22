@@ -2,17 +2,17 @@
  * Zustand stores for browser-local persisted state and UI state
  *
  * Architecture:
- * - IndexedDB-backed stores own durable charts, profiles, chat, and backups
- * - localStorage-backed stores own small user preferences
+ * - one OPFS SQLite database owns canonical charts, profiles, chat, and language
+ * - localStorage holds disposable boot mirrors and device-only provider settings
  * - in-memory stores own ephemeral UI selections
  *
  * Stores:
  * - useOnboardingStore: Onboarding flow state
  * - useChartUIStore: Chart display preferences and UI state
- * - useChartLibraryStore: On-device chart library (IndexedDB-backed)
- * - useChatStore: Per-profile chat history (threads + messages, IndexedDB-backed)
+ * - useChartLibraryStore: On-device chart library (SQLite-backed)
+ * - useChatStore: Per-profile chat history (threads + messages, SQLite-backed)
  * - useContentModeStore: "For You" vs "For Astrologer" toggle
- * - useLanguageStore: UI + AI language preference (localStorage-persisted)
+ * - useLanguageStore: UI + AI language preference (SQLite + boot mirror)
  * - useSettingsStore: Pending settings changes
  *
  * @packageDocumentation
@@ -44,6 +44,7 @@ export * from './events';
 export * from './regenerate';
 export * from './durablePersistence';
 export * from './deletionTombstones';
+export * from './portableState';
 // Backup & Restore (Spec 061): export/import all user data. `backup` = storage
 // collect/apply + registry; `backupCrypto` = optional passphrase encrypt/decode.
 export * from './backup';

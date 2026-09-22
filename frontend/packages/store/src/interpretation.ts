@@ -1,14 +1,14 @@
 /**
  * Interpretation store — the on-device, local-first home for the structured
  * `VedicInterpretation` the app generates client-side, keyed by `chartId` and
- * persisted to IndexedDB so a generated reading survives reloads and joins the
+ * persisted to portable SQLite so a generated reading survives reloads and joins the
  * same crash-atomic personal-data Replace transaction as every other store.
  *
  * No backend, no streaming SSE: unlike the predecessor (which tracked a server
  * stream token-by-token), the WHOLE `VedicInterpretation` is produced in the
  * browser, so this store holds the finished object plus coarse per-section
  * progress for the dashboard to render. Persistence uses the shared personal-
- * data IndexedDB transaction under one key, alongside the chart/profile stores.
+ * data SQLite transaction under one key, alongside the chart/profile stores.
  *
  * Callers pass `updatedAt` (an ISO string) explicitly — the store never calls
  * `Date.now()`/`new Date()` itself, keeping it deterministic and easy to test.
@@ -244,7 +244,7 @@ export interface InterpretationStore {
   clearAll: () => void;
 }
 
-/** A single IndexedDB key holding every interpretation, persisted by zustand. */
+/** One canonical SQLite row holding every interpretation, persisted by Zustand. */
 export const INTERPRETATION_PERSIST_NAME = 'almamesh-interpretations';
 
 /**
@@ -460,10 +460,9 @@ function normalizeEntrySummary(entry: unknown): ChartInterpretationEntry {
 }
 
 /**
- * zustand `StateStorage` backed by localStorage. Outside a browser (SSR, unit
- * tests) localStorage is absent, so every op is a benign no-op and the store
- * simply runs in-memory — persistence is a browser-only enhancement, not a
- * correctness requirement (mirrors the IndexedDB pattern in the other slices).
+ * Zustand `StateStorage` backed by portable SQLite, with a one-time legacy
+ * localStorage read. Outside a browser (SSR, unit tests), the durable adapter's
+ * test seam lets the store run in memory.
  */
 const interpretationStorage: StateStorage = {
   getItem: async (name) => {
@@ -837,7 +836,7 @@ export const interpretationStoreCreator: StateCreator<InterpretationStore> = (se
 };
 
 /**
- * Interpretation store, persisted to IndexedDB under `almamesh-interpretations`.
+ * Interpretation store, persisted in SQLite under `almamesh-interpretations`.
  */
 export const useInterpretationStore = create<InterpretationStore>()(
   persist<InterpretationStore, [], [], PersistedInterpretationState>(interpretationStoreCreator, {

@@ -24,7 +24,7 @@ const CHART = 'chart-A';
 
 /** Reset the persisted chat store between tests (in-memory under happy-dom). */
 function clearChatStore(): void {
-  useChatStore.setState({ threads: {}, messages: {} });
+  useChatStore.setState({ threads: {}, messages: {}, summaries: {} });
 }
 
 function fakeMemory(): { memory: ChatMemoryFacade; index: ReturnType<typeof vi.fn>; retrieve: ReturnType<typeof vi.fn> } {
@@ -149,6 +149,208 @@ describe('useChatThread', () => {
     for (const call of index.mock.calls) {
       expect(call[0].profile_id).toBe(PROFILE);
     }
+  });
+
+  it('builds grounded rolling memory after the deterministic threshold without deleting raw turns', async () => {
+    const { memory } = fakeMemory();
+    __setMemoryForTest(memory);
+    const store = useChatStore.getState();
+    const threadId = store.ensureThread(PROFILE, CHART);
+    for (let index = 0; index < 12; index += 1) {
+      store.appendMessage(threadId, 'user', `Question ${index} ${'q'.repeat(900)}`);
+      store.appendMessage(threadId, 'assistant', `Answer ${index} ${'a'.repeat(900)}`);
+    }
+    const summarize = vi.fn(async (plan) => ({
+      draft: {
+        items: [
+          {
+            text: 'The user is exploring a recurring timing question.',
+            source_message_ids: plan.source_message_ids.slice(0, 2),
+          },
+        ],
+        open_questions: ['Which timing window should be compared next?'],
+      },
+      generator: { kind: 'llm' as const, model: 'test/model', prompt_schema_version: 1 },
+    }));
+    const { result } = renderHook(() => useChatThread(PROFILE, CHART, summarize));
+
+    await act(async () => {
+      await result.current.submit('One more question', makeStreamFn('One more answer'));
+    });
+
+    await waitFor(() => expect(summarize).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(useChatStore.getState().getSummary(threadId)).not.toBeNull());
+    expect(useChatStore.getState().getMessages(threadId)).toHaveLength(26);
+  });
+
+  it('binds the provider before detaching work and keeps only one summary job per thread', async () => {
+    const { memory } = fakeMemory();
+    __setMemoryForTest(memory);
+    const store = useChatStore.getState();
+    const threadId = store.ensureThread(PROFILE, CHART);
+    for (let index = 0; index < 12; index += 1) {
+      store.appendMessage(threadId, 'user', `Question ${index} ${'q'.repeat(900)}`);
+      store.appendMessage(threadId, 'assistant', `Answer ${index} ${'a'.repeat(900)}`);
+    }
+    let release: (() => void) | undefined;
+    const blocked = new Promise<void>((resolve) => { release = resolve; });
+    const prepared = vi.fn(async (plan) => {
+      await blocked;
+      return {
+        draft: {
+          items: [{ text: 'Bounded fact.', source_message_ids: plan.source_message_ids.slice(0, 2) }],
+          open_questions: [],
+        },
+        generator: { kind: 'llm' as const, model: 'bound', prompt_schema_version: 1 },
+      };
+    });
+    const base = vi.fn();
+    const summarize = Object.assign(base, { prepare: vi.fn(() => prepared) });
+    const { result } = renderHook(() => useChatThread(PROFILE, CHART, summarize));
+
+    await act(async () => result.current.submit('Q one', makeStreamFn('A one')));
+    await waitFor(() => expect(prepared).toHaveBeenCalledOnce());
+    await act(async () => result.current.submit('Q two', makeStreamFn('A two')));
+
+    expect(summarize.prepare).toHaveBeenCalledOnce();
+    expect(base).not.toHaveBeenCalled();
+    expect(prepared).toHaveBeenCalledOnce();
+    await act(async () => release?.());
+    await waitFor(() => expect(useChatStore.getState().getSummary(threadId)).not.toBeNull());
+  });
+
+  it('aborts detached summary egress when its thread is deleted', async () => {
+    const { memory } = fakeMemory();
+    __setMemoryForTest(memory);
+    const store = useChatStore.getState();
+    const threadId = store.ensureThread(PROFILE, CHART);
+    for (let index = 0; index < 12; index += 1) {
+      store.appendMessage(threadId, 'user', `Question ${index} ${'q'.repeat(900)}`);
+      store.appendMessage(threadId, 'assistant', `Answer ${index} ${'a'.repeat(900)}`);
+    }
+    let observedSignal: AbortSignal | undefined;
+    const summarize = vi.fn((_plan, signal?: AbortSignal) => {
+      observedSignal = signal;
+      return new Promise<never>((_resolve, reject) => {
+        signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')));
+      });
+    });
+    const { result } = renderHook(() => useChatThread(PROFILE, CHART, summarize));
+
+    await act(async () => result.current.submit('Q', makeStreamFn('A')));
+    await waitFor(() => expect(summarize).toHaveBeenCalledOnce());
+    act(() => useChatStore.getState().deleteThread(threadId));
+
+    await waitFor(() => expect(observedSignal?.aborted).toBe(true));
+    expect(useChatStore.getState().getSummary(threadId)).toBeNull();
+  });
+
+  it('aborts detached summary egress on provider change and unmount', async () => {
+    const { memory } = fakeMemory();
+    __setMemoryForTest(memory);
+    const store = useChatStore.getState();
+    const threadId = store.ensureThread(PROFILE, CHART);
+    for (let index = 0; index < 12; index += 1) {
+      store.appendMessage(threadId, 'user', `Question ${index} ${'q'.repeat(900)}`);
+      store.appendMessage(threadId, 'assistant', `Answer ${index} ${'a'.repeat(900)}`);
+    }
+    const signals: AbortSignal[] = [];
+    const summarize = vi.fn((_plan, signal?: AbortSignal) => {
+      if (signal) signals.push(signal);
+      return new Promise<never>((_resolve, reject) => {
+        signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')));
+      });
+    });
+    const first = renderHook(() => useChatThread(PROFILE, CHART, summarize));
+    await act(async () => first.result.current.submit('Q', makeStreamFn('A')));
+    await waitFor(() => expect(signals).toHaveLength(1));
+    act(() => window.dispatchEvent(new Event('almamesh-llm-settings-changed')));
+    await waitFor(() => expect(signals[0].aborted).toBe(true));
+
+    // Once the aborted job has settled, a new job may start and is owned by the
+    // new hook lifecycle; unmount must abort that one too.
+    const second = renderHook(() => useChatThread(PROFILE, CHART, summarize));
+    await act(async () => second.result.current.submit('Q2', makeStreamFn('A2')));
+    await waitFor(() => expect(signals).toHaveLength(2));
+    second.unmount();
+    await waitFor(() => expect(signals[1].aborted).toBe(true));
+    first.unmount();
+  });
+
+  it('injects only a source-current rolling summary as bounded conversation context', async () => {
+    const { memory } = fakeMemory();
+    __setMemoryForTest(memory);
+    const store = useChatStore.getState();
+    const threadId = store.ensureThread(PROFILE, CHART);
+    const user = store.appendMessage(threadId, 'user', 'My recurring concern is timing.');
+    const assistant = store.appendMessage(threadId, 'assistant', 'We can compare the stated periods.');
+    const { chatSummarySourceHash } = await import('@almamesh/llm');
+    const source = [user, assistant];
+    await store.commitSummary({
+      thread_id: threadId,
+      profile_id: PROFILE,
+      items: [
+        {
+          text: 'The user wants timing comparisons.',
+          source_message_ids: source.map((message) => message.id),
+        },
+      ],
+      open_questions: ['Which listed period should be compared?'],
+      source_message_ids: source.map((message) => message.id),
+      source_hash: await chatSummarySourceHash(source),
+      source_message_count: source.length,
+      through_message_id: assistant.id,
+      generated_at: '2026-09-21T00:00:00.000Z',
+      generator: { kind: 'llm', model: 'test/model', prompt_schema_version: 1 },
+    });
+    const stream = makeStreamFn('A2');
+    const { result } = renderHook(() => useChatThread(PROFILE, CHART));
+
+    await act(async () => {
+      await result.current.submit('What next?', stream);
+    });
+
+    expect(stream.mock.calls[0][0].retrievedContext).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('Grounded rolling conversation memory'),
+        expect.stringContaining('The user wants timing comparisons.'),
+        expect.stringContaining('Which listed period should be compared?'),
+      ]),
+    );
+  });
+
+  it('never injects a persisted summary owned by another profile', async () => {
+    const { memory } = fakeMemory();
+    __setMemoryForTest(memory);
+    const store = useChatStore.getState();
+    const threadId = store.ensureThread(PROFILE, CHART);
+    const user = store.appendMessage(threadId, 'user', 'Q1');
+    const assistant = store.appendMessage(threadId, 'assistant', 'A1');
+    const { chatSummarySourceHash } = await import('@almamesh/llm');
+    useChatStore.setState({
+      summaries: {
+        [threadId]: {
+          thread_id: threadId,
+          profile_id: 'another-profile',
+          items: [{ text: 'Must not cross profiles.', source_message_ids: [user.id] }],
+          open_questions: [],
+          source_message_ids: [user.id, assistant.id],
+          source_hash: await chatSummarySourceHash([user, assistant]),
+          source_message_count: 2,
+          through_message_id: assistant.id,
+          generated_at: '2026-09-21T00:00:00.000Z',
+          generator: { kind: 'llm', prompt_schema_version: 1 },
+        },
+      },
+    });
+    const stream = makeStreamFn('A2');
+    const { result } = renderHook(() => useChatThread(PROFILE, CHART));
+
+    await act(async () => result.current.submit('Q2', stream));
+
+    expect(stream.mock.calls[0][0].retrievedContext).toEqual([
+      'earlier: your Mars is in Scorpio',
+    ]);
   });
 
   it('a failing stream still persists the user message and surfaces the error', async () => {

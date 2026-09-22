@@ -6,6 +6,14 @@
 **Priority:** P1 HIGH
 **Dependencies:** none (independent of the in-flight feedback PRs #8/#9)
 
+> **Implementation update:** the original sections below document the legacy
+> JSON/IndexedDB design and remain useful for compatibility. The shipped
+> primary path now stores canonical user data in one OPFS SQLite database,
+> exports standard `.sqlite3` bytes, validates imports in an isolated SQLite
+> instance, and commits them as a fresh generation. Existing plaintext and
+> encrypted JSON backups remain importable. API keys and derived caches are
+> excluded from both formats.
+
 ## Goal
 
 Let a user move ALL of their data from one browser to another with a single

@@ -2,8 +2,8 @@
  * DataSettings — the "Backup & Restore" settings panel (Spec 061).
  *
  * Lets a user move ALL their on-device data to another browser with a single
- * file. There is no server: Export collects every persisted store (optionally
- * passphrase-encrypted) and saves it to a file the user chooses; Restore picks a
+ * file. There is no server: Export saves the canonical state as portable SQLite,
+ * or as encrypted JSON when a passphrase is supplied; Restore picks a
  * backup file, stages it in memory, downloads a safety-net copy of the CURRENT
  * data (so Replace is undoable), then — on confirm — replaces this browser's data
  * and reloads. Nothing is uploaded; the only bytes that leave the device are the
@@ -25,7 +25,11 @@ import {
   stageBackupImport,
   type StagedImport,
 } from '../../lib/backupService';
-import { pickBackupFile, saveBackupFile } from '../../lib/backupFile';
+import {
+  pickBackupFile,
+  saveBackupFile,
+  type BackupFileContent,
+} from '../../lib/backupFile';
 import { suppressNextServiceWorkerHeal } from '../../lib/swSelfHeal';
 
 export default function DataSettings() {
@@ -45,7 +49,7 @@ export default function DataSettings() {
   const [importing, setImporting] = useState(false);
 
   // Passphrase prompt (encrypted backups)
-  const [pendingText, setPendingText] = useState<string | null>(null);
+  const [pendingContent, setPendingContent] = useState<BackupFileContent | null>(null);
   const [promptPassphrase, setPromptPassphrase] = useState('');
   const [promptError, setPromptError] = useState<string | null>(null);
 
@@ -58,8 +62,8 @@ export default function DataSettings() {
     clearBanners();
     setExporting(true);
     try {
-      const { filename, text } = await buildBackupExport(password || undefined);
-      const result = await saveBackupFile(filename, text);
+      const { filename, content } = await buildBackupExport(password || undefined);
+      const result = await saveBackupFile(filename, content);
       if (result === 'saved') {
         setStatus(t('backup.status_exported'));
         setPassword(''); // don't leave the passphrase lingering in the field
@@ -72,10 +76,10 @@ export default function DataSettings() {
   }
 
   /** Stage a picked file; open the passphrase prompt on encryption, else confirm. */
-  async function stageFile(fileText: string, passphrase?: string) {
+  async function stageFile(content: BackupFileContent, passphrase?: string) {
     try {
-      const result = await stageBackupImport(fileText, passphrase);
-      setPendingText(null);
+      const result = await stageBackupImport(content, passphrase);
+      setPendingContent(null);
       setPromptPassphrase('');
       setPromptError(null);
       setStaged(result);
@@ -83,7 +87,7 @@ export default function DataSettings() {
     } catch (err) {
       if (err instanceof BackupCryptoError && err.code === 'bad_passphrase') {
         // Encrypted (or a wrong passphrase): (re)open the prompt to collect one.
-        setPendingText(fileText);
+        setPendingContent(content);
         setPromptError(passphrase ? t('backup.error_bad_passphrase') : null);
         return;
       }
@@ -101,18 +105,18 @@ export default function DataSettings() {
 
   async function handleImport() {
     clearBanners();
-    const fileText = await pickBackupFile();
-    if (fileText == null) {
+    const content = await pickBackupFile();
+    if (content == null) {
       return;
     }
-    await stageFile(fileText);
+    await stageFile(content);
   }
 
   async function handleUnlock() {
-    if (pendingText == null) {
+    if (pendingContent == null) {
       return;
     }
-    await stageFile(pendingText, promptPassphrase);
+    await stageFile(pendingContent, promptPassphrase);
   }
 
   async function handleConfirmImport() {
@@ -123,7 +127,10 @@ export default function DataSettings() {
     try {
       // Safety net FIRST: download a copy of the CURRENT data so Replace is undoable.
       const current = await buildBackupExport();
-      const saved = await saveBackupFile('almamesh-backup-before-import.json', current.text);
+      const safetyFilename = current.filename.startsWith('almamesh-backup-')
+        ? current.filename.replace('almamesh-backup-', 'almamesh-backup-before-import-')
+        : `almamesh-backup-before-import-${current.filename}`;
+      const saved = await saveBackupFile(safetyFilename, current.content);
       if (saved !== 'saved') {
         // The user cancelled the safety-net save — abort WITHOUT touching any
         // data (no commit, no reload), so the promised undo backup is never skipped.
@@ -131,7 +138,7 @@ export default function DataSettings() {
         setError(t('backup.error_safety_cancelled'));
         return;
       }
-      await commitBackupImport(staged.envelope);
+      await commitBackupImport(staged);
       setConfirmOpen(false);
       setStatus(t('backup.status_imported'));
       // The restore owns the next reload. Prevent the SW self-heal check from
@@ -246,8 +253,8 @@ export default function DataSettings() {
 
       {/* Passphrase prompt dialog (encrypted backups) */}
       <Dialog
-        open={pendingText != null}
-        onClose={() => setPendingText(null)}
+        open={pendingContent != null}
+        onClose={() => setPendingContent(null)}
         title={t('backup.passphrase_prompt_title')}
       >
         <form
@@ -275,7 +282,7 @@ export default function DataSettings() {
           <div className="flex gap-3 pt-2">
             <button
               type="button"
-              onClick={() => setPendingText(null)}
+              onClick={() => setPendingContent(null)}
               className="flex-1 px-4 py-2.5 bg-background-tertiary border border-ui-border text-text-primary rounded-md hover:bg-ui-border transition-colors text-sm font-medium"
             >
               {t('backup.cancel')}

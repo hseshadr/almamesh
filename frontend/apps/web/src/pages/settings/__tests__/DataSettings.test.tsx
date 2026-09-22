@@ -58,12 +58,13 @@ beforeEach(() => {
   vi.clearAllMocks();
   sessionStorage.clear();
   vi.mocked(buildBackupExport).mockResolvedValue({
-    filename: 'almamesh-backup-2026-07-01.json',
-    text: 'BACKUP_TEXT',
+    filename: 'almamesh-backup-2026-07-01.sqlite3',
+    content: new Uint8Array([1, 2, 3]),
   });
   vi.mocked(saveBackupFile).mockResolvedValue('saved');
   vi.mocked(pickBackupFile).mockResolvedValue(null);
   vi.mocked(stageBackupImport).mockResolvedValue({
+    kind: 'json',
     envelope: SAMPLE_ENVELOPE,
     wasEncrypted: false,
   });
@@ -95,8 +96,8 @@ describe('DataSettings — Backup & Restore panel', () => {
       expect(vi.mocked(buildBackupExport)).toHaveBeenCalledWith(undefined),
     );
     expect(vi.mocked(saveBackupFile)).toHaveBeenCalledWith(
-      'almamesh-backup-2026-07-01.json',
-      'BACKUP_TEXT',
+      'almamesh-backup-2026-07-01.sqlite3',
+      new Uint8Array([1, 2, 3]),
     );
     expect(await screen.findByText('Backup downloaded.')).toBeTruthy();
   });
@@ -140,16 +141,36 @@ describe('DataSettings — Backup & Restore panel', () => {
     fireEvent.click(confirmBtn);
 
     await waitFor(() =>
-      expect(vi.mocked(commitBackupImport)).toHaveBeenCalledWith(SAMPLE_ENVELOPE),
+      expect(vi.mocked(commitBackupImport)).toHaveBeenCalledWith(
+        expect.objectContaining({ kind: 'json', envelope: SAMPLE_ENVELOPE }),
+      ),
     );
-    // Safety-net export happened first (no passphrase), saved under the fixed name.
+    // Safety-net export happened first (no passphrase), using the service's
+    // filename and byte content without forcing a legacy JSON extension.
     expect(vi.mocked(buildBackupExport)).toHaveBeenCalledWith();
     expect(vi.mocked(saveBackupFile)).toHaveBeenCalledWith(
-      'almamesh-backup-before-import.json',
-      'BACKUP_TEXT',
+      'almamesh-backup-before-import-2026-07-01.sqlite3',
+      new Uint8Array([1, 2, 3]),
     );
     expect(sessionStorage.getItem('almamesh:restore-reload')).toBe('1');
     expect(reloadSpy).toHaveBeenCalled();
+  });
+
+  it('passes a picked SQLite backup to staging as bytes', async () => {
+    const bytes = new Uint8Array([...new TextEncoder().encode('SQLite format 3\0'), 1]);
+    vi.mocked(pickBackupFile).mockResolvedValue(bytes);
+    vi.mocked(stageBackupImport).mockResolvedValue({
+      kind: 'sqlite',
+      envelope: SAMPLE_ENVELOPE,
+      wasEncrypted: false,
+      bytes,
+    });
+    render(<DataSettings />);
+
+    fireEvent.click(screen.getByTestId('backup-import-button'));
+
+    await screen.findByTestId('backup-confirm-import');
+    expect(vi.mocked(stageBackupImport)).toHaveBeenCalledWith(bytes, undefined);
   });
 
   // ITEM 1 — if the user cancels the safety-net save, the import must ABORT: no
@@ -167,8 +188,8 @@ describe('DataSettings — Backup & Restore panel', () => {
     // The safety net was attempted, then the import bailed out entirely.
     await waitFor(() =>
       expect(vi.mocked(saveBackupFile)).toHaveBeenCalledWith(
-        'almamesh-backup-before-import.json',
-        'BACKUP_TEXT',
+        'almamesh-backup-before-import-2026-07-01.sqlite3',
+        new Uint8Array([1, 2, 3]),
       ),
     );
     expect(
@@ -184,7 +205,7 @@ describe('DataSettings — Backup & Restore panel', () => {
     vi.mocked(pickBackupFile).mockResolvedValue('ENC_TEXT');
     vi.mocked(stageBackupImport)
       .mockRejectedValueOnce(new BackupCryptoError('bad_passphrase', 'encrypted'))
-      .mockResolvedValueOnce({ envelope: SAMPLE_ENVELOPE, wasEncrypted: true });
+      .mockResolvedValueOnce({ kind: 'json', envelope: SAMPLE_ENVELOPE, wasEncrypted: true });
 
     render(<DataSettings />);
     fireEvent.click(screen.getByTestId('backup-import-button'));

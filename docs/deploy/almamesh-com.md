@@ -178,15 +178,15 @@ production) — re-run the probe if Cloudflare semantics are ever in doubt:
    `no-cache, public, max-age=…, immutable` (browsers then treat it as
    no-cache). Every specific rule therefore detaches first (`! Cache-Control`)
    before setting its own. Do not remove the `!` lines.
-3. **No COEP — ever. COOP `same-origin` is set and is safe.** The app runs
-   non-cross-origin-isolated (Pyodide module workers; the embedder pins
-   `numThreads=1` accordingly). Cross-origin isolation requires
-   COOP `same-origin` **and** COEP `require-corp` *together*, so
-   `Cross-Origin-Embedder-Policy` is the one that must stay absent — adding it
-   changes worker/embedder behavior. Don't. COOP alone leaves
-   `self.crossOriginIsolated === false` (asserted by the security-headers e2e)
-   and only severs `window.opener` for cross-origin popups, which this app never
-   opens.
+3. **COOP `same-origin` + COEP `require-corp` are required together.** The
+   shared OPFS Web-Locks SQLite VFS depends on `SharedArrayBuffer`, which is only
+   exposed in a cross-origin-isolated document. Keep both headers on the app
+   shell, service worker, and worker responses. `require-corp` is intentional:
+   it works in the WebKit lane where `credentialless` does not. OpenRouter and
+   Open-Meteo opt in through CORS, while Cloudflare Turnstile supplies a
+   cross-origin resource policy. The browser probe's optional external-egress
+   mode exercises all three before a release without making normal CI depend on
+   upstream availability.
 4. Content types: Pages serves `.wasm` as `application/wasm`, `.js` as
    `application/javascript`; extensionless bundle files (`latest`, sha256
    chunks) come back as octet-stream and are consumed via `fetch()` — fine.

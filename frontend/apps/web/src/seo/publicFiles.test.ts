@@ -184,12 +184,18 @@ describe('Cloudflare Pages security headers', () => {
     expect(csp).toContain('upgrade-insecure-requests');
   });
 
-  // Cross-origin isolation needs COOP:same-origin AND COEP:require-corp. COOP
-  // alone is safe here and severs window.opener for cross-origin popups; COEP
-  // would break the Pyodide module workers (docs/deploy/almamesh-com.md).
-  it('isolates the browsing-context group without cross-origin isolation', () => {
+  // SQLite's shared OPFS Web-Locks VFS needs SharedArrayBuffer, so the deployed
+  // app must be cross-origin isolated. `require-corp` has broader browser support
+  // than `credentialless`; every shipped cross-origin resource is separately
+  // covered by CORS/CORP and exercised in the browser integration gate.
+  it('enables cross-origin isolation with the portable COOP/COEP pair', () => {
     expect(catchAllBlock).toMatch(/^\s*Cross-Origin-Opener-Policy:\s*same-origin\s*$/m);
-    expect(headers).not.toMatch(/^\s*Cross-Origin-Embedder-Policy:/m);
+    expect(catchAllBlock).toMatch(
+      /^\s*Cross-Origin-Embedder-Policy:\s*require-corp\s*$/m,
+    );
+    expect(catchAllBlock).not.toMatch(
+      /^\s*Cross-Origin-Embedder-Policy:\s*(?:credentialless|unsafe-none)\s*$/m,
+    );
   });
 
   it('does not expose the application shell through wildcard CORS', () => {

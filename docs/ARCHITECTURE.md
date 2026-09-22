@@ -4,8 +4,10 @@
 chart engine — the same `almamesh` package you can run on your laptop — runs
 *inside the browser tab* under Pyodide (Python compiled to WebAssembly), fed by
 an ed25519-signed, content-addressed bundle cached in durable browser storage.
-OPFS is the fast path; IndexedDB is the persistent fallback when a browser
-exposes OPFS but cannot open it. The network carries
+OPFS is the fast path for the signed engine cache; IndexedDB is that cache's
+persistent fallback when a browser exposes OPFS but cannot open it. Canonical
+user data is separate: profiles, charts, life events, chat, interpretations,
+and language live together in one standard SQLite database in OPFS. The network carries
 delivery metadata and the explicitly disclosed city-search/optional-AI flows;
 birth details and computed charts are not sent by the engine or geocoder.
 Optional chat memory is also derived entirely on-device: a self-hosted MiniLM
@@ -66,17 +68,34 @@ shared SQLite Worker. `sqlite-vector` ranks matches inside that Worker and the
 database persists in OPFS. Generation-prefixed physical IDs plus durable
 deletion-ledger checks prevent a delayed pre-restore write from becoming
 visible; profile/thread erasure and full reset are atomic SQLite deletes. Chat
-history in IndexedDB remains authoritative, so derived vectors can be rebuilt
+history in the canonical SQLite database remains authoritative, so derived vectors can be rebuilt
 after restore or recovery.
 
 Semantic retrieval requires a working Origin Private File System. If a browser
 does not provide it—or exposes `getDirectory()` but refuses to open it—the
-adapter fails closed before spawning SQLite. Chat still works from its
-authoritative IndexedDB history; only optional RAG memory is unavailable. There
-is deliberately no JavaScript cosine, in-memory, or IndexedDB-vector fallback.
-The browser gate proves the positive OPFS reopen path in Chromium and the clean
-no-Worker refusal path in Playwright WebKit, whose current headless engine
-throws `UnknownError` from `navigator.storage.getDirectory()`.
+adapter fails closed before spawning SQLite. There is deliberately no
+JavaScript cosine, in-memory, or IndexedDB-vector fallback. The deployed
+COOP/COEP headers make the app cross-origin isolated, and the browser gate
+proves the SQLite runtime prerequisites (`SharedArrayBuffer` and
+`Atomics.waitAsync`) plus an isolated offline reload in Chromium and WebKit. A
+separate real-SQLite Chromium gate proves write, query, close, and
+OPFS reopen; the WebKit harness proves a stable refusal when its headless OPFS
+implementation is unavailable.
+
+## Portable application state
+
+`@almamesh/store` maps each existing, versioned Zustand envelope to a row in a
+single `almamesh-user-state` SQLite database. The deletion ledger and those
+rows commit through one compare-and-swap transaction, so two tabs cannot
+silently overwrite a newer dataset. On first eligible launch, the old
+idb-keyval records are copied, integrity-checked, and only then removed. A crash
+before cleanup leaves a redundant source copy and the migration safely resumes.
+
+Settings exports the actual SQLite bytes and stages every restore in an
+isolated in-memory database before replacing the live generation. Legacy JSON
+backups remain importable. Provider credentials, semantic vectors, predictive
+caches, and route-guard mirrors are not canonical rows: credentials never enter
+an export, while derived data is rebuilt from the restored source records.
 
 ## Where things live
 

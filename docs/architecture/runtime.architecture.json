@@ -126,8 +126,8 @@
     {
       "id": "app_data",
       "type": "database",
-      "label": "Personal App Data",
-      "sublabel": "IndexedDB · preferences",
+      "label": "Portable App Data",
+      "sublabel": "OPFS SQLite · one file",
       "pos": [355, 535],
       "size": [145, 66],
       "sources": [{ "path": "frontend/packages/store/src/index.ts", "line": 1, "end_line": 17, "label": "Storage ownership" }]

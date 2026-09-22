@@ -2,7 +2,7 @@
  * ChatPanel - Full chat interface with PERSISTED, per-profile message history.
  *
  * Interactive chat for asking astrological questions. The conversation is no
- * longer ephemeral React-local state — it is backed by the IndexedDB chat store
+ * longer ephemeral React-local state — it is backed by the portable SQLite chat store
  * (`@almamesh/store`) via `useChatThread`, so it survives reload / PWA reopen
  * and is scoped to the active profile + chart. Each finalized turn is also
  * indexed into `@almamesh/memory` for semantic search + RAG (best-effort).
@@ -15,9 +15,10 @@
  * then yield to the live-streaming answer text (a single fast streaming pass).
  */
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
+import { ComposerPrimitive, ThreadPrimitive, type MessageState } from '@assistant-ui/react';
 import { type ChatTurn } from '@almamesh/llm';
 import { MessageBubble } from './MessageBubble';
 import { ReferenceEntry } from './ReferenceEntry';
@@ -27,6 +28,8 @@ import type { SSEMetaData } from '../../../lib/streaming';
 import type { ViewMode } from '../../../lib/types';
 import { useChatThread, type ChatStreamInput } from '../../../hooks/useChatThread';
 import { useLlmStatus } from '../../../hooks/useLlmStatus';
+import { AlmaMeshAssistantRuntime } from './AlmaMeshAssistantRuntime';
+import { generateProviderChatSummary } from '../../../lib/chatSummaryProvider';
 
 interface ChatPanelProps {
   personName: string;
@@ -44,6 +47,8 @@ interface ChatPanelProps {
     viewMode?: ViewMode,
     history?: readonly ChatTurn[],
     retrievedContext?: readonly string[],
+    agentMode?: boolean,
+    onAgentStatus?: (label: string | null) => void,
   ) => Promise<{
     answer: string;
     timing_guidance?: string | null;
@@ -51,6 +56,8 @@ interface ChatPanelProps {
   }>;
   /** Hide header when used inside FloatingChatPanel which has its own header */
   hideHeader?: boolean;
+  /** Expose the bounded, read-only browser agent mode for this chat surface. */
+  agentModeAvailable?: boolean;
 }
 
 export function ChatPanel({
@@ -60,26 +67,25 @@ export function ChatPanel({
   viewMode,
   onAskQuestionStream,
   hideHeader = false,
+  agentModeAvailable = false,
 }: ChatPanelProps) {
   const { t } = useTranslation('chat');
   const navigate = useNavigate();
-  const { messages, isStreaming, streamingDraft, submit } = useChatThread(profileId, chartId);
+  const { messages, isStreaming, streamingDraft, submit, openThread } = useChatThread(
+    profileId,
+    chartId,
+    generateProviderChatSummary,
+  );
   // Whether an AI endpoint is configured (local or cloud). With none,
   // a sent question is doomed — so the send affordance is replaced by the
   // Connect-AI CTA (the dashboard's existing pattern) instead of inviting a
   // failure bubble. LIVE (useLlmStatus): turning AI off in Settings disables the
   // input immediately, so a "disconnected" chat can never keep sending.
   const aiConfigured = useLlmStatus().configured;
-  const [inputValue, setInputValue] = useState('');
+  const [agentMode, setAgentMode] = useState(false);
+  const [agentActivity, setAgentActivity] = useState<string | null>(null);
   const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
   const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map());
-
-  // Auto-scroll to the newest message / streaming tokens.
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, streamingDraft]);
 
   const handleSubmit = useCallback(
     async (question: string) => {
@@ -87,20 +93,20 @@ export function ChatPanel({
       if (!q || isStreaming || !aiConfigured) {
         return;
       }
-      setInputValue('');
       // The hook owns persistence + RAG; here we only delegate the LLM streaming.
-      await submit(q, (input: ChatStreamInput) => streamAnswer(input, onAskQuestionStream, viewMode));
-      inputRef.current?.focus();
+      await submit(q, (input: ChatStreamInput) =>
+        streamAnswer(
+          input,
+          onAskQuestionStream,
+          viewMode,
+          agentMode,
+          setAgentActivity,
+          t('agent.preparing'),
+        ),
+      );
     },
-    [aiConfigured, isStreaming, submit, onAskQuestionStream, viewMode],
+    [agentMode, aiConfigured, isStreaming, submit, onAskQuestionStream, t, viewMode],
   );
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      void handleSubmit(inputValue);
-    }
-  };
 
   const handleSuggestedQuestion = (question: string) => {
     if (!aiConfigured) {
@@ -109,26 +115,33 @@ export function ChatPanel({
       navigate('/settings/ai');
       return;
     }
-    setInputValue(question);
     void handleSubmit(question);
   };
 
   // Search result -> scroll to + briefly highlight the target message.
-  const handleOpenResult = useCallback((messageId: string, _threadId: string) => {
-    const node = messageRefs.current.get(messageId);
-    node?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  const handleOpenResult = useCallback((messageId: string, threadId: string) => {
+    openThread(threadId);
     setHighlightedMessageId(messageId);
     window.setTimeout(() => setHighlightedMessageId(null), 2000);
-  }, []);
+  }, [openThread]);
+
+  useEffect(() => {
+    if (highlightedMessageId === null) return;
+    messageRefs.current
+      .get(highlightedMessageId)
+      ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [highlightedMessageId, messages]);
 
   const isLaymanMode = viewMode === 'layman';
-  // Typing dots show only until the first streamed token arrives, then yield to
-  // the live answer text (single fast streaming pass — no blocking round trip).
-  const isStreamingText = isStreaming && streamingDraft.length > 0;
-  const showTypingIndicator = isStreaming && streamingDraft.length === 0;
-
   return (
-    <div
+    <AlmaMeshAssistantRuntime
+      messages={messages}
+      streamingDraft={streamingDraft}
+      isRunning={isStreaming}
+      isSendDisabled={!aiConfigured || isStreaming}
+      onSubmit={handleSubmit}
+    >
+    <ThreadPrimitive.Root
       className={`flex flex-col h-[500px] bg-background-secondary ${hideHeader ? '' : 'border border-ui-border rounded-xl'} overflow-hidden`}
       data-testid="chat-panel"
     >
@@ -161,9 +174,45 @@ export function ChatPanel({
       {/* Semantic search over this profile's past conversations (discoverable). */}
       {profileId && <ChatSearch profileId={profileId} onOpenResult={handleOpenResult} />}
 
-      {/* Messages area */}
-      <div className="flex-1 overflow-y-auto p-4">
-        {messages.length === 0 && !isStreaming ? (
+      {agentModeAvailable && (
+        <div className="flex items-center justify-between gap-3 px-4 pt-3">
+          <div>
+            <p className="text-xs font-semibold text-text-primary">{t('agent.label')}</p>
+            <p className="text-[11px] text-text-muted">{t('agent.hint')}</p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={agentMode}
+            onClick={() => setAgentMode((enabled) => !enabled)}
+            className={`relative h-6 w-11 rounded-full border transition-colors ${
+              agentMode
+                ? 'border-accent-gold bg-accent-gold/30'
+                : 'border-ui-border bg-background-primary'
+            }`}
+            data-testid="chat-agent-mode"
+          >
+            <span
+              className={`absolute top-0.5 h-4 w-4 rounded-full bg-text-primary transition-transform ${
+                agentMode ? 'translate-x-5' : 'translate-x-1'
+              }`}
+            />
+            <span className="sr-only">{t('agent.label')}</span>
+          </button>
+        </div>
+      )}
+
+      {isStreaming && agentMode && agentActivity && (
+        <div className="mx-4 mt-3 rounded-lg border border-accent-gold/30 bg-accent-gold/5 px-3 py-2 text-xs text-text-secondary" data-testid="chat-agent-status" role="status">
+          {agentActivity}
+        </div>
+      )}
+
+      {/* assistant-ui owns viewport scrolling and message/composer state; the
+          renderers remain AlmaMesh-owned so sanitization and visual language do
+          not change. */}
+      <ThreadPrimitive.Viewport className="flex-1 overflow-y-auto p-4">
+        <ThreadPrimitive.Empty>
           <div className="h-full flex flex-col items-center justify-center text-center">
             <div className="w-16 h-16 mb-4 rounded-full bg-accent-gold/10 flex items-center justify-center">
               <svg className="w-8 h-8 text-accent-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -178,79 +227,19 @@ export function ChatPanel({
             <h4 className="text-text-primary font-medium mb-2">{t('empty.title', { name: personName })}</h4>
             <p className="text-text-muted text-sm max-w-xs">{t('empty.hint')}</p>
           </div>
-        ) : (
-          <>
-            {messages.map((message) => {
-              if (message.role === 'system') {
-                return null;
-              }
-              const role = message.role;
-              const isHighlighted = message.id === highlightedMessageId;
-              return (
-                <div
-                  key={message.id}
-                  ref={(node) => {
-                    if (node) messageRefs.current.set(message.id, node);
-                    else messageRefs.current.delete(message.id);
-                  }}
-                  className={
-                    isHighlighted ? 'rounded-xl ring-2 ring-accent-gold/60 transition-shadow' : undefined
-                  }
-                >
-                  {message.error ? (
-                    // A failed-turn notice: visually distinct from real answers,
-                    // and excluded from the model-visible history by the hook.
-                    <div className="flex justify-start mb-4" data-testid="chat-error-bubble" role="alert">
-                      <div className="max-w-[85%] rounded-2xl rounded-bl-sm border border-status-error/40 bg-status-error/10 px-4 py-3 text-sm text-status-error">
-                        {message.content}
-                      </div>
-                    </div>
-                  ) : isLaymanMode ? (
-                    <MessageBubble role={role} content={message.content} timestamp={message.created_at} />
-                  ) : (
-                    <ReferenceEntry role={role} content={message.content} timestamp={message.created_at} />
-                  )}
-                </div>
-              );
-            })}
-
-            {/* Live streaming answer (the in-flight assistant turn before persist). */}
-            {isStreamingText &&
-              (isLaymanMode ? (
-                <MessageBubble role="assistant" content={streamingDraft} />
-              ) : (
-                <ReferenceEntry role="assistant" content={streamingDraft} />
-              ))}
-
-            {/* Typing indicator — only until the first streamed token arrives. */}
-            {showTypingIndicator && (
-              <div className={isLaymanMode ? 'flex justify-start mb-4' : 'mb-6'} data-testid="chat-loading">
-                {isLaymanMode ? (
-                  <div className="bg-background-tertiary rounded-2xl rounded-bl-sm px-4 py-3">
-                    <div className="flex gap-1">
-                      <span className="w-2 h-2 bg-text-muted rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                      <span className="w-2 h-2 bg-text-muted rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                      <span className="w-2 h-2 bg-text-muted rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                    </div>
-                  </div>
-                ) : (
-                  <div className="bg-background-tertiary/50 border border-ui-border/50 rounded-lg p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="flex gap-1">
-                        <span className="w-2 h-2 bg-accent-purple rounded-full animate-pulse" />
-                        <span className="w-2 h-2 bg-accent-purple rounded-full animate-pulse" style={{ animationDelay: '150ms' }} />
-                        <span className="w-2 h-2 bg-accent-purple rounded-full animate-pulse" style={{ animationDelay: '300ms' }} />
-                      </div>
-                      <span className="text-xs text-text-muted">{t('status.analyzing')}</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-            <div ref={messagesEndRef} />
-          </>
-        )}
-      </div>
+        </ThreadPrimitive.Empty>
+        <ThreadPrimitive.Messages>
+          {({ message }) => (
+            <AssistantMessageRow
+              message={message}
+              isLaymanMode={isLaymanMode}
+              highlightedMessageId={highlightedMessageId}
+              messageRefs={messageRefs}
+              analyzingLabel={t('status.analyzing')}
+            />
+          )}
+        </ThreadPrimitive.Messages>
+      </ThreadPrimitive.Viewport>
 
       {/* Suggested questions (show when no messages or few messages) */}
       {messages.length < 3 && (
@@ -274,21 +263,14 @@ export function ChatPanel({
             </Link>
           </div>
         ) : (
-        <div className="flex gap-2">
-          <textarea
-            ref={inputRef}
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyDown={handleKeyDown}
+        <ComposerPrimitive.Root className="flex gap-2">
+          <ComposerPrimitive.Input
             placeholder={t('input.placeholder')}
             className="flex-1 min-w-0 px-4 py-3 bg-background-primary border border-ui-border rounded-xl text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-accent-gold/50 resize-none text-sm disabled:opacity-50"
             rows={1}
-            disabled={isStreaming}
             data-testid="chat-input"
           />
-          <button
-            onClick={() => void handleSubmit(inputValue)}
-            disabled={!inputValue.trim() || isStreaming}
+          <ComposerPrimitive.Send
             className="px-4 py-3 bg-accent-gold text-background-primary font-semibold rounded-xl hover:bg-accent-gold/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             data-testid="chat-send-button"
           >
@@ -302,10 +284,82 @@ export function ChatPanel({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
               </svg>
             )}
-          </button>
-        </div>
+          </ComposerPrimitive.Send>
+        </ComposerPrimitive.Root>
         )}
       </div>
+    </ThreadPrimitive.Root>
+    </AlmaMeshAssistantRuntime>
+  );
+}
+
+interface AssistantMessageRowProps {
+  readonly message: MessageState;
+  readonly isLaymanMode: boolean;
+  readonly highlightedMessageId: string | null;
+  readonly messageRefs: React.MutableRefObject<Map<string, HTMLDivElement>>;
+  readonly analyzingLabel: string;
+}
+
+function AssistantMessageRow({
+  message,
+  isLaymanMode,
+  highlightedMessageId,
+  messageRefs,
+  analyzingLabel,
+}: AssistantMessageRowProps) {
+  if (message.role === 'system') return null;
+  const content = message.content
+    .filter((part): part is Extract<(typeof message.content)[number], { type: 'text' }> => part.type === 'text')
+    .map((part) => part.text)
+    .join('');
+  const custom = message.metadata.custom as { error?: boolean; streaming?: boolean };
+  const showTyping = message.role === 'assistant' && message.status?.type === 'running' && content.length === 0;
+  const isHighlighted = message.id === highlightedMessageId;
+  const timestamp = message.createdAt?.toISOString();
+
+  return (
+    <div
+      ref={(node) => {
+        if (node) messageRefs.current.set(message.id, node);
+        else messageRefs.current.delete(message.id);
+      }}
+      className={isHighlighted ? 'rounded-xl ring-2 ring-accent-gold/60 transition-shadow' : undefined}
+    >
+      {showTyping ? (
+        <div className={isLaymanMode ? 'flex justify-start mb-4' : 'mb-6'} data-testid="chat-loading">
+          {isLaymanMode ? (
+            <div className="bg-background-tertiary rounded-2xl rounded-bl-sm px-4 py-3">
+              <div className="flex gap-1">
+                <span className="w-2 h-2 bg-text-muted rounded-full animate-bounce" />
+                <span className="w-2 h-2 bg-text-muted rounded-full animate-bounce [animation-delay:150ms]" />
+                <span className="w-2 h-2 bg-text-muted rounded-full animate-bounce [animation-delay:300ms]" />
+              </div>
+            </div>
+          ) : (
+            <div className="bg-background-tertiary/50 border border-ui-border/50 rounded-lg p-4">
+              <div className="flex items-center gap-3">
+                <div className="flex gap-1">
+                  <span className="w-2 h-2 bg-accent-purple rounded-full animate-pulse" />
+                  <span className="w-2 h-2 bg-accent-purple rounded-full animate-pulse [animation-delay:150ms]" />
+                  <span className="w-2 h-2 bg-accent-purple rounded-full animate-pulse [animation-delay:300ms]" />
+                </div>
+                <span className="text-xs text-text-muted">{analyzingLabel}</span>
+              </div>
+            </div>
+          )}
+        </div>
+      ) : custom.error ? (
+        <div className="flex justify-start mb-4" data-testid="chat-error-bubble" role="alert">
+          <div className="max-w-[85%] rounded-2xl rounded-bl-sm border border-status-error/40 bg-status-error/10 px-4 py-3 text-sm text-status-error">
+            {content}
+          </div>
+        </div>
+      ) : isLaymanMode ? (
+        <MessageBubble role={message.role} content={content} timestamp={timestamp} />
+      ) : (
+        <ReferenceEntry role={message.role} content={content} timestamp={timestamp} />
+      )}
     </div>
   );
 }
@@ -319,18 +373,28 @@ async function streamAnswer(
   input: ChatStreamInput,
   onAskQuestionStream: ChatPanelProps['onAskQuestionStream'],
   viewMode: ViewMode,
+  agentMode: boolean,
+  onAgentStatus: (label: string | null) => void,
+  preparingLabel: string,
 ): Promise<string> {
-  const response = await onAskQuestionStream(
-    input.question,
-    input.onToken,
-    () => {
-      // Meta (thread_id, etc.) intentionally unused — the store owns the thread.
-    },
-    viewMode,
-    input.history,
-    input.retrievedContext,
-  );
-  return response.answer;
+  onAgentStatus(agentMode ? preparingLabel : null);
+  try {
+    const response = await onAskQuestionStream(
+      input.question,
+      input.onToken,
+      () => {
+        // Meta (thread_id, etc.) intentionally unused — the store owns the thread.
+      },
+      viewMode,
+      input.history,
+      input.retrievedContext,
+      agentMode,
+      onAgentStatus,
+    );
+    return response.answer;
+  } finally {
+    onAgentStatus(null);
+  }
 }
 
 export default ChatPanel;

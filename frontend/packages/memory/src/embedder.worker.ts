@@ -17,11 +17,10 @@
  *     i.e. `public/models/Xenova/all-MiniLM-L6-v2/...`.
  *   - `env.backends.onnx.wasm.wasmPaths = "/models/ort/"` -> the onnxruntime-web
  *     wasm binaries are self-hosted too (no jsDelivr fallback).
- *   - `env.backends.onnx.wasm.numThreads = 1` -> the self-hosted onnxruntime-web
- *     build is the threaded JSEP wasm, which needs SharedArrayBuffer → cross-
- *     origin isolation (COOP/COEP). The static preview/PWA host is NOT cross-
- *     origin-isolated, so a multi-thread session fails to spawn worker threads.
- *     One thread keeps the model loading on every host.
+ *   - `env.backends.onnx.wasm.numThreads = 1` -> deliberately cap embedding
+ *     inference to one thread even though the app is cross-origin isolated.
+ *     SQLite owns the SharedArrayBuffer requirement; keeping this small model
+ *     single-threaded limits memory and worker overhead on mobile devices.
  *   The apps/web setup script (WS5) places these files; this worker only reads
  *   them. This module is exercised in live e2e, NOT in unit tests.
  *
@@ -43,8 +42,8 @@ env.allowLocalModels = true;
 env.localModelPath = "/models/";
 if (env.backends.onnx.wasm !== undefined) {
   env.backends.onnx.wasm.wasmPaths = "/models/ort/";
-  // Single-threaded: the host is not cross-origin-isolated, so SharedArrayBuffer
-  // (required by the threaded wasm) is unavailable. Run ORT on one thread.
+  // Intentionally single-threaded to bound memory/worker overhead on mobile;
+  // cross-origin isolation is reserved for SQLite's SharedArrayBuffer OPFS VFS.
   env.backends.onnx.wasm.numThreads = 1;
 }
 

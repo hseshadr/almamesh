@@ -7,8 +7,8 @@
 // `vite preview` serves NO CSP, so every preview-driven e2e lane used to run
 // with a materially looser policy than production. A CSP-blocked fetch (the
 // yoga-layout data:-URI wasm fetch) sailed through CI green and only surfaced
-// as console errors on almamesh.com. `previewProdCspPlugin` in vite.config.ts
-// applies the REAL header to preview responses; this test pins the parse
+// as console errors on almamesh.com. `previewProdBrowserHeadersPlugin` in
+// vite.config.ts applies the REAL headers to preview responses; this test pins the parse
 // against the real file so drift fails loudly.
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -16,7 +16,11 @@ import { fileURLToPath } from 'node:url';
 
 import { describe, it, expect } from 'vitest';
 
-import { cspFromHeadersFile } from './previewHeaders';
+import {
+  browserIsolationHeadersFromHeadersFile,
+  cspForLocalHttpPreview,
+  cspFromHeadersFile,
+} from './previewHeaders';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const headersPath = path.resolve(here, '../../public/_headers');
@@ -58,5 +62,42 @@ describe('cspFromHeadersFile', () => {
     expect(() => cspFromHeadersFile(['/*', '  X-Frame-Options: DENY', ''].join('\n'))).toThrow(
       /Content-Security-Policy/,
     );
+  });
+
+  it('removes only upgrade-insecure-requests for local HTTP preview', () => {
+    const production = cspFromHeadersFile(readFileSync(headersPath, 'utf-8'));
+    const localPreview = cspForLocalHttpPreview(readFileSync(headersPath, 'utf-8'));
+    expect(production).toContain('upgrade-insecure-requests');
+    expect(localPreview).not.toContain('upgrade-insecure-requests');
+    expect(localPreview).toContain("connect-src 'self' https://openrouter.ai");
+    expect(localPreview).toContain("script-src 'self' 'wasm-unsafe-eval'");
+  });
+});
+
+describe('browserIsolationHeadersFromHeadersFile', () => {
+  it('extracts the production COOP/COEP pair from the real public/_headers', () => {
+    expect(
+      browserIsolationHeadersFromHeadersFile(readFileSync(headersPath, 'utf-8')),
+    ).toEqual({
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Cross-Origin-Embedder-Policy': 'require-corp',
+    });
+  });
+
+  it('fails closed when either isolation header is missing or unsafe', () => {
+    const base = [
+      '/*',
+      '  Cross-Origin-Opener-Policy: same-origin',
+      '  Cross-Origin-Embedder-Policy: require-corp',
+      '',
+    ];
+    expect(() => browserIsolationHeadersFromHeadersFile(base.slice(0, 2).join('\n'))).toThrow(
+      /Cross-Origin-Embedder-Policy/,
+    );
+    expect(() =>
+      browserIsolationHeadersFromHeadersFile(
+        base.join('\n').replace('require-corp', 'unsafe-none'),
+      ),
+    ).toThrow(/require-corp/);
   });
 });

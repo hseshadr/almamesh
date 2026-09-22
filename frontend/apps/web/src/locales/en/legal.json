@@ -73,7 +73,7 @@
     "s1_sub1_li3_text": "Questions and interpretations are stored in this browser; when you use optional AI, the prompt is also sent to your chosen provider as described below",
     "s1_sub2_heading": "Where It Lives",
     "s1_sub2_li1_label": "Browser Storage",
-    "s1_sub2_li1_text": "All of the above is held in your browser's local storage (IndexedDB / OPFS) on this device",
+    "s1_sub2_li1_text": "All of the above is held in one portable SQLite database in your browser's private on-device storage (OPFS). Legacy IndexedDB data is migrated locally and then removed.",
     "s1_sub2_li2_label": "No Server Copy",
     "s1_sub2_li2_text": "AlmaMesh stores no server copy of your chart, profile, birth details, life events, readings, or chat. Optional provider requests and feedback are the separately disclosed exceptions below.",
     "s2_heading": "2. What Touches the Network",

@@ -2,8 +2,8 @@
  * Profiles store — named, password-less people sharing one device.
  *
  * Multiple people use one browser; each profile owns its OWN saved charts.
- * Fully local-first: no account, no login, no server. Persisted to IndexedDB
- * via `idb-keyval` under its own key, mirroring the chartLibrary pattern.
+ * Fully local-first: no account, no login, no server. Persisted as one row in
+ * the canonical OPFS SQLite database, mirroring the chartLibrary pattern.
  *
  * Coupling: this store does NOT import chartLibrary directly. It pushes the
  * active profile id into chartLibrary via `setActiveProfileScope` (a thin
@@ -49,7 +49,7 @@ export interface Profile {
   readonly relatedTo?: string;
 }
 
-/** A single IndexedDB key holding all profiles, persisted by zustand. */
+/** One canonical SQLite row holding all profiles, persisted by Zustand. */
 const PERSIST_NAME = 'almamesh-profiles';
 
 /** Bump when the persisted `Profile` shape changes; always pair with `migrate`. */
@@ -145,7 +145,7 @@ export interface ProfilesStore {
   readonly profiles: Readonly<Record<string, Profile>>;
   /** The active person, or null when none exist yet. */
   readonly activeProfileId: string | null;
-  /** True once zustand has rehydrated from IndexedDB. */
+  /** True once Zustand has rehydrated from portable storage. */
   readonly hydrated: boolean;
 
   /** Create a person; the FIRST profile created becomes active. Returns its id. */
@@ -432,7 +432,7 @@ export function useMeshReady(): boolean {
 }
 
 /**
- * Resolve once the profiles store has finished rehydrating from IndexedDB.
+ * Resolve once the profiles store has finished rehydrating from portable storage.
  * Mirrors `whenChartLibraryHydrated` — await before any read that must reflect
  * the persisted truth (avoids the async-rehydrate false-empty race).
  */
