@@ -237,6 +237,7 @@ describe('repository truth', () => {
 
   it('proves destructive reset through durable storage and landing-page postconditions', () => {
     const proof = readRoot('frontend/apps/web/scripts/verify-privacy-reset.mjs');
+    const dagger = readRoot('dagger/src/index.ts');
     expect(proof).toContain("localStorage.setItem('almamesh-chart', '1')");
     expect(proof).toContain("putIdbValue('almamesh-chart-library'");
     expect(proof).toContain("getByTestId('landing-nav-cta')");
@@ -244,6 +245,10 @@ describe('repository truth', () => {
     expect(proof).toContain("getIdbValue('almamesh-chart-library')");
     expect(proof).not.toContain('waitForURL');
     expect(proof).toContain('Reset postcondition failed');
+    expect(dagger).toContain(
+      'node scripts/verify-privacy-reset.mjs http://127.0.0.1:4199',
+    );
+    expect(dagger).not.toContain('http://privacy:4173');
   });
 
   it('keeps ordinary builds keyless while production and engine gates fail closed on trust assets', () => {

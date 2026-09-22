@@ -345,10 +345,11 @@ export class AlmameshCi {
   @func()
   privacy(): Container {
     const built = this.builtBrowser("dist-privacy", false, ["chromium"])
-    return built
-      .withServiceBinding("privacy", this.preview(built, "dist-privacy", 4173, "privacy"))
-      .withEnvVariable("ALMAMESH_PRIVACY_CONTRACT", "backup-reset-v4")
-      .withExec(["node", "scripts/verify-privacy-reset.mjs", "http://privacy:4173"])
+    return this.localPreview(
+      built.withEnvVariable("ALMAMESH_PRIVACY_CONTRACT", "backup-reset-v4"),
+      "dist-privacy",
+      ["node scripts/verify-privacy-reset.mjs http://127.0.0.1:4199"],
+    )
   }
   @func()
   async ci(commitSha: string): Promise<string> {
