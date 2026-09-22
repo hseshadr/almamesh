@@ -18,8 +18,22 @@ import { formatBirthDateForDisplay, formatDisplayDate } from './dates';
  * stable across re-renders and across the whole session day, and makes the
  * computed "current" dasha/transits reproducible.
  */
-export function predictiveReferenceInstant(now: Date = new Date()): string {
-  return `${now.toISOString().slice(0, 10)}T00:00:00Z`;
+export function predictiveReferenceInstant(
+  now: Date = new Date(),
+  timeZone = 'UTC',
+): string {
+  if (Number.isNaN(now.valueOf())) throw new Error('A valid clock instant is required.');
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat('en-CA', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    })
+      .formatToParts(now)
+      .map((part) => [part.type, part.value]),
+  );
+  return `${parts.year}-${parts.month}-${parts.day}T00:00:00Z`;
 }
 
 /**

@@ -146,8 +146,9 @@ describe('ChatPanel — typing indicator vs streamed text', () => {
     expect((screen.getByTestId('chat-send-button') as HTMLButtonElement).disabled).toBe(true);
   });
 
-  it('keeps agent mode explicit and forwards the opt-in to the streaming boundary', async () => {
-    const onAskQuestionStream = vi.fn().mockResolvedValue({ answer: 'It is 1:30 AM.' });
+  it('always uses the agent boundary without exposing a redundant mode toggle', async () => {
+    const done = deferred<{ answer: string }>();
+    const onAskQuestionStream = vi.fn().mockReturnValue(done.promise);
     render(
       <MemoryRouter>
         <ChatPanel
@@ -155,24 +156,25 @@ describe('ChatPanel — typing indicator vs streamed text', () => {
           profileId="profile-1"
           chartId="chart-1"
           viewMode="layman"
-          agentModeAvailable
           onAskQuestionStream={onAskQuestionStream as never}
         />
       </MemoryRouter>,
     );
 
-    const toggle = screen.getByTestId('chat-agent-mode');
-    expect(screen.getByText(/selected tool results are sent to your configured AI provider/i)).toBeTruthy();
-    expect(toggle.getAttribute('aria-checked')).toBe('false');
-    fireEvent.click(toggle);
-    expect(toggle.getAttribute('aria-checked')).toBe('true');
+    expect(screen.queryByTestId('chat-agent-mode')).toBeNull();
 
     fireEvent.change(screen.getByTestId('chat-input'), { target: { value: 'What time is it?' } });
     fireEvent.click(screen.getByTestId('chat-send-button'));
 
     await waitFor(() => expect(onAskQuestionStream).toHaveBeenCalledTimes(1));
-    expect(onAskQuestionStream.mock.calls[0][6]).toBe(true);
-    expect(typeof onAskQuestionStream.mock.calls[0][7]).toBe('function');
+    expect(typeof onAskQuestionStream.mock.calls[0][6]).toBe('function');
+    expect(onAskQuestionStream.mock.calls[0]).toHaveLength(7);
+    expect((await screen.findByTestId('chat-agent-status')).textContent).toContain(
+      'Preparing local tools',
+    );
+
+    act(() => done.resolve({ answer: 'It is 1:30 AM.' }));
+    await waitFor(() => expect(screen.queryByTestId('chat-agent-status')).toBeNull());
   });
 
   it('opens an older conversation when a semantic-search result belongs to that thread', async () => {

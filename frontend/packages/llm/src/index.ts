@@ -110,7 +110,7 @@ export type {
 } from "./client";
 export type { ChatMessage, StreamChatOptions } from "./client";
 
-// --- Bounded browser-native tool orchestration (explicit opt-in) ---
+// --- Bounded browser-native tool orchestration ---
 export { AGENT_LIMITS, streamAgentChat } from "./agent";
 export type {
   AgentJsonObject,

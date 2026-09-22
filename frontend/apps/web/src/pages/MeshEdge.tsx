@@ -28,14 +28,22 @@ import {
   type MeshEdgeEntry,
   type Profile,
 } from '@almamesh/store';
-import type { MemberRelationship, MeshEdgeCtx } from '@almamesh/shared-types';
+import type {
+  MemberRelationship,
+  MeshEdgeCtx,
+  ProcessedBirthData,
+} from '@almamesh/shared-types';
 import {
   applyChatSettings,
+  buildChatMessages,
+  describeLlmStatus,
   resolveProviderConfig,
-  streamChartChat,
+  sanitizeChartForLlm,
+  sanitizeMeshEdgeForLlm,
+  streamAgentChat,
+  type AgentStatusEvent,
   type ChatTurn,
   type LlmEnv,
-  type MeshEdgeContext as LlmMeshEdgeContext,
 } from '@almamesh/llm';
 
 import { Button, Card, Spinner } from '../components/ui';
@@ -63,6 +71,11 @@ import {
   type MeshWindowYears,
 } from '../lib/mesh';
 import { predictiveReferenceInstant } from '../lib/predictive';
+import {
+  createChatAgentTools,
+  requiresCurrentPlanetaryContext,
+} from '../lib/chatAgentTools';
+import { ensureCurrentPlanetaryContext } from '../lib/currentPlanetaryContext';
 import type { SSEMetaData } from '../lib/streaming';
 import type { ViewMode } from '../lib/types';
 
@@ -237,7 +250,8 @@ function MeshEdgeContent({
   const setActiveProfile = useProfilesStore((s) => s.setActiveProfile);
   const charts = useChartLibraryStore((s) => s.charts);
   const chartsHydrated = useChartLibraryStore((s) => s.hydrated);
-  const engine = useOptionalChartEngine()?.engine ?? null;
+  const chartEngineContext = useOptionalChartEngine();
+  const engine = chartEngineContext?.engine ?? null;
   const contentMode = useContentModeStore((s) => s.contentMode);
   const viewMode: ViewMode = contentMode === 'technical' ? 'astrologer' : 'layman';
 
@@ -271,31 +285,121 @@ function MeshEdgeContent({
   const anchorChart = profileChartOf(charts, anchor.id);
   const siderealChart = anchorChart?.sidereal_chart;
 
-  const askMeshLlm = (
+  const askMeshLlm = async function* (
     question: string,
     questionViewMode: ViewMode | undefined,
     signal: AbortSignal,
     history: readonly ChatTurn[] = [],
     retrievedContext: readonly string[] = [],
-  ): AsyncGenerator<string> => {
+    onAgentStatus?: (label: string | null) => void,
+  ): AsyncGenerator<string> {
     if (!siderealChart) {
       throw new Error(t('errors:needs_regeneration'));
     }
+    if (!describeLlmStatus().configured) {
+      throw new Error(t('dashboard:chat.not_configured_notice'));
+    }
     const effectiveViewMode = questionViewMode || viewMode;
-    // The UI edge mirrors the engine wire shape the llm layer types locally.
-    const meshEdge: LlmMeshEdgeContext | undefined = entry.edge;
-    return streamChartChat({
-      chart: siderealChart,
+    const chatMode = effectiveViewMode === 'astrologer' ? 'expert' : 'layman';
+    const config = resolveProviderConfig(readMeshChatEnv());
+    const language = useLanguageStore.getState().language;
+    const now = new Date();
+    let chartWithPredictive = siderealChart;
+    const chartTimeZone = anchorChart?.birth_data?.birth_location_details.timezone ?? 'UTC';
+    const loadCurrentChart = async (context: { now: Date; signal: AbortSignal }) => {
+      if (!chartEngineContext) {
+        throw new Error('The on-device chart engine is unavailable.');
+      }
+      chartEngineContext.startBootstrap();
+      const runtime = chartEngineContext.engine ?? await chartEngineContext.whenReady();
+      chartWithPredictive = await ensureCurrentPlanetaryContext({
+        chart: siderealChart,
+        profileKey: anchorChart?.profile_id ?? anchorChart?.chart_id ?? anchor.id,
+        birth: anchorChart?.birth_data as ProcessedBirthData | undefined,
+        chartTimeZone,
+        now: context.now,
+        runtime,
+        signal: context.signal,
+      });
+      return chartWithPredictive;
+    };
+    const tools = createChatAgentTools({
+      chart: chartWithPredictive,
+      chartTimeZone,
+      loadCurrentChart,
+    });
+
+    let currentContextUnavailable = false;
+    if (requiresCurrentPlanetaryContext(question)) {
+      const currentTimingTool = tools.find((tool) => tool.name === 'get_current_timing');
+      if (!currentTimingTool) throw new Error('Current timing tool is unavailable.');
+      onAgentStatus?.(currentTimingTool.statusLabel ?? t('chat:agent.preparing'));
+      try {
+        await currentTimingTool.execute(
+          { section: 'transits' },
+          { now: new Date(now.getTime()), signal },
+        );
+      } catch (error) {
+        if (signal.aborted) throw error;
+        currentContextUnavailable = true;
+      }
+    }
+
+    let messages = buildChatMessages(
+      sanitizeChartForLlm(chartWithPredictive, now),
       question,
-      config: resolveProviderConfig(readMeshChatEnv()),
-      mode: effectiveViewMode === 'astrologer' ? 'expert' : 'layman',
+      chatMode,
       history,
       retrievedContext,
-      meshEdge,
-      language: useLanguageStore.getState().language,
+      undefined,
+      language,
+      entry.edge ? sanitizeMeshEdgeForLlm(entry.edge) : undefined,
+    );
+    if (currentContextUnavailable) {
+      const [system, ...rest] = messages;
+      messages = [
+        {
+          ...system,
+          content:
+            `${system.content ?? ''}\n\n` +
+            'CURRENT-CONTEXT SAFETY: This question requires exact-day planetary facts, but the on-device calculation was unavailable. Say that plainly and do not infer current transits or timing from natal or relationship facts.',
+        },
+        ...rest,
+      ];
+    }
+
+    let activeToolLabel: string | null = null;
+    yield* streamAgentChat({
+      config,
+      messages,
+      tools,
+      now,
       signal,
+      onStatus: (event) => {
+        if (event.phase === 'using_tool') {
+          activeToolLabel = event.label;
+        } else if (event.phase === 'deciding' && event.round > 1 && activeToolLabel !== null) {
+          return;
+        } else if (event.phase === 'answering' || event.phase === 'complete') {
+          activeToolLabel = null;
+        }
+        onAgentStatus?.(agentStatusLabel(event));
+      },
     });
   };
+
+  function agentStatusLabel(event: AgentStatusEvent): string {
+    switch (event.phase) {
+      case 'deciding':
+        return t('chat:agent.deciding');
+      case 'using_tool':
+        return event.label;
+      case 'answering':
+        return t('chat:agent.answering');
+      case 'complete':
+        return t('chat:agent.complete');
+    }
+  }
 
   const handleAskQuestionStream = async (
     question: string,
@@ -304,6 +408,7 @@ function MeshEdgeContent({
     questionViewMode?: ViewMode,
     history: readonly ChatTurn[] = [],
     retrievedContext: readonly string[] = [],
+    onAgentStatus?: (label: string | null) => void,
   ): Promise<{ answer: string; timing_guidance?: string | null; remedies?: string[] | null }> => {
     const controller = new AbortController();
     let answer = '';
@@ -314,6 +419,7 @@ function MeshEdgeContent({
         controller.signal,
         history,
         retrievedContext,
+        onAgentStatus,
       )) {
         answer += delta;
         onToken(delta);

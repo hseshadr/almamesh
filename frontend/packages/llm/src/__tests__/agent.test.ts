@@ -68,6 +68,37 @@ function tool(
 }
 
 describe("streamAgentChat", () => {
+  it("falls back to ordinary streaming when an endpoint explicitly rejects tools", async () => {
+    const bodies: Array<Record<string, unknown>> = [];
+    const fetchImpl = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
+      bodies.push(JSON.parse(String(init?.body)) as Record<string, unknown>);
+      if (bodies.length === 1) {
+        return new Response('{"error":"requires --enable-auto-tool-choice"}', {
+          status: 400,
+          statusText: 'Bad Request',
+        });
+      }
+      return streamed('Compatible ', 'answer');
+    });
+
+    await expect(
+      collect(
+        streamAgentChat({
+          config: CONFIG,
+          messages: [{ role: "user", content: "Answer safely." }],
+          tools: [tool(() => ({ ok: true }))],
+          now: NOW,
+          fetchImpl: fetchImpl as typeof fetch,
+        }),
+      ),
+    ).resolves.toBe('Compatible answer');
+    expect(bodies).toHaveLength(2);
+    expect(bodies[1]?.stream).toBe(true);
+    expect(bodies[1]?.tools).toBeUndefined();
+    expect(bodies[1]?.tool_choice).toBeUndefined();
+    expect(JSON.stringify(bodies[1]?.messages)).toContain('LOCAL TOOLS ARE UNAVAILABLE');
+  });
+
   it("advertises only injected tools and returns OpenAI-compatible tool results", async () => {
     const bodies: Array<Record<string, unknown>> = [];
     const statuses: AgentStatusEvent[] = [];

@@ -17,6 +17,7 @@ export const AGENT_LIMITS = Object.freeze({
   maxResultChars: 8_192,
   maxAggregateResultChars: 16_384,
   toolTimeoutMs: 2_000,
+  maxToolTimeoutMs: 60_000,
 });
 
 export type AgentJsonObject = Readonly<Record<string, unknown>>;
@@ -36,6 +37,8 @@ export interface AgentTool {
   readonly parameters: AgentJsonObject;
   /** Human-readable activity label. Must not contain arguments or private data. */
   readonly statusLabel?: string;
+  /** Optional local deadline for known-long deterministic work, capped globally. */
+  readonly timeoutMs?: number;
   readonly execute: (
     args: AgentJsonObject,
     context: AgentToolContext,
@@ -117,6 +120,11 @@ const MAX_TOOL_CALL_ID_CHARS = 128;
 const FINALIZATION_INSTRUCTION =
   "Tool use is closed for this turn. Answer only from the supplied conversation and tool results. " +
   "If a required fact is unavailable or a tool returned an error, say so plainly; do not infer it.";
+const TOOLS_UNAVAILABLE_INSTRUCTION =
+  "LOCAL TOOLS ARE UNAVAILABLE for this turn. Answer only from facts already present in the " +
+  "conversation. Never guess a current date, current time, timezone, chart fact, or current " +
+  "planetary context that is not explicitly supplied; say that the required local fact is " +
+  "unavailable instead.";
 
 function endpoint(config: ProviderConfig): string {
   if (!config.baseUrl) {
@@ -148,6 +156,15 @@ function throwIfAborted(signal: AbortSignal | undefined): void {
   if (!signal?.aborted) return;
   if (signal.reason instanceof Error) throw signal.reason;
   throw new DOMException("The operation was aborted", "AbortError");
+}
+
+function explicitlyRejectsTools(error: unknown): boolean {
+  if (!(error instanceof LlmRequestError)) return false;
+  if (![400, 404, 422].includes(error.status ?? 0)) return false;
+  const detail = error.body ?? error.message;
+  const namesCapability = /\b(?:tool|tools|function|functions|tool_choice|tool_calls)\b|enable-auto-tool-choice/i;
+  const namesRejection = /unsupported|not supported|unknown|invalid|requires?|enable/i;
+  return namesCapability.test(detail) && namesRejection.test(detail);
 }
 
 function toolDefinitions(tools: readonly AgentTool[]): ReadonlyArray<Record<string, unknown>> {
@@ -325,9 +342,16 @@ async function executeWithDeadline(
   const controller = new AbortController();
   const relayAbort = (): void => controller.abort(options.signal?.reason);
   options.signal?.addEventListener("abort", relayAbort, { once: true });
+  const requestedTimeout = tool.timeoutMs ?? AGENT_LIMITS.toolTimeoutMs;
+  const timeoutMs = Number.isFinite(requestedTimeout)
+    ? Math.min(
+        Math.max(1, requestedTimeout),
+        AGENT_LIMITS.maxToolTimeoutMs,
+      )
+    : AGENT_LIMITS.toolTimeoutMs;
   const timeout = setTimeout(
     () => controller.abort(new DOMException("The local tool timed out", "TimeoutError")),
-    AGENT_LIMITS.toolTimeoutMs,
+    timeoutMs,
   );
   const aborted = new Promise<never>((_resolve, reject) => {
     controller.signal.addEventListener("abort", () => reject(controller.signal.reason), {
@@ -364,6 +388,40 @@ async function* finalRequest(
       stream: true,
       tools: definitions,
       tool_choice: "none",
+    }),
+    signal: options.signal,
+  });
+  if (!response.ok || !response.body) throw await requestError(response);
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const events = buffer.split(/\r?\n\r?\n/);
+    buffer = events.pop() ?? "";
+    for (const event of events) yield* parseSseEvent(event);
+  }
+  buffer += decoder.decode();
+  if (buffer.trim()) yield* parseSseEvent(buffer);
+}
+
+/** Compatibility path for OpenAI-compatible endpoints without function calling. */
+async function* streamWithoutTools(
+  options: StreamAgentChatOptions,
+  messages: readonly ChatMessage[],
+): AsyncGenerator<string> {
+  throwIfAborted(options.signal);
+  ensurePrivacy(options.config);
+  const response = await (options.fetchImpl ?? fetch)(endpoint(options.config), {
+    method: "POST",
+    headers: headers(options.config),
+    body: JSON.stringify({
+      model: options.config.model,
+      messages,
+      stream: true,
     }),
     signal: options.signal,
   });
@@ -426,7 +484,24 @@ export async function* streamAgentChat(
 
   for (let round = 1; round <= AGENT_LIMITS.maxDecisionRounds; round += 1) {
     options.onStatus?.({ phase: "deciding", round });
-    const decision = await decisionRequest(options, transcript, definitions);
+    let decision: DecisionMessage;
+    try {
+      decision = await decisionRequest(options, transcript, definitions);
+    } catch (error) {
+      // Some otherwise-valid Ollama/llama.cpp/OpenAI-compatible models reject
+      // the tools fields outright. On the first request only, retain privacy
+      // and grounded messages while degrading to their ordinary SSE contract.
+      if (round === 1 && explicitlyRejectsTools(error)) {
+        options.onStatus?.({ phase: "answering" });
+        yield* streamWithoutTools(options, [
+          { role: "system", content: TOOLS_UNAVAILABLE_INSTRUCTION },
+          ...options.messages,
+        ]);
+        options.onStatus?.({ phase: "complete" });
+        return;
+      }
+      throw error;
+    }
     if (decision.toolCalls.length === 0) {
       if (!decision.content?.trim()) {
         throw new LlmRequestError("LLM endpoint returned an empty agent completion");

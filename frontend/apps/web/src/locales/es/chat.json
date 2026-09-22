@@ -22,8 +22,6 @@
     "analyzing": "Analizando..."
   },
   "agent": {
-    "label": "Modo agente",
-    "hint": "Las herramientas se ejecutan en el dispositivo; los resultados seleccionados se envían al proveedor de IA configurado.",
     "preparing": "Preparando herramientas locales…",
     "deciding": "Eligiendo el siguiente paso seguro…",
     "answering": "Redactando la respuesta fundamentada…",

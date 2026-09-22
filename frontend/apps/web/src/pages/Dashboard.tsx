@@ -6,6 +6,7 @@ import type {
   BirthChartGenerationResponse,
   AstronomicalCalculations,
   SiderealPlanet,
+  ProcessedBirthData,
 } from "@almamesh/shared-types";
 import { readLocalPrimaryChart } from "../lib/localChartRead";
 import {
@@ -15,7 +16,6 @@ import {
   resolveProviderConfig,
   sanitizeChartForLlm,
   streamAgentChat,
-  streamChartChat,
   serializeInterpretationForChat,
   readLlmSettings,
   writeLlmSettings,
@@ -73,7 +73,12 @@ import { useReportPdfExport } from "../hooks/useReportPdfExport";
 import { isPlaceholderContent } from "./exportGate";
 import { personaText, resolveReportAudience } from "../lib/reportSelectors";
 import { rectificationDelta } from "../lib/rectification";
-import { createChatAgentTools } from "../lib/chatAgentTools";
+import {
+  createChatAgentTools,
+  requiresCurrentPlanetaryContext,
+} from "../lib/chatAgentTools";
+import { ensureCurrentPlanetaryContext } from "../lib/currentPlanetaryContext";
+import { useOptionalChartEngine } from "../providers/chartEngineContext";
 
 // Resolve the LLM env: build-time Vite env with any browser-local Settings
 // overrides taking precedence — mirrors useStreamingInterpretation so the
@@ -96,6 +101,7 @@ function readChatLlmEnv(): LlmEnv {
 
 export default function DashboardPage() {
   const { t, i18n } = useTranslation(["dashboard", "life", "predictive"]);
+  const chartEngineContext = useOptionalChartEngine();
 
   // Auth state is handled by RequiresChartRoute guard
   const [chartData, setChartData] = useState<BirthChartGenerationResponse | null>(null);
@@ -252,15 +258,14 @@ export default function DashboardPage() {
   // is sanitized (identifier-free, dates relativized) before the prompt is built
   // and streamed to the configured (default local) OpenAI-compatible endpoint.
   // There is no backend; egress is the optional, PII-redacted LLM call only.
-  const askLocalLlm = (
+  const askLocalLlm = async function* (
     question: string,
     questionViewMode: ViewMode | undefined,
     signal: AbortSignal,
     history: readonly ChatTurn[] = [],
     retrievedContext: readonly string[] = [],
-    agentMode = false,
     onAgentStatus?: (label: string | null) => void,
-  ) => {
+  ) {
     const storedChart = chartId ? useChartLibraryStore.getState().getChart(chartId) : undefined;
     const chart = storedChart?.sidereal_chart;
     if (!chart) {
@@ -292,7 +297,7 @@ export default function DashboardPage() {
       : null;
     const language = useLanguageStore.getState().language;
     const now = new Date();
-    const chartWithPredictive = withRawPredictive(chart, chartId);
+    let chartWithPredictive = withRawPredictive(chart, chartId);
     const rectification = rectificationRecord
       ? {
           band: rectificationRecord.band,
@@ -302,61 +307,95 @@ export default function DashboardPage() {
         }
       : undefined;
 
-    if (agentMode) {
-      const messages = buildChatMessages(
-        sanitizeChartForLlm(chartWithPredictive, now),
-        question,
-        chatMode,
-        history,
-        retrievedContext,
-        interpretationText,
-        language,
-        undefined,
-        rectification,
-      );
-      const chartTimeZone =
-        storedChart?.birth_data?.birth_location_details.timezone ?? 'UTC';
-      let activeToolLabel: string | null = null;
-      return streamAgentChat({
-        config,
-        messages,
-        tools: createChatAgentTools({ chart: chartWithPredictive, chartTimeZone }),
-        now,
-        signal,
-        onStatus: (event) => {
-          if (event.phase === 'using_tool') {
-            activeToolLabel = event.label;
-          } else if (event.phase === 'deciding' && event.round > 1 && activeToolLabel !== null) {
-            // Keep the concrete local activity visible while the provider reads
-            // its result; replacing it immediately with a generic second-round
-            // label makes a synchronous tool call imperceptible to people.
-            return;
-          } else if (event.phase === 'answering' || event.phase === 'complete') {
-            activeToolLabel = null;
-          }
-          onAgentStatus?.(agentStatusLabel(event));
-        },
+    const chartTimeZone = storedChart?.birth_data?.birth_location_details.timezone ?? 'UTC';
+    const loadCurrentChart = async (context: { now: Date; signal: AbortSignal }) => {
+      if (!chartEngineContext) {
+        throw new Error('The on-device chart engine is unavailable.');
+      }
+      chartEngineContext.startBootstrap();
+      const runtime = chartEngineContext.engine ?? await chartEngineContext.whenReady();
+      chartWithPredictive = await ensureCurrentPlanetaryContext({
+        chart,
+        profileKey: storedChart?.profile_id ?? chartId ?? 'primary',
+        birth: storedChart?.birth_data as ProcessedBirthData | undefined,
+        chartTimeZone,
+        now: context.now,
+        runtime,
+        signal: context.signal,
       });
-    }
-    return streamChartChat({
-      // Compose the persisted raw predictive contexts (when ready for this
-      // profile) so chat answers can cite the engine's transit/strength/domain
-      // facts (Spec 062 delta 1); absent contexts → natal-only, as before.
+      return chartWithPredictive;
+    };
+    const tools = createChatAgentTools({
       chart: chartWithPredictive,
+      chartTimeZone,
+      loadCurrentChart,
+    });
+
+    // A small deterministic router guarantees that explicit relative-time
+    // questions receive exact-day engine facts. This does not ask a cheap model
+    // to decide whether "today" needs today's sky; the same allowlisted tool the
+    // model can call is run locally first, and the resulting chart is then the
+    // one serialized into the agent context. Same-day repeats hit the store cache.
+    let currentContextUnavailable = false;
+    if (requiresCurrentPlanetaryContext(question)) {
+      const currentTimingTool = tools.find((tool) => tool.name === 'get_current_timing');
+      if (!currentTimingTool) throw new Error('Current timing tool is unavailable.');
+      onAgentStatus?.(currentTimingTool.statusLabel ?? 'Calculating current planetary context');
+      try {
+        await currentTimingTool.execute(
+          { section: 'transits' },
+          { now: new Date(now.getTime()), signal },
+        );
+      } catch (error) {
+        if (signal.aborted) throw error;
+        currentContextUnavailable = true;
+      }
+    }
+
+    let messages = buildChatMessages(
+      sanitizeChartForLlm(chartWithPredictive, now),
       question,
-      config,
-      mode: chatMode,
+      chatMode,
       history,
-      // RAG: relevant past-conversation snippets retrieved on-device by the
-      // chat hook (best-effort; empty when memory is unavailable).
       retrievedContext,
       interpretationText,
-      ...(rectification ? { rectification } : {}),
-      // Answer chat in the user's chosen UI language (interpretation is threaded
-      // the same way via useStreamingInterpretation); the engine is untouched.
       language,
-      signal,
+      undefined,
+      rectification,
+    );
+    if (currentContextUnavailable) {
+      const [system, ...rest] = messages;
+      messages = [
+        {
+          ...system,
+          content:
+            `${system.content ?? ''}\n\n` +
+            'CURRENT-CONTEXT SAFETY: This question requires exact-day planetary facts, but the on-device calculation was unavailable. Say that plainly and do not infer current transits or timing from natal facts.',
+        },
+        ...rest,
+      ];
+    }
+
+    let activeToolLabel: string | null = null;
+    yield* streamAgentChat({
+      config,
+      messages,
+      tools,
       now,
+      signal,
+      onStatus: (event) => {
+        if (event.phase === 'using_tool') {
+          activeToolLabel = event.label;
+        } else if (event.phase === 'deciding' && event.round > 1 && activeToolLabel !== null) {
+          // Keep the concrete local activity visible while the provider reads
+          // its result; replacing it immediately with a generic second-round
+          // label makes a synchronous tool call imperceptible to people.
+          return;
+        } else if (event.phase === 'answering' || event.phase === 'complete') {
+          activeToolLabel = null;
+        }
+        onAgentStatus?.(agentStatusLabel(event));
+      },
     });
   };
 
@@ -367,7 +406,6 @@ export default function DashboardPage() {
     questionViewMode?: ViewMode,
     history: readonly ChatTurn[] = [],
     retrievedContext: readonly string[] = [],
-    agentMode = false,
     onAgentStatus?: (label: string | null) => void,
   ) => {
     const controller = new AbortController();
@@ -379,7 +417,6 @@ export default function DashboardPage() {
         controller.signal,
         history,
         retrievedContext,
-        agentMode,
         onAgentStatus,
       )) {
         answer += delta;
@@ -1127,7 +1164,6 @@ export default function DashboardPage() {
         chartId={chartId}
         viewMode={viewMode}
         onAskQuestionStream={handleAskQuestionStream}
-        agentModeAvailable
         initialOpen={chatInitiallyOpen}
       />
     </>

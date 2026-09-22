@@ -9,11 +9,10 @@ import { bootEngine, seedChart, LLM_SETTINGS_KEY } from './interpretation.helper
  *      and NEVER the old "about 30 seconds" string.
  *   B) Life Phase card             — renders a real maha phase, not the
  *      "Life phase information not available" fallback.
- *   C) Agentic chat (the headline) — after the user explicitly enables agent
- *      mode, a `cloud_premium` OpenRouter model receives exactly the three local,
- *      read-only tools, calls the date/time tool, and receives its Asia/Kolkata
- *      result before answering. Also proves the typing indicator (`chat-loading`)
- *      shows before the first streamed token.
+ *   C) Always-agent chat (headline) — a natural "today" question first computes
+ *      exact-day planetary context on-device, then a `cloud_premium` OpenRouter
+ *      model receives that sanitized context and the three read-only tools.
+ *      Also proves the typing indicator (`chat-loading`) appears before output.
  *
  * This is a REAL integration test: real in-browser Pyodide engine, a real Delhi
  * sidereal chart generated in-tab, and a LIVE OpenRouter round-trip with a
@@ -27,7 +26,7 @@ import { bootEngine, seedChart, LLM_SETTINGS_KEY } from './interpretation.helper
 /** Strings that signal a non-real / placeholder chat answer. */
 const PLACEHOLDERS = ['pending', 'please retry', 'loading', 'no answer available'];
 
-test('[real] dashboard: timer + life phase + local-time agentic chat', async ({
+test('[real] dashboard: timer + life phase + exact-day agentic chat', async ({
   page,
 }) => {
   const KEY = process.env.OPENROUTER_API_KEY;
@@ -121,20 +120,15 @@ test('[real] dashboard: timer + life phase + local-time agentic chat', async ({
   expect(identityText).not.toContain('Not available');
 
   // ---------------------------------------------------------------------------
-  // C) Agentic chat (HEADLINE) — opt in, ask a question whose answer must come
-  //    from the caller-pinned clock, then prove the complete live tool protocol.
+  // C) Always-agent chat (HEADLINE) — ask naturally about today. The app must
+  //    compute exact-day engine context before provider inference.
   // ---------------------------------------------------------------------------
   await page.getByTestId('floating-chat-button').click();
   const chatInput = page.getByTestId('chat-input');
   await expect(chatInput).toBeVisible({ timeout: 15_000 });
 
-  const agentMode = page.getByTestId('chat-agent-mode');
-  await agentMode.click();
-  await expect(agentMode).toHaveAttribute('aria-checked', 'true');
-
-  await chatInput.fill(
-    'Use the available local date/time tool with scope="chart", not training data, to tell me the current date and time in my chart timezone. Include the timezone and UTC offset.',
-  );
+  await expect(page.getByTestId('chat-agent-mode')).toHaveCount(0);
+  await chatInput.fill('What planetary influences matter most for me today?');
   await page.getByTestId('chat-send-button').click();
 
   // (i) The typing indicator (chat-loading dots) must show BEFORE any answer
@@ -145,19 +139,14 @@ test('[real] dashboard: timer + life phase + local-time agentic chat', async ({
     fullPage: true,
   });
 
-  // The concrete local capability stays visible while the provider consumes
-  // its result, making the otherwise-fast synchronous tool call perceptible.
-  await expect(page.getByTestId('chat-agent-status')).toContainText(
-    'Checking the current time',
-    { timeout: 180_000 },
-  );
+  await expect(page.getByTestId('chat-agent-status')).toBeVisible({ timeout: 180_000 });
 
   // (ii) An answer then STREAMS into the chat panel. Wait for a substantive
   //      assistant message to appear (the tool loop + first-pass decision can
   //      take a while on a reasoning model).
   const assistantMessage = page.getByTestId('chat-message-assistant').last();
   await expect(assistantMessage).toBeVisible({ timeout: 480_000 });
-  await expect(assistantMessage).toContainText(/Asia\/Kolkata|UTC\+?05:30|India/i, {
+  await expect(assistantMessage).toContainText(/Saturn|Jupiter|Mars|Mercury|Venus|Rahu|Ketu|Moon|Sun/i, {
     timeout: 480_000,
   });
   const answerText = (await assistantMessage.textContent()) ?? '';
@@ -176,21 +165,21 @@ test('[real] dashboard: timer + life phase + local-time agentic chat', async ({
     expect(lower).not.toContain(placeholder);
   }
 
-  // THE TOOL-PROTOCOL ASSERTIONS: the live model first saw the exact fixed
-  // allowlist, then a later provider request carried the locally executed
-  // Asia/Kolkata result. This proves tool use, rather than inferring it from
-  // plausible prose in the answer.
+  // THE CONTEXT + TOOL-PROTOCOL ASSERTIONS: the first live request carries the
+  // exact fixed allowlist and the deterministic predictive facts block. Model
+  // tool choice remains auto; correctness does not depend on it electing a tool.
   await expect
     .poll(() => agentRequestBodies.length, {
       timeout: 480_000,
       intervals: [1_000],
     })
-    .toBeGreaterThanOrEqual(2);
+    .toBeGreaterThanOrEqual(1);
 
   const firstAgentRequest = agentRequestBodies[0] as {
     stream?: unknown;
     tool_choice?: unknown;
     tools?: Array<{ function?: { name?: string } }>;
+    messages?: unknown[];
   };
   expect(firstAgentRequest.stream).toBe(false);
   expect(firstAgentRequest.tool_choice).toBe('auto');
@@ -199,24 +188,11 @@ test('[real] dashboard: timer + life phase + local-time agentic chat', async ({
     'get_chart_facts',
     'get_current_timing',
   ]);
-
-  const requestWithToolResult = agentRequestBodies.find((body) => {
-    const messages = Array.isArray(body.messages) ? body.messages : [];
-    return messages.some(
-      (message) =>
-        typeof message === 'object' &&
-        message !== null &&
-        (message as { role?: unknown }).role === 'tool',
-    );
-  }) as
-    | { messages?: Array<{ role?: string; name?: string; content?: string }> }
-    | undefined;
-  expect(requestWithToolResult, 'the provider must receive a local tool result').toBeTruthy();
-  const returnedToolResult = requestWithToolResult?.messages?.find(
-    (message) => message.role === 'tool' && message.name === 'get_current_datetime',
-  );
-  expect(returnedToolResult?.content).toContain('"timeZone":"Asia/Kolkata"');
-  expect(returnedToolResult?.content).toContain('"utcOffset":"+05:30"');
+  const firstMessages = Array.isArray(firstAgentRequest.messages)
+    ? firstAgentRequest.messages
+    : [];
+  expect(JSON.stringify(firstMessages)).toContain('ENGINE PREDICTIVE CONTEXT');
+  expect(JSON.stringify(firstMessages)).toContain('Current transits (Gochara)');
 
   // No hard request failures during the flow.
   for (const fragment of ['LlmRequestError', 'CORS', 'Failed to fetch']) {

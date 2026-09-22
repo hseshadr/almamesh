@@ -32,7 +32,6 @@ interface FloatingChatPanelProps {
     viewMode?: ViewMode,
     history?: readonly ChatTurn[],
     retrievedContext?: readonly string[],
-    agentMode?: boolean,
     onAgentStatus?: (label: string | null) => void,
   ) => Promise<{
     answer: string;
@@ -41,8 +40,6 @@ interface FloatingChatPanelProps {
   }>;
   /** Start with the panel open (e.g. arriving via a "discuss in chat" link). */
   initialOpen?: boolean;
-  /** Expose the bounded local agent mode toggle. */
-  agentModeAvailable?: boolean;
 }
 
 // Icons as separate components for cleaner code
@@ -108,7 +105,6 @@ export function FloatingChatPanel({
   viewMode,
   onAskQuestionStream,
   initialOpen = false,
-  agentModeAvailable = false,
 }: FloatingChatPanelProps) {
   const { t } = useTranslation('chat');
   const [panelState, setPanelState] = useState<PanelState>(initialOpen ? 'normal' : 'closed');
@@ -261,7 +257,6 @@ export function FloatingChatPanel({
                   chartId={chartId}
                   viewMode={viewMode}
                   onAskQuestionStream={onAskQuestionStream}
-                  agentModeAvailable={agentModeAvailable}
                   hideHeader
                 />
               </div>
