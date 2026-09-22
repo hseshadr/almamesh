@@ -671,3 +671,124 @@ describe('cross-realm deletion propagation', () => {
     expect(useInterpretationStore.getState().getEntry('target-chart')).toBeUndefined();
   });
 });
+
+describe('startup data-lifecycle readiness', () => {
+  const emptyLedger = {
+    version: 1 as const,
+    activeEpoch: 0,
+    restoreEpoch: 0,
+    restoreInProgress: false,
+    memoryRebuildPending: false,
+    profileIds: [],
+    threadIds: [],
+    chartIds: [],
+  };
+
+  it('stays pending until the initial reconcile and resume pass finishes', async () => {
+    const initialRead = Promise.withResolvers<typeof emptyLedger>();
+    vi.resetModules();
+    vi.doMock('@almamesh/store', async (importOriginal) => ({
+      ...(await importOriginal<typeof import('@almamesh/store')>()),
+      readDeletionTombstones: vi
+        .fn()
+        .mockImplementationOnce(() => initialRead.promise)
+        .mockResolvedValue(emptyLedger),
+      adoptLatestDatasetEpoch: vi.fn().mockResolvedValue({ changed: false, epoch: 0 }),
+    }));
+
+    try {
+      const lifecycle = await import('./profileDataLifecycle');
+      let ready = false;
+      void lifecycle.whenDataLifecycleReady().then(() => {
+        ready = true;
+      });
+      await Promise.resolve();
+      expect(ready).toBe(false);
+
+      initialRead.resolve(emptyLedger);
+      await lifecycle.whenDataLifecycleReady();
+      expect(ready).toBe(true);
+    } finally {
+      vi.doUnmock('@almamesh/store');
+    }
+  });
+
+  it('serializes a visibility reconciliation behind the initial pass', async () => {
+    const first = Promise.withResolvers<void>();
+    const second = Promise.withResolvers<void>();
+    let active = 0;
+    let maximumActive = 0;
+    const adoptLatestDatasetEpoch = vi
+      .fn()
+      .mockImplementationOnce(async () => {
+        active += 1;
+        maximumActive = Math.max(maximumActive, active);
+        await first.promise;
+        active -= 1;
+        return { changed: false, epoch: 0 };
+      })
+      .mockImplementationOnce(async () => {
+        active += 1;
+        maximumActive = Math.max(maximumActive, active);
+        await second.promise;
+        active -= 1;
+        return { changed: false, epoch: 0 };
+      });
+    vi.resetModules();
+    vi.doMock('@almamesh/store', async (importOriginal) => ({
+      ...(await importOriginal<typeof import('@almamesh/store')>()),
+      readDeletionTombstones: vi.fn().mockResolvedValue(emptyLedger),
+      adoptLatestDatasetEpoch,
+    }));
+    const visibility = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
+
+    try {
+      const lifecycle = await import('./profileDataLifecycle');
+      await vi.waitFor(() => expect(adoptLatestDatasetEpoch).toHaveBeenCalledTimes(1));
+      document.dispatchEvent(new Event('visibilitychange'));
+      await Promise.resolve();
+      expect(adoptLatestDatasetEpoch).toHaveBeenCalledTimes(1);
+
+      first.resolve();
+      await vi.waitFor(() => expect(adoptLatestDatasetEpoch).toHaveBeenCalledTimes(2));
+      let ready = false;
+      void lifecycle.whenDataLifecycleReady().then(() => {
+        ready = true;
+      });
+      await Promise.resolve();
+      expect(ready).toBe(false);
+
+      second.resolve();
+      await lifecycle.whenDataLifecycleReady();
+      expect(ready).toBe(true);
+      expect(maximumActive).toBe(1);
+    } finally {
+      first.resolve();
+      second.resolve();
+      visibility.mockRestore();
+      vi.doUnmock('@almamesh/store');
+    }
+  });
+
+  it('reports a startup reconciliation failure and still releases readiness', async () => {
+    const safeError = vi.fn();
+    vi.resetModules();
+    vi.doMock('@almamesh/store', async (importOriginal) => ({
+      ...(await importOriginal<typeof import('@almamesh/store')>()),
+      readDeletionTombstones: vi.fn().mockRejectedValue(new Error('ledger unavailable')),
+    }));
+    vi.doMock('@almamesh/shared-types', async (importOriginal) => ({
+      ...(await importOriginal<typeof import('@almamesh/shared-types')>()),
+      safeError,
+    }));
+
+    try {
+      const lifecycle = await import('./profileDataLifecycle');
+      await expect(lifecycle.whenDataLifecycleReady()).resolves.toBeUndefined();
+      expect(safeError).toHaveBeenCalledWith('lifecycle.remote_deletion_failed');
+    } finally {
+      vi.doUnmock('@almamesh/store');
+      vi.doUnmock('@almamesh/shared-types');
+    }
+  });
+});

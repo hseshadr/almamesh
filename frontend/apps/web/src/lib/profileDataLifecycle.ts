@@ -476,15 +476,37 @@ async function reconcileAndResume(): Promise<void> {
   await resumePendingMemoryRebuild();
 }
 
+// One ordered startup/lifecycle lane. A paid or otherwise stateful caller can
+// await this barrier before mutating a hydrated store, knowing that the initial
+// durable-ledger adoption and any already-scheduled visibility reconciliation
+// cannot later replace its live state with an older snapshot.
+let dataLifecycleReadiness: Promise<void> = Promise.resolve();
+
+function scheduleDataLifecycleReconciliation(): void {
+  dataLifecycleReadiness = dataLifecycleReadiness
+    .then(() => reconcileAndResume())
+    .catch(() => {
+      reportRemoteDeletionError();
+      // Readiness describes completion of the startup attempt, not its success.
+      // The coded diagnostic above remains the product-visible failure signal;
+      // swallowing here prevents a fire-and-forget startup rejection.
+    });
+}
+
+/** Wait until all startup/visibility reconciliation already scheduled has settled. */
+export function whenDataLifecycleReady(): Promise<void> {
+  return dataLifecycleReadiness;
+}
+
 subscribeDeletionNotices((notice) => {
   void applyRemoteDeletionNotice(notice).catch(reportRemoteDeletionError);
 });
 
 if (typeof document !== 'undefined') {
-  void reconcileAndResume().catch(reportRemoteDeletionError);
+  scheduleDataLifecycleReconciliation();
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
-      void reconcileAndResume().catch(reportRemoteDeletionError);
+      scheduleDataLifecycleReconciliation();
     }
   });
 }

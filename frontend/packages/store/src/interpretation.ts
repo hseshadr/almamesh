@@ -24,6 +24,7 @@ import type {
 } from '@almamesh/llm';
 import type { TitledPersona, VedicInterpretation } from '@almamesh/shared-types';
 import { deletionAwareIdbStorage } from './deletionTombstones';
+import { whenHydrated } from './hydrationBarrier';
 
 /** Lifecycle of a chart's interpretation generation. */
 export type InterpretationStatus = 'idle' | 'generating' | 'complete' | 'error';
@@ -848,3 +849,8 @@ export const useInterpretationStore = create<InterpretationStore>()(
     partialize: (state) => ({ byChart: state.byChart }),
   }),
 );
+
+/** Wait until canonical SQLite state has rehydrated before starting a paid run. */
+export function whenInterpretationHydrated(): Promise<void> {
+  return whenHydrated(useInterpretationStore.persist);
+}

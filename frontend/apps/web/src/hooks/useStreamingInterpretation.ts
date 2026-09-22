@@ -37,6 +37,7 @@ import {
   useInterpretationStore,
   useLanguageStore,
   usePredictiveStore,
+  whenInterpretationHydrated,
   predictiveRequestKey,
   type CachedPredictiveContexts,
   type CurrentTimelineContent,
@@ -49,6 +50,7 @@ import type { SiderealChart } from '@almamesh/browser/types';
 import type { ProcessedBirthData, VedicInterpretation } from '@almamesh/shared-types';
 
 import { chatErrorMessage, classifyConnectionError } from '../lib/errors';
+import { whenDataLifecycleReady } from '../lib/profileDataLifecycle';
 import { buildEnsurePredictiveInput, predictiveReferenceInstant } from '../lib/predictive';
 import { fetchEvidenceAnnotations } from './evidenceAnnotations';
 
@@ -421,6 +423,11 @@ export function useStreamingInterpretation(chartId?: string | null): UseStreamin
       if (options.intent !== 'user-request') {
         return;
       }
+      // Startup may reconcile a newer portable dataset after Zustand's first
+      // hydration. Both phases can replace the live map, so paid work must wait
+      // for the whole lifecycle boundary before reading or mutating the store.
+      await whenDataLifecycleReady();
+      await whenInterpretationHydrated();
       const stored = useChartLibraryStore.getState().getChart(id);
       const chart = stored?.sidereal_chart;
       if (!chart) {
@@ -525,6 +532,8 @@ export function useStreamingInterpretation(chartId?: string | null): UseStreamin
   const streamTimeline = useCallback(
     async (id: string, options: StreamInterpretationOptions) => {
       if (options.intent !== 'user-request') return;
+      await whenDataLifecycleReady();
+      await whenInterpretationHydrated();
       const stored = useChartLibraryStore.getState().getChart(id);
       const chart = stored?.sidereal_chart;
       if (!chart) {
