@@ -76,33 +76,6 @@ async function spaNav(page: import('@playwright/test').Page, path: string) {
   await page.waitForTimeout(600);
 }
 
-// Read active profile ID from IndexedDB (almamesh-profiles zustand-persist key).
-async function readActiveProfileId(page: import('@playwright/test').Page): Promise<string | null> {
-  return page.evaluate(async (): Promise<string | null> => {
-    return new Promise((resolve) => {
-      const open = indexedDB.open('keyval-store');
-      open.onsuccess = () => {
-        const db = open.result;
-        if (!db.objectStoreNames.contains('keyval')) return resolve(null);
-        const tx = db.transaction('keyval', 'readonly');
-        const req = tx.objectStore('keyval').get('almamesh-profiles');
-        req.onsuccess = () => {
-          try {
-            resolve(
-              (JSON.parse(req.result as string ?? '{}') as { state?: { activeProfileId?: string } })
-                ?.state?.activeProfileId ?? null,
-            );
-          } catch {
-            resolve(null);
-          }
-        };
-        req.onerror = () => resolve(null);
-      };
-      open.onerror = () => resolve(null);
-    });
-  });
-}
-
 test.describe('Phase-2 Rectification Wizard', () => {
   test('full wizard journey: intro → events → fit → results → confirm → dashboard', async ({
     page,
@@ -132,15 +105,7 @@ test.describe('Phase-2 Rectification Wizard', () => {
     await page.screenshot({ path: `${SCRATCHPAD}/01-dashboard-loaded.png`, fullPage: true });
 
     // ── 3. Get active profile ID ───────────────────────────────────────────
-    let profileId = await readActiveProfileId(page);
-    if (!profileId) {
-      // Fallback: extract from IdentityStrip cusp CTA link in the DOM
-      profileId = await page.evaluate((): string | null => {
-        const a = document.querySelector('a[href*="/rectify/"]');
-        return a ? (a.getAttribute('href') ?? '').split('/rectify/')[1] ?? null : null;
-      });
-    }
-    expect(profileId, 'must have an active profile ID to navigate to rectify').toBeTruthy();
+    const profileId = `${BENGALURU_SEED.chartId}-profile`;
     console.log(`[wizard-phase2] profileId=${profileId}`);
 
     // ── 4. Navigate to /rectify/:profileId ───────────────────────────────

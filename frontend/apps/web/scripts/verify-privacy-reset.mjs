@@ -3,10 +3,17 @@ import { chromium } from '@playwright/test';
 const baseUrl = process.argv[2];
 if (!baseUrl) throw new Error('Usage: node verify-privacy-reset.mjs <base-url>');
 
+const PROFILE_ID = 'privacy-reset-sqlite-profile';
+const PROFILE_NAME = 'SQLite Reset Proof';
+const PRIVATE_CREDENTIAL = 'sk-privacy-reset-never-export';
+const SQLITE_HEADER = [
+  0x53, 0x51, 0x4c, 0x69, 0x74, 0x65, 0x20, 0x66,
+  0x6f, 0x72, 0x6d, 0x61, 0x74, 0x20, 0x33, 0x00,
+];
 const origin = new URL(baseUrl).origin;
 const browser = await chromium.launch({ headless: true });
 const context = await browser.newContext({ acceptDownloads: true });
-await context.addInitScript(() => {
+await context.addInitScript(({ profileId, privateCredential }) => {
   let target = window;
   while (target) {
     Reflect.deleteProperty(target, 'showSaveFilePicker');
@@ -14,7 +21,25 @@ await context.addInitScript(() => {
   }
   const createObjectUrl = URL.createObjectURL.bind(URL);
   URL.createObjectURL = (blob) => {
-    window.__almameshBackupText = blob.text();
+    window.__almameshBackupEvidence = blob.arrayBuffer().then((buffer) => {
+      const bytes = new Uint8Array(buffer);
+      const contains = (text) => {
+        const needle = new window.TextEncoder().encode(text);
+        return bytes.some((_, offset) =>
+          offset + needle.length <= bytes.length &&
+          needle.every((value, index) => bytes[offset + index] === value),
+        );
+      };
+      return {
+        type: blob.type,
+        size: bytes.length,
+        header: [...bytes.slice(0, 16)],
+        pageSizeField: (bytes[16] << 8) | bytes[17],
+        hasCanonicalLedger: contains('almamesh-deletion-tombstones'),
+        hasProfile: contains(profileId),
+        hasPrivateCredential: contains(privateCredential),
+      };
+    });
     return createObjectUrl(blob);
   };
   document.addEventListener(
@@ -27,7 +52,7 @@ await context.addInitScript(() => {
     },
     true,
   );
-});
+}, { profileId: PROFILE_ID, privateCredential: PRIVATE_CREDENTIAL });
 
 const page = await context.newPage();
 const errors = [];
@@ -104,7 +129,99 @@ async function resetDiagnostics() {
   };
 }
 
+async function exportBackup() {
+  await page.evaluate(() => {
+    delete window.__almameshBackupEvidence;
+    delete window.__almameshBackupFilename;
+  });
+  await page.getByTestId('backup-export-button').click();
+  await page.getByTestId('backup-status').waitFor();
+  await page.waitForFunction(
+    () => window.__almameshBackupFilename && window.__almameshBackupEvidence,
+  );
+  return page.evaluate(async () => ({
+    filename: window.__almameshBackupFilename,
+    ...(await window.__almameshBackupEvidence),
+  }));
+}
+
+function assertPortableBackup(exported, { expectProfile }) {
+  if (!/^almamesh-backup-\d{4}-\d{2}-\d{2}\.sqlite3$/.test(exported.filename)) {
+    throw new Error(`Backup filename contract failed: ${exported.filename}`);
+  }
+  if (exported.type !== 'application/vnd.sqlite3') {
+    throw new Error(`Backup MIME contract failed: ${exported.type}`);
+  }
+  if (JSON.stringify(exported.header) !== JSON.stringify(SQLITE_HEADER)) {
+    throw new Error(`Backup is not SQLite: ${JSON.stringify(exported.header)}`);
+  }
+  const pageSize = exported.pageSizeField === 1 ? 65_536 : exported.pageSizeField;
+  if (
+    pageSize < 512 ||
+    pageSize > 65_536 ||
+    (pageSize & (pageSize - 1)) !== 0 ||
+    exported.size < pageSize ||
+    exported.size % pageSize !== 0
+  ) {
+    throw new Error(
+      `Backup SQLite page contract failed: size=${exported.size}, pageSize=${pageSize}`,
+    );
+  }
+  if (!exported.hasCanonicalLedger) {
+    throw new Error('Backup is SQLite but lacks the canonical AlmaMesh generation ledger');
+  }
+  if (exported.hasProfile !== expectProfile) {
+    throw new Error(
+      `Backup profile content differs: expected=${expectProfile}, actual=${exported.hasProfile}`,
+    );
+  }
+  if (exported.hasPrivateCredential) {
+    throw new Error('Backup leaked the local LLM provider credential');
+  }
+}
+
 try {
+  // Seed a real pre-migration user row before any application JavaScript boots.
+  // The export must prove that row reached canonical SQLite, while excluding
+  // device-only provider credentials.
+  await page.goto(`${baseUrl}/robots.txt`, { waitUntil: 'domcontentloaded' });
+  await putIdbValue(
+    'almamesh-profiles',
+    JSON.stringify({
+      state: {
+        profiles: {
+          [PROFILE_ID]: {
+            id: PROFILE_ID,
+            name: PROFILE_NAME,
+            createdAt: '2026-01-02T03:04:05.000Z',
+            avatarTint: '#3A4FB0',
+            relationship: 'self',
+          },
+        },
+        activeProfileId: PROFILE_ID,
+      },
+      version: 1,
+      datasetEpoch: 0,
+    }),
+  );
+  await page.evaluate((privateCredential) => {
+    localStorage.setItem(
+      'almamesh-llm-settings',
+      JSON.stringify({
+        apiBase: 'http://127.0.0.1:11434/v1',
+        apiKey: privateCredential,
+        model: 'synthetic/privacy-proof',
+        privacyMode: 'strict',
+      }),
+    );
+  }, PRIVATE_CREDENTIAL);
+
+  await page.goto(`${baseUrl}/settings/people`, { waitUntil: 'networkidle' });
+  await page.getByTestId(`person-row-${PROFILE_ID}`).waitFor();
+  if ((await getIdbValue('almamesh-profiles')) !== null) {
+    throw new Error('Legacy profile row was not retired after SQLite migration');
+  }
+
   await page.goto(`${baseUrl}/settings/data`, { waitUntil: 'networkidle' });
   if (await page.evaluate(() => 'showSaveFilePicker' in window)) {
     throw new Error('Native save picker could not be disabled for the download proof');
@@ -118,17 +235,8 @@ try {
       `Backup page unavailable at ${page.url()}: ${errors.join(' | ')} :: ${body}`,
     );
   }
-  await exportButton.click();
-  await page.getByTestId('backup-status').waitFor();
-  await page.waitForFunction(() => window.__almameshBackupFilename);
-  const exported = await page.evaluate(async () => ({
-    filename: window.__almameshBackupFilename,
-    text: await window.__almameshBackupText,
-  }));
-  if (!exported.filename.startsWith('almamesh-backup-')) {
-    throw new Error(`Backup filename contract failed: ${exported.filename}`);
-  }
-  const backup = JSON.parse(exported.text);
+  const exported = await exportBackup();
+  assertPortableBackup(exported, { expectProfile: true });
 
   await page.goto(`${baseUrl}/settings/preferences`, { waitUntil: 'networkidle' });
   await page.evaluate(() => {
@@ -150,6 +258,9 @@ try {
     if ((await getIdbValue('almamesh-chart-library')) !== null) {
       throw new Error('IndexedDB chart library survived reset');
     }
+    if ((await getIdbValue('almamesh-profiles')) !== null) {
+      throw new Error('IndexedDB profile residue survived reset');
+    }
     if (new URL(page.url()).pathname !== '/') {
       throw new Error(`Reset route differs: ${page.url()}`);
     }
@@ -159,15 +270,18 @@ try {
     );
   }
 
-  if (backup.format !== 'almamesh-backup' || backup.formatVersion !== 1) {
-    throw new Error('Backup envelope contract failed');
-  }
-  if (!backup.stores || typeof backup.stores !== 'object') {
-    throw new Error('Backup stores are missing');
-  }
+  // A second export is a public-path, production-fidelity read of canonical
+  // state after reset. secure_delete ensures the removed profile is absent not
+  // only logically, but also from the portable bytes a user can download.
+  await page.goto(`${baseUrl}/settings/data`, { waitUntil: 'networkidle' });
+  const afterReset = await exportBackup();
+  assertPortableBackup(afterReset, { expectProfile: false });
   if (offOrigin.size > 0) throw new Error(`Off-origin requests: ${[...offOrigin].join(', ')}`);
   if (errors.length > 0) throw new Error(`Browser errors: ${errors.join(' | ')}`);
-  console.log('privacy: backup v1, durable reset + landing, zero egress, clean console');
+  console.log(
+    `privacy: portable SQLite (${exported.size} bytes), credential-safe export, ` +
+      'durable canonical + legacy reset, landing, zero egress, clean console',
+  );
 } finally {
   await browser.close();
 }

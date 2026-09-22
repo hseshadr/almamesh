@@ -48,6 +48,7 @@ import {
   useRectificationRecordsStore,
 } from '@almamesh/store';
 import { SemanticMemoryStorageUnavailableError } from '@almamesh/memory';
+import { createStore, del as idbDel } from 'idb-keyval';
 import { clearMemory } from './chatMemory';
 import { publishDeletionNotice } from './deletionPropagation';
 
@@ -62,6 +63,11 @@ const RESET_IDB_KEYS = [
   'almamesh-predictive',
   'almamesh-interpretations',
 ] as const;
+const legacyKeyvalStore = createStore('keyval-store', 'keyval');
+
+async function clearLegacyPersistedRows(): Promise<void> {
+  await Promise.all(RESET_IDB_KEYS.map((key) => idbDel(key, legacyKeyvalStore)));
+}
 
 function getUsableLocalStorage(): Pick<Storage, 'removeItem'> | null {
   try {
@@ -153,6 +159,7 @@ export async function resetEverything(deps: ResetEverythingDeps = DEFAULT_DEPS):
     useMeshStore.getState().reset();
 
     await deps.clearPersisted(epoch);
+    await clearLegacyPersistedRows();
     const storage = getUsableLocalStorage();
     storage?.removeItem(CHART_LIBRARY_FLAG_KEY);
     storage?.removeItem(INTERPRETATIONS_KEY);
