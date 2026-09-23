@@ -2,7 +2,7 @@
   "name": "@almamesh/frontend",
   "private": true,
   "version": "0.0.1",
-  "description": "AlmaMesh frontend monorepo",
+  "description": "Your Vedic (traditional Indian) astrology chart, free and computed in your own browser — no account, no data harvesting.",
   "workspaces": [
     "packages/*",
     "apps/web"
