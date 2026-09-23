@@ -107,9 +107,29 @@ All notable changes to AlmaMesh are documented here. Format follows
   they verify byte-identically; new errors map to the existing `integrity`
   Worker code, and no storage key or format changes. Operational note: releases
   must keep `sequence` strictly increasing across a key change (production's
-  release guard already enforces this); a re-keyed local dev bundle at the same
-  `sequence` now fails with `rollback` in a browser profile that cached the old
-  one, until that origin's site data (OPFS included) is cleared.
+  release guard already enforces this). `setup-dev-assets.sh` now signs the
+  re-keyed local dev bundle at `--sequence $(date +%s)` (override with
+  `DEV_BUNDLE_SEQUENCE`) instead of the CLI default `1`, so re-running it no
+  longer trips `rollback` in a browser that synced an earlier dev bundle.
+- **"Reset & reload" can now recover a rollback refusal in-app.** It cleared
+  service workers, CacheStorage, localStorage and IndexedDB but not OPFS, where
+  the signed-bundle cache and its durable active pointer (the anti-rollback
+  floor) live, so a `RollbackError` survived the reset and the engine could
+  never boot again, breaking the engine-recovery invariant (the code comments
+  claimed it "clears the cached bundle"). `resetAppData` now first clears the
+  bundle cache through `@edgeproc/browser`'s own `EngineClient.clear()` (OPFS
+  primary + IndexedDB floor, under the sync Web Lock, bounded at 10 s), then
+  sweeps every OPFS root entry as a fallback, then deletes IndexedDB. The
+  rectification wizard's engine-failure card, whose "Reset & reload engine"
+  only re-ran the same fail-closed sync, also offers **Clear the downloaded
+  engine & reload**, which clears only the bundle cache and keeps user data.
+  Security: an explicit reset returns the device to first-install trust (the
+  next pointer is still verified against the pinned ed25519 key, just with no
+  floor), and nothing clears the cache automatically on a `RollbackError`,
+  because an automatic clear would defeat rollback protection. The automatic
+  self-heal paths (`swSelfHeal`, `lazyWithRetry`, chunk-error recovery) still
+  never touch OPFS and still keep the `*-immutable` engine caches. Tests pin
+  all of this.
 - **The JavaScript dependency audit is green instead of documented away.** A
   fresh `bun audit` found 92 advisories (3 critical, 55 high) across the
   browser, build, and test dependency graph. Compatible workspace updates plus

@@ -26,6 +26,12 @@ export interface AlmaSyncEngine {
     expectedChannel: string,
   ): Promise<EngineSyncResult>;
   readFile(path: string): Promise<Uint8Array>;
+  /**
+   * Clear the durable signed-bundle cache (OPFS chunks/manifests + the durable
+   * active pointer + the IndexedDB rollback floor) via the library's own
+   * `EngineClient.clear()`, under the same Web Lock as sync/read.
+   */
+  clearCache(): Promise<void>;
   terminate(): void;
 }
 
@@ -46,6 +52,11 @@ export function createAlmaSyncEngine(worker: EngineWorkerLike): AlmaSyncEngine {
       return result;
     },
     readFile: (path) => client.readFile(path),
+    clearCache: () =>
+      client.clear({
+        cacheNamespace: CACHE_NAMESPACE,
+        indexedDbLayout: LEGACY_INDEXED_DB_LAYOUT,
+      }),
     terminate: () => client.dispose(),
   };
 }
@@ -53,4 +64,24 @@ export function createAlmaSyncEngine(worker: EngineWorkerLike): AlmaSyncEngine {
 /** Consumer-owned Worker construction keeps Vite in control of the asset URL. */
 export function spawnAlmaSyncEngine(): AlmaSyncEngine {
   return createAlmaSyncEngine(new EdgeProcWorker());
+}
+
+/**
+ * Wipe the synced bundle cache with a dedicated, short-lived sync Worker.
+ *
+ * SECURITY: this discards the anti-rollback floor, returning this device to
+ * first-install trust (the next pointer is verified against the pinned key
+ * exactly as for a new user, with no floor). It is for an EXPLICIT user
+ * "Reset" action only — never call it automatically in response to a
+ * `RollbackError`, which would turn rollback protection into a no-op.
+ */
+export async function clearAlmaBundleCache(
+  spawn: () => AlmaSyncEngine = spawnAlmaSyncEngine,
+): Promise<void> {
+  const engine = spawn();
+  try {
+    await engine.clearCache();
+  } finally {
+    engine.terminate();
+  }
 }

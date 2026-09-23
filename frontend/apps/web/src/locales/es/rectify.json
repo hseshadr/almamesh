@@ -139,7 +139,8 @@
     "stage_booting": "Arrancando el motor…",
     "stalled_title": "Esto está tardando más de lo habitual",
     "stalled_body": "El motor aún no ha terminado de iniciarse. Puedes restablecerlo y recargarlo para intentarlo de nuevo.",
-    "reset_reload": "Restablecer y recargar el motor"
+    "reset_reload": "Restablecer y recargar el motor",
+    "clear_engine_cache": "Borrar el motor descargado y recargar"
   },
   "error": {
     "engine_failed_title": "El motor de gráfico no pudo iniciarse",

@@ -474,8 +474,10 @@ export default function OnboardingPage() {
   };
 
   // The bulletproof escape hatch for a stranded boot (corrupt cached bundle /
-  // stale service worker): wipe every stale-state source then reload into a
-  // clean boot. Reuses the shared resetAppData util (same as ErrorBoundary).
+  // a RollbackError against the durable OPFS floor / stale service worker):
+  // wipe every stale-state source, including the OPFS bundle cache, then reload
+  // into a clean boot. Explicit click only — never automatic. Reuses the shared
+  // resetAppData util (same as ErrorBoundary).
   const handleResetAppData = () => {
     void resetAppData().finally(() => window.location.reload());
   };

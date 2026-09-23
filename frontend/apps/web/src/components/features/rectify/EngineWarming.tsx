@@ -15,6 +15,13 @@
  *    message + the same reset-and-reload button.
  *
  * Both paths call `onRetry`, which reboots the engine and re-runs.
+ *
+ * A boot ERROR additionally offers "clear the downloaded engine & reload"
+ * (`clearEngineBundleCache`): a reboot re-reads the same OPFS cache, so a
+ * fail-closed refusal against the durable anti-rollback floor (a
+ * `RollbackError`) can only be recovered by discarding that cache. It clears
+ * ONLY the signed-bundle cache (user data is kept) and is an explicit click —
+ * never automatic, which would defeat rollback protection.
  */
 
 import { useState, type ReactElement } from 'react';
@@ -23,6 +30,7 @@ import { useTranslation } from 'react-i18next';
 import { Button, Spinner } from '../../ui';
 import { useElapsedSeconds, formatElapsed } from '../../../hooks/useElapsedSeconds';
 import { resetEverything } from '../../../lib/resetEverything';
+import { clearEngineBundleCache } from '../../../lib/resetAppData';
 
 export interface EngineWarmingProps {
   /** Engine boot failure message, or null while still warming. */
@@ -65,6 +73,12 @@ export function EngineWarming({
   // so the reload is fast). Two-step inline confirm — visually secondary.
   const [confirmingReset, setConfirmingReset] = useState(false);
   const [resetting, setResetting] = useState(false);
+  const [clearingCache, setClearingCache] = useState(false);
+  const handleClearEngineCache = async (): Promise<void> => {
+    setClearingCache(true);
+    await clearEngineBundleCache();
+    window.location.reload();
+  };
   const handleStartOver = async (): Promise<void> => {
     setResetting(true);
     await resetEverything();
@@ -97,6 +111,18 @@ export function EngineWarming({
         >
           {t('status.reset_reload')}
         </Button>
+        {engineError !== null && (
+          <Button
+            variant="secondary"
+            size="sm"
+            data-testid="engine-clear-cache-btn"
+            onClick={() => void handleClearEngineCache()}
+            disabled={clearingCache}
+            className="w-fit"
+          >
+            {t('status.clear_engine_cache')}
+          </Button>
+        )}
         {!confirmingReset ? (
           <button
             type="button"

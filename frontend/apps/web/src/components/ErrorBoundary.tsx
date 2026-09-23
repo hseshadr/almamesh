@@ -77,8 +77,9 @@ class ErrorBoundaryBase extends Component<Props, State> {
 
   /**
    * The bulletproof escape hatch for a stranded returning visitor: wipe every
-   * stale-state source (service worker, caches, localStorage, IndexedDB) then
-   * reload into a clean boot. Best-effort cleanup never blocks the reload.
+   * stale-state source (service worker, caches, localStorage, IndexedDB, and
+   * the OPFS signed-bundle cache + its rollback floor) then reload into a clean
+   * boot. Explicit click only. Best-effort cleanup never blocks the reload.
    */
   handleResetAppData = () => {
     void resetAppData().finally(() => window.location.reload());

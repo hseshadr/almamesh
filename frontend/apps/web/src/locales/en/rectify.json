@@ -138,7 +138,8 @@
     "stage_booting": "Starting the engine…",
     "stalled_title": "This is taking longer than usual",
     "stalled_body": "The engine still hasn't finished starting up. You can reset and reload it to try again.",
-    "reset_reload": "Reset & reload engine"
+    "reset_reload": "Reset & reload engine",
+    "clear_engine_cache": "Clear the downloaded engine & reload"
   },
   "error": {
     "engine_failed_title": "The chart engine couldn't start",

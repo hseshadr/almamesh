@@ -122,6 +122,15 @@ describe('repository truth', () => {
     expect(`${delivery}\n${proof}`).not.toContain('verify-pages-source.mjs');
   });
 
+  it('re-signs the local dev bundle at a strictly increasing sequence (no self-inflicted rollback)', () => {
+    // setup-dev-assets.sh regenerates the dev key and re-signs every run. A fixed
+    // sequence would make an already-synced browser refuse the re-signed pointer
+    // as a rollback against its durable OPFS floor. Epoch seconds only move forward.
+    const setup = readRoot('frontend/apps/web/scripts/setup-dev-assets.sh');
+    expect(setup).toContain('DEV_BUNDLE_SEQUENCE="${DEV_BUNDLE_SEQUENCE:-$(date +%s)}"');
+    expect(setup).toContain('--version dev --sequence "${DEV_BUNDLE_SEQUENCE}" --offline');
+  });
+
   it('requires the live-like WebKit engine and persistent fallback gate in CI', () => {
     const workflow = readRoot('dagger/src/index.ts');
     const gate = readRoot('frontend/apps/web/scripts/verify-webkit-engine.mjs');

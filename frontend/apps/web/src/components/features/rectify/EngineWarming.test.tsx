@@ -8,11 +8,19 @@
  *  - An engine boot ERROR shows a failure message + a reset-and-reload button
  *  - A warming TIMEOUT (no error) shows a stalled message + a reset button
  *  - The reset button always invokes onRetry (the engine-recovery invariant)
+ *  - A boot ERROR (e.g. a RollbackError against the durable floor, which a
+ *    reboot cannot fix) also offers an explicit "clear engine cache & reload"
+ *    that clears ONLY the signed-bundle cache, then reloads
  */
 import '../../../i18n/config';
 
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { afterEach, describe, it, expect, vi } from 'vitest';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+
+const clearEngineBundleCache = vi.fn<() => Promise<void>>();
+vi.mock('../../../lib/resetAppData', () => ({
+  clearEngineBundleCache: () => clearEngineBundleCache(),
+}));
 
 import { EngineWarming } from './EngineWarming';
 
@@ -62,4 +70,34 @@ describe('EngineWarming', () => {
     fireEvent.click(screen.getByTestId('engine-reset-btn'));
     expect(onRetry).toHaveBeenCalledTimes(1);
   });
+
+  it('a boot error also offers clear-engine-cache & reload (explicit click only)', async () => {
+    clearEngineBundleCache.mockResolvedValue(undefined);
+    const reload = vi.fn();
+    vi.stubGlobal('location', { ...window.location, reload });
+    render(
+      <EngineWarming
+        engineError="refusing rollback: pointer sequence 1 is below the durable floor"
+        timedOut={false}
+        engineStage={null}
+        onRetry={vi.fn()}
+      />,
+    );
+    expect(clearEngineBundleCache).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByTestId('engine-clear-cache-btn'));
+    await waitFor(() => expect(reload).toHaveBeenCalledTimes(1));
+    expect(clearEngineBundleCache).toHaveBeenCalledTimes(1);
+  });
+
+  it('a mere warming timeout does not offer the cache clear', () => {
+    render(
+      <EngineWarming engineError={null} timedOut={true} engineStage={null} onRetry={vi.fn()} />,
+    );
+    expect(screen.queryByTestId('engine-clear-cache-btn')).toBeNull();
+  });
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+  clearEngineBundleCache.mockReset();
 });

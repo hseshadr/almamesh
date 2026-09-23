@@ -4,7 +4,11 @@ import type {
   EngineResponse,
   EngineWorkerLike,
 } from "@edgeproc/browser";
-import { createAlmaSyncEngine } from "../edgeprocClient";
+import {
+  type AlmaSyncEngine,
+  clearAlmaBundleCache,
+  createAlmaSyncEngine,
+} from "../edgeprocClient";
 
 class FakeWorker implements EngineWorkerLike {
   public readonly sent: EngineRequest[] = [];
@@ -113,5 +117,45 @@ describe("AlmaMesh edgeproc adapter", () => {
     expect(globals.__EDGEPROC_SELECTED_CACHE__).toBe("indexeddb");
     engine.terminate();
     expect(worker.terminated).toBe(true);
+  });
+
+  it("clears the durable bundle cache (OPFS + IndexedDB floor) through the library, same namespace + layout", async () => {
+    const worker = new FakeWorker();
+    const engine = createAlmaSyncEngine(worker);
+    const pending = engine.clearCache();
+
+    expect(worker.sent[0]).toMatchObject({
+      kind: "clear",
+      cacheNamespace: "edgeproc-browser",
+      indexedDbLayout: {
+        database: "edgeproc-browser-cache",
+        store: "content-addressed-cache",
+        separator: ":",
+      },
+    });
+    worker.reply({ ok: true, id: worker.sent[0]?.id ?? 0, kind: "clear" });
+    await expect(pending).resolves.toBeUndefined();
+  });
+
+  it("clearAlmaBundleCache spawns a dedicated worker, clears, and always terminates it", async () => {
+    const calls: string[] = [];
+    const fake = (clearCache: () => Promise<void>): AlmaSyncEngine => ({
+      sync: () => Promise.reject(new Error("unused")),
+      readFile: () => Promise.reject(new Error("unused")),
+      clearCache: async () => {
+        calls.push("clear");
+        await clearCache();
+      },
+      terminate: () => calls.push("terminate"),
+    });
+
+    await clearAlmaBundleCache(() => fake(() => Promise.resolve()));
+    expect(calls).toEqual(["clear", "terminate"]);
+
+    calls.length = 0;
+    await expect(
+      clearAlmaBundleCache(() => fake(() => Promise.reject(new Error("lock")))),
+    ).rejects.toThrow("lock");
+    expect(calls).toEqual(["clear", "terminate"]);
   });
 });

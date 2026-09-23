@@ -1,5 +1,10 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
+// Automatic recovery must never discard the signed-bundle cache: it holds the
+// anti-rollback floor, and only an explicit user reset may wipe it.
+const clearAlmaBundleCache = vi.fn();
+vi.mock('@almamesh/browser', () => ({ clearAlmaBundleCache }));
+
 import {
   healStrandedServiceWorker,
   reloadForUpdate,
@@ -23,7 +28,9 @@ function stubEnv(opts: {
   cachesThrows?: boolean;
 }) {
   const unregister = vi.fn().mockResolvedValue(true);
+  const getDirectory = vi.fn();
   vi.stubGlobal('navigator', {
+    storage: { getDirectory },
     serviceWorker: {
       controller: 'controller' in opts ? opts.controller : {},
       getRegistration: vi.fn().mockResolvedValue({ active: { state: 'activated' } }),
@@ -53,7 +60,7 @@ function stubEnv(opts: {
     setItem: (k: string, v: string) => store.set(k, String(v)),
     removeItem: (k: string) => store.delete(k),
   });
-  return { unregister, cacheDelete, reload };
+  return { unregister, cacheDelete, reload, getDirectory };
 }
 
 afterEach(() => {
@@ -243,5 +250,35 @@ describe('reloadForUpdate', () => {
     expect(deleted).not.toContain('almamesh-pyodide-immutable');
     expect(deleted).not.toContain('almamesh-bundle-immutable');
     expect(reload).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('automatic self-heal never touches OPFS (bundle cache + rollback floor)', () => {
+  it('the SW precache heal leaves OPFS and the *-immutable engine caches alone', async () => {
+    const { reload, cacheDelete, getDirectory } = stubEnv({ cacheNames: [...IMMUTABLE, ...RUNTIME] });
+    await healStrandedServiceWorker();
+    expect(reload).toHaveBeenCalledTimes(1);
+    expect(getDirectory).not.toHaveBeenCalled();
+    expect(clearAlmaBundleCache).not.toHaveBeenCalled();
+    const deleted = cacheDelete.mock.calls.map((c) => c[0]);
+    expect(deleted).not.toContain('almamesh-pyodide-immutable');
+    expect(deleted).not.toContain('almamesh-bundle-immutable');
+  });
+
+  it('chunk-error recovery and reloadForUpdate leave OPFS alone', async () => {
+    const { reload, getDirectory } = stubEnv({ cacheNames: [...IMMUTABLE, PRECACHE] });
+    const target = new EventTarget();
+    installChunkErrorRecovery(target as unknown as Window);
+    const evt = new Event('vite:preloadError', { cancelable: true });
+    (evt as unknown as { payload: unknown }).payload = new Error(
+      'Failed to fetch dynamically imported module',
+    );
+    target.dispatchEvent(evt);
+    await flush();
+    await reloadForUpdate();
+
+    expect(reload).toHaveBeenCalledTimes(2);
+    expect(getDirectory).not.toHaveBeenCalled();
+    expect(clearAlmaBundleCache).not.toHaveBeenCalled();
   });
 });

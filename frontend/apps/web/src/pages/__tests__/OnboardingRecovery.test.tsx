@@ -159,6 +159,40 @@ describe('Onboarding — in-app bootstrap recovery', () => {
     await waitFor(() => expect(resetAppDataSpy).toHaveBeenCalledTimes(1));
   });
 
+  it('a RollbackError boot lands on the recovery card and NEVER auto-clears the cache', async () => {
+    // @edgeproc/browser surfaces a durable-floor refusal as an EngineOperationError
+    // with code 'rollback'. Recovery must stay a deliberate click: auto-wiping the
+    // bundle cache (and with it the rollback floor) would defeat rollback protection.
+    const rollback = Object.assign(
+      new Error('refusing rollback: pointer sequence 1 is below the durable floor 1700000000'),
+      { name: 'EngineOperationError', code: 'rollback' },
+    );
+    const reboot = vi.fn().mockRejectedValue(rollback);
+    engineValue = {
+      engine: null,
+      error: rollback,
+      stage: null,
+      meta: null,
+      reboot,
+      whenReady: vi.fn().mockRejectedValue(rollback),
+      startBootstrap: vi.fn(),
+    };
+    seedReadyToGenerate();
+
+    renderPage();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('skip-life-events-button'));
+    });
+
+    const resetButton = await screen.findByTestId('reset-app-data-button');
+    expect(screen.getByTestId('retry-generation-button')).toBeTruthy();
+    expect(resetAppDataSpy).not.toHaveBeenCalled();
+    expect(navigateSpy).not.toHaveBeenCalled();
+
+    fireEvent.click(resetButton);
+    await waitFor(() => expect(resetAppDataSpy).toHaveBeenCalledTimes(1));
+  });
+
   it('renders the failure message exactly ONCE on the recovery card (no duplicate strip)', async () => {
     // Boot failure -> the recovery card carries the CHART_GEN_001 message in
     // its body. The page's shared bottom error strip must NOT repeat it.
