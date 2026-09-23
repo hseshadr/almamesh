@@ -106,7 +106,7 @@
       "dependencies": {
         "@edgeproc/assay": "0.5.0-dev.3",
         "@edgeproc/avow": "0.1.1",
-        "@edgeproc/browser": "github:hseshadr/edgeproc-browser#333cbafd82856f4b662da2758f47b7afcf241969",
+        "@edgeproc/browser": "github:hseshadr/edgeproc-browser#02171df60afc8b09d6439112ea7ea3202338d46a",
         "pyodide": "^0.29.4",
       },
       "devDependencies": {
@@ -138,7 +138,7 @@
       "name": "@almamesh/memory",
       "version": "0.0.1",
       "dependencies": {
-        "@edgeproc/browser": "github:hseshadr/edgeproc-browser#333cbafd82856f4b662da2758f47b7afcf241969",
+        "@edgeproc/browser": "github:hseshadr/edgeproc-browser#02171df60afc8b09d6439112ea7ea3202338d46a",
         "@huggingface/transformers": "^3.8.1",
       },
       "devDependencies": {
@@ -162,7 +162,7 @@
         "@almamesh/constants": "workspace:*",
         "@almamesh/llm": "workspace:*",
         "@almamesh/shared-types": "workspace:*",
-        "@edgeproc/browser": "github:hseshadr/edgeproc-browser#333cbafd82856f4b662da2758f47b7afcf241969",
+        "@edgeproc/browser": "github:hseshadr/edgeproc-browser#02171df60afc8b09d6439112ea7ea3202338d46a",
         "dayjs": "^1.11.21",
         "idb-keyval": "^6.3.0",
         "mitt": "^3.0.1",
@@ -464,7 +464,7 @@
 
     "@edgeproc/avow": ["@edgeproc/avow@0.1.1", "", { "dependencies": { "@noble/ed25519": "^3.1.0", "canonicalize": "^3.0.0" } }, "sha512-BgqgxPox/PpLSNL7gKN8tovrOBSuLBVk2uAnYu8+5ZXq7KKQBPvSZCA/qF9vkAVE6ubRXm4TcOPJBicy51sALg=="],
 
-    "@edgeproc/browser": ["@edgeproc/browser@github:hseshadr/edgeproc-browser#333cbaf", { "dependencies": { "@hpcc-js/wasm-zstd": "^1.15.0", "@noble/ed25519": "^3.1.0", "idb-keyval": "^6.3.0" } }, "hseshadr-edgeproc-browser-333cbaf"],
+    "@edgeproc/browser": ["@edgeproc/browser@github:hseshadr/edgeproc-browser#02171df", { "dependencies": { "@hpcc-js/wasm-zstd": "^1.15.0", "@noble/ed25519": "^3.1.0", "idb-keyval": "^6.3.0" } }, "hseshadr-edgeproc-browser-02171df"],
 
     "@edgeproc/errors": ["@edgeproc/errors@0.1.1", "", {}, "sha512-5eLXm6Dp99oSBhQSCeTns5CRLoYypkxRw4GP0kIesOutt55Y+FluygxGQdXN0V88NPRmHZFPovrAuVf9UH0Vig=="],
 

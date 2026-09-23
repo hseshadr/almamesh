@@ -22,7 +22,7 @@
     "@almamesh/constants": "workspace:*",
     "@almamesh/llm": "workspace:*",
     "@almamesh/shared-types": "workspace:*",
-    "@edgeproc/browser": "github:hseshadr/edgeproc-browser#333cbafd82856f4b662da2758f47b7afcf241969",
+    "@edgeproc/browser": "github:hseshadr/edgeproc-browser#02171df60afc8b09d6439112ea7ea3202338d46a",
     "dayjs": "^1.11.21",
     "idb-keyval": "^6.3.0",
     "mitt": "^3.0.1",

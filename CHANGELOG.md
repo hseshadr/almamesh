@@ -94,6 +94,22 @@ All notable changes to AlmaMesh are documented here. Format follows
   `test_moon_summary_refuses_a_nakshatra_it_cannot_place`.
 
 ### Security
+- **`@edgeproc/browser` bumped `333cbaf` → `02171df`** (edgeproc-browser main)
+  in `@almamesh/browser`, `@almamesh/memory`, and `@almamesh/store`, with the
+  lockfile, the Dagger pin check, and the repository-truth test moved in step.
+  It brings (a) the anti-rollback floor fix (edgeproc-browser #13): a key change
+  no longer clears the durable active pointer, so an old release re-signed by a
+  new key can no longer be promoted without a freshness comparison; and (b)
+  keyring trust-root support (#14): the trust-root URL may serve an
+  `edgeproc.keyring/v1` document, and pointers may carry optional signed
+  `key_id` / `expires_at`. AlmaMesh keeps its raw 32-byte `public.key` trust
+  root (read as a keyring of one) and its signed pointers are unchanged, so
+  they verify byte-identically; new errors map to the existing `integrity`
+  Worker code, and no storage key or format changes. Operational note: releases
+  must keep `sequence` strictly increasing across a key change (production's
+  release guard already enforces this); a re-keyed local dev bundle at the same
+  `sequence` now fails with `rollback` in a browser profile that cached the old
+  one, until that origin's site data (OPFS included) is cleared.
 - **The JavaScript dependency audit is green instead of documented away.** A
   fresh `bun audit` found 92 advisories (3 critical, 55 high) across the
   browser, build, and test dependency graph. Compatible workspace updates plus
