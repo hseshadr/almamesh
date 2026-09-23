@@ -3,6 +3,8 @@ import { withTranslation, type WithTranslation } from 'react-i18next';
 import { safeError } from '@almamesh/shared-types';
 
 import { resetAppData } from '../lib/resetAppData';
+import { isRollbackRefusal, lastEngineBootFailure } from '../lib/engineLifecycle';
+import { RollbackResetGuard } from './RollbackResetGuard';
 import { isChunkLoadError } from '../lib/chunkError';
 import { reloadForUpdate } from '../lib/swSelfHeal';
 
@@ -77,8 +79,9 @@ class ErrorBoundaryBase extends Component<Props, State> {
 
   /**
    * The bulletproof escape hatch for a stranded returning visitor: wipe every
-   * stale-state source (service worker, caches, localStorage, IndexedDB) then
-   * reload into a clean boot. Best-effort cleanup never blocks the reload.
+   * stale-state source (service worker, caches, localStorage, IndexedDB, and
+   * the OPFS signed-bundle cache + its rollback floor) then reload into a clean
+   * boot. Explicit click only. Best-effort cleanup never blocks the reload.
    */
   handleResetAppData = () => {
     void resetAppData().finally(() => window.location.reload());
@@ -159,12 +162,22 @@ class ErrorBoundaryBase extends Component<Props, State> {
               <p className="text-text-muted text-xs mb-2">
                 {t('error_boundary.reset_hint')}
               </p>
-              <button
-                onClick={this.handleResetAppData}
-                className="px-4 py-2 rounded-lg text-status-error border border-status-error/40 hover:bg-status-error/10 transition-colors text-sm"
-              >
-                {t('error_boundary.reset_app_data')}
-              </button>
+              {/* After a rollback refusal (caught here, or the engine's last
+                  boot failure), warn + confirm before dropping the floor. */}
+              <RollbackResetGuard
+                rollback={
+                  isRollbackRefusal(this.state.error) || isRollbackRefusal(lastEngineBootFailure())
+                }
+                onReset={this.handleResetAppData}
+                renderTrigger={(onClick) => (
+                  <button
+                    onClick={onClick}
+                    className="px-4 py-2 rounded-lg text-status-error border border-status-error/40 hover:bg-status-error/10 transition-colors text-sm"
+                  >
+                    {t('error_boundary.reset_app_data')}
+                  </button>
+                )}
+              />
             </div>
           </div>
         </div>

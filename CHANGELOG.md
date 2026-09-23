@@ -94,6 +94,61 @@ All notable changes to AlmaMesh are documented here. Format follows
   `test_moon_summary_refuses_a_nakshatra_it_cannot_place`.
 
 ### Security
+- **`@edgeproc/browser` bumped `333cbaf` → `02171df`** (edgeproc-browser main)
+  in `@almamesh/browser`, `@almamesh/memory`, and `@almamesh/store`, with the
+  lockfile, the Dagger pin check, and the repository-truth test moved in step.
+  It brings (a) the anti-rollback floor fix (edgeproc-browser #13): a key change
+  no longer clears the durable active pointer, so an old release re-signed by a
+  new key can no longer be promoted without a freshness comparison; and (b)
+  keyring trust-root support (#14): the trust-root URL may serve an
+  `edgeproc.keyring/v1` document, and pointers may carry optional signed
+  `key_id` / `expires_at`. AlmaMesh keeps its raw 32-byte `public.key` trust
+  root (read as a keyring of one) and its signed pointers are unchanged, so
+  they verify byte-identically; new errors map to the existing `integrity`
+  Worker code, and no storage key or format changes. Operational note: releases
+  must keep `sequence` strictly increasing across a key change (production's
+  release guard already enforces this). `setup-dev-assets.sh` now signs the
+  re-keyed local dev bundle at `--sequence $(date +%s)` (override with
+  `DEV_BUNDLE_SEQUENCE`) instead of the CLI default `1`, so re-running it no
+  longer trips `rollback` in a browser that synced an earlier dev bundle.
+- **"Reset & reload" can now recover a rollback refusal in-app.** It cleared
+  service workers, CacheStorage, localStorage and IndexedDB but not OPFS, where
+  the signed-bundle cache and its durable active pointer (the anti-rollback
+  floor) live, so a `RollbackError` survived the reset and the engine could
+  never boot again, breaking the engine-recovery invariant (the code comments
+  claimed it "clears the cached bundle"). `resetAppData` now first clears the
+  bundle cache through `@edgeproc/browser`'s own `EngineClient.clear()` (OPFS
+  primary + IndexedDB floor, under the sync Web Lock, bounded at 10 s), then
+  sweeps every OPFS root entry as a fallback, then deletes IndexedDB. The
+  rectification wizard's engine-failure card, whose "Reset & reload engine"
+  only re-ran the same fail-closed sync, also offers **Clear the downloaded
+  engine & reload**, which clears only the bundle cache and keeps user data.
+  Security: an explicit reset returns the device to first-install trust (the
+  next pointer is still verified against the pinned ed25519 key, just with no
+  floor), and nothing clears the cache automatically on a `RollbackError`,
+  because an automatic clear would defeat rollback protection. The automatic
+  self-heal paths (`swSelfHeal`, `lazyWithRetry`, chunk-error recovery) still
+  never touch OPFS and still keep the `*-immutable` engine caches. Tests pin
+  all of this.
+- **A rollback refusal can no longer be cleared with one unwarned click.**
+  Anyone able to serve an older, validly signed `/bundle/latest` can cause a
+  `RollbackError`, and the recovery UI would then steer the user into wiping
+  the floor. The stable `EngineOperationError.code` now reaches every reset
+  surface: the Onboarding error card, the rectification engine card, and the
+  global ErrorBoundary, which reads the provider's recorded last boot failure.
+  When the code is `rollback`, each surface shows a plain-language warning (en,
+  es, pt) that the server offered an older engine and that this can mean
+  tampering, and it requires the two-step inline confirm that "Start over"
+  already uses before any clear that drops the floor. Other failures keep the
+  one-click reset.
+- **The locked clear is now reliable.** `resetAppData` clears the bundle cache
+  *first*, while the service worker and caches can still serve the clear
+  Worker's script offline. It first tears down the live runtime (the provider
+  registers `AlmaMeshRuntime.dispose`) so the sync Worker releases its Web Lock
+  and handles. A failed or timed-out clear (8 s, now a real failure that also
+  terminates the clear Worker) is retried exactly once after another teardown.
+  IndexedDB deletes are now awaited: success or error settles each one, and a
+  `blocked` delete waits up to 3 s instead of being fired and forgotten.
 - **The JavaScript dependency audit is green instead of documented away.** A
   fresh `bun audit` found 92 advisories (3 critical, 55 high) across the
   browser, build, and test dependency graph. Compatible workspace updates plus

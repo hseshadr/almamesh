@@ -154,8 +154,52 @@ describe('Onboarding — in-app bootstrap recovery', () => {
     expect(resetButton).toBeTruthy();
     expect(screen.getByTestId('retry-generation-button')).toBeTruthy();
     expect(screen.getByTestId('go-to-dashboard-button')).toBeTruthy();
+    // Not a rollback refusal: no tampering warning, no extra confirm step.
+    expect(screen.queryByTestId('rollback-warning')).toBeNull();
 
     fireEvent.click(resetButton);
+    await waitFor(() => expect(resetAppDataSpy).toHaveBeenCalledTimes(1));
+  });
+
+  it('a RollbackError boot lands on the recovery card, warns, and clears only after a two-step confirm', async () => {
+    // @edgeproc/browser surfaces a durable-floor refusal as an EngineOperationError
+    // with code 'rollback'. Recovery must stay a deliberate click: auto-wiping the
+    // bundle cache (and with it the rollback floor) would defeat rollback protection.
+    const rollback = Object.assign(
+      new Error('refusing rollback: pointer sequence 1 is below the durable floor 1700000000'),
+      { name: 'EngineOperationError', code: 'rollback' },
+    );
+    const reboot = vi.fn().mockRejectedValue(rollback);
+    engineValue = {
+      engine: null,
+      error: rollback,
+      stage: null,
+      meta: null,
+      reboot,
+      whenReady: vi.fn().mockRejectedValue(rollback),
+      startBootstrap: vi.fn(),
+    };
+    seedReadyToGenerate();
+
+    renderPage();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('skip-life-events-button'));
+    });
+
+    const resetButton = await screen.findByTestId('reset-app-data-button');
+    expect(screen.getByTestId('retry-generation-button')).toBeTruthy();
+    expect(resetAppDataSpy).not.toHaveBeenCalled();
+    expect(navigateSpy).not.toHaveBeenCalled();
+    // The error code (not the message) drives a plain-language tampering warning.
+    expect(screen.getByTestId('rollback-warning').textContent).toMatch(/older version of the engine/);
+
+    // Dropping the rollback floor needs a deliberate two-step confirm.
+    fireEvent.click(resetButton);
+    expect(resetAppDataSpy).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByTestId('rollback-reset-cancel'));
+    expect(resetAppDataSpy).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByTestId('reset-app-data-button'));
+    fireEvent.click(screen.getByTestId('rollback-reset-confirm'));
     await waitFor(() => expect(resetAppDataSpy).toHaveBeenCalledTimes(1));
   });
 

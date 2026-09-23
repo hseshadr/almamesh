@@ -111,5 +111,11 @@
     "english": "English",
     "spanish": "Español",
     "portuguese": "Português"
+  },
+  "engine_rollback": {
+    "warning": "This server offered an older version of the engine than the one you already have. That can mean someone is tampering with it. Only clear it if you trust this site and your network.",
+    "confirm_prompt": "Clearing removes this device's protection against the older version. Clear anyway?",
+    "confirm": "Yes, clear it",
+    "cancel": "Cancel"
   }
 }

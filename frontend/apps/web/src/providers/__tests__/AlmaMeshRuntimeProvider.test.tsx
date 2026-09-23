@@ -12,6 +12,12 @@ import {
 import { AlmaMeshRuntimeProvider } from '../AlmaMeshRuntimeProvider';
 import { useChartEngine } from '../chartEngineContext';
 import { clearRuntimeGenerator } from '../../lib/runtimeObservability';
+import {
+  isRollbackRefusal,
+  lastEngineBootFailure,
+  recordEngineBootFailure,
+  teardownLiveEngine,
+} from '../../lib/engineLifecycle';
 
 // The provider gates its mount auto-boot off the marketing landing route
 // (path "/" with no saved chart). These tests assert the auto-boot / recovery
@@ -578,5 +584,50 @@ describe('AlmaMeshRuntimeProvider — consumer readiness contract', () => {
     });
 
     await waitFor(() => expect(results).toContain('got-engine'));
+  });
+});
+
+describe('AlmaMeshRuntimeProvider — recovery seams', () => {
+  afterEach(() => recordEngineBootFailure(null));
+
+  it('records a rollback boot failure (never auto-retries or clears it) and forgets it on success', async () => {
+    const rollback = Object.assign(new Error('refusing rollback: sequence is not fresher'), {
+      name: 'EngineOperationError',
+      code: 'rollback',
+    });
+    const runtime = makeFakeRuntime([
+      () => Promise.reject(rollback),
+      () => Promise.resolve(makeFakeEngine('after-reset')),
+    ]);
+    let ctx: ReturnType<typeof useChartEngine> | null = null;
+    render(
+      <AlmaMeshRuntimeProvider runtime={runtime}>
+        <Probe capture={(v) => (ctx = v)} />
+      </AlmaMeshRuntimeProvider>,
+    );
+    await waitFor(() => expect(isRollbackRefusal(lastEngineBootFailure())).toBe(true));
+    await act(async () => {
+      window.dispatchEvent(new Event('online'));
+    });
+    expect(runtime.bootstrapCalls).toBe(1);
+
+    await act(async () => {
+      await ctx!.reboot();
+    });
+    expect(lastEngineBootFailure()).toBeNull();
+  });
+
+  it('registers a teardown that disposes the live runtime Workers', async () => {
+    const runtime = makeFakeRuntime([() => Promise.resolve(makeFakeEngine('live'))]);
+    const dispose = vi.fn();
+    runtime.dispose = dispose;
+    render(
+      <AlmaMeshRuntimeProvider runtime={runtime}>
+        <Probe capture={() => {}} />
+      </AlmaMeshRuntimeProvider>,
+    );
+    await waitFor(() => expect(screen.getByTestId('engine').textContent).toBe('engine-ready'));
+    await teardownLiveEngine();
+    expect(dispose).toHaveBeenCalledTimes(1);
   });
 });

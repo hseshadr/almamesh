@@ -23,6 +23,7 @@ import { AlmaMeshRuntime, WorkerCrashError, WorkerTimeoutError } from '@almamesh
 import type { BootStage, BundleMeta, ChartEngine, OnStage, RuntimeConfig } from '@almamesh/browser'
 import { ChartEngineContext } from './chartEngineContext'
 import { hasLocalChart } from '../lib/localChart'
+import { recordEngineBootFailure, registerEngineTeardown } from '../lib/engineLifecycle'
 import {
   clearRuntimeError,
   clearRuntimeGenerator,
@@ -208,6 +209,7 @@ export function AlmaMeshRuntimeProvider({ children, runtime }: ProviderProps) {
         setEngine(ready)
         setMeta(ready.meta())
         setError(null)
+        recordEngineBootFailure(null)
         // Dev-only test hook: drive the booted engine directly, bypassing the
         // geocode-dependent onboarding UI. Returns the raw SiderealChart.
         if (EXIT_GATE_HOOKS) {
@@ -229,6 +231,10 @@ export function AlmaMeshRuntimeProvider({ children, runtime }: ProviderProps) {
           retryableFailureRef.current = isTransientBootFailure(e)
           retryWithoutConnectivityRef.current = isTransientLocalWorkerFailure(e)
           setError(e)
+          // Recorded (never acted on) so the global ErrorBoundary can guard its
+          // reset behind the rollback warning. Integrity/rollback failures are
+          // not retried and nothing clears the cache automatically.
+          recordEngineBootFailure(e)
           if (EXIT_GATE_HOOKS) {
             clearRuntimeGenerator()
             publishRuntimeError(e.message)
@@ -326,6 +332,10 @@ export function AlmaMeshRuntimeProvider({ children, runtime }: ProviderProps) {
     const timer = window.setTimeout(startBootstrap, REPORTED_ONLINE_RETRY_DELAYS_MS[retryIndex])
     return () => window.clearTimeout(timer)
   }, [error, onlineEpoch, startBootstrap])
+
+  // An explicit user reset tears the live Workers down first, so the sync
+  // Worker releases its Web Lock + OPFS/IndexedDB handles before the clear.
+  useEffect(() => registerEngineTeardown(() => runtimeRef.current?.dispose?.()), [])
 
   // Workers and Pyodide hold substantial resources outside React's tree. Stop
   // them on unmount, and reset the refs so a StrictMode remount can boot again.

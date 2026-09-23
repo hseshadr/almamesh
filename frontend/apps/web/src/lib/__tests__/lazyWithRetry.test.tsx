@@ -7,13 +7,16 @@ const FakeModule = { default: () => null };
 function stubBrowser(flags: Record<string, string> = {}) {
   const reload = vi.fn();
   vi.stubGlobal('location', { reload });
+  // Automatic chunk recovery must never touch OPFS (bundle cache + rollback floor).
+  const getDirectory = vi.fn();
+  vi.stubGlobal('navigator', { storage: { getDirectory } });
   const store = new Map<string, string>(Object.entries(flags));
   vi.stubGlobal('sessionStorage', {
     getItem: (k: string) => store.get(k) ?? null,
     setItem: (k: string, v: string) => store.set(k, String(v)),
     removeItem: (k: string) => store.delete(k),
   });
-  return { reload };
+  return { reload, getDirectory };
 }
 
 const flush = () => new Promise((r) => setTimeout(r, 0));
@@ -40,7 +43,7 @@ describe('loadWithRetry', () => {
   });
 
   it('reloads once (held, unsettled) when a chunk error survives the retry', async () => {
-    const { reload } = stubBrowser();
+    const { reload, getDirectory } = stubBrowser();
     const factory = vi.fn().mockRejectedValue(chunkError());
     let settled = false;
     void loadWithRetry(factory, 'Dashboard').then(
@@ -51,6 +54,7 @@ describe('loadWithRetry', () => {
     expect(factory).toHaveBeenCalledTimes(2);
     expect(reload).toHaveBeenCalledTimes(1);
     expect(settled).toBe(false); // Suspense holds through the reload
+    expect(getDirectory).not.toHaveBeenCalled();
   });
 
   it('does NOT reload a second time for the same chunk (loop guard) — it rethrows', async () => {

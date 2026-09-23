@@ -229,6 +229,7 @@ describe('RectifyPage', () => {
       state: { status: 'idle', result: null, error: null },
       engineReady: true,
       engineError: null,
+      engineErrorCode: null,
       engineStage: null,
       missingBirth: false,
       warmingTimedOut: false,

@@ -114,5 +114,11 @@
     "english": "English",
     "spanish": "Español",
     "portuguese": "Português"
+  },
+  "engine_rollback": {
+    "warning": "Este servidor ofereceu uma versão do motor mais antiga do que a que você já tem. Isso pode significar que alguém está adulterando-a. Apague somente se você confia neste site e na sua rede.",
+    "confirm_prompt": "Ao apagar, este dispositivo perde a proteção contra a versão antiga. Apagar mesmo assim?",
+    "confirm": "Sim, apagar",
+    "cancel": "Cancelar"
   }
 }

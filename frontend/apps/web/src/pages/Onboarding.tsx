@@ -22,6 +22,8 @@ import { useOnboardingStore } from "../stores/onboarding";
 import { getUserFriendlyError, getEngineWarmingMessage } from "../lib/errors";
 import { resolveReadyEngine } from "../lib/resolveReadyEngine";
 import { resetAppData } from "../lib/resetAppData";
+import { engineErrorCode, ROLLBACK_CODE } from "../lib/engineLifecycle";
+import { RollbackResetGuard } from "../components/RollbackResetGuard";
 import { prepareOnboardingLifeEvents } from "../lib/onboardingLifeEvents";
 import {
   isAiUsable,
@@ -51,7 +53,9 @@ class EngineWarmingError extends Error {
  */
 class EngineBootstrapError extends Error {
   constructor(cause: unknown) {
-    super(cause instanceof Error ? cause.message : String(cause));
+    // Keep the cause: its EngineOperationError.code (e.g. "rollback") decides
+    // whether the reset needs the tampering warning + confirm.
+    super(cause instanceof Error ? cause.message : String(cause), { cause });
     this.name = "EngineBootstrapError";
   }
 }
@@ -126,6 +130,8 @@ export default function OnboardingPage() {
   // Local state for UI-only concerns
   const [currentStepKey, setCurrentStepKey] = React.useState<OnboardingStep>("name");
   const [generationStep, setGenerationStep] = React.useState(0);
+  // Stable engine failure code of the last failed bootstrap (not the message).
+  const [bootFailureCode, setBootFailureCode] = React.useState<string | null>(null);
   const [narrative, setNarrative] = React.useState("");
   const [extractedEvents, setExtractedEvents] = React.useState<LifeEventInput[]>([]);
   // The captured events as a ref so the (possibly stale) generation closure
@@ -418,6 +424,7 @@ export default function OnboardingPage() {
         // fine, so STAY on the generating error card where Retry re-bootstraps
         // and "Reset & reload" clears a corrupt cached bundle. Bouncing back to
         // edit location would hide the only in-app recovery from the user.
+        setBootFailureCode(engineErrorCode(err));
         setError(getUserFriendlyError('CHART_GEN_001', err, 'Engine bootstrap failed'));
       } else {
         // Genuine compute/setup failure tied to the inputs — send the user back
@@ -470,12 +477,15 @@ export default function OnboardingPage() {
   // actually re-bootstraps rather than re-throwing the same cached error.
   const handleRetryGeneration = () => {
     setError(null);
+    setBootFailureCode(null);
     handleGenerateChart();
   };
 
   // The bulletproof escape hatch for a stranded boot (corrupt cached bundle /
-  // stale service worker): wipe every stale-state source then reload into a
-  // clean boot. Reuses the shared resetAppData util (same as ErrorBoundary).
+  // a RollbackError against the durable OPFS floor / stale service worker):
+  // wipe every stale-state source, including the OPFS bundle cache, then reload
+  // into a clean boot. Explicit click only — never automatic. Reuses the shared
+  // resetAppData util (same as ErrorBoundary).
   const handleResetAppData = () => {
     void resetAppData().finally(() => window.location.reload());
   };
@@ -531,13 +541,24 @@ export default function OnboardingPage() {
               <p className="text-text-muted text-xs text-center mb-2">
                 {t("error.reset_hint")}
               </p>
-              <button
-                onClick={handleResetAppData}
-                className="w-full py-2 text-red-400 border border-red-500/40 rounded-lg hover:bg-red-500/10 transition-colors text-sm"
-                data-testid="reset-app-data-button"
-              >
-                {t("error.reset_and_reload")}
-              </button>
+              {/* A rollback refusal may be tampering: warn + two-step confirm
+                  before a reset that drops the anti-rollback floor. */}
+              <RollbackResetGuard
+                rollback={
+                  bootFailureCode === ROLLBACK_CODE ||
+                  engineErrorCode(engineError) === ROLLBACK_CODE
+                }
+                onReset={handleResetAppData}
+                renderTrigger={(onClick) => (
+                  <button
+                    onClick={onClick}
+                    className="w-full py-2 text-red-400 border border-red-500/40 rounded-lg hover:bg-red-500/10 transition-colors text-sm"
+                    data-testid="reset-app-data-button"
+                  >
+                    {t("error.reset_and_reload")}
+                  </button>
+                )}
+              />
             </div>
           </div>
         );
