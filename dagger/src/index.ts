@@ -163,6 +163,17 @@ export class AlmameshCi {
           "backend/**",
           "frontend/packages/browser/src/pyodide/*.ts",
           "testdata/**",
+          // backend/tests/test_readme_contract.py: the README, the package
+          // description it must equal, and every file the README links to.
+          "README.md",
+          "CHANGELOG.md",
+          "CONTRIBUTING.md",
+          "LICENSE",
+          "SECURITY.md",
+          "docs/**",
+          "examples/**",
+          "frontend/README.md",
+          "frontend/package.json",
         ]),
       )
       .withWorkdir(`${ROOT}/backend`)

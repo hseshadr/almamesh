@@ -81,6 +81,7 @@ import {
 import { readLocalPrimaryChart } from '../../lib/localChartRead';
 import { resolveInterpretationConfig } from '../../hooks/useStreamingInterpretation';
 import DashboardPage from '../Dashboard';
+import { predictiveReferenceInstant } from '../../lib/predictive';
 
 const mockedStream = vi.mocked(streamNatalInterpretation);
 const mockedTimelineStream = vi.mocked(streamCurrentTimeline);
@@ -405,7 +406,7 @@ describe('Dashboard — regenerate reading', () => {
   it('shows independent timeline progress and never replaces the retained natal reading', async () => {
     configureCloudAi();
     seedCompleteReading(currentProvenance());
-    const today = new Date().toISOString().slice(0, 10);
+    const today = predictiveReferenceInstant(new Date(), 'Asia/Kolkata').slice(0, 10);
     usePredictiveStore.setState({
       status: 'ready',
       profileKey: 'profile-1',

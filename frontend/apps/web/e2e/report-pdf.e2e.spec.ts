@@ -156,6 +156,29 @@ const SYNTHETIC_BIRTH = {
   },
 } as const;
 
+// The synthetic reports run on a pinned clock. 20:00 UTC is deliberately an
+// instant where the chart's Asia/Kolkata calendar day (Sep 24) is already one
+// day ahead of the UTC day (Sep 23): the app pins its predictive reference
+// instant to the CHART's local day, so a seed keyed to the UTC day only
+// matched between 00:00 and 18:30 UTC and silently dropped sections IX-XII
+// for the rest of the day.
+const SYNTHETIC_NOW = new Date('2026-09-23T20:00:00Z');
+
+/**
+ * The predictive reference instant the app expects for `now`: midnight of the
+ * chart's LOCAL calendar day, written as `YYYY-MM-DDT00:00:00Z`. Mirrors
+ * `predictiveReferenceInstant(now, timeZone)` in src/lib/predictive.ts (not
+ * imported: that module pulls the persisted stores into the Node runner).
+ */
+function chartDayReferenceInstant(now: Date, timeZone: string): string {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' })
+      .formatToParts(now)
+      .map((part) => [part.type, part.value]),
+  );
+  return `${parts.year}-${parts.month}-${parts.day}T00:00:00Z`;
+}
+
 const BASE_SYNTHETIC_PLANET = {
   longitude: 75.1,
   latitude: 0,
@@ -362,8 +385,12 @@ async function seedSyntheticMaximalReport(
   const staleNatalOnly = options.staleNatalOnlyReading === true;
   // Establish the preview origin without booting the SPA. If the empty Zustand
   // stores hydrate before this write, they can race and overwrite the fixture.
+  await page.clock.setFixedTime(SYNTHETIC_NOW);
   await page.goto('/robots.txt', { waitUntil: 'domcontentloaded' });
-  const referenceInstant = `${new Date().toISOString().slice(0, 10)}T00:00:00Z`;
+  const referenceInstant = chartDayReferenceInstant(
+    SYNTHETIC_NOW,
+    SYNTHETIC_BIRTH.birth_location_details.timezone,
+  );
   const requestKey = JSON.stringify([
     SYNTHETIC_PROFILE_ID,
     SYNTHETIC_BIRTH.birth_datetime_utc,

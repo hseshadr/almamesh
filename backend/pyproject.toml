@@ -1,7 +1,7 @@
 [project]
 name = "almamesh"
 version = "0.1.0"
-description = "Local-first Vedic astrology engine — offline, no account, no API key"
+description = "Your Vedic (traditional Indian) astrology chart, free and computed in your own browser — no account, no data harvesting."
 license = "MIT"
 requires-python = ">=3.13"
 dependencies = [

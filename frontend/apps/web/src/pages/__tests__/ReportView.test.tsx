@@ -36,6 +36,7 @@ const NATAL_ONLY_INPUT = { predictiveRequestKey: null } as const;
 
 // --- A complete-enough engine chart fixture (Title-Case signs, as emitted) ---
 import { CHART, FULL_INTERPRETATION, storedChart } from '../../test/reportFixtures';
+import { predictiveReferenceInstant } from '../../lib/predictive';
 
 
 function seed(interpretationComplete = true): void {
@@ -333,7 +334,7 @@ describe('ReportView predictive sections', () => {
         datetimeUtc: '1990-03-30T06:30:00Z',
         latitude: 12.97,
         longitude: 77.59,
-        referenceInstant: `${new Date().toISOString().slice(0, 10)}T00:00:00Z`,
+        referenceInstant: predictiveReferenceInstant(new Date(), 'Asia/Kolkata'),
       }),
     });
     renderReport('astrologer');
@@ -385,7 +386,7 @@ describe('ReportView predictive sections', () => {
         datetimeUtc: '1990-03-30T06:30:00Z',
         latitude: 12.97,
         longitude: 77.59,
-        referenceInstant: `${new Date().toISOString().slice(0, 10)}T00:00:00Z`,
+        referenceInstant: predictiveReferenceInstant(new Date(), 'Asia/Kolkata'),
       }),
     });
     renderReport('astrologer');
