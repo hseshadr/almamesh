@@ -5,7 +5,11 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 
-from almamesh.calculations import SkyfieldAstronomy, calculate_sidereal_context
+from almamesh.calculations import (
+    SkyfieldAstronomy,
+    calculate_sidereal_context,
+    validate_coordinates,
+)
 from almamesh.constants.astrology import PlanetName, ZodiacSign
 from almamesh.rectification.candidates import (
     CandidateTime,
@@ -227,7 +231,12 @@ def compute_rectification_result(
     (None searches the full birth day; ignored in CUSP mode) AND widens the E5
     anchor prior's half-width. ``anchor_confidence`` (E5) defaults per mode:
     ``about`` for CUSP (a recorded time exists), ``unknown`` for WINDOW.
+
+    Coordinates are validated FIRST: candidate lagnas are computed before any
+    natal context, so the guard inside ``calculate_sidereal_context`` alone
+    would run too late.
     """
+    validate_coordinates(latitude, longitude)
     astro = make_astronomy()
     transit_signs = compute_transit_signs(events, astronomy=astro)
     cands = _score_all_candidates(

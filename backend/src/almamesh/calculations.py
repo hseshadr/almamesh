@@ -23,6 +23,7 @@ Guidelines:
 import importlib.resources
 import logging
 import math
+from bisect import bisect_right
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 from pathlib import Path
@@ -176,6 +177,47 @@ def get_ayanamsa(jd: float) -> float:
     return LAHIRI_J2000_ANCHOR_DEG + p_arcsec * _ARCSEC_TO_DEG
 
 
+class InvalidBirthInputError(ValueError):
+    """A birth coordinate is non-numeric, non-finite, or out of range.
+
+    A ValueError so every runtime boundary that already turns ValueError into an
+    error envelope (``ChartRuntime.execute``, the Pyodide worker) keeps doing so.
+    Messages are stable and value-free.
+    """
+
+
+# Poles are EXCLUDED: the Ascendant is undefined at a geographic pole (the
+# lagna formula divides through ``tan(lat)``, a ~1.6e16 float at 90 deg rather
+# than an error, so a pole would yield an arbitrary-but-plausible sign). The
+# accepted latitude interval is therefore OPEN, (-90, 90); longitude is the
+# CLOSED interval [-180, 180] (both ends name the same meridian).
+_LATITUDE_LIMIT = 90.0
+_LONGITUDE_LIMIT = 180.0
+
+
+def _require_finite_coordinate(value: object, field: str) -> float:
+    if isinstance(value, bool) or not isinstance(value, int | float):
+        raise InvalidBirthInputError(f"invalid coordinate: {field} must be a finite number")
+    number = float(value)
+    if not math.isfinite(number):
+        raise InvalidBirthInputError(f"invalid coordinate: {field} must be a finite number")
+    return number
+
+
+def validate_coordinates(latitude: float, longitude: float) -> None:
+    """Fail closed on a coordinate the engine cannot compute honestly.
+
+    Without this, ``calculate_lagna``'s ``tan(radians(lat))`` (period 180 deg)
+    silently turned ``lat=200`` into the ``lat=20`` chart.
+    """
+    lat = _require_finite_coordinate(latitude, "latitude")
+    lon = _require_finite_coordinate(longitude, "longitude")
+    if not -_LATITUDE_LIMIT < lat < _LATITUDE_LIMIT:
+        raise InvalidBirthInputError("invalid coordinate: latitude out of range (-90, 90)")
+    if not -_LONGITUDE_LIMIT <= lon <= _LONGITUDE_LIMIT:
+        raise InvalidBirthInputError("invalid coordinate: longitude out of range [-180, 180]")
+
+
 class AyanamsaCalculator:
     """Official Lahiri/Chitrapaksha daily lookup table (regression cross-check).
 
@@ -208,15 +250,24 @@ class AyanamsaCalculator:
                 "Lahiri ayanamsa table missing or empty; refusing to guess "
                 "(fail-closed). Expected resources/lahiri_ayanamsa.txt."
             )
-        prev: tuple[float, float] | None = None
-        for entry_jd, val in self._table:
-            if jd < entry_jd:
-                if prev is not None:
-                    frac = (jd - prev[0]) / (entry_jd - prev[0])
-                    return prev[1] + frac * (val - prev[1])
-                return val
-            prev = (entry_jd, val)
-        return self._table[-1][1]
+        if not self._table[0][0] <= jd <= self._table[-1][0]:
+            # Fail closed: never clamp to the table's end value (that silently
+            # returned the 1900/2100 ayanamsa for any instant outside the table).
+            raise ValueError(
+                "Lahiri ayanamsa table range exceeded: instant outside "
+                "1900-01-01..2100-12-31 (fail-closed)"
+            )
+        # `bisect_right` finds the SAME bracketing entry the former linear scan
+        # did (the first entry with jd < entry_jd), and the interpolation
+        # arithmetic is unchanged, so every in-range value (and every golden
+        # fixture) stays byte-identical.
+        idx = bisect_right(self._table, jd, key=lambda entry: entry[0])
+        if idx == len(self._table):
+            return self._table[-1][1]  # jd == the table's last entry
+        prev_jd, prev_val = self._table[idx - 1]
+        entry_jd, val = self._table[idx]
+        frac = (jd - prev_jd) / (entry_jd - prev_jd)
+        return prev_val + frac * (val - prev_val)
 
 
 ayanamsa_calc = AyanamsaCalculator()
@@ -693,6 +744,7 @@ def calculate_sidereal_context(
     instance; when provided it is reused (avoids repeated de421 loads for
     multi-candidate scoring). Default None = unchanged single-call behavior.
     """
+    validate_coordinates(latitude, longitude)
     # Normalize to a true UTC instant (CONVERT aware datetimes; never relabel).
     dt_utc = _to_utc(dt_utc)
 

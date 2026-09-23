@@ -133,6 +133,41 @@ describe("toBirthInput", () => {
   });
 });
 
+describe("toBirthInput coordinate validation (mirrors the engine's InvalidBirthInputError)", () => {
+  const at = (latitude: number, longitude: number) => () =>
+    toBirthInput(
+      { date: "1990-01-15", time: "17:30", latitude, longitude, timezone: "Asia/Kolkata" },
+      REF,
+    );
+  const LAT_RANGE = "toBirthInput: invalid coordinate: latitude out of range (-90, 90)";
+  const LON_RANGE = "toBirthInput: invalid coordinate: longitude out of range [-180, 180]";
+  const LAT_FINITE = "toBirthInput: invalid coordinate: latitude must be a finite number";
+  const LON_FINITE = "toBirthInput: invalid coordinate: longitude must be a finite number";
+
+  it.each([
+    [200, 0, LAT_RANGE],
+    [90, 0, LAT_RANGE], // pole: Ascendant undefined -> rejected (open interval)
+    [-90, 0, LAT_RANGE],
+    [-90.000001, 0, LAT_RANGE],
+    [0, 180.000001, LON_RANGE],
+    [0, -181, LON_RANGE],
+    [Number.POSITIVE_INFINITY, 0, LAT_FINITE],
+    [Number.NEGATIVE_INFINITY, 0, LAT_FINITE],
+    [Number.NaN, 0, LAT_FINITE],
+    [0, Number.POSITIVE_INFINITY, LON_FINITE],
+  ])("rejects latitude=%s longitude=%s with a stable message", (lat, lon, message) => {
+    expect(at(lat, lon)).toThrow(message);
+  });
+
+  it.each([
+    [89.999999, 180],
+    [-89.999999, -180],
+    [0, 0],
+  ])("accepts latitude=%s longitude=%s", (lat, lon) => {
+    expect(at(lat, lon)).not.toThrow();
+  });
+});
+
 describe("birth-time rectification", () => {
   it("uses the rectified time for the chart while preserving the original", () => {
     // Entered 17:30 IST, rectified to 18:00 IST (+5:30 -> 12:30 UTC).

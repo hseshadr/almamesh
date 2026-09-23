@@ -29,6 +29,10 @@ _CONJ_WINDOW_DAYS: Final[float] = _JUPITER_PERIOD_DAYS + 365.25
 _SATURN_PERIOD_DAYS: Final[float] = 29.457 * 365.25
 _RETURN_WINDOW_DAYS: Final[float] = _SATURN_PERIOD_DAYS + 365.25
 # DE421 covers ~1900-2053; clamp any forward search so probes stay in range.
+# NOTE: a clamped window TRUNCATES the search, so a crossing that genuinely
+# falls after the horizon comes back as None ("no hit"), indistinguishable from
+# "no crossing exists". Surfacing that distinction needs a schema change and is
+# deliberately left out of scope here.
 _EPHEMERIS_MAX = datetime(2053, 1, 1, tzinfo=UTC)
 
 

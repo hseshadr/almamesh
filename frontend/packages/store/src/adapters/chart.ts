@@ -88,11 +88,22 @@ export interface BirthMeta extends LocalBirthInput {
 
 const SOFTWARE_VERSION = "almamesh-browser-engine";
 
-function requireFinite(value: number, field: string): void {
-  if (typeof value !== "number" || Number.isNaN(value)) {
-    throw new Error(
-      `toBirthInput: ${field} is required and must be a finite number (the engine has no geocoder)`,
-    );
+/**
+ * Mirrors the engine's `validate_coordinates` (InvalidBirthInputError) so a bad
+ * coordinate fails here with the SAME message instead of crossing the worker
+ * boundary. `Number.isFinite` (not `isNaN`) so ±Infinity is rejected too.
+ * Latitude is the OPEN interval (-90, 90): the Ascendant is undefined at a pole.
+ * Longitude is the CLOSED interval [-180, 180].
+ */
+function requireCoordinate(value: number, field: "latitude" | "longitude"): void {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    throw new Error(`toBirthInput: invalid coordinate: ${field} must be a finite number`);
+  }
+  if (field === "latitude" && !(value > -90 && value < 90)) {
+    throw new Error("toBirthInput: invalid coordinate: latitude out of range (-90, 90)");
+  }
+  if (field === "longitude" && !(value >= -180 && value <= 180)) {
+    throw new Error("toBirthInput: invalid coordinate: longitude out of range [-180, 180]");
   }
 }
 
@@ -103,8 +114,8 @@ function birthDatetimeUtc(input: LocalBirthInput): string {
       "toBirthInput: timezone (IANA) is required (the engine has no geocoder)",
     );
   }
-  requireFinite(input.latitude, "latitude");
-  requireFinite(input.longitude, "longitude");
+  requireCoordinate(input.latitude, "latitude");
+  requireCoordinate(input.longitude, "longitude");
 
   const clock = effectiveTime(input);
   const local = dayjs.tz(`${input.date}T${clock}`, input.timezone);
