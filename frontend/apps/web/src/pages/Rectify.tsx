@@ -51,6 +51,7 @@ export function RectifyPage(): ReactElement {
     state,
     engineReady,
     engineError,
+    engineErrorCode,
     engineStage,
     missingBirth,
     warmingTimedOut,
@@ -320,6 +321,7 @@ export function RectifyPage(): ReactElement {
           ) : engineError !== null || !engineReady ? (
             <EngineWarming
               engineError={engineError}
+              engineErrorCode={engineErrorCode}
               timedOut={warmingTimedOut}
               engineStage={engineStage}
               onRetry={() => void retry()}

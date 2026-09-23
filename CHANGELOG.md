@@ -130,6 +130,25 @@ All notable changes to AlmaMesh are documented here. Format follows
   self-heal paths (`swSelfHeal`, `lazyWithRetry`, chunk-error recovery) still
   never touch OPFS and still keep the `*-immutable` engine caches. Tests pin
   all of this.
+- **A rollback refusal can no longer be cleared with one unwarned click.**
+  Anyone able to serve an older, validly signed `/bundle/latest` can cause a
+  `RollbackError`, and the recovery UI would then steer the user into wiping
+  the floor. The stable `EngineOperationError.code` now reaches every reset
+  surface: the Onboarding error card, the rectification engine card, and the
+  global ErrorBoundary, which reads the provider's recorded last boot failure.
+  When the code is `rollback`, each surface shows a plain-language warning (en,
+  es, pt) that the server offered an older engine and that this can mean
+  tampering, and it requires the two-step inline confirm that "Start over"
+  already uses before any clear that drops the floor. Other failures keep the
+  one-click reset.
+- **The locked clear is now reliable.** `resetAppData` clears the bundle cache
+  *first*, while the service worker and caches can still serve the clear
+  Worker's script offline. It first tears down the live runtime (the provider
+  registers `AlmaMeshRuntime.dispose`) so the sync Worker releases its Web Lock
+  and handles. A failed or timed-out clear (8 s, now a real failure that also
+  terminates the clear Worker) is retried exactly once after another teardown.
+  IndexedDB deletes are now awaited: success or error settles each one, and a
+  `blocked` delete waits up to 3 s instead of being fired and forgotten.
 - **The JavaScript dependency audit is green instead of documented away.** A
   fresh `bun audit` found 92 advisories (3 critical, 55 high) across the
   browser, build, and test dependency graph. Compatible workspace updates plus

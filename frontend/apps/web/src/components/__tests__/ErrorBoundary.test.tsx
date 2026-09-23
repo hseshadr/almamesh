@@ -3,6 +3,23 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 
 import '../../i18n/config';
 import { ErrorBoundary } from '../ErrorBoundary';
+import { recordEngineBootFailure } from '../../lib/engineLifecycle';
+
+// Keep the reset hermetic: no real sync Worker in jsdom.
+const clearAlmaBundleCache = vi.fn().mockResolvedValue(undefined);
+vi.mock('@almamesh/browser', async (orig) => ({
+  ...(await orig<typeof import('@almamesh/browser')>()),
+  clearAlmaBundleCache: () => clearAlmaBundleCache(),
+}));
+
+/** An IndexedDB delete request that succeeds on the next microtask. */
+function succeedingDelete() {
+  return vi.fn(() => {
+    const request: { onsuccess: (() => void) | null } = { onsuccess: null };
+    queueMicrotask(() => request.onsuccess?.());
+    return request;
+  });
+}
 
 /** A child that throws on render so the boundary trips into its fallback. */
 function Boom(): never {
@@ -46,6 +63,8 @@ describe('ErrorBoundary', () => {
   afterEach(() => {
     consoleError.mockRestore();
     vi.unstubAllGlobals();
+    recordEngineBootFailure(null);
+    clearAlmaBundleCache.mockClear();
   });
 
   it('renders the fallback with a reset-app-data escape hatch when a child throws', () => {
@@ -143,7 +162,7 @@ describe('ErrorBoundary', () => {
     });
 
     const idbDatabases = vi.fn().mockResolvedValue([{ name: 'almamesh-x' }]);
-    const idbDeleteDatabase = vi.fn().mockReturnValue({});
+    const idbDeleteDatabase = succeedingDelete();
     vi.stubGlobal('indexedDB', {
       databases: idbDatabases,
       deleteDatabase: idbDeleteDatabase,
@@ -202,5 +221,35 @@ describe('ErrorBoundary', () => {
 
     // One failing path must not block the others or the final reload.
     await waitFor(() => expect(reload).toHaveBeenCalledTimes(1));
+  });
+
+  it('after a ROLLBACK boot refusal, warns of tampering and needs a two-step confirm before the reset', async () => {
+    recordEngineBootFailure(
+      Object.assign(new Error('refusing rollback: sequence is not fresher'), {
+        name: 'EngineOperationError',
+        code: 'rollback',
+      }),
+    );
+    vi.stubGlobal('navigator', {});
+    vi.stubGlobal('caches', undefined);
+    vi.stubGlobal('indexedDB', undefined);
+    const reload = vi.fn();
+    vi.stubGlobal('location', { reload });
+
+    render(
+      <ErrorBoundary>
+        <Boom />
+      </ErrorBoundary>,
+    );
+
+    expect(screen.getByTestId('rollback-warning').textContent).toMatch(/older version of the engine/);
+    fireEvent.click(screen.getByRole('button', { name: /reset app data/i }));
+    await Promise.resolve();
+    expect(clearAlmaBundleCache).not.toHaveBeenCalled();
+    expect(reload).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByTestId('rollback-reset-confirm'));
+    await waitFor(() => expect(reload).toHaveBeenCalledTimes(1));
+    expect(clearAlmaBundleCache).toHaveBeenCalledTimes(1);
   });
 });

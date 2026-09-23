@@ -43,6 +43,7 @@ import type {
 } from '@almamesh/shared-types';
 import type { TimeConfidence } from '@almamesh/constants';
 import type { RectificationInput } from '@almamesh/browser/types';
+import { engineErrorCode as engineErrorCodeOf } from '../lib/engineLifecycle';
 import { useOptionalChartEngine } from '../providers/chartEngineContext';
 import { predictiveReferenceInstant } from '../lib/predictive';
 import { useRectificationGate } from '../lib/rectificationGate';
@@ -199,6 +200,8 @@ export interface UseRectificationResult {
    * offer a reset-and-reload, never a silent permanent spinner.
    */
   readonly engineError: string | null;
+  /** The engine failure's stable `EngineOperationError.code` (e.g. 'rollback'). */
+  readonly engineErrorCode: string | null;
   /**
    * The current bootstrap stage (`'syncing' | 'reassembling' | 'booting-engine'
    * | …`) for an honest "what's happening" sub-label while warming, or null.
@@ -252,6 +255,7 @@ export function useRectification(profileId: string): UseRectificationResult {
   const engineCtx = useOptionalChartEngine();
   const engine = engineCtx?.engine ?? null;
   const engineError = engineCtx?.error?.message ?? null;
+  const engineErrorCode = engineErrorCodeOf(engineCtx?.error ?? null);
   const engineStage = engineCtx?.stage?.kind ?? null;
 
   // Latest engine context, mirrored into a ref so the one-shot mount effect
@@ -409,6 +413,7 @@ export function useRectification(profileId: string): UseRectificationResult {
     state: { status, result, error: storeError },
     engineReady: engine !== null,
     engineError,
+    engineErrorCode,
     engineStage,
     missingBirth,
     warmingTimedOut,

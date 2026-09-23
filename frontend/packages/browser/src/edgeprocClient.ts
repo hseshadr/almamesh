@@ -75,13 +75,37 @@ export function spawnAlmaSyncEngine(): AlmaSyncEngine {
  * "Reset" action only — never call it automatically in response to a
  * `RollbackError`, which would turn rollback protection into a no-op.
  */
+interface ClearBundleCacheOptions {
+  /** Worker factory (tests inject a fake). */
+  readonly spawn?: () => AlmaSyncEngine;
+  /** Reject (as a failure) if the locked clear has not finished by then. */
+  readonly timeoutMs?: number;
+}
+
 export async function clearAlmaBundleCache(
-  spawn: () => AlmaSyncEngine = spawnAlmaSyncEngine,
+  options: ClearBundleCacheOptions = {},
 ): Promise<void> {
-  const engine = spawn();
+  const engine = (options.spawn ?? spawnAlmaSyncEngine)();
+  let timer: ReturnType<typeof setTimeout> | undefined;
   try {
-    await engine.clearCache();
+    const clearing = engine.clearCache();
+    if (options.timeoutMs === undefined) {
+      await clearing;
+      return;
+    }
+    const timeoutMs = options.timeoutMs;
+    await Promise.race([
+      clearing,
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(
+          () => reject(new Error(`bundle cache clear timed out after ${timeoutMs} ms`)),
+          timeoutMs,
+        );
+      }),
+    ]);
   } finally {
+    clearTimeout(timer);
+    // Terminating also drops a still-queued Web Lock request on timeout.
     engine.terminate();
   }
 }

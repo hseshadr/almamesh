@@ -20,7 +20,8 @@
  * an older signed bundle trigger the wipe and defeat rollback protection. The
  * automatic self-heal paths (`swSelfHeal.ts`, `lazyWithRetry`, chunk-error
  * recovery) deliberately do NOT touch OPFS and preserve the `*-immutable`
- * engine caches.
+ * engine caches. When the failure IS a rollback refusal, every reset surface
+ * wraps this in `RollbackResetGuard` (tampering warning + two-step confirm).
  *
  * Each cleanup path is isolated in its own try/catch so one failure (a blocked
  * unregister, a locked database) can never stop the others. This module is the
@@ -32,18 +33,24 @@
  */
 
 import { clearAlmaBundleCache } from '@almamesh/browser';
+import { teardownLiveEngine } from './engineLifecycle';
 
-/** Upper bound on the library clear, so "Reset & reload" can never hang. */
-const BUNDLE_CLEAR_TIMEOUT_MS = 10_000;
+/** Upper bound on each locked library clear attempt (a timeout is a failure). */
+const BUNDLE_CLEAR_TIMEOUT_MS = 8_000;
+/** Upper bound on each IndexedDB delete, so a blocked delete can't hang Reset. */
+const IDB_DELETE_TIMEOUT_MS = 3_000;
 
 export async function resetAppData(): Promise<void> {
+  // FIRST, while the service worker + caches can still serve the clear
+  // Worker's script (offline included): tear down the live engine, then clear
+  // the bundle cache + rollback floor under the library's Web Lock.
+  await clearEngineBundleCache();
   await unregisterServiceWorkers();
   await clearCacheStorage();
   clearLocalStorage();
-  // Before IndexedDB: the library clear opens (then releases) the IndexedDB
-  // rollback-floor database, which would otherwise block its deletion.
-  await clearEngineBundleCache();
   await clearOpfs();
+  // Last, after the engine Workers are gone and the floor database is closed,
+  // so its delete is not blocked by an open connection.
   await clearIndexedDb();
 }
 
@@ -52,23 +59,29 @@ export async function resetAppData(): Promise<void> {
  * floor) through @edgeproc/browser's own `EngineClient.clear()`, which runs
  * under the same Web Lock as sync, so it cannot race an in-flight boot. User
  * data (charts, profiles, chat) is untouched. Explicit user action only — see
- * the SECURITY note above. Bounded and best-effort: never rejects, so the
- * caller always reaches its reload.
+ * the SECURITY note above.
+ *
+ * The live engine is torn down first so its sync Worker releases the lock and
+ * its handles. A failed or timed-out attempt is a failure: tear down again and
+ * retry exactly once. Never rejects; resolves true when the clear completed.
  */
-export async function clearEngineBundleCache(): Promise<void> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
+export async function clearEngineBundleCache(): Promise<boolean> {
+  await teardownLiveEngine();
+  if (await attemptBundleClear()) {
+    return true;
+  }
+  await teardownLiveEngine();
+  return attemptBundleClear();
+}
+
+async function attemptBundleClear(): Promise<boolean> {
   try {
-    await Promise.race([
-      clearAlmaBundleCache(),
-      new Promise<void>((resolve) => {
-        timer = setTimeout(resolve, BUNDLE_CLEAR_TIMEOUT_MS);
-      }),
-    ]);
+    await clearAlmaBundleCache({ timeoutMs: BUNDLE_CLEAR_TIMEOUT_MS });
+    return true;
   } catch {
-    // Best-effort: a sync worker that cannot load (wedged session) falls through to
-    // the OPFS sweep + IndexedDB deletion in resetAppData.
-  } finally {
-    clearTimeout(timer);
+    // A sync Worker that cannot load (wedged session) or a lock that never
+    // frees; resetAppData still sweeps OPFS and deletes IndexedDB after this.
+    return false;
   }
 }
 
@@ -141,12 +154,32 @@ async function clearIndexedDb(): Promise<void> {
       return;
     }
     const dbs = await indexedDB.databases();
-    for (const { name } of dbs) {
-      if (name) {
-        indexedDB.deleteDatabase(name);
-      }
-    }
+    await Promise.all(
+      dbs.flatMap(({ name }) => (name ? [deleteDatabaseBounded(name)] : [])),
+    );
   } catch {
     // Best-effort.
   }
+}
+
+/**
+ * Await one delete: success or error settles it; `blocked` (an open
+ * connection) keeps waiting, bounded, since the delete completes once the
+ * connection closes. Never rejects.
+ */
+function deleteDatabaseBounded(name: string): Promise<void> {
+  return new Promise<void>((resolve) => {
+    const timer = setTimeout(resolve, IDB_DELETE_TIMEOUT_MS);
+    const done = (): void => {
+      clearTimeout(timer);
+      resolve();
+    };
+    try {
+      const request = indexedDB.deleteDatabase(name);
+      request.onsuccess = done;
+      request.onerror = done;
+    } catch {
+      done();
+    }
+  });
 }

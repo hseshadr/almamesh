@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type {
   EngineRequest,
   EngineResponse,
@@ -149,13 +149,37 @@ describe("AlmaMesh edgeproc adapter", () => {
       terminate: () => calls.push("terminate"),
     });
 
-    await clearAlmaBundleCache(() => fake(() => Promise.resolve()));
+    await clearAlmaBundleCache({ spawn: () => fake(() => Promise.resolve()) });
     expect(calls).toEqual(["clear", "terminate"]);
 
     calls.length = 0;
     await expect(
-      clearAlmaBundleCache(() => fake(() => Promise.reject(new Error("lock")))),
+      clearAlmaBundleCache({ spawn: () => fake(() => Promise.reject(new Error("lock"))) }),
     ).rejects.toThrow("lock");
     expect(calls).toEqual(["clear", "terminate"]);
+  });
+
+  it("a hung clear times out as a FAILURE and still terminates its worker (releasing the lock request)", async () => {
+    vi.useFakeTimers();
+    try {
+      let terminated = false;
+      const pending = clearAlmaBundleCache({
+        timeoutMs: 1_000,
+        spawn: () => ({
+          sync: () => Promise.reject(new Error("unused")),
+          readFile: () => Promise.reject(new Error("unused")),
+          clearCache: () => new Promise<void>(() => {}),
+          terminate: () => {
+            terminated = true;
+          },
+        }),
+      });
+      const assertion = expect(pending).rejects.toThrow(/timed out/);
+      await vi.advanceTimersByTimeAsync(1_000);
+      await assertion;
+      expect(terminated).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
