@@ -175,3 +175,17 @@ def test_glue_reproduces_the_cpython_golden(generate_chart: GenerateChart) -> No
             )
         )
         assert golden._canonicalize(json.loads(chart)) == committed[iso_dt]
+
+
+def test_glue_rejects_out_of_range_latitude(generate_chart: GenerateChart) -> None:
+    """The Pyodide Worker calls the engine directly (no ChartRuntime), so the
+    ENGINE is where the coordinate guard must live. lat=200 used to alias to the
+    lat=20 chart through tan()'s 180-deg period; now the shipped glue refuses it
+    with the same stable message on CPython and (same wheel) Pyodide.
+    """
+    from almamesh.calculations import InvalidBirthInputError
+
+    with pytest.raises(
+        InvalidBirthInputError, match=r"^invalid coordinate: latitude out of range \(-90, 90\)$"
+    ):
+        generate_chart(_payload(latitude=200.0))

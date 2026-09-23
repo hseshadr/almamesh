@@ -7,6 +7,29 @@ All notable changes to AlmaMesh are documented here. Format follows
 ## [Unreleased]
 
 ### Fixed
+- **Out-of-range birth coordinates silently produced a wrong chart.** Nothing
+  range-checked latitude or longitude: `calculate_lagna` feeds
+  `tan(radians(lat))`, whose period is 180°, so `latitude=200` returned the
+  `latitude=20` chart; the Pyodide worker calls the engine directly, and the
+  store's `requireFinite` used `Number.isNaN`, so `±Infinity` passed too. A new
+  engine guard, `validate_coordinates` → `InvalidBirthInputError(ValueError)`,
+  runs first in `calculate_sidereal_context` (covering natal, predictive and
+  mesh) and in `compute_rectification_result` (which scores cusp candidates
+  before any natal context). Stable, value-free messages:
+  `invalid coordinate: latitude out of range (-90, 90)`,
+  `invalid coordinate: longitude out of range [-180, 180]`,
+  `invalid coordinate: <field> must be a finite number`. The poles are
+  **rejected** (open latitude interval): the Ascendant is undefined there and
+  `tan(90°)` is a huge float, not an error. `toBirthInput` now mirrors the same
+  check and messages (`Number.isFinite` + range). Valid inputs and every golden
+  fixture are unchanged.
+- **The Lahiri table reader clamped instead of failing closed.**
+  `AyanamsaCalculator.get_ayanamsa` returned the table's end value for any
+  instant outside 1900-01-01..2100-12-31, contradicting its own "fails closed"
+  docstring (e.g. a late-1899 birth, inside DE421, got the 1900 ayanamsa). It
+  now raises `ValueError("Lahiri ayanamsa table range exceeded: …")`; in-range
+  interpolation arithmetic is unchanged, so every value inside the table is
+  byte-identical.
 - **The shipped chart was not deterministic, and the README said it was.** The
   engine's `reference_date` — the instant that decides which Vimshottari mahā
   daśā is "current" — defaulted to `datetime.now(UTC)`, and the browser's chart
