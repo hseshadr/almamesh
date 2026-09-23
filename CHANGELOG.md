@@ -7,14 +7,16 @@ All notable changes to AlmaMesh are documented here. Format follows
 ## [Unreleased]
 
 ### Fixed
-- **The maximal report-PDF e2e failed every evening (UTC).** Its synthetic
-  seed keyed the predictive cache to the UTC calendar day, while the app keys it
-  to the chart's local day (`predictiveReferenceInstant`, Asia/Kolkata for the
-  fixture). From 18:30 UTC the two days differ, the cached predictive facts
-  read as stale, and sections IX–XII vanished from the downloaded PDF. The seed
-  now pins the page clock to 20:00 UTC — an instant where the two days differ —
-  and derives the key from the chart's local day, so the gate no longer depends
-  on when CI runs.
+- **The frontend gate went red every evening (UTC).** The report-PDF e2e seed
+  and six unit-test files (`LifeAtlas`, `Predictive`, `LifeDomain`,
+  `ReportView`, `Dashboard.regenerate`, `reportSectionParity`) keyed the
+  predictive cache to the UTC calendar day. The app keys it to the chart's local
+  day (`predictiveReferenceInstant`, Asia/Kolkata for every fixture). From 18:30
+  UTC the two days differ and the seeded predictive facts read as stale: 14 unit
+  tests failed, and sections IX–XII vanished from the downloaded PDF. The unit
+  tests now use `predictiveReferenceInstant` itself. The e2e seed pins the page
+  clock to 20:00 UTC, an instant where the two days differ, and derives the key
+  from the chart's local day. The gate no longer depends on when CI runs.
 - **Out-of-range birth coordinates silently produced a wrong chart.** Nothing
   range-checked latitude or longitude: `calculate_lagna` feeds
   `tan(radians(lat))`, whose period is 180°, so `latitude=200` returned the

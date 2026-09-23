@@ -20,6 +20,7 @@ import {
   VARGA_CTX_FULL,
 } from '../../test/predictiveFixtures';
 import { FOUNDER_DASHAS } from '../../test/dashaFixtures';
+import { predictiveReferenceInstant } from '../../lib/predictive';
 
 function storedChart(): StoredChart {
   return {
@@ -48,7 +49,7 @@ function currentRequestKey(): string {
     datetimeUtc: '1990-03-30T06:30:00Z',
     latitude: 12.97,
     longitude: 77.59,
-    referenceInstant: `${new Date().toISOString().slice(0, 10)}T00:00:00Z`,
+    referenceInstant: predictiveReferenceInstant(new Date(), 'Asia/Kolkata'),
   });
 }
 
