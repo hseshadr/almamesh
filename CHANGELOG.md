@@ -7,6 +7,14 @@ All notable changes to AlmaMesh are documented here. Format follows
 ## [Unreleased]
 
 ### Fixed
+- **The maximal report-PDF e2e failed every evening (UTC).** Its synthetic
+  seed keyed the predictive cache to the UTC calendar day, while the app keys it
+  to the chart's local day (`predictiveReferenceInstant`, Asia/Kolkata for the
+  fixture). From 18:30 UTC the two days differ, the cached predictive facts
+  read as stale, and sections IX–XII vanished from the downloaded PDF. The seed
+  now pins the page clock to 20:00 UTC — an instant where the two days differ —
+  and derives the key from the chart's local day, so the gate no longer depends
+  on when CI runs.
 - **Out-of-range birth coordinates silently produced a wrong chart.** Nothing
   range-checked latitude or longitude: `calculate_lagna` feeds
   `tan(radians(lat))`, whose period is 180°, so `latitude=200` returned the
@@ -194,6 +202,12 @@ All notable changes to AlmaMesh are documented here. Format follows
   gate that certified the gap as intended.
 
 ### Changed
+- **README rewritten on the portfolio template.** A plain-language first
+  screen (tagline equal to the package descriptions, Beta status matching the
+  v0.4.0 tag, a hero re-captured from a production build, and a "Try it in 60
+  seconds" section) sits above the existing technical detail.
+  `backend/tests/test_readme_contract.py` enforces that first screen, and checks
+  that every relative link and in-page anchor resolves, inside `uv run poe gate`.
 - **Semantic chat memory now uses the shared SQLite + sqlite-vector browser
   Lego end to end.** MiniLM still embeds locally in its own Worker, while exact
   cosine ranking, profile/generation filters, scoped deletion, and durable
