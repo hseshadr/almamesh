@@ -126,6 +126,12 @@ function verifyTrustRootRouting(urls, failures) {
   if (!existsSync(installerPath) || !sw.includes('engine-trust-install.js')) {
     failures.push('service worker is missing the activation-time trust-root cache warmer')
   }
+  if (urls.includes('/precache-isolation-heal.js')) {
+    failures.push('imported precache isolation heal must not also be precached')
+  }
+  if (!existsSync(join(DIST, 'precache-isolation-heal.js')) || !sw.includes('precache-isolation-heal.js')) {
+    failures.push('service worker is missing the precache COEP heal (returning visitors cannot start Workers)')
+  }
   if (!configMatch || !existsSync(join(DIST, configMatch[0]))) {
     failures.push('service worker is missing its build-bound trust-root config')
   }

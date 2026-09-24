@@ -268,7 +268,8 @@ describe('repository truth', () => {
     expect(config).toContain('existsSync(TRUST_KEY_PATH)');
     expect(config).not.toContain('ALMAMESH_TRUST_KEY_PATH');
     expect(config).toContain("return { name: 'trust-key-config-unconfigured' }");
-    expect(config).toMatch(/importScripts:\s*TRUST_KEY_CONFIG === null\s*\? \[\]/);
+    expect(config).toMatch(/importScripts: \[\s*\.\.\.\(TRUST_KEY_CONFIG === null \? \[\] :/);
+    expect(config).toContain("'precache-isolation-heal.js',\n      ],");
 
     const generateAssets = testWorkflow.indexOf('["bash", "apps/web/scripts/setup-dev-assets.sh"]');
     const buildExitGate = testWorkflow.indexOf('private builtBrowser(');
@@ -290,7 +291,9 @@ describe('repository truth', () => {
     expect(productionBuild).toContain('dist/public.key is not the production key');
     expect(productionBuild).toContain('engine-trust-config-${TRUST_KEY_HASH}.js');
     expect(productionBuild).toContain('__ALMAMESH_TRUST_KEY_B64__=\\"${TRUST_KEY_B64}\\"');
-    expect(productionBuild).toContain('importScripts(\\"${TRUST_KEY_CONFIG}\\",\\"engine-trust-install.js\\")');
+    expect(productionBuild).toContain(
+      'importScripts(\\"${TRUST_KEY_CONFIG}\\",\\"engine-trust-install.js\\",\\"precache-isolation-heal.js\\")',
+    );
   });
 
   it('keeps the production private key outside the checkout and shreds it after deploy', () => {

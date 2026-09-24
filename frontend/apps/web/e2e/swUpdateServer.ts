@@ -80,6 +80,17 @@ export interface TwoBuildServer {
   readonly origin: string;
   /** Point the origin at a different build directory — i.e. ship a deploy. */
   deploy(buildDir: string): void;
+  /**
+   * Simulate a deploy that differs only in response headers and service-worker
+   * bytes (the returning-visitor COEP gate): `isolation: false` drops the
+   * COOP/COEP pair, and `rewriteServiceWorker` rewrites the served sw.js so the
+   * browser sees a distinct service worker without a second build (pass null
+   * to serve the build's sw.js unchanged).
+   */
+  configure(options: {
+    isolation?: boolean;
+    rewriteServiceWorker?: ((source: string) => string) | null;
+  }): void;
   close(): Promise<void>;
 }
 
@@ -89,15 +100,18 @@ export async function startTwoBuildServer(
   port: number,
 ): Promise<TwoBuildServer> {
   let root = initialBuildDir;
+  let isolation = true;
+  let rewriteServiceWorker: ((source: string) => string) | null = null;
   const headersFile = await readFile(path.join(initialBuildDir, '_headers'), 'utf8');
   const csp = cspForLocalHttpPreview(headersFile);
   const isolationHeaders = browserIsolationHeadersFromHeadersFile(headersFile);
-  const baseHeaders = {
+  const isolatedHeaders = {
     'cross-origin-opener-policy': isolationHeaders['Cross-Origin-Opener-Policy'],
     'cross-origin-embedder-policy': isolationHeaders['Cross-Origin-Embedder-Policy'],
   };
 
   const server: Server = createServer((req, res) => {
+    const baseHeaders = isolation ? isolatedHeaders : {};
     const file = resolveFile(root, (req.url ?? '/').split('?')[0]);
     if (!file) {
       res.writeHead(404, { ...baseHeaders, 'content-type': 'text/plain' });
@@ -116,7 +130,9 @@ export async function startTwoBuildServer(
           headers['content-security-policy'] = csp;
         }
         res.writeHead(200, headers);
-        res.end(body);
+        res.end(path.basename(file) === 'sw.js' && rewriteServiceWorker
+          ? rewriteServiceWorker(body.toString('utf8'))
+          : body);
       },
       () => {
         res.writeHead(500, { ...baseHeaders, 'content-type': 'text/plain' });
@@ -131,6 +147,10 @@ export async function startTwoBuildServer(
     origin: `http://localhost:${port}`,
     deploy(buildDir: string) {
       root = buildDir;
+    },
+    configure(options) {
+      isolation = options.isolation ?? isolation;
+      if (options.rewriteServiceWorker !== undefined) rewriteServiceWorker = options.rewriteServiceWorker;
     },
     close: () => new Promise<void>((resolve) => server.close(() => resolve())),
   };

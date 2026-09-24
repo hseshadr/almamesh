@@ -342,6 +342,10 @@ export class AlmameshCi {
       "--outDir",
       "dist-real",
     ])
+      // Returning visitor across a deploy: precache entries cached before a
+      // header change must not stop the engine from booting (the stuck
+      // "still starting up" regression). Owns its own origin on :4197.
+      .withExec(["bun", "run", "test:e2e:returning-visitor"])
     return this.localPreview(real, "dist-real", [
       "node scripts/verify-real-onboarding.mjs http://127.0.0.1:4199",
       "node scripts/verify-onboarding-recovery.mjs http://127.0.0.1:4199",
