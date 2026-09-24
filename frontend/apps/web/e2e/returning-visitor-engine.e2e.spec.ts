@@ -85,22 +85,37 @@ async function visitPreviousDeploy(context: BrowserContext, origin: string): Pro
   await page.close();
 }
 
+/**
+ * Accept the update the way the banner does (SKIP_WAITING), and only return
+ * once THIS deploy's worker is the settled, active one. The decisive signal is
+ * the precache itself: after activation no entry of the previous deploy's
+ * revisions may remain. Polled from the test side with `expect.poll`:
+ * `page.waitForFunction` does not await an async predicate (the returned
+ * Promise is truthy), which made the first version of this gate racy. The
+ * app reloads on controllerchange, so a destroyed context just means "again".
+ */
 async function acceptUpdate(context: BrowserContext, origin: string): Promise<void> {
   const page = await context.newPage();
   await page.goto(`${origin}/welcome`);
-  await page.waitForFunction(async () => {
+  await expect.poll(() => page.evaluate(async () => {
     const registration = await navigator.serviceWorker.getRegistration();
-    await registration?.update();
-    return Boolean(registration?.waiting);
-  }, null, { timeout: 60_000, polling: 1_000 });
-  await page.evaluate(async () => {
-    const registration = await navigator.serviceWorker.getRegistration();
-    registration?.waiting?.postMessage({ type: 'SKIP_WAITING' });
-  });
-  await page.waitForFunction(async () => {
-    const registration = await navigator.serviceWorker.getRegistration();
-    return !registration?.waiting && registration?.active?.state === 'activated';
-  }, null, { timeout: 60_000 });
+    if (!registration) return 'no registration';
+    if (registration.waiting) {
+      registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+      return 'waiting';
+    }
+    if (registration.installing) return 'installing';
+    if (registration.active?.state !== 'activated') return 'activating';
+    const name = (await caches.keys()).find((key) => key.includes('-precache-'));
+    if (!name) return 'no precache';
+    const keys = await (await caches.open(name)).keys();
+    if (keys.some((request) => request.url.includes('__WB_REVISION__=previous-'))) {
+      await registration.update();
+      return 'previous deploy still active';
+    }
+    return 'updated';
+    // Accepting the update reloads the page (controllerchange); poll again.
+  }).catch(() => 'reloading'), { timeout: 90_000, intervals: [500, 1_000] }).toBe('updated');
   await page.close();
 }
 
