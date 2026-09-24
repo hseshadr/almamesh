@@ -30,16 +30,19 @@
 import { mkdirSync } from 'node:fs'
 import { Buffer } from 'node:buffer'
 import { chromium } from '@playwright/test'
+import { chartDayReferenceInstant } from './predictiveReference.mjs'
 
 const BASE_URL = process.argv[2] ?? 'http://localhost:4173'
 const PROOF_DIR = '/tmp/almamesh-proof-wave-d'
 mkdirSync(PROOF_DIR, { recursive: true })
 
 // Reference fixture: Bengaluru, India, 08 Aug 1988, 06:44 Asia/Kolkata.
-// IST is fixed UTC+5:30 (no DST) -> 01:14 UTC. referenceDate is pinned
-// to today's UTC midnight so the natal dasha "now" matches the predictive
-// layer's own per-day reference instant.
-const TODAY_UTC_MIDNIGHT = `${new Date().toISOString().slice(0, 10)}T00:00:00+00:00`
+// IST is fixed UTC+5:30 (no DST) -> 01:14 UTC. referenceDate is pinned to
+// midnight of the CHART's local day, exactly as predictiveReferenceInstant keys
+// the predictive request, so the natal dasha "now" matches the predictive
+// layer's own per-day reference instant (never the UTC calendar day).
+const CHART_TIMEZONE = 'Asia/Kolkata'
+const TODAY_REFERENCE_INSTANT = chartDayReferenceInstant(CHART_TIMEZONE)
 const REFERENCE_BIRTH = {
   name: 'Reference Native',
   datetimeUtc: '1988-08-08T01:14:00.000Z',
@@ -47,8 +50,8 @@ const REFERENCE_BIRTH = {
   localTime: '06:44',
   latitude: 12.9716,
   longitude: 77.5946,
-  timezone: 'Asia/Kolkata',
-  referenceDate: TODAY_UTC_MIDNIGHT,
+  timezone: CHART_TIMEZONE,
+  referenceDate: TODAY_REFERENCE_INSTANT,
 }
 
 // /report is gated on a finished interpretation (useStreamingInterpretation

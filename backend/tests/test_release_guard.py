@@ -200,3 +200,60 @@ def test_main_reports_a_successful_preflight(
 
     assert release_guard.main() == 0
     assert capsys.readouterr().out == "release preflight passed\n"
+
+
+def _stamped_pointer(
+    signer: Ed25519Signer,
+    *,
+    sequence: int,
+    key_id: str | None = None,
+    expires_at: int | None = None,
+) -> VersionPointer:
+    """A pointer carrying the edge-proc 0.5 signed keyring fields the browser tier honors."""
+    unsigned = VersionPointer(
+        manifest_hash="a" * 64,
+        version=f"0.0.{sequence}",
+        bundle_id="almamesh-constructs",
+        channel="stable",
+        sequence=sequence,
+        key_id=key_id,
+        expires_at=expires_at,
+        signature="",
+    )
+    return unsigned.model_copy(update={"signature": signer.sign(pointer_signing_bytes(unsigned))})
+
+
+def test_verify_pointer_accepts_a_pointer_naming_the_pinned_key() -> None:
+    private_key, public_key = generate_keypair()
+    signer = Ed25519Signer(private_key)
+    pointer = _stamped_pointer(signer, sequence=3, key_id=signer.key_id)
+
+    assert verify_pointer(pointer, public_key) == pointer
+
+
+def test_verify_pointer_rejects_a_pointer_naming_another_key() -> None:
+    # The signature is genuine, but the pointer names a key the pinned trust root does not
+    # hold. @edgeproc/browser refuses it (a named key is the only key tried), so the release
+    # preflight must refuse it before it ships rather than after every device rejects it.
+    private_key, public_key = generate_keypair()
+    pointer = _stamped_pointer(Ed25519Signer(private_key), sequence=3, key_id="0" * 16)
+
+    with pytest.raises(ReleaseGuardError, match="signature"):
+        verify_pointer(pointer, public_key)
+
+
+def test_verify_pointer_rejects_an_expired_candidate() -> None:
+    private_key, public_key = generate_keypair()
+    pointer = _stamped_pointer(Ed25519Signer(private_key), sequence=3, expires_at=1)
+
+    with pytest.raises(ReleaseGuardError, match="expired"):
+        verify_pointer(pointer, public_key)
+
+
+def test_verify_pointer_judges_expiry_against_the_injected_clock() -> None:
+    private_key, public_key = generate_keypair()
+    pointer = _stamped_pointer(Ed25519Signer(private_key), sequence=3, expires_at=2_000)
+
+    assert verify_pointer(pointer, public_key, clock=lambda: 1_999.0) == pointer
+    with pytest.raises(ReleaseGuardError, match="expired"):
+        verify_pointer(pointer, public_key, clock=lambda: 2_000.0)
