@@ -6,8 +6,10 @@ Mirrors the edge-reco publisher flow:
     almamesh-bundle bundle ./origin ./keys/private.key --version v1 --staging-dir ./staging
 
 ``keygen`` writes a raw ed25519 keypair (pin ``public.key`` into the SPA at
-build; keep ``private.key`` secret). ``bundle`` signs the engine constructs plus
-any staged binaries into a content-addressed origin a device can sync.
+build; keep ``private.key`` secret) and, like edge-proc's own ``keygen``, prints the
+key's ``key_id`` on a second line so it can be named in a trust-root keyring.
+``bundle`` signs the engine constructs plus any staged binaries into a
+content-addressed origin a device can sync.
 """
 
 from __future__ import annotations
@@ -16,7 +18,10 @@ from pathlib import Path
 from typing import Annotated
 
 import typer
-from edgeproc.bundles.signing import Ed25519Signer
+from edgeproc.bundles.signing import Ed25519Signer, key_id_for
+from edgeproc.core.settings import EdgeProcSettings
+from edgeproc.errors import CONFIG_INVALID
+from pydantic import ValidationError
 
 from almamesh.edge.bundle import (
     generate_keypair_files,
@@ -38,6 +43,23 @@ def keygen(
     except FileExistsError as exc:
         raise typer.BadParameter(f"{exc} (pass --force to overwrite)") from exc
     typer.echo(f"Wrote keypair to {out_dir} — gitignore private.key, pin public.key into the SPA")
+    typer.echo(f"key_id {key_id_for((out_dir / 'public.key').read_bytes())}")
+
+
+def _require_valid_edgeproc_settings() -> None:
+    """Refuse a malformed ``EDGEPROC_*`` value up front, as a coded one-line error.
+
+    edge-proc (>=0.5) validates its settings wherever its CAS store reads them, so a bad
+    value would otherwise surface as a pydantic traceback in the middle of a publish.
+    Checking first means nothing is written to the origin before the refusal.
+    """
+    try:
+        EdgeProcSettings()
+    except ValidationError as exc:
+        error = exc.errors()[0]
+        field = f"EDGEPROC_{str(error['loc'][0]).upper()}"
+        typer.echo(f"[{CONFIG_INVALID}] invalid setting {field}: {error['msg']}", err=True)
+        raise typer.Exit(code=1) from exc
 
 
 @app.command()
@@ -63,6 +85,7 @@ def bundle(
     ] = None,
 ) -> None:
     """Sign engine constructs (+ staged binaries, or the full offline set) into an origin."""
+    _require_valid_edgeproc_settings()
     signer = Ed25519Signer.from_private_bytes(private_key_path.read_bytes())
     if offline:
         pointer = publish_offline_bundle(

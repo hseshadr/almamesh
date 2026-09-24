@@ -31,12 +31,16 @@
 import { mkdirSync } from 'node:fs'
 import { Buffer } from 'node:buffer'
 import { chromium } from '@playwright/test'
+import { chartDayReferenceInstant } from './predictiveReference.mjs'
 
 const BASE_URL = process.argv[2] ?? 'http://localhost:4173'
 const PROOF_DIR = '/tmp/almamesh-proof-pro-ui'
 mkdirSync(PROOF_DIR, { recursive: true })
 
-const TODAY_UTC_MIDNIGHT = `${new Date().toISOString().slice(0, 10)}T00:00:00+00:00`
+const CHART_TIMEZONE = 'Asia/Kolkata'
+// The app keys its predictive request by the CHART's local day (predictiveReferenceInstant),
+// never the UTC calendar day, so seed the same instant.
+const TODAY_REFERENCE_INSTANT = chartDayReferenceInstant(CHART_TIMEZONE)
 const REFERENCE_BIRTH = {
   name: 'Reference Native',
   datetimeUtc: '1988-08-08T01:14:00.000Z',
@@ -44,8 +48,8 @@ const REFERENCE_BIRTH = {
   localTime: '06:44',
   latitude: 12.9716,
   longitude: 77.5946,
-  timezone: 'Asia/Kolkata',
-  referenceDate: TODAY_UTC_MIDNIGHT,
+  timezone: CHART_TIMEZONE,
+  referenceDate: TODAY_REFERENCE_INSTANT,
 }
 
 // /report and the dashboard reading section are gated on a complete structured

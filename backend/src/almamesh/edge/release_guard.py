@@ -5,13 +5,16 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from collections.abc import Callable
 from pathlib import Path
 from urllib.parse import urlencode, urlsplit, urlunsplit
 from urllib.request import Request, urlopen
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
-from edgeproc.bundles.manifest import VersionPointer, pointer_signing_bytes
+from edgeproc.bundles.manifest import VersionPointer
 from edgeproc.bundles.signing import Ed25519Verifier, SignatureError
+from edgeproc.bundles.sync import PointerExpiredError
+from edgeproc.bundles.sync import verify_pointer as verify_signed_pointer
 
 _BUNDLE_ID = "almamesh-constructs"
 _CHANNEL = "stable"
@@ -31,12 +34,25 @@ def _require_identity(pointer: VersionPointer) -> int:
     return pointer.sequence
 
 
-def verify_pointer(pointer: VersionPointer, public_key: Ed25519PublicKey) -> VersionPointer:
-    """Verify a pointer's signature and production identity before comparing it."""
+def verify_pointer(
+    pointer: VersionPointer,
+    public_key: Ed25519PublicKey,
+    *,
+    clock: Callable[[], float] | None = None,
+) -> VersionPointer:
+    """Verify a pointer exactly as a syncing device would, then its production identity.
+
+    Delegates to edge-proc's own pointer checks, the ones ``@edgeproc/browser`` mirrors: a
+    named ``key_id`` must be the pinned key, the signature must verify, and a signed
+    ``expires_at`` must not have passed (judged against ``clock``, Unix seconds). A candidate
+    every device would refuse is refused here, before it ships.
+    """
     try:
-        Ed25519Verifier(public_key).verify(pointer_signing_bytes(pointer), pointer.signature)
+        verify_signed_pointer(pointer, Ed25519Verifier(public_key), clock=clock)
     except SignatureError as exc:
         raise ReleaseGuardError("pointer signature verification failed") from exc
+    except PointerExpiredError as exc:
+        raise ReleaseGuardError("pointer expired before release") from exc
     _require_identity(pointer)
     return pointer
 

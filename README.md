@@ -420,7 +420,7 @@ the network is delivery-only.
 
 ```bash
 cd backend
-uv run almamesh-bundle keygen ./keys                              # raw ed25519 keypair (0o600 private key)
+uv run almamesh-bundle keygen ./keys                              # raw ed25519 keypair (0o600 private key); prints its key_id
 uv run almamesh-bundle bundle ./origin ./keys/private.key --version v1
 ```
 

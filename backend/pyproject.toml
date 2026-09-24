@@ -28,7 +28,11 @@ dependencies = [
     # unchanged version label — no forgery needed. 0.2.0 closed the same hole for
     # unparseable versions and missing sequences. Proven by
     # tests/test_bundle_rollback_guard.py, which fails on any older edge-proc.
-    "edge-proc[bundles]>=0.3.0",
+    # 0.5.0 (raised from 0.3.0) adds the signed key_id/expires_at pointer fields that
+    # @edgeproc/browser 02171df honors; release_guard delegates to its verify_pointer so
+    # the preflight refuses exactly what a device would. It also requires
+    # edgeproc-core>=0.4.3 (RFC 9457 wire-safety fix), which the lock resolves.
+    "edge-proc[bundles]>=0.5.0",
     # Bundle-publisher CLI (almamesh-bundle).
     "typer>=0.27.0",
 ]

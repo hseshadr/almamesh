@@ -7,6 +7,12 @@ All notable changes to AlmaMesh are documented here. Format follows
 ## [Unreleased]
 
 ### Fixed
+- **The live `verify-pro-ui` and `verify-wave-d` journeys keyed predictive data
+  to the UTC calendar day.** They seeded the chart's `referenceDate` from
+  `toISOString()`, the same bug fixed in the unit tests below. They now use
+  `scripts/predictiveReference.mjs`, which derives the chart's local-day instant
+  exactly as `predictiveReferenceInstant` does. A unit test pins it against the
+  app helper across the Asia/Kolkata day boundary.
 - **The frontend gate went red every evening (UTC).** The report-PDF e2e seed
   and six unit-test files (`LifeAtlas`, `Predictive`, `LifeDomain`,
   `ReportView`, `Dashboard.regenerate`, `reportSectionParity`) keyed the
@@ -204,6 +210,28 @@ All notable changes to AlmaMesh are documented here. Format follows
   gate that certified the gap as intended.
 
 ### Changed
+- **edge-proc 0.3.0 → 0.5.0, edgeproc-core 0.4.0 → 0.4.3** (backend lock; the
+  `edge-proc[bundles]` floor is now `>=0.5.0`, which itself requires core
+  `>=0.4.3` for its RFC 9457 wire-safety fix). Adapted to the 0.4/0.5 changes:
+  - **Pointers stay byte-identical.** `almamesh-bundle` publishes through
+    `build_bundle` and never stamps the new signed `key_id`/`expires_at` fields,
+    so `latest` keeps its `bundle_id`/`channel`/`sequence` shape and every device
+    on `@edgeproc/browser` 02171df keeps syncing. A test pins that, even with
+    `EDGEPROC_PUBLISH_STAMP_KEY_ID`/`EDGEPROC_PUBLISH_EXPIRES_IN` set.
+  - **`release_guard` checks a candidate the way a device does.** It now calls
+    edge-proc's `verify_pointer`, so a pointer naming a key other than the pinned
+    one, or one whose signed `expires_at` has passed, fails the preflight in
+    `build-prod.sh` instead of shipping to devices that would refuse it.
+  - **`EDGEPROC_*` is validated.** edge-proc's CAS store now reads and validates
+    its settings, so a malformed value crashed `almamesh-bundle bundle` with a
+    pydantic traceback mid-publish. The command now checks first and refuses with
+    one line, `[config.invalid] invalid setting EDGEPROC_<NAME>: ...`, before
+    anything is written.
+  - **`almamesh-bundle keygen` prints the key's `key_id`** on a second line, like
+    `edgeproc keygen`, for naming it in a trust-root keyring. The first line is
+    unchanged.
+  - The fail-closed model resolution (`EDGEPROC_MODEL_PATH`) is not applicable:
+    AlmaMesh installs only the `[bundles]` extra and never loads `localvec`.
 - **README rewritten on the portfolio template.** A plain-language first
   screen (tagline equal to the package descriptions, Beta status matching the
   v0.4.0 tag, a hero re-captured from a production build, and a "Try it in 60

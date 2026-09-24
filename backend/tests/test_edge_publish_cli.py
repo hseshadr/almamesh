@@ -7,7 +7,7 @@ published origin verifies against the generated public key.
 
 import json
 
-from edgeproc.bundles.signing import Ed25519Verifier
+from edgeproc.bundles.signing import Ed25519Verifier, key_id_for
 from typer.testing import CliRunner
 
 from almamesh.edge.bundle import read_synced_file, sync_constructs
@@ -81,3 +81,69 @@ def test_bundle_offline_mode_ships_full_asset_set(tmp_path) -> None:
     synced = sync_constructs(str(origin), cache, verifier)
     assert read_synced_file(cache, synced, "skyfield-data/de421.bsp") == b"DE421-STUB"
     assert read_synced_file(cache, synced, "wheels/skyfield-1.53-py3-none-any.whl")
+
+
+def test_keygen_prints_the_key_id_a_keyring_names_the_key_by(tmp_path) -> None:
+    """Mirrors edge-proc 0.5 ``keygen``: line 1 is unchanged, line 2 is ``key_id <16 hex>``."""
+    keys = tmp_path / "keys"
+    result = runner.invoke(app, ["keygen", str(keys)])
+    assert result.exit_code == 0, result.output
+
+    lines = result.output.splitlines()
+    assert lines[0].startswith("Wrote keypair to ")
+    assert lines[1] == f"key_id {key_id_for((keys / 'public.key').read_bytes())}"
+
+
+def test_bundle_pointer_stays_unstamped_whatever_the_edgeproc_env(tmp_path, monkeypatch) -> None:
+    """The publisher never stamps key_id/expires_at, whatever ``EDGEPROC_PUBLISH_*`` says.
+
+    edge-proc 0.5's ``edgeproc publish`` can stamp a key_id and an expiry from those
+    settings. AlmaMesh publishes through the ``build_bundle`` library call, so a stray
+    stamping env in a release shell must not add fields: the signed ``latest`` keeps the
+    exact pre-keyring shape every pinned device already accepts.
+    """
+    monkeypatch.setenv("EDGEPROC_PUBLISH_STAMP_KEY_ID", "true")
+    monkeypatch.setenv("EDGEPROC_PUBLISH_EXPIRES_IN", "7d")
+    keys, origin = tmp_path / "keys", tmp_path / "origin"
+    assert runner.invoke(app, ["keygen", str(keys)]).exit_code == 0
+
+    result = runner.invoke(
+        app, ["bundle", str(origin), str(keys / "private.key"), "--sequence", "7"]
+    )
+    assert result.exit_code == 0, result.output
+
+    latest = json.loads((origin / "latest").read_bytes())
+    assert set(latest) == {
+        "manifest_hash",
+        "version",
+        "bundle_id",
+        "channel",
+        "sequence",
+        "signature",
+    }
+    assert (latest["bundle_id"], latest["channel"], latest["sequence"]) == (
+        "almamesh-constructs",
+        "stable",
+        7,
+    )
+
+
+def test_bundle_refuses_a_malformed_edgeproc_setting_before_writing(tmp_path, monkeypatch) -> None:
+    """edge-proc 0.5 validates ``EDGEPROC_*`` wherever its CAS reads settings.
+
+    A malformed value used to be ignored; it now fails validation. The publisher must turn
+    that into a coded, one-line ``config.invalid`` refusal naming the variable, before any
+    object or ``latest`` pointer is written, not a pydantic traceback mid-publish.
+    """
+    monkeypatch.setenv("EDGEPROC_PUBLISH_EXPIRES_IN", "not-a-duration")
+    keys, origin = tmp_path / "keys", tmp_path / "origin"
+    assert runner.invoke(app, ["keygen", str(keys)]).exit_code == 0
+
+    result = runner.invoke(app, ["bundle", str(origin), str(keys / "private.key")])
+
+    assert result.exit_code == 1
+    assert result.output.startswith(
+        "[config.invalid] invalid setting EDGEPROC_PUBLISH_EXPIRES_IN: "
+    )
+    assert "Traceback" not in result.output
+    assert not origin.exists()

@@ -102,7 +102,7 @@ an export, while derived data is rebuilt from the restored source records.
 | Area | Path | Notes |
 |---|---|---|
 | Python engine + bundle publisher | `backend/src/almamesh/` | Pydantic models, Skyfield astronomy, dasha/yoga/mesh/rectification engines |
-| Signed-bundle delivery core | `edge-proc` (PyPI) | pinned `>=0.3.0` in `backend/pyproject.toml` — the first release whose anti-replay guard fails closed |
+| Signed-bundle delivery core | `edge-proc` (PyPI) | pinned `>=0.5.0` in `backend/pyproject.toml` (0.3.0 was the first release whose anti-replay guard fails closed; 0.5.0 adds the signed `key_id`/`expires_at` pointer fields `release_guard` checks as a device would) |
 | Browser engine + PWA | `frontend/` (Bun workspace) | packages table in [CLAUDE.md](../CLAUDE.md#frontend-monorepo-packages-frontendpackages) |
 | Specs (numbered) | `docs/specs/` | feature design records |
 | CI/CD + deploy | `dagger/src/index.ts` → Cloudflare Pages | typed secrets, key custody, and exact live identity; GitHub workflows are pinned ingress only |
