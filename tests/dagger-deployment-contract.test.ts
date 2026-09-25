@@ -1,5 +1,5 @@
-import { describe, expect, test } from "bun:test"
-import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
+import { describe, expect, spyOn, test } from "bun:test"
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import {
@@ -10,7 +10,10 @@ import {
   liveVerificationScript,
   parseGreenMainEvidence,
   releaseIdentities,
+  RETURNING_PASS_NOT_WIRED,
   validateProviderEvidence,
+  type DeliveryPort,
+  type SmokePass,
   type SmokeRun,
 } from "../dagger/src/deployment.ts"
 
@@ -200,18 +203,11 @@ describe("single-transaction delivery orchestration", () => {
         events.push("live-static-bundle-feedback")
         return "live proof"
       },
-      readPages: async () => {
-        events.push("read-pages")
-        return pagesListing(BASELINE)
-      },
-      smokeLive: async (previousUrl) => {
-        expect(previousUrl).toBe(BASELINE.url)
+      smokeLive: async (passes, previousUrl) => {
+        expect(passes).toEqual(["fresh"])
+        expect(previousUrl).toBeUndefined()
         events.push("live-smoke")
-        return passingSmoke()
-      },
-      rollbackTo: async () => {
-        events.push("rollback")
-        return "rolled back"
+        return [{ pass: "fresh", passed: true, output: "fresh ok" }]
       },
     }, commitSha, "781", 3, centralSha)
 
@@ -224,7 +220,6 @@ describe("single-transaction delivery orchestration", () => {
       "signed-build",
       "preview",
       "envelope",
-      "read-pages",
       "deploy",
       "evidence-id",
       "reload",
@@ -235,7 +230,7 @@ describe("single-transaction delivery orchestration", () => {
     expect(result).toEqual({
       deploymentId: "deployment-id",
       deploymentUrl: "https://deployment.pages.dev",
-      liveProof: "live proof\nLive smoke passed: fresh, returning",
+      liveProof: `live proof\n${RETURNING_PASS_NOT_WIRED}\nLive smoke passed: fresh`,
     })
   })
 
@@ -355,145 +350,82 @@ function failClosedPort(events: string[]) {
       deploymentUrl: "https://deployment.pages.dev",
     }),
     verifyLive: async () => "live proof",
-    readPages: async () => {
-      events.push("read-pages")
-      return pagesListing(BASELINE)
+    smokeLive: async (passes: readonly SmokePass[]): Promise<SmokeRun[]> => {
+      events.push(`live-smoke:${passes.join(",")}`)
+      return passes.map((pass) => ({ pass, passed: true, output: `${pass} ok` }))
     },
-    smokeLive: async (_previousUrl: string): Promise<SmokeRun[]> => {
-      events.push("live-smoke")
-      return passingSmoke()
-    },
-    rollbackTo: async (deploymentId: string) => {
-      events.push(`rollback:${deploymentId}`)
-      return "rolled back"
-    },
-  }
+  } as DeliveryPort<string, string, string, string, string>
 }
 
-const BASELINE = {
-  id: "11111111-1111-4111-8111-111111111111",
-  url: "https://11111111.almamesh.pages.dev",
-  environment: "production",
-  created_on: "2026-09-24T10:00:00Z",
-  latest_stage: { name: "deploy", status: "success" },
-}
-const RELEASED = {
-  ...BASELINE,
-  id: "deployment-id",
-  url: "https://deployment.almamesh.pages.dev",
-  created_on: "2026-09-25T10:00:00Z",
-}
+const PREVIOUS_URL = "https://11111111.almamesh.pages.dev"
 
-function pagesListing(canonical: typeof BASELINE): string {
-  return JSON.stringify({ canonical, deployments: [RELEASED, BASELINE] })
-}
+describe("post-deploy live smoke", () => {
+  test("without a previous deployment only the fresh pass runs, and the proof says so loudly", async () => {
+    const events: string[] = []
+    const warn = spyOn(console, "warn").mockImplementation(() => undefined)
+    const result = await deliverProduction(failClosedPort(events), commitSha, "781", 3, centralSha)
+    expect(warn).toHaveBeenCalledWith(RETURNING_PASS_NOT_WIRED)
+    warn.mockRestore()
+    expect(events.at(-1)).toBe("live-smoke:fresh")
+    expect(result.liveProof).toContain(RETURNING_PASS_NOT_WIRED)
+    expect(RETURNING_PASS_NOT_WIRED).toContain("returning-visitor pass NOT RUN")
+  })
 
-function passingSmoke(): SmokeRun[] {
-  return [
-    { pass: "fresh", passed: true, output: "fresh ok" },
-    { pass: "returning", passed: true, output: "returning ok" },
-  ]
-}
-
-describe("post-deploy live smoke and automatic rollback", () => {
-  test("a failed smoke rolls production back to the pre-release deployment and fails loudly", async () => {
+  test("a supplied previous deployment is read before the upload and drives the returning pass", async () => {
     const events: string[] = []
     const port = failClosedPort(events)
-    const listings = [pagesListing(BASELINE), pagesListing(RELEASED), pagesListing(BASELINE)]
-    port.readPages = async () => {
-      events.push("read-pages")
-      return listings.shift() ?? ""
+    let smokedWith: string | undefined
+    port.previousProductionUrl = async () => {
+      events.push("previous-production")
+      return PREVIOUS_URL
     }
-    port.smokeLive = async () => {
-      events.push("live-smoke")
-      return [
-        { pass: "fresh", passed: true, output: "fresh ok" },
-        { pass: "returning", passed: false, output: "engine ready within 30000 ms" },
-      ]
+    const smoke = port.smokeLive
+    port.smokeLive = async (passes, previousUrl) => {
+      smokedWith = previousUrl
+      return smoke(passes, previousUrl)
     }
+
+    const result = await deliverProduction(port, commitSha, "781", 3, centralSha)
+    expect(events.indexOf("previous-production")).toBeLessThan(events.indexOf("deploy"))
+    expect(events.at(-1)).toBe("live-smoke:fresh,returning")
+    expect(smokedWith).toBe(PREVIOUS_URL)
+    expect(result.liveProof).toEndWith("Live smoke passed: fresh, returning")
+  })
+
+  test("a failed pass fails the delivery naming the pass and the live deployment", async () => {
+    const events: string[] = []
+    const port = failClosedPort(events)
+    port.smokeLive = async () => [{ pass: "fresh", passed: false, output: "engine ready within 30000 ms" }]
 
     const failure = deliverProduction(port, commitSha, "781", 3, centralSha)
-    await expect(failure).rejects.toThrow(
-      "Live smoke failed (returning); production rolled back from deployment-id to 11111111-1111-4111-8111-111111111111",
-    )
+    await expect(failure).rejects.toThrow("Live smoke failed (fresh) on deployment deployment-id")
     await expect(failure).rejects.toThrow("engine ready within 30000 ms")
-    expect(events.slice(-4)).toEqual([
-      "live-smoke",
-      "read-pages",
-      "rollback:11111111-1111-4111-8111-111111111111",
-      "read-pages",
-    ])
   })
 
-  test("a refused rollback still fails the delivery and never posts a rollback", async () => {
+  test("a requested pass that never reported is a failure, not a success", async () => {
     const events: string[] = []
     const port = failClosedPort(events)
-    port.smokeLive = async () => [
-      { pass: "fresh", passed: false, output: "worker refused" },
-      { pass: "returning", passed: true, output: "returning ok" },
-    ]
+    port.previousProductionUrl = async () => PREVIOUS_URL
+    port.smokeLive = async () => [{ pass: "fresh", passed: true, output: "fresh ok" }]
 
     await expect(deliverProduction(port, commitSha, "781", 3, centralSha)).rejects.toThrow(
-      "Live smoke failed (fresh); Automatic rollback refused: production now serves a deployment that is not this release",
-    )
-    expect(events.some((event) => event.startsWith("rollback"))).toBe(false)
-  })
-
-  test("a rollback that does not take effect fails loudly", async () => {
-    const events: string[] = []
-    const port = failClosedPort(events)
-    const listings = [pagesListing(BASELINE), pagesListing(RELEASED), pagesListing(RELEASED)]
-    port.readPages = async () => listings.shift() ?? ""
-    port.smokeLive = async () => [
-      { pass: "fresh", passed: false, output: "worker refused" },
-      { pass: "returning", passed: true, output: "returning ok" },
-    ]
-
-    await expect(deliverProduction(port, commitSha, "781", 3, centralSha)).rejects.toThrow(
-      "Live smoke failed (fresh); Automatic rollback refused: production still serves deployment-id",
+      "Live smoke failed (returning)",
     )
   })
 
-  test("a failed rollback request is reported with the smoke failure", async () => {
-    const events: string[] = []
-    const port = failClosedPort(events)
-    const listings = [pagesListing(BASELINE), pagesListing(RELEASED)]
-    port.readPages = async () => listings.shift() ?? ""
-    port.smokeLive = async () => [
-      { pass: "fresh", passed: false, output: "worker refused" },
-      { pass: "returning", passed: true, output: "returning ok" },
-    ]
-    port.rollbackTo = async () => {
-      throw new Error("Cloudflare Pages rollback failed with status 500")
-    }
-
-    await expect(deliverProduction(port, commitSha, "781", 3, centralSha)).rejects.toThrow(
-      "Live smoke failed (fresh); Cloudflare Pages rollback failed with status 500",
-    )
+  test("production changes go only through the central module: no repository code calls the Cloudflare API", () => {
+    const dir = join(import.meta.dir, "..", "dagger", "src")
+    const direct = readdirSync(dir).filter((name) => {
+      const source = readFileSync(join(dir, name), "utf8")
+      return source.includes("api.cloudflare.com") || source.includes("/rollback")
+    })
+    expect(direct).toEqual([])
   })
 
-  test("an unusable pre-release baseline stops delivery before the provider is touched", async () => {
-    const events: string[] = []
-    const port = failClosedPort(events)
-    port.readPages = async () => {
-      events.push("read-pages")
-      return pagesListing({ ...BASELINE, latest_stage: { name: "deploy", status: "failure" } })
-    }
-
-    await expect(deliverProduction(port, commitSha, "781", 3, centralSha)).rejects.toThrow(
-      "the live baseline is not a successful production deployment",
-    )
-    expect(events).not.toContain("deploy")
-  })
-
-  test("a smoke run that reports no passes is a failure, not a success", async () => {
-    const events: string[] = []
-    const port = failClosedPort(events)
+  test("an empty smoke report fails", async () => {
+    const port = failClosedPort([])
     port.smokeLive = async () => []
-
-    await expect(deliverProduction(port, commitSha, "781", 3, centralSha)).rejects.toThrow(
-      "Live smoke failed (fresh, returning)",
-    )
+    await expect(deliverProduction(port, commitSha, "781", 3, centralSha)).rejects.toThrow("Live smoke failed (fresh)")
   })
 })
 

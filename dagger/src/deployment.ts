@@ -1,11 +1,3 @@
-import {
-  parsePagesListing,
-  planRollback,
-  productionBaseline,
-  requireRolledBack,
-  type PagesDeployment,
-} from "./pagesRollback.js"
-
 const FULL_SHA = /^[0-9a-f]{40}$/
 const POSITIVE_INTEGER = /^[1-9][0-9]*$/
 
@@ -90,12 +82,19 @@ export interface DeliveryPort<Source, Artifact, Envelope, LazyEvidence, StoredEv
     evidence: GreenMainEvidence,
     provider: ProviderIdentity,
   ): Promise<string>
-  /** The Cloudflare Pages listing (live deployment + production deployments). */
-  readPages(): Promise<string>
-  /** Run every smoke pass; `previousUrl` is the pre-release deployment. */
-  smokeLive(previousUrl: string): Promise<SmokeRun[]>
-  rollbackTo(deploymentId: string): Promise<string>
+  /**
+   * URL of the production deployment live BEFORE this release, read before the
+   * upload. Absent until the central cloudflare-pages module exposes it; while
+   * absent the returning-visitor pass cannot run.
+   */
+  previousProductionUrl?(): Promise<string>
+  /** Run the given smoke passes against the live origin, in order. */
+  smokeLive(passes: readonly SmokePass[], previousUrl?: string): Promise<SmokeRun[]>
 }
+
+/** Logged and appended to the live proof whenever the returning pass is skipped. */
+export const RETURNING_PASS_NOT_WIRED =
+  "WARNING: live smoke returning-visitor pass NOT RUN: no previous production deployment URL (wired via the ci cloudflare-pages module in the stacked rollback PR)"
 
 export const PAGES_TARGET = Object.freeze({
   repository: "hseshadr/almamesh",
@@ -183,42 +182,27 @@ export async function deliverProduction<Source, Artifact, Envelope, LazyEvidence
   const artifact = await port.buildRelease(source, evidence)
   await port.verifyPreview(artifact, evidence)
   const envelope = await port.createEnvelope(artifact, identities, PAGES_TARGET.allowedRoots)
-  const baseline = productionBaseline(parsePagesListing(await port.readPages()))
+  const previousUrl = port.previousProductionUrl ? await port.previousProductionUrl() : undefined
   const lazyEvidence = port.deployPages(envelope, providerRequest(evidence, identities))
   const evidenceId = await port.evidenceId(lazyEvidence)
   const storedEvidence = port.reloadEvidence(evidenceId)
   const provider = await port.providerIdentity(storedEvidence, evidence)
   const liveProof = await port.verifyLive(artifact, evidence, provider)
-  const smoke = await port.smokeLive(baseline.url)
-  const failed = failedSmokePasses(smoke)
-  if (failed.length > 0) await rollBackFailedRelease(port, baseline, provider.deploymentId, failed, smoke)
-  return { ...provider, liveProof: `${liveProof}\nLive smoke passed: ${SMOKE_PASSES.join(", ")}` }
-}
-
-/** Passes that did not run green; a pass that never reported counts as failed. */
-export function failedSmokePasses(runs: readonly SmokeRun[]): SmokePass[] {
-  return SMOKE_PASSES.filter((pass) => !runs.some((run) => run.pass === pass && run.passed))
-}
-
-async function rollBackFailedRelease<S, A, E, L, T>(
-  port: DeliveryPort<S, A, E, L, T>,
-  baseline: PagesDeployment,
-  releasedId: string,
-  failed: readonly SmokePass[],
-  runs: readonly SmokeRun[],
-): Promise<never> {
-  const headline = `Live smoke failed (${failed.join(", ")})`
-  const detail = runs.filter((run) => !run.passed).map((run) => `--- ${run.pass} ---\n${run.output}`).join("\n")
-  let outcome: string
-  try {
-    const plan = planRollback(parsePagesListing(await port.readPages()), baseline, releasedId)
-    await port.rollbackTo(plan.to.id)
-    requireRolledBack(parsePagesListing(await port.readPages()), plan)
-    outcome = `production rolled back from ${plan.from} to ${plan.to.id}`
-  } catch (error) {
-    outcome = error instanceof Error ? error.message : String(error)
+  const passes: SmokePass[] = previousUrl === undefined ? ["fresh"] : [...SMOKE_PASSES]
+  if (previousUrl === undefined) console.warn(RETURNING_PASS_NOT_WIRED)
+  const smoke = await port.smokeLive(passes, previousUrl)
+  const failed = failedSmokePasses(passes, smoke)
+  if (failed.length > 0) {
+    const detail = smoke.filter((run) => !run.passed).map((run) => `--- ${run.pass} ---\n${run.output}`).join("\n")
+    throw new Error(`Live smoke failed (${failed.join(", ")}) on deployment ${provider.deploymentId}; it is still live\n${detail}`)
   }
-  throw new Error(`${headline}; ${outcome}\n${detail}`)
+  const notices = previousUrl === undefined ? [RETURNING_PASS_NOT_WIRED] : []
+  return { ...provider, liveProof: [liveProof, ...notices, `Live smoke passed: ${passes.join(", ")}`].join("\n") }
+}
+
+/** Requested passes that did not run green; a pass that never reported counts as failed. */
+export function failedSmokePasses(passes: readonly SmokePass[], runs: readonly SmokeRun[]): SmokePass[] {
+  return passes.filter((pass) => !runs.some((run) => run.pass === pass && run.passed))
 }
 
 export function liveVerificationScript(

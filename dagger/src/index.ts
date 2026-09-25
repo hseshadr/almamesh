@@ -14,7 +14,6 @@ import type { CloudflarePagesDeploymentEvidenceID, Platform } from "@dagger.io/d
 import { randomUUID } from "node:crypto"
 import {
   PAGES_TARGET,
-  SMOKE_PASSES,
   deliverProduction,
   indexNowScript as releaseIndexNowScript,
   liveVerificationScript as releaseLiveVerificationScript,
@@ -24,7 +23,6 @@ import {
   type SmokePass,
   type SmokeRun,
 } from "./deployment.js"
-import { pagesReadProgram, pagesRollbackProgram } from "./pagesRollback.js"
 
 const ROOT = "/workspace"
 const FRONTEND = `${ROOT}/frontend`
@@ -62,7 +60,6 @@ const SOURCE_EXCLUDES = [
 const CONTRACT_TESTS = [
   "tests/dagger-deployment-contract.test.ts",
   "tests/dagger-foundation-contract.test.ts",
-  "tests/dagger-rollback-contract.test.ts",
   "tests/dagger-workflow-contract.test.ts",
 ]
 const SMOKE_OUTPUT_LINES = 60
@@ -511,13 +508,7 @@ export class AlmameshCi {
       ),
       providerIdentity: async (provider, source) => this.providerIdentity(provider, source),
       verifyLive: async (artifact, evidence) => this.verifyReleased(artifact, evidence),
-      readPages: async () => this.readPages(cloudflareApiToken, cloudflareAccountId),
-      smokeLive: async (previousUrl) => this.liveSmoke(previousUrl),
-      rollbackTo: async (deploymentId) => this.rollbackPages(
-        cloudflareApiToken,
-        cloudflareAccountId,
-        deploymentId,
-      ),
+      smokeLive: async (passes, previousUrl) => this.liveSmoke(passes, previousUrl),
     }, expectedSha, workflowRunId, runAttempt, CENTRAL_MODULE_SHA)
     return [
       `Cloudflare Pages deployment verified: ${result.deploymentId} ${result.deploymentUrl}`,
@@ -857,9 +848,9 @@ ${commands.join("\n")}`])
       ],
     })
   }
-  private async liveSmoke(previousUrl: string): Promise<SmokeRun[]> {
+  private async liveSmoke(passes: readonly SmokePass[], previousUrl?: string): Promise<SmokeRun[]> {
     const runs: SmokeRun[] = []
-    for (const pass of SMOKE_PASSES) runs.push(await this.liveSmokePass(pass, previousUrl))
+    for (const pass of passes) runs.push(await this.liveSmokePass(pass, previousUrl))
     return runs
   }
   private async liveSmokePass(pass: SmokePass, previousUrl?: string): Promise<SmokeRun> {
@@ -876,24 +867,5 @@ ${commands.join("\n")}`])
     const [exitCode, stdout, stderr] = await Promise.all([run.exitCode(), run.stdout(), run.stderr()])
     const output = `${stdout}\n${stderr}`.split("\n").slice(-SMOKE_OUTPUT_LINES).join("\n")
     return { pass, passed: exitCode === 0, output }
-  }
-  private pagesApi(token: Secret, accountId: Secret): Container {
-    return dag
-      .container()
-      .from(BUN_IMAGE)
-      .withSecretVariable("CLOUDFLARE_API_TOKEN", token)
-      .withSecretVariable("CLOUDFLARE_ACCOUNT_ID", accountId)
-      .withEnvVariable("PAGES_API_REQUEST", randomUUID())
-  }
-  private async readPages(token: Secret, accountId: Secret): Promise<string> {
-    return (await this.pagesApi(token, accountId)
-      .withExec(["bun", "-e", pagesReadProgram()])
-      .stdout()).trim()
-  }
-  private async rollbackPages(token: Secret, accountId: Secret, deploymentId: string): Promise<string> {
-    return (await this.pagesApi(token, accountId)
-      .withEnvVariable("ROLLBACK_TARGET", deploymentId)
-      .withExec(["bun", "-e", pagesRollbackProgram()])
-      .stdout()).trim()
   }
 }
