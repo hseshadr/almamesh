@@ -2,6 +2,7 @@ import {
   CacheVolume,
   Container,
   Directory,
+  ReturnType,
   Secret,
   Service,
   Workspace,
@@ -10,15 +11,20 @@ import {
   object,
 } from "@dagger.io/dagger"
 import type { CloudflarePagesDeploymentEvidenceID, Platform } from "@dagger.io/dagger"
+import { randomUUID } from "node:crypto"
 import {
   PAGES_TARGET,
+  SMOKE_PASSES,
   deliverProduction,
   indexNowScript as releaseIndexNowScript,
   liveVerificationScript as releaseLiveVerificationScript,
   validateProviderEvidence,
   type GreenMainEvidence,
   type ProviderRequest,
+  type SmokePass,
+  type SmokeRun,
 } from "./deployment.js"
+import { pagesReadProgram, pagesRollbackProgram } from "./pagesRollback.js"
 
 const ROOT = "/workspace"
 const FRONTEND = `${ROOT}/frontend`
@@ -56,8 +62,10 @@ const SOURCE_EXCLUDES = [
 const CONTRACT_TESTS = [
   "tests/dagger-deployment-contract.test.ts",
   "tests/dagger-foundation-contract.test.ts",
+  "tests/dagger-rollback-contract.test.ts",
   "tests/dagger-workflow-contract.test.ts",
 ]
+const SMOKE_OUTPUT_LINES = 60
 
 interface ReleaseArtifact {
   dist: Directory
@@ -226,6 +234,13 @@ export class AlmameshCi {
   }
 
   private browserBase(browsers: string[]): Container {
+    return this.browserToolchain()
+      .withExec(["bash", "apps/web/scripts/setup-dev-assets.sh"])
+      .withWorkdir(WEB)
+      .withExec(["bun", "x", "playwright", "install", "--with-deps", ...browsers])
+  }
+
+  private browserToolchain(): Container {
     const bun = dag.container().from(BUN_IMAGE).file("/usr/local/bin/bun")
     return dag
       .container()
@@ -248,9 +263,6 @@ export class AlmameshCi {
       ])
       .withExec(this.edgeprocPinCheck())
       .withExec(["sh", BUN_INSTALLER])
-      .withExec(["bash", "apps/web/scripts/setup-dev-assets.sh"])
-      .withWorkdir(WEB)
-      .withExec(["bun", "x", "playwright", "install", "--with-deps", ...browsers])
   }
 
   private edgeprocPinCheck(): string[] {
@@ -499,6 +511,13 @@ export class AlmameshCi {
       ),
       providerIdentity: async (provider, source) => this.providerIdentity(provider, source),
       verifyLive: async (artifact, evidence) => this.verifyReleased(artifact, evidence),
+      readPages: async () => this.readPages(cloudflareApiToken, cloudflareAccountId),
+      smokeLive: async (previousUrl) => this.liveSmoke(previousUrl),
+      rollbackTo: async (deploymentId) => this.rollbackPages(
+        cloudflareApiToken,
+        cloudflareAccountId,
+        deploymentId,
+      ),
     }, expectedSha, workflowRunId, runAttempt, CENTRAL_MODULE_SHA)
     return [
       `Cloudflare Pages deployment verified: ${result.deploymentId} ${result.deploymentUrl}`,
@@ -513,6 +532,16 @@ export class AlmameshCi {
       .withDirectory("/artifact", artifact)
       .withEnvVariable("EXPECTED_SHA", expectedSha)
       .withExec(["bash", "-c", this.liveVerificationScript("/artifact")])
+  }
+  /**
+   * Scheduled fresh-visitor smoke against production (no credentials). Never
+   * cached: a remembered green would report a site that may have broken since.
+   */
+  @func({ cache: "never" })
+  async liveProbe(): Promise<string> {
+    const run = await this.liveSmokePass("fresh")
+    if (!run.passed) throw new Error(`Live probe failed (fresh) against ${LIVE_ORIGIN}\n${run.output}`)
+    return `Live probe passed (fresh) against ${LIVE_ORIGIN}\n${run.output}`
   }
   @func()
   web(): Directory {
@@ -827,5 +856,44 @@ ${commands.join("\n")}`])
         "--strictPort",
       ],
     })
+  }
+  private async liveSmoke(previousUrl: string): Promise<SmokeRun[]> {
+    const runs: SmokeRun[] = []
+    for (const pass of SMOKE_PASSES) runs.push(await this.liveSmokePass(pass, previousUrl))
+    return runs
+  }
+  private async liveSmokePass(pass: SmokePass, previousUrl?: string): Promise<SmokeRun> {
+    let runner = this.browserToolchain()
+      .withWorkdir(WEB)
+      .withExec(["bun", "x", "playwright", "install", "--with-deps", "chromium"])
+      .withEnvVariable("LIVE_SMOKE_ORIGIN", LIVE_ORIGIN)
+      .withEnvVariable("LIVE_SMOKE_RUN", randomUUID())
+    if (previousUrl !== undefined) runner = runner.withEnvVariable("LIVE_SMOKE_PREVIOUS_URL", previousUrl)
+    const run = runner.withExec(
+      ["bun", "run", "test:e2e:live-smoke", "--grep", `@${pass}`],
+      { expect: ReturnType.Any },
+    )
+    const [exitCode, stdout, stderr] = await Promise.all([run.exitCode(), run.stdout(), run.stderr()])
+    const output = `${stdout}\n${stderr}`.split("\n").slice(-SMOKE_OUTPUT_LINES).join("\n")
+    return { pass, passed: exitCode === 0, output }
+  }
+  private pagesApi(token: Secret, accountId: Secret): Container {
+    return dag
+      .container()
+      .from(BUN_IMAGE)
+      .withSecretVariable("CLOUDFLARE_API_TOKEN", token)
+      .withSecretVariable("CLOUDFLARE_ACCOUNT_ID", accountId)
+      .withEnvVariable("PAGES_API_REQUEST", randomUUID())
+  }
+  private async readPages(token: Secret, accountId: Secret): Promise<string> {
+    return (await this.pagesApi(token, accountId)
+      .withExec(["bun", "-e", pagesReadProgram()])
+      .stdout()).trim()
+  }
+  private async rollbackPages(token: Secret, accountId: Secret, deploymentId: string): Promise<string> {
+    return (await this.pagesApi(token, accountId)
+      .withEnvVariable("ROLLBACK_TARGET", deploymentId)
+      .withExec(["bun", "-e", pagesRollbackProgram()])
+      .stdout()).trim()
   }
 }

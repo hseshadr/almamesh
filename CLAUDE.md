@@ -68,6 +68,16 @@ This repo builds against `~/dev/project-ideas/oss/ENGINEERING-STANDARDS.md`
     dual-voice B/C checks self-skip unless the optional `OPENROUTER_API_KEY`
     repo secret is configured — a keyless nightly is still a green, honest run
     of the deterministic surface.
+  - **Live lane** (`playwright.live-smoke.config.ts`, `e2e/live/`): drives the
+    DEPLOYED origin, so no PR/nightly config can match it. Dagger `deploy` runs
+    both passes right after the live identity proof — `@fresh` (pristine
+    profile) and `@returning` (the pre-release production deployment's service
+    worker installed under the live origin via Playwright routing, then
+    upgraded) — each requiring engine boot within 30 s, a rendered chart, and a
+    clean console. A failure rolls production back to the deployment that was
+    live before the release (`dagger/src/pagesRollback.ts`, the only code that
+    calls the Cloudflare API) and fails the workflow. `live-probe.yml` runs
+    `@fresh` every 4 h; a red probe is a red repository.
 - **Release discipline:** Keep-a-Changelog + annotated tags, tag-forward-only.
   Tags start at v0.4.0 (v0.1.0–v0.3.0 were never cut; never backfill). Cut the
   tag at merged HEAD on main, never mid-PR.

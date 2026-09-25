@@ -92,6 +92,7 @@ describe("Dagger public orchestration contract", () => {
         "deploy",
         "deploy-dry-run",
         "frontend",
+        "live-probe",
         "nightly",
         "pdf",
         "privacy",
@@ -231,7 +232,17 @@ describe("canonical GitHub ingress contract", () => {
       "security-audit.yml",
       "nightly-e2e.yml",
       "deploy.yml",
+      "live-probe.yml",
     ]) expectThinDaggerIngress(name)
+  })
+
+  test("the scheduled live probe runs its native function read-only and without secrets", () => {
+    const source = workflowSource("live-probe.yml")
+    const on = workflow("live-probe.yml").on as Record<string, unknown>
+    expect(Object.keys(on).sort()).toEqual(["schedule", "workflow_dispatch"])
+    expect(source).toContain("args: live-probe")
+    expect(source).not.toContain("secrets.")
+    expect(workflow("live-probe.yml").permissions).toEqual({ contents: "read" })
   })
 
   test.each([

@@ -1,3 +1,11 @@
+import {
+  parsePagesListing,
+  planRollback,
+  productionBaseline,
+  requireRolledBack,
+  type PagesDeployment,
+} from "./pagesRollback.js"
+
 const FULL_SHA = /^[0-9a-f]{40}$/
 const POSITIVE_INTEGER = /^[1-9][0-9]*$/
 
@@ -48,6 +56,17 @@ export interface DeliveryResult extends ProviderIdentity {
   liveProof: string
 }
 
+/** The two post-deploy smoke passes, in the order they run. */
+export const SMOKE_PASSES = Object.freeze(["fresh", "returning"] as const)
+export type SmokePass = (typeof SMOKE_PASSES)[number]
+
+/** One Playwright smoke pass against the live origin. */
+export interface SmokeRun {
+  pass: SmokePass
+  passed: boolean
+  output: string
+}
+
 export interface DeliveryPort<Source, Artifact, Envelope, LazyEvidence, StoredEvidence> {
   greenMain(): Promise<string>
   bindSource(evidence: GreenMainEvidence): Promise<Source>
@@ -71,6 +90,11 @@ export interface DeliveryPort<Source, Artifact, Envelope, LazyEvidence, StoredEv
     evidence: GreenMainEvidence,
     provider: ProviderIdentity,
   ): Promise<string>
+  /** The Cloudflare Pages listing (live deployment + production deployments). */
+  readPages(): Promise<string>
+  /** Run every smoke pass; `previousUrl` is the pre-release deployment. */
+  smokeLive(previousUrl: string): Promise<SmokeRun[]>
+  rollbackTo(deploymentId: string): Promise<string>
 }
 
 export const PAGES_TARGET = Object.freeze({
@@ -159,12 +183,42 @@ export async function deliverProduction<Source, Artifact, Envelope, LazyEvidence
   const artifact = await port.buildRelease(source, evidence)
   await port.verifyPreview(artifact, evidence)
   const envelope = await port.createEnvelope(artifact, identities, PAGES_TARGET.allowedRoots)
+  const baseline = productionBaseline(parsePagesListing(await port.readPages()))
   const lazyEvidence = port.deployPages(envelope, providerRequest(evidence, identities))
   const evidenceId = await port.evidenceId(lazyEvidence)
   const storedEvidence = port.reloadEvidence(evidenceId)
   const provider = await port.providerIdentity(storedEvidence, evidence)
   const liveProof = await port.verifyLive(artifact, evidence, provider)
-  return { ...provider, liveProof }
+  const smoke = await port.smokeLive(baseline.url)
+  const failed = failedSmokePasses(smoke)
+  if (failed.length > 0) await rollBackFailedRelease(port, baseline, provider.deploymentId, failed, smoke)
+  return { ...provider, liveProof: `${liveProof}\nLive smoke passed: ${SMOKE_PASSES.join(", ")}` }
+}
+
+/** Passes that did not run green; a pass that never reported counts as failed. */
+export function failedSmokePasses(runs: readonly SmokeRun[]): SmokePass[] {
+  return SMOKE_PASSES.filter((pass) => !runs.some((run) => run.pass === pass && run.passed))
+}
+
+async function rollBackFailedRelease<S, A, E, L, T>(
+  port: DeliveryPort<S, A, E, L, T>,
+  baseline: PagesDeployment,
+  releasedId: string,
+  failed: readonly SmokePass[],
+  runs: readonly SmokeRun[],
+): Promise<never> {
+  const headline = `Live smoke failed (${failed.join(", ")})`
+  const detail = runs.filter((run) => !run.passed).map((run) => `--- ${run.pass} ---\n${run.output}`).join("\n")
+  let outcome: string
+  try {
+    const plan = planRollback(parsePagesListing(await port.readPages()), baseline, releasedId)
+    await port.rollbackTo(plan.to.id)
+    requireRolledBack(parsePagesListing(await port.readPages()), plan)
+    outcome = `production rolled back from ${plan.from} to ${plan.to.id}`
+  } catch (error) {
+    outcome = error instanceof Error ? error.message : String(error)
+  }
+  throw new Error(`${headline}; ${outcome}\n${detail}`)
 }
 
 export function liveVerificationScript(
