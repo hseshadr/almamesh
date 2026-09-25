@@ -265,9 +265,13 @@ function pwaPlugin(): Plugin[] {
       // Activation-time warm of the VERSIONED NetworkFirst fallback. This is not
       // a precache entry: /public.key must keep reaching the NetworkFirst route
       // online so key rotation and bundle-pointer updates stay paired.
-      importScripts: TRUST_KEY_CONFIG === null
-        ? []
-        : [TRUST_KEY_CONFIG, 'engine-trust-install.js'],
+      // precache-isolation-heal.js restamps precache entries cached before the
+      // app became cross-origin isolated; without it a returning visitor's
+      // chart Worker is refused under COEP and the engine never boots.
+      importScripts: [
+        ...(TRUST_KEY_CONFIG === null ? [] : [TRUST_KEY_CONFIG, 'engine-trust-install.js']),
+        'precache-isolation-heal.js',
+      ],
       // `wasm` covers the small hashed yoga-layout asset and the SQLite runtime
       // used by local semantic memory. The giant engine/model wasms stay out
       // via the directory globIgnores below (pyodide/**, models/**).
@@ -278,6 +282,7 @@ function pwaPlugin(): Plugin[] {
         '**/*.map',
         'engine-trust-install.js',
         'engine-trust-config-*.js',
+        'precache-isolation-heal.js',
         'public.key',
         'planets/**',
         // The self-hosted RAG embedding model + onnxruntime-web wasm (~25 MB).

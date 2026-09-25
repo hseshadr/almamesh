@@ -48,7 +48,9 @@ This repo builds against `~/dev/project-ideas/oss/ENGINEERING-STANDARDS.md`
 - **Playwright e2e tiering** (heavyweight suites split per §4, both lanes in CI):
   - **PR lane** (`dagger check`): native Dagger `browser`, `pdf`, and `privacy`
     checks compose the hooked exit gate, i18n, precache, Chromium/WebKit engine,
-    parity, real no-hooks onboarding/recovery, backup/reset, and report-PDF
+    parity, real no-hooks onboarding/recovery, returning-visitor engine boot
+    (`playwright.returning-visitor.config.ts`: a prior deploy's precache must
+    not stop the engine booting within 60 s), backup/reset, and report-PDF
     journeys. `.github/workflows/dagger.yml` is only the pinned GitHub trigger;
     `dagger/src/index.ts` is the portable gate contract.
   - **Service-worker update lane** (`playwright.sw-update.config.ts`): the only
